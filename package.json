@@ -1,0 +1,25 @@
+{
+  "name": "card_pages",
+  "version": "1.0.0",
+  "description": "This will be the future access point for kipukas qrcodes!",
+  "main": "app.js",
+  "scripts": {
+    "build": "postcss tailwind.css -o public/build/tailwind.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lah-rb/lah-rb.github.io.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lah-rb/lah-rb.github.io/issues"
+  },
+  "homepage": "https://github.com/lah-rb/lah-rb.github.io#readme",
+  "dependencies": {
+    "autoprefixer": "^9.8.6",
+    "postcss-cli": "^7.1.2",
+    "tailwindcss": "^1.8.10"
+  }
+}
