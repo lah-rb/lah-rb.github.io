@@ -1,5 +1,8 @@
+module Card exposing (main)
+
 import Browser
-import HTML exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (..)
 
 cardModel =
   {  name = "Ribbon Coco Drak"
@@ -13,10 +16,10 @@ view card =
   div [class "content"][
     h1 [][text cardModel.name]
   , ul [][
-       li[][cardModel.scarcity]
-    ,  li[][cardModel.description]
-    ,  li[][cardModel.play]
-    ,  li[][cardModel.body]
+       li[][text cardModel.scarcity]
+    ,  li[][text cardModel.description]
+    ,  li[][text cardModel.play]
+    ,  li[][text cardModel.body]
     ]
   ]
 
