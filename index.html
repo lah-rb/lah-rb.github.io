@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
-    <meta charset="utf-8">
-    <title>Card Binder</title>
+    <link rel="stylesheet" href="./src/build/tailwind.css">
   </head>
-  <body>
-    <a href="cards/ribbon_coco_drak">Ribbon Coco Drak</a>
+
+  <body class="bg-gray-900">
+      <div id="app"></div>
+
+      <script src="app.js"></script>
+      <script>
+        Elm.TailwindGroove.init({node: document.getElementById("app")});
+      </script>
   </body>
 </html>
