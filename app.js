@@ -5206,7 +5206,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$h1,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('sm:text-yellow-600 font-semibold font-serif text-center text-2xl lg:text-5xl')
+						$elm$html$Html$Attributes$class('sm:text-yellow-600 font-semibold font-serif text-center text-2xl md:text-5xl')
 					]),
 				_List_fromArray(
 					[
@@ -5216,7 +5216,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$img,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('sm:p-5 mx-auto lg:w-1/4 h-1/4'),
+						$elm$html$Html$Attributes$class('sm:p-5 mx-auto md:w-3/4 h-3/4 lg:w-1/4 h-1/4'),
 						$elm$html$Html$Attributes$src('pics/sunflower_center.png')
 					]),
 				_List_Nil),
@@ -5224,7 +5224,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$ul,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('sm:p-5 leading-10 mx-auto text-left lg:w-1/4')
+						$elm$html$Html$Attributes$class('sm:p-5 leading-10 mx-auto text-left md:w-3/4 lg:w-1/4')
 					]),
 				_List_fromArray(
 					[
