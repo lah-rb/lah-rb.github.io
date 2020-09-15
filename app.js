@@ -5337,7 +5337,7 @@ var $author$project$Card$view = function (card) {
 								$elm$html$Html$ul,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('text-center')
+										$elm$html$Html$Attributes$class('px-5')
 									]),
 								_List_fromArray(
 									[

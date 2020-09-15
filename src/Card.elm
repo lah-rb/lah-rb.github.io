@@ -21,7 +21,7 @@ view card =
          li[class "leading-snug p-2"][span[class "text-orange-400"][text "Scarcity: "], span[class "text-gray-700"][text cardModel.scarcity]]
       ,  li[class "leading-snug p-2"][span[class "text-orange-900"][text "History: "], p[class "text-gray-700"][text cardModel.description]]
       ,  li[class "leading-snug p-2"][span[class "text-pink-400"][text "Play Style: "], p[class "text-gray-700"][text cardModel.play]]
-      ,  li[class "leading-snug p-2"][span[class "text-red-600"][text "Weak Points: "], ul[class "text-center"][
+      ,  li[class "leading-snug p-2"][span[class "text-red-600"][text "Weak Points: "], ul[class "px-5"][
                   li[][span[class "text-gray-900"][text "Sub-critical - "], span[class "text-gray-700"][text cardModel.subCritical]]
                ,  li[][span[class "text-red-800"][text "Critical - "], span[class "text-gray-700"][text cardModel.critical]]
                ]
