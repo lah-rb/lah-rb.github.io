@@ -4355,7 +4355,7 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $author$project$Card$cardModel = {body: 'Sub Critical: ribbon, Critical: Energy Essence', description: 'Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled'};
+var $author$project$Card$cardModel = {critical: 'Energy Essence', description: 'Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled', subCritical: 'Ribbons'};
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5182,6 +5182,7 @@ var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$html$Html$Attributes$src = function (url) {
 	return A2(
@@ -5205,7 +5206,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$h1,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('text-yellow-600 font-semibold font-serif text-5xl text-center')
+						$elm$html$Html$Attributes$class('sm:text-yellow-600 font-semibold font-serif text-center text-2xl md:text-5xl')
 					]),
 				_List_fromArray(
 					[
@@ -5215,7 +5216,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$img,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('w-1/4 h-1/4 p-5 mx-auto'),
+						$elm$html$Html$Attributes$class('sm:p-5 mx-auto md:w-1/4 h-1/4'),
 						$elm$html$Html$Attributes$src('pics/sunflower_center.png')
 					]),
 				_List_Nil),
@@ -5223,13 +5224,16 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$ul,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('p-5 leading-10 mx-auto text-center w-1/4')
+						$elm$html$Html$Attributes$class('sm:p-5 leading-10 mx-auto text-left md:w-1/4')
 					]),
 				_List_fromArray(
 					[
 						A2(
 						$elm$html$Html$li,
-						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('leading-snug p-2')
+							]),
 						_List_fromArray(
 							[
 								A2(
@@ -5257,7 +5261,7 @@ var $author$project$Card$view = function (card) {
 						$elm$html$Html$li,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('leading-snug')
+								$elm$html$Html$Attributes$class('leading-snug p-2')
 							]),
 						_List_fromArray(
 							[
@@ -5272,7 +5276,7 @@ var $author$project$Card$view = function (card) {
 										$elm$html$Html$text('History: ')
 									])),
 								A2(
-								$elm$html$Html$span,
+								$elm$html$Html$p,
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$class('text-gray-700')
@@ -5284,7 +5288,10 @@ var $author$project$Card$view = function (card) {
 							])),
 						A2(
 						$elm$html$Html$li,
-						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('leading-snug p-2')
+							]),
 						_List_fromArray(
 							[
 								A2(
@@ -5298,7 +5305,7 @@ var $author$project$Card$view = function (card) {
 										$elm$html$Html$text('Play Style: ')
 									])),
 								A2(
-								$elm$html$Html$span,
+								$elm$html$Html$p,
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$class('text-gray-700')
@@ -5310,7 +5317,10 @@ var $author$project$Card$view = function (card) {
 							])),
 						A2(
 						$elm$html$Html$li,
-						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('leading-snug p-2')
+							]),
 						_List_fromArray(
 							[
 								A2(
@@ -5324,14 +5334,65 @@ var $author$project$Card$view = function (card) {
 										$elm$html$Html$text('Weak Points: ')
 									])),
 								A2(
-								$elm$html$Html$span,
+								$elm$html$Html$ul,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('text-gray-700')
+										$elm$html$Html$Attributes$class('text-center')
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text($author$project$Card$cardModel.body)
+										A2(
+										$elm$html$Html$li,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$span,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('text-gray-900')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Sub-critical - ')
+													])),
+												A2(
+												$elm$html$Html$span,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('text-gray-700')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text($author$project$Card$cardModel.subCritical)
+													]))
+											])),
+										A2(
+										$elm$html$Html$li,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$span,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('text-red-800')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Critical - ')
+													])),
+												A2(
+												$elm$html$Html$span,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('text-gray-700')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text($author$project$Card$cardModel.critical)
+													]))
+											]))
 									]))
 							]))
 					]))
