@@ -5,7 +5,7 @@ module.exports = {
   },
   purge: [],
   theme: {
-    extend: {},
+    extend: {colors:{gold:{old: '#cfb53b'}}},
   },
   variants: {},
   plugins: [],

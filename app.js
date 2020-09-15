@@ -4355,7 +4355,7 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $author$project$Card$cardModel = {body: 'Sub Critical: ribbon, Critical: Energy Essence', description: 'Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in an sacrificing death. This spirit has clocked itself with ribbons for a attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled'};
+var $author$project$Card$cardModel = {body: 'Sub Critical: ribbon, Critical: Energy Essence', description: 'Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled'};
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5180,7 +5180,15 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$ul = _VirtualDom_node('ul');
@@ -5189,20 +5197,34 @@ var $author$project$Card$view = function (card) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('content')
+				$elm$html$Html$Attributes$class('flex content-start flex-col')
 			]),
 		_List_fromArray(
 			[
 				A2(
 				$elm$html$Html$h1,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-yellow-600 font-semibold font-serif text-5xl text-center')
+					]),
 				_List_fromArray(
 					[
 						$elm$html$Html$text($author$project$Card$cardModel.name)
 					])),
 				A2(
+				$elm$html$Html$img,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('w-1/4 h-1/4 p-5 mx-auto'),
+						$elm$html$Html$Attributes$src('pics/sunflower_center.png')
+					]),
+				_List_Nil),
+				A2(
 				$elm$html$Html$ul,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('p-5 leading-10 mx-auto text-center w-1/4')
+					]),
 				_List_fromArray(
 					[
 						A2(
@@ -5210,28 +5232,107 @@ var $author$project$Card$view = function (card) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text($author$project$Card$cardModel.scarcity)
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-orange-400')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Scarcity: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text($author$project$Card$cardModel.scarcity)
+									]))
+							])),
+						A2(
+						$elm$html$Html$li,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('leading-snug')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-orange-900')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('History: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text($author$project$Card$cardModel.description)
+									]))
 							])),
 						A2(
 						$elm$html$Html$li,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text($author$project$Card$cardModel.description)
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-pink-400')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Play Style: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text($author$project$Card$cardModel.play)
+									]))
 							])),
 						A2(
 						$elm$html$Html$li,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text($author$project$Card$cardModel.play)
-							])),
-						A2(
-						$elm$html$Html$li,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text($author$project$Card$cardModel.body)
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-red-600')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Weak Points: ')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text($author$project$Card$cardModel.body)
+									]))
 							]))
 					]))
 			]));
