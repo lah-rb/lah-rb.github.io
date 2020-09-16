@@ -5206,7 +5206,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$h1,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('sm:text-yellow-600 font-semibold font-serif text-center text-2xl md:text-5xl')
+						$elm$html$Html$Attributes$class('sm:text-yellow-600 font-semibold font-serif text-center text-xl md:text-6xl')
 					]),
 				_List_fromArray(
 					[
@@ -5224,7 +5224,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$ul,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('sm:p-5 leading-10 mx-auto text-left md:w-3/4 lg:w-1/4')
+						$elm$html$Html$Attributes$class('sm:p-5 text-3xl leading-10 mx-auto text-left md:w-3/4 lg:w-1/4')
 					]),
 				_List_fromArray(
 					[
@@ -5232,7 +5232,7 @@ var $author$project$Card$view = function (card) {
 						$elm$html$Html$li,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('leading-snug p-2')
+								$elm$html$Html$Attributes$class('leading-snug py-2')
 							]),
 						_List_fromArray(
 							[
@@ -5261,7 +5261,7 @@ var $author$project$Card$view = function (card) {
 						$elm$html$Html$li,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('leading-snug p-2')
+								$elm$html$Html$Attributes$class('leading-snug py-2')
 							]),
 						_List_fromArray(
 							[
@@ -5290,7 +5290,7 @@ var $author$project$Card$view = function (card) {
 						$elm$html$Html$li,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('leading-snug p-2')
+								$elm$html$Html$Attributes$class('leading-snug py-2')
 							]),
 						_List_fromArray(
 							[
@@ -5319,7 +5319,7 @@ var $author$project$Card$view = function (card) {
 						$elm$html$Html$li,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('leading-snug p-2')
+								$elm$html$Html$Attributes$class('leading-snug py-2')
 							]),
 						_List_fromArray(
 							[
