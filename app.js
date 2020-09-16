@@ -4355,7 +4355,7 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $author$project$Card$cardModel = {critical: 'Energy Essence', description: 'Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled', subCritical: 'Ribbons'};
+var $author$project$Card$cardModel = {critical: 'Energy Essence', description: 'Coco spirits take the form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.', name: 'Ribbon Coco Drak', play: 'Requires taming.', scarcity: 'Unparalleled', subCritical: 'Ribbons'};
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5169,6 +5169,7 @@ var $elm$browser$Browser$sandbox = function (impl) {
 var $author$project$Card$update = function (model) {
 	return model;
 };
+var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5180,6 +5181,12 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$html$Html$p = _VirtualDom_node('p');
@@ -5395,6 +5402,17 @@ var $author$project$Card$view = function (card) {
 											]))
 									]))
 							]))
+					])),
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-5 py-3 my-1 bg-gray-600 shadow-xl text-white mx-auto rounded'),
+						$elm$html$Html$Attributes$href('../index.html')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Back to Binder')
 					]))
 			]));
 };

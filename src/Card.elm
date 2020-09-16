@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 cardModel =
   {  name = "Ribbon Coco Drak"
   ,  scarcity = "Unparalleled"
-  ,  description = "Coco spirits take form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world."
+  ,  description = "Coco spirits take the form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world."
   ,  play = "Requires taming."
   ,  subCritical = "Ribbons"
   ,  critical = "Energy Essence"
@@ -27,6 +27,7 @@ view card =
                ]
              ]
       ]
+    ,  a[class "px-5 py-3 my-1 bg-gray-600 shadow-xl text-white mx-auto rounded", href "../index.html"][text "Back to Binder"]
   ]
 
 update model = model
