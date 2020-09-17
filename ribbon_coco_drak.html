@@ -7,11 +7,28 @@
   </head>
 
   <body class="bg-gray-300">
-      <div id="app"></div>
-
-      <script src="app.js"></script>
-      <script>
-        Elm.Card.init({node: document.getElementById("app")});
-      </script>
+    <div class="flex content-start flex-col">
+        <h1 class="text-yellow-600 font-semibold font-serif text-center text-5xl">Ribbon Coco Drak</h1>
+        <img class="p-5 mx-auto md:w-3/4 lg:w-1/3" src="pics/sunflower_center.png"></img>
+        <ul class="p-5 text-4xl leading-10 mx-auto text-left md:w-3/4 md:text-2xl lg:w-1/3">
+            <li class="leading-snug py-2"><span class="text-orange-400">Scarcity: </span><span class="text-gray-700">Unparalleled</span></li>
+            <li class="leading-snug py-2">
+              <span class="text-orange-900">History: </span>
+              <p class="text-gray-700">
+                Coco spirits take the form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.
+              </p>
+            </li>
+            <li class="leading-snug py-2">
+              <span class="text-pink-400">Play Style: </span>
+              <p class="text-gray-700">Requires taming.</p>
+            </li>
+            <li class="leading-snug py-2"><span class="text-red-600">Weak Points: </span>
+            <ul class="px-5">
+              <li><span class="text-gray-900">Sub-critical - </span><span class="text-gray-700">Ribbons</span></li>
+              <li><span class="text-red-800">Critical - </span><span class="text-gray-700">Energy essence</span></li>
+            </ul>
+        </ul>
+        <a class="px-5 py-3 my-1 bg-gray-600 active:bg-gray-700 active:shadow-none hover:bg-gray-500 shadow text-white mx-auto rounded" href="index.html">Back to Binder</a>
+    </div>
   </body>
 </html>
