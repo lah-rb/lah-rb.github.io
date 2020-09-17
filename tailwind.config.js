@@ -1,12 +1,15 @@
 module.exports = {
   future: {
-    // removeDeprecatedGapUtilities: true,
-    // purgeLayersByDefault: true,
+    removeDeprecatedGapUtilities: true,
+    purgeLayersByDefault: true,
   },
   purge: [],
   theme: {
-    extend: {colors:{gold:{old: '#cfb53b'}}},
+    extend: {},
   },
-  variants: {},
+  variants: {
+    backgroundColor: ['responsive', 'focus', 'hover', 'active'],
+    boxShadow: ['responsive', 'focus', 'hover', 'active']
+  },
   plugins: [],
 }

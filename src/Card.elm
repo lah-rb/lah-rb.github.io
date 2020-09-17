@@ -27,7 +27,7 @@ view card =
                ]
              ]
       ]
-    ,  a[class "px-5 py-3 my-1 bg-gray-600 shadow-xl text-white mx-auto rounded", href "../index.html"][text "Back to Binder"]
+    ,  a[class "px-5 py-3 my-1 bg-gray-600 active:bg-gray-700 active:shadow-none hover:bg-gray-500 shadow text-white mx-auto rounded", href "../index.html"][text "Back to Binder"]
   ]
 
 update model = model

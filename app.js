@@ -5407,7 +5407,7 @@ var $author$project$Card$view = function (card) {
 				$elm$html$Html$a,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('px-5 py-3 my-1 bg-gray-600 shadow-xl text-white mx-auto rounded'),
+						$elm$html$Html$Attributes$class('px-5 py-3 my-1 bg-gray-600 active:bg-gray-700 hover:bg-gray-500 shadow-xl text-white mx-auto rounded'),
 						$elm$html$Html$Attributes$href('../index.html')
 					]),
 				_List_fromArray(
