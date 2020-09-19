@@ -1,9 +1,16 @@
 ---
 layout: default
-title: "Kipukas Binder"
+permalink: /
+title: "Binder"
 ---
 
 <body class="bg-gray-300">
   <h1 class="text-5xl font-semibold font-serif text-center text-green-400 my-5">Complete Kipukas Card Collection</h1>
-  <a class="bg-gray-600 hover:bg-gray-500 active:shadow-none active:bg-gray-700 py-3 px-5 rounded shadow mx-16 text-white" href="ribbon_coco_drak.html">Ribbon Coco Drak</a>
+  <ul>
+    {% for card in site.posts %}
+      <li>
+        <a class="bg-gray-600 inline-block hover:bg-gray-500 active:shadow-none active:bg-gray-700 py-3 px-5 rounded shadow-lg mx-16 text-white" href="{{card.url}}">{{card.title}}</a>
+      </li>
+    {% endfor %}
+  </ul>
 </body>
