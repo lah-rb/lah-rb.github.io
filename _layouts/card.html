@@ -1,80 +1,68 @@
-<!DOCTYPE html>
-<html lang="en-US">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta charset="utf-8">
-    <title>Ribbon Coco Drak • Kipukas</title>
-    <link rel="stylesheet" href="/assets/css/main.css">
-  </head>
-  <body class="bg-gray-100 font-mono pb-10">
-    <div class="flex">
+---
+layout: default
+---
+<div class="flex">
   <div class="hidden lg:block lg:w-1/2 lg:relative">
     <img class="object-cover object-center absolute inset-0 w-full h-screen xl:max-h-full"
-         src="/assets/images/sunflower_center.png"
-         alt="Glorious dragon spirit wraped in ribbons"></img>
+         src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
+         alt="{{ page.img_alt }}"></img>
   </div>
 
   <div class="flex-col py-10 md:py-16 lg:w-1/2 lg:pl-10 lg:bg-gray-200">
     <h1 class="text-teal-400 font-semibold text-center leading-none mb-4 text-5xl">
-      Ribbon Coco Drak
+      {{ page.title }}
     </h1>
     <img class="p-5 object-cover bg-gray-300 w-4/5 mx-auto lg:hidden"
-         src="/assets/images/sunflower_center.png"
-         alt="Glorious dragon spirit wraped in ribbons"></img>
+         src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
+         alt="{{ page.img_alt }}"></img>
     <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
         <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
           <br>
           <span class="text-gray-700">
-            Unparalleled
+            {{ page.scarcity }}
           </span>
         </li>
         <li class="leading-snug py-2"><span class="text-blue-600">Form: </span>
           <br>
           <span class="text-gray-700">
-            Spirit, synthetic, energized, invertebrate, horror, and angelic
+            {{ page.categories | array_to_sentence_string | capitalize}}
           </span>
         </li>
         <li class="leading-snug py-2">
           <span class="text-blue-600">History: </span>
           <p class="text-gray-700">
-            Coco spirits take the form of man in selfish death, beast in wrongful death, or a most powerful dragon in a sacrificing death. This spirit has clocked itself with ribbons for an attachment to the physical world.
+            {{ page.history }}
           </p>
         </li>
         <li class="leading-snug py-2">
           <span class="text-blue-600">Play Style: </span>
-          <p class="text-gray-700">Requires taming.</p>
+          <p class="text-gray-700">{{ page.play_style }}</p>
         </li>
         <li class="leading-snug py-2"><span class="text-blue-600">Weak Points: </span>
         <ul class="px-5">
           <li class="pb-2 px-2"><span class="text-gray-800">Sub-critical: </span>
             <br>
             <span class="text-gray-700">
-              
-                -Ribbon Lesser
+              {% for page in page.sub_critical %}
+                {{ page | prepend: "-" }}
                 <br>
-              
-                -Ribbon Greater
-                <br>
-              
+              {% endfor %}
             </span>
           </li>
           <li class="p-2"><span class="text-pink-900">Critical: </span>
             <br>
             <span class="text-gray-700">
-              
-                -Energy Essence
+              {% for page in page.critical %}
+                {{ page | prepend: "-" }}
                 <br>
-              
+              {% endfor %}
             </span>
           </li>
         </ul>
     </ul>
 
     <div class="flex">
-      <a class="text-center w-48 p-4 mx-auto bg-gray-300 active:shadow-inner inline-block hover:bg-gray-300 shadow-lg font-semibold text-blue-400 rounded" href="/">Back to Binder</a>
+      <a class="{{ site.btn-center }}" href="/">Back to Binder</a>
     </div>
   </div>
 </div>
-
-  </body>
-</html>
