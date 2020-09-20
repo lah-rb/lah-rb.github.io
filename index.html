@@ -5,11 +5,11 @@ title: "Binder"
 ---
 
 <body class="bg-gray-300">
-  <h1 class="text-5xl font-semibold font-serif text-center text-green-400 my-5">Complete Kipukas Card Collection</h1>
+  <h1 class="text-5xl font-semibold leading-tight font-serif text-center text-teal-400 my-5">Complete Kipukas Card Collection</h1>
   <ul>
     {% for card in site.posts %}
       <li>
-        <a class="bg-gray-600 inline-block hover:bg-gray-500 active:shadow-none active:bg-gray-700 py-3 px-5 rounded shadow-lg mx-16 text-white" href="{{card.url}}">{{card.title}}</a>
+        <a class="{{ site.btn-center }}" href="{{card.url}}">{{card.title}}</a>
       </li>
     {% endfor %}
   </ul>

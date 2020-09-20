@@ -1,3 +1,4 @@
 url: "https://kipukas.cards" # the base hostname & protocol for your site, e.g. http://example.com
 baseurl: "" # the subpath of your site, e.g. /blog
 title: "Kipukas" # the name of your site, e.g. ACME Corp.
+btn-center: text-center w-48 p-4 mx-auto bg-gray-300 active:shadow-inner inline-block hover:bg-gray-300 shadow-lg font-semibold text-blue-400 rounded
