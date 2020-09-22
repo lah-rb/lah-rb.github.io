@@ -25,7 +25,10 @@ layout: default
         <li class="leading-snug py-2"><span class="text-blue-600">Form: </span>
           <br>
           <span class="text-gray-700">
-            {{ page.categories | array_to_sentence_string | capitalize}}
+            {% for category in page.categories %}
+              {{ category | capitalize | prepend: "-"}}
+              <br>
+            {% endfor %}
           </span>
         </li>
         <li class="leading-snug py-2">
@@ -43,8 +46,8 @@ layout: default
           <li class="pb-2 px-2"><span class="text-gray-800">Sub-critical: </span>
             <br>
             <span class="text-gray-700">
-              {% for page in page.sub_critical %}
-                {{ page | prepend: "-" }}
+              {% for weakness in page.sub_critical %}
+                {{ weakness | prepend: "-" }}
                 <br>
               {% endfor %}
             </span>
@@ -52,8 +55,8 @@ layout: default
           <li class="p-2"><span class="text-pink-900">Critical: </span>
             <br>
             <span class="text-gray-700">
-              {% for page in page.critical %}
-                {{ page | prepend: "-" }}
+              {% for weakness in page.critical %}
+                {{ weakness | prepend: "-" }}
                 <br>
               {% endfor %}
             </span>
@@ -63,6 +66,10 @@ layout: default
 
     <div class="flex">
       <a class="{{ site.btn-center }}" href="/">Back to Binder</a>
+    </div>
+    <div class="content">
+      <p class="font-hairline text-sm mt-6">{{ page.promotion }}</p>
+      <p class="font-hairline text-xs">{{ page.promotion_conditions }}</p>
     </div>
   </div>
 </div>
