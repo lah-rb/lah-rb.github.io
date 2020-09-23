@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/lah-rb/lah-rb.github.io#readme",
   "dependencies": {
+    "@fullhuman/postcss-purgecss": "^3.0.0",
     "autoprefixer": "^9.8.6",
     "postcss": "^8.0.5",
     "postcss-cli": "^7.1.2",
