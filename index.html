@@ -23,7 +23,7 @@ bg-terra: "bg-hero-pattern "
     searchInput: document.getElementById('search-input'),
     resultsContainer: document.getElementById('results-container'),
     json: '/search.json',
-    searchResultTemplate: '{% for card in site.posts %}<li class="mx-auto my-3"><a class="{{ site.btn-center }}" href="{{ card.url }}"><img class="h-40 w-40" src="{{ "/assets/images/" | append: card.img_name | relative_url }}" alt="{{ card.img_alt }}"</img>{{ card.title }}</a></li>{% endfor %}',
+    searchResultTemplate: '<li class="mx-auto my-3"><a class="{{ site.btn-center }}" href="{url}"><img class="h-40 w-40" src="{{ site.url }}/assets/images/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
     noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
   })
 </script>

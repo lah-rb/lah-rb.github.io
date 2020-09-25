@@ -7,7 +7,9 @@
       "url" : "{{ site.baseurl | escape }}{{ card.url | escape }}",
       "caregories" : "{{ card.categories | join: ", " }}",
       "tags" : "{{ card.tags | join: ", " }}",
-      "scarcity" : "{{ card.scarcity }}"
+      "scarcity" : "{{ card.scarcity }}",
+      "img_name" : "{{ card.img_name }}",
+      "img_alt" : "{{ card.img_alt }}"
     }
     {% unless forloop.last %},{% endunless %}
   {% endfor %}
