@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "postcss assets/css/tailwind.css -o assets/css/main.css",
-    "build_production": "NODE_ENV=production postcss assets/css/tailwind.css -o assets/css/main.css"
+    "build_prod": "NODE_ENV=production postcss assets/css/tailwind.css -o assets/css/main.css"
   },
   "repository": {
     "type": "git",
