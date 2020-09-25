@@ -11,7 +11,10 @@ module.exports = {
     './_site/**.html',
   ],
   theme: {
-    extend: {},
+    extend: { backgroundImage: theme => ({
+      'hero-pattern': "url('/assets/images/topography.svg')",
+      'footer-texture': "url('/img/footer-texture.png')"})
+    },
   },
   variants: {
     backgroundColor: ['responsive', 'focus', 'hover', 'active'],
