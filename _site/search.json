@@ -5,7 +5,9 @@
       "url" : "/cursed_feather/",
       "caregories" : "item, spirit, synthetic",
       "tags" : "feather, spirit",
-      "scarcity" : "Grand Tribe"
+      "scarcity" : "Grand Tribe",
+      "img_name" : "cursed_feather.webp",
+      "img_alt" : "Dramatic black and white feather with an omnious aire"
     }
     ,
   
@@ -14,7 +16,9 @@
       "url" : "/ribbon_coco_drak/",
       "caregories" : "spirit, synthetic, energized, invertebrate, horror, angelic",
       "tags" : "dragon, ribbon",
-      "scarcity" : "Unparalleled"
+      "scarcity" : "Unparalleled",
+      "img_name" : "sunflower_center.webp",
+      "img_alt" : "Glorious dragon spirit wraped in ribbons"
     }
     
   
