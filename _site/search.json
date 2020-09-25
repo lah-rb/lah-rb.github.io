@@ -1,6 +1,15 @@
 [
   
     {
+      "title" : "Cursed Feather",
+      "url" : "/cursed_feather/",
+      "caregories" : "item, spirit, synthetic",
+      "tags" : "feather, spirit",
+      "scarcity" : "Grand Tribe"
+    }
+    ,
+  
+    {
       "title" : "Ribbon Coco Drak",
       "url" : "/ribbon_coco_drak/",
       "caregories" : "spirit, synthetic, energized, invertebrate, horror, angelic",
