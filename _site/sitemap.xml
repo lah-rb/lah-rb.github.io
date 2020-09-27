@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
-<loc>https://kipukas.cards/ribbon_coco_drak/</loc>
+<loc>http://localhost:4000/ribbon_coco_drak/</loc>
 <lastmod>2020-09-18T00:00:00-06:00</lastmod>
 </url>
 <url>
-<loc>https://kipukas.cards/cursed_feather/</loc>
+<loc>http://localhost:4000/cursed_feather/</loc>
 <lastmod>2020-09-25T00:00:00-06:00</lastmod>
 </url>
 <url>
-<loc>https://kipukas.cards/</loc>
+<loc>http://localhost:4000/</loc>
 </url>
 <url>
-<loc>https://kipukas.cards/html_code.html</loc>
+<loc>http://localhost:4000/html_code.html</loc>
 <lastmod>2020-09-27T12:44:00-06:00</lastmod>
 </url>
 </urlset>
