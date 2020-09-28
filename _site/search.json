@@ -1,6 +1,61 @@
 [
   
     {
+      "title" : "Stabilizer",
+      "url" : "/stabilizer/",
+      "caregories" : "item, glitch, electronic, synthetic",
+      "tags" : "electronic",
+      "scarcity" : "common",
+      "img_name" : "nvme.webp",
+      "img_alt" : "broken electronic drive spazing out."
+    }
+    ,
+  
+    {
+      "title" : "Sboi",
+      "url" : "/sboi/",
+      "caregories" : "algorithm, synthetic, endoskeleton, glitch, astral",
+      "tags" : "",
+      "scarcity" : "very rare",
+      "img_name" : "sunflower_center.webp",
+      "img_alt" : "digital dragon with a few spaztic issues"
+    }
+    ,
+  
+    {
+      "title" : "Meteor Shower",
+      "url" : "/meteor_shower/",
+      "caregories" : "territory",
+      "tags" : "weather",
+      "scarcity" : "common",
+      "img_name" : "meteor_shower.webp",
+      "img_alt" : "beautiful colorful meteors shooting across the sky"
+    }
+    ,
+  
+    {
+      "title" : "Lamp",
+      "url" : "/lamp/",
+      "caregories" : "item",
+      "tags" : "metal, spirit",
+      "scarcity" : "rare",
+      "img_name" : "lamp.webp",
+      "img_alt" : "geany lamp"
+    }
+    ,
+  
+    {
+      "title" : "Bear Trap",
+      "url" : "/bear_trap/",
+      "caregories" : "trap",
+      "tags" : "metal, ground",
+      "scarcity" : "common",
+      "img_name" : "bear_trap.webp",
+      "img_alt" : "laid bear trap ready to snap"
+    }
+    ,
+  
+    {
       "title" : "Cursed Feather",
       "url" : "/cursed_feather/",
       "caregories" : "item, spirit, synthetic",

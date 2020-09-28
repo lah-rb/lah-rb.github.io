@@ -790,6 +790,18 @@ video {
   text-align: center;
 }
 
+.text-gray-400 {
+  --text-opacity: 1;
+  color: #cbd5e0;
+  color: rgba(203, 213, 224, var(--text-opacity));
+}
+
+.text-gray-500 {
+  --text-opacity: 1;
+  color: #a0aec0;
+  color: rgba(160, 174, 192, var(--text-opacity));
+}
+
 .text-gray-700 {
   --text-opacity: 1;
   color: #4a5568;
