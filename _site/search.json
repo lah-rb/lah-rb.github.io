@@ -1,6 +1,17 @@
 [
   
     {
+      "title" : "Glitch Doctor",
+      "url" : "/glitch_doctor/",
+      "caregories" : "person, bio, energized, endoskeleton, glitch, horror",
+      "tags" : "",
+      "scarcity" : "special",
+      "img_name" : "sunflower_center.webp",
+      "img_alt" : "crazy electrified doc"
+    }
+    ,
+  
+    {
       "title" : "Stabilizer",
       "url" : "/stabilizer/",
       "caregories" : "item, glitch, electronic, synthetic",
