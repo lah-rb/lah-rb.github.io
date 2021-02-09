@@ -12,18 +12,15 @@ bg-terra: "bg-hero-pattern "
   <svg class="h-6 w-6 ml-auto my-auto" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="#4A5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
-  <input type="text" id="search-input" placeholder="Search the binder" class="mr-auto border-2 px-1 py-2 rounded-md w-3/4 md:w-2/3 lg:w-1/2 xl:w-1/3">
+  <a href="./search.html" class="bg-white mr-auto border-2 px-1 py-2 rounded-md w-3/4 md:w-2/3 lg:w-1/2 xl:w-1/3"><span class="text-gray-500">Search the binder</span></a>
 </div>
-<div id="search-container">
-  <ul id="results-container" class="flex flex-wrap"></ul>
+<div>
+  <ul class="flex flex-wrap">
+    {% assign posts = site.posts | sort:"title" %}
+    {% for card in posts %}
+      <li class="mx-auto my-3">
+        <a class="{{ site.btn-center }}" href="{{card.url}}"><img class="h-40 w-40" src="{{ site.url }}/assets/images/{{card.img_name}}" alt="{{card.img_alt}}"></img>{{card.title}}</a>
+      </li>
+    {% endfor %}
+ </ul>
 </div>
-<script type="text/javascript" src="search-script.js"></script>
-<script>
-  SimpleJekyllSearch({
-    searchInput: document.getElementById('search-input'),
-    resultsContainer: document.getElementById('results-container'),
-    json: '/search.json',
-    searchResultTemplate: '<li class="mx-auto my-3"><a class="{{ site.btn-center }}" href="{url}"><img class="h-40 w-40" src="{{ site.url }}/assets/images/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
-    noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
-  })
-</script>

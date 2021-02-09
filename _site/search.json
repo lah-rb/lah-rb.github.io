@@ -1,46 +1,36 @@
 [
   
+  
+    {
+      "title" : "Bear Trap",
+      "url" : "/bear-trap/",
+      "caregories" : "trap",
+      "tags" : "metal, ground",
+      "scarcity" : "common",
+      "img_name" : "bear_trap.webp",
+      "img_alt" : "laid bear trap ready to snap"
+    }
+    ,
+  
+    {
+      "title" : "Cursed Feather",
+      "url" : "/cursed-feather/",
+      "caregories" : "item, spirit, synthetic",
+      "tags" : "feather, spirit",
+      "scarcity" : "Grand Tribe",
+      "img_name" : "cursed_feather.webp",
+      "img_alt" : "Dramatic black and white feather with an omnious aire"
+    }
+    ,
+  
     {
       "title" : "Glitch Doctor",
-      "url" : "/glitch_doctor/",
+      "url" : "/glitch-doctor/",
       "caregories" : "person, bio, energized, endoskeleton, glitch, horror",
       "tags" : "",
       "scarcity" : "special",
       "img_name" : "sunflower_center.webp",
       "img_alt" : "crazy electrified doc"
-    }
-    ,
-  
-    {
-      "title" : "Stabilizer",
-      "url" : "/stabilizer/",
-      "caregories" : "item, glitch, electronic, synthetic",
-      "tags" : "electronic",
-      "scarcity" : "common",
-      "img_name" : "nvme.webp",
-      "img_alt" : "broken electronic drive spazing out."
-    }
-    ,
-  
-    {
-      "title" : "Sboi",
-      "url" : "/sboi/",
-      "caregories" : "algorithm, synthetic, endoskeleton, glitch, astral",
-      "tags" : "",
-      "scarcity" : "very rare",
-      "img_name" : "sunflower_center.webp",
-      "img_alt" : "digital dragon with a few spaztic issues"
-    }
-    ,
-  
-    {
-      "title" : "Meteor Shower",
-      "url" : "/meteor_shower/",
-      "caregories" : "territory",
-      "tags" : "weather",
-      "scarcity" : "common",
-      "img_name" : "meteor_shower.webp",
-      "img_alt" : "beautiful colorful meteors shooting across the sky"
     }
     ,
   
@@ -56,35 +46,46 @@
     ,
   
     {
-      "title" : "Bear Trap",
-      "url" : "/bear_trap/",
-      "caregories" : "trap",
-      "tags" : "metal, ground",
+      "title" : "Meteor Shower",
+      "url" : "/meteor-shower/",
+      "caregories" : "territory",
+      "tags" : "weather",
       "scarcity" : "common",
-      "img_name" : "bear_trap.webp",
-      "img_alt" : "laid bear trap ready to snap"
-    }
-    ,
-  
-    {
-      "title" : "Cursed Feather",
-      "url" : "/cursed_feather/",
-      "caregories" : "item, spirit, synthetic",
-      "tags" : "feather, spirit",
-      "scarcity" : "Grand Tribe",
-      "img_name" : "cursed_feather.webp",
-      "img_alt" : "Dramatic black and white feather with an omnious aire"
+      "img_name" : "meteor_shower.webp",
+      "img_alt" : "beautiful colorful meteors shooting across the sky"
     }
     ,
   
     {
       "title" : "Ribbon Coco Drak",
-      "url" : "/ribbon_coco_drak/",
+      "url" : "/ribbon-coco-drak/",
       "caregories" : "spirit, synthetic, energized, invertebrate, horror, angelic",
       "tags" : "dragon, ribbon",
       "scarcity" : "Unparalleled",
       "img_name" : "sunflower_center.webp",
       "img_alt" : "Glorious dragon spirit wraped in ribbons"
+    }
+    ,
+  
+    {
+      "title" : "Sboi",
+      "url" : "/sboi/",
+      "caregories" : "algorithm, synthetic, endoskeleton, glitch, astral",
+      "tags" : "",
+      "scarcity" : "very rare",
+      "img_name" : "sunflower_center.webp",
+      "img_alt" : "digital dragon with a few spaztic issues"
+    }
+    ,
+  
+    {
+      "title" : "Stabilizer",
+      "url" : "/stabilizer/",
+      "caregories" : "item, glitch, electronic, synthetic",
+      "tags" : "electronic",
+      "scarcity" : "common",
+      "img_name" : "nvme.webp",
+      "img_alt" : "broken electronic drive spazing out."
     }
     
   
