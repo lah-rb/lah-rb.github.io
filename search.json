@@ -1,7 +1,8 @@
 ---
 ---
 [
-  {% for card in site.posts %}
+  {% assign posts = site.posts | sort:"title" %}
+  {% for card in posts %}
     {
       "title" : "{{ card.title | escape }}",
       "url" : "{{ site.baseurl | escape }}{{ card.url | escape }}",
