@@ -62,6 +62,11 @@
   document.getElementById('search-input').focus();
   document.getElementById('search-input').select();
 </script>
+<script type="text/javascript">
+    document.addEventListener('keyup', (e) => {
+    if (e.code === "Escape")        document.location.href = 'index.html';
+  });
+</script>
 
   </body>
 </html>
