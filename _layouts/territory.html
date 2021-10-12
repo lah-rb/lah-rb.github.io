@@ -16,31 +16,22 @@ layout: default
          src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
          alt="{{ page.img_alt }}"></img>
     <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
-        <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
-          <br>
-          <span class="text-gray-700">
-            {{ page.scarcity }}
-          </span>
-        </li>
-        <li class="leading-snug py-2"><span class="text-blue-600">Form: </span>
-          <br>
-          <span class="text-gray-700">
-            {% for category in page.categories %}
-              {{ category | capitalize | prepend: "-"}}
-              <br>
-            {% endfor %}
-          </span>
-        </li>
-        <li class="leading-snug py-2">
-          <span class="text-blue-600">History: </span>
-          <p class="text-gray-700">
-            {{ page.description }}
-          </p>
-        </li>
-        <li class="leading-snug py-2">
-          <span class="text-blue-600">Play Style: </span>
-          <p class="text-gray-700">{{ page.play_style }}</p>
-        </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Play Style: </span>
+        <p class="text-gray-700">{{ page.play_style }}</p>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">History: </span>
+        <p class="text-gray-700">
+          {{ page.description }}
+        </p>
+      </li>
+      <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
+        <br>
+        <span class="text-gray-700">
+          {{ page.scarcity }}
+        </span>
+      </li>
     </ul>
     <div class="flex">
       <a class="{{ site.btn-center }}" href="/">Back to Binder</a>
