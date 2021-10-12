@@ -2,46 +2,46 @@
   
   
     {
-      "title" : "Bear Trap",
-      "url" : "/bear-trap/",
-      "caregories" : "trap",
-      "tags" : "metal, ground",
-      "scarcity" : "common",
-      "img_name" : "bear_trap.webp",
-      "img_alt" : "laid bear trap ready to snap"
+      "title" : "Avian Keeper&#39;s Den",
+      "url" : "/avian_keepers_den/",
+      "caregories" : "",
+      "tags" : "float, stone, creature, gate, sky",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "avian_keepers_den.png",
+      "img_alt" : "A palace floats amoung the skies where flying rays swirl about"
     }
     ,
   
     {
-      "title" : "Cursed Feather",
-      "url" : "/cursed-feather/",
-      "caregories" : "item, spirit, synthetic",
-      "tags" : "feather, spirit",
-      "scarcity" : "Grand Tribe",
-      "img_name" : "cursed_feather.webp",
-      "img_alt" : "Dramatic black and white feather with an omnious aire"
+      "title" : "Branwen: Mantillusion Practitioner",
+      "url" : "/branwen_mantillusion_practitioner/",
+      "caregories" : "",
+      "tags" : "praying_mantis, manits, illusion, mirror",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "branwen-mantillusion_practitioner.png",
+      "img_alt" : "Old man praying manits looking at you unnervingly"
     }
     ,
   
     {
-      "title" : "Glitch Doctor",
-      "url" : "/glitch-doctor/",
-      "caregories" : "person, bio, energized, endoskeleton, glitch, horror",
-      "tags" : "",
-      "scarcity" : "special",
-      "img_name" : "sunflower_center.webp",
-      "img_alt" : "crazy electrified doc"
+      "title" : "Hilbert: King of Avian Frogs",
+      "url" : "/hilbert_king_of_avian_frogs/",
+      "caregories" : "",
+      "tags" : "frog, king, staff, moon, bird, wings",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "hilbert-king_of_avian_frogs.png",
+      "img_alt" : "Majistic looking frog with wings perched on a branch stareing at you intently"
     }
     ,
   
     {
-      "title" : "Lamp",
-      "url" : "/lamp/",
-      "caregories" : "item",
-      "tags" : "metal, spirit",
-      "scarcity" : "rare",
-      "img_name" : "lamp.webp",
-      "img_alt" : "geany lamp"
+      "title" : "Liliel: Healing Fairy",
+      "url" : "/liliel_healing_fairy/",
+      "caregories" : "",
+      "tags" : "angelic, beautiful, healer, fairy, woman, sword",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "liliel-healing_fairy.png",
+      "img_alt" : "blonde light fairy with sword and alluring eyes"
     }
     ,
   
@@ -57,35 +57,57 @@
     ,
   
     {
-      "title" : "Ribbon Coco Drak",
-      "url" : "/ribbon-coco-drak/",
-      "caregories" : "spirit, synthetic, energized, invertebrate, horror, angelic",
-      "tags" : "dragon, ribbon",
-      "scarcity" : "Unparalleled",
-      "img_name" : "sunflower_center.webp",
-      "img_alt" : "Glorious dragon spirit wraped in ribbons"
+      "title" : "Mihela: Cleanser of Fields",
+      "url" : "/mihela_cleanser_of_fields/",
+      "caregories" : "",
+      "tags" : "death, grave, skull, fairy, woman, dagger",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "mihela-cleanser_of_fields.png",
+      "img_alt" : "grave yard fairy looking menacing and oddly attractive to some"
     }
     ,
   
     {
-      "title" : "Sboi",
-      "url" : "/sboi/",
-      "caregories" : "algorithm, synthetic, endoskeleton, glitch, astral",
-      "tags" : "",
-      "scarcity" : "very rare",
-      "img_name" : "sunflower_center.webp",
-      "img_alt" : "digital dragon with a few spaztic issues"
+      "title" : "Oshliath and Osileth",
+      "url" : "/oshliath_and_osileth/",
+      "caregories" : "",
+      "tags" : "dragon, pair, blue, night",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "oshliath_and_osileth.png",
+      "img_alt" : "Mother dragon watching over her resting pup"
     }
     ,
   
     {
-      "title" : "Stabilizer",
-      "url" : "/stabilizer/",
-      "caregories" : "item, glitch, electronic, synthetic",
-      "tags" : "electronic",
-      "scarcity" : "common",
-      "img_name" : "nvme.webp",
-      "img_alt" : "broken electronic drive spazing out."
+      "title" : "Palace of the Allele Sect",
+      "url" : "/palace_of_the_allele_sect/",
+      "caregories" : "",
+      "tags" : "mountain, nomad, lake, palace",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "palace_of_the_allele_sect.png",
+      "img_alt" : "Explorer gazing upon an almost icicle like palace nestled in a vally with a lake."
+    }
+    ,
+  
+    {
+      "title" : "Parched Traveler",
+      "url" : "/parched_traveler/",
+      "caregories" : "",
+      "tags" : "skeleton, traveler, desert, tatoo, sun",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "parched_traveler.png",
+      "img_alt" : "A man died, but like a chicken kept walking their path even after death."
+    }
+    ,
+  
+    {
+      "title" : "Shard&#39;s desert",
+      "url" : "/shards_desert/",
+      "caregories" : "",
+      "tags" : "desert, float, stones, arch",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "shards_desert.png",
+      "img_alt" : "Expansive desert with flying mystery creature and floating stones"
     }
     
   

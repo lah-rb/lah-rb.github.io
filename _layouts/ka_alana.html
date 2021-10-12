@@ -16,56 +16,52 @@ layout: default
          src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
          alt="{{ page.img_alt }}"></img>
     <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
-        <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Movement Range: </span>
+        <p class="text-gray-700">{{ page.movement }}</p>
+      </li>
+      <li class="leading-snug py-2"><span class="text-blue-600">Genetic Disposition: </span>
+        <p class="text-gray-700">
+          {{ page.genetic_disposition }}
+        </p>
+      </li>
+      <li class="leading-snug py-2"><span class="text-blue-600">Attack Points: </span>
           <br>
           <span class="text-gray-700">
-            {{ page.scarcity }}
-          </span>
-        </li>
-        <li class="leading-snug py-2"><span class="text-blue-600">Form: </span>
-          <br>
-          <span class="text-gray-700">
-            {% for category in page.categories %}
-              {{ category | capitalize | prepend: "-"}}
+            {% for weakness in page.critical %}
+              {{ weakness }}
               <br>
             {% endfor %}
           </span>
-        </li>
-        <li class="leading-snug py-2">
-          <span class="text-blue-600">History: </span>
-          <p class="text-gray-700">
-            {{ page.description }}
-          </p>
-        </li>
-        <li class="leading-snug py-2">
-          <span class="text-blue-600">Play Style: </span>
-          <p class="text-gray-700">{{ page.play_style }}</p>
-        </li>
-        <li class="leading-snug py-2">
-          <span class="text-blue-600">Brawl Power: </span>
-          <p class="text-gray-700">{{ page.brawl_sequence }}</p>
-        </li>
-        <li class="leading-snug py-2"><span class="text-blue-600">Weak Points: </span>
-        <ul class="px-5">
-          <li class="pb-2 px-2"><span class="text-gray-800">Sub-critical: </span>
-            <br>
-            <span class="text-gray-700">
-              {% for weakness in page.sub_critical %}
-                {{ weakness | prepend: "-" }}
-                <br>
-              {% endfor %}
-            </span>
-          </li>
-          <li class="p-2"><span class="text-pink-900">Critical: </span>
-            <br>
-            <span class="text-gray-700">
-              {% for weakness in page.critical %}
-                {{ weakness | prepend: "-" }}
-                <br>
-              {% endfor %}
-            </span>
-          </li>
-        </ul>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Injury Tolerance: </span>
+        <p class="text-gray-700">{{ page.injury_tolerance }}</p>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Play Style: </span>
+        <p class="text-gray-700">{{ page.play_style }}</p>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Brawl Power: </span>
+        <p class="text-gray-700">{{ page.brawl_sequence }}</p>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">Habitat: </span>
+        <p class="text-gray-700">{{ page.habitat }}</p>
+      </li>
+      <li class="leading-snug py-2">
+        <span class="text-blue-600">History: </span>
+        <p class="text-gray-700">
+          {{ page.description }}
+        </p>
+      </li>
+      <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
+        <br>
+        <span class="text-gray-700">
+          {{ page.scarcity }}
+        </span>
+      </li>
     </ul>
 
     <div class="flex">
