@@ -21,7 +21,7 @@ bg-terra: "bg-hero-pattern "
     {% assign posts = site.posts | sort:"title" %}
     {% for card in posts %}
       <li class="mx-auto my-3">
-        <a class="{{ site.btn-center }}" href="{{card.url}}"><img class="h-40 w-40" src="{{ site.url }}/assets/images/{{card.img_name}}" alt="{{card.img_alt}}"></img>{{card.title}}</a>
+        <a class="{{ site.btn-center }}" href="{{card.url}}"><img class="h-40 w-40" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}"></img>{{card.title}}</a>
       </li>
     {% endfor %}
  </ul>
