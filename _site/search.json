@@ -2,12 +2,23 @@
   
   
     {
+      "title" : "Allele Sect Explorer",
+      "url" : "/allele_sect_explorer/",
+      "caregories" : "",
+      "tags" : "skeleton, traveler, desert, tatoo, sun",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "allele_sect_explorer.webp",
+      "img_alt" : "A man with a long thin beard and blank eyes stares past your soul."
+    }
+    ,
+  
+    {
       "title" : "Avian Keeper&#39;s Den",
       "url" : "/avian_keepers_den/",
       "caregories" : "",
       "tags" : "float, stone, creature, gate, sky",
       "scarcity" : "Founder's Deck",
-      "img_name" : "avian_keepers_den.png",
+      "img_name" : "avian_keepers_den.webp",
       "img_alt" : "A palace floats amoung the skies where flying rays swirl about"
     }
     ,
@@ -18,8 +29,19 @@
       "caregories" : "",
       "tags" : "praying_mantis, manits, illusion, mirror",
       "scarcity" : "Founder's Deck",
-      "img_name" : "branwen-mantillusion_practitioner.png",
+      "img_name" : "branwen-mantillusion_practitioner.webp",
       "img_alt" : "Old man praying manits looking at you unnervingly"
+    }
+    ,
+  
+    {
+      "title" : "Feeding the Piffions",
+      "url" : "/feeding_the_piffions/",
+      "caregories" : "",
+      "tags" : "boat, lake, swamp, marsh, trees, maples, arch",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "feeding_the_piffions.webp",
+      "img_alt" : "A swampy lake scene silhouetted between japanese maples"
     }
     ,
   
@@ -29,7 +51,7 @@
       "caregories" : "",
       "tags" : "frog, king, staff, moon, bird, wings",
       "scarcity" : "Founder's Deck",
-      "img_name" : "hilbert-king_of_avian_frogs.png",
+      "img_name" : "hilbert-king_of_avian_frogs.webp",
       "img_alt" : "Majistic looking frog with wings perched on a branch stareing at you intently"
     }
     ,
@@ -40,7 +62,7 @@
       "caregories" : "",
       "tags" : "angelic, beautiful, healer, fairy, woman, sword",
       "scarcity" : "Founder's Deck",
-      "img_name" : "liliel-healing_fairy.png",
+      "img_name" : "liliel-healing_fairy.webp",
       "img_alt" : "blonde light fairy with sword and alluring eyes"
     }
     ,
@@ -48,10 +70,10 @@
     {
       "title" : "Meteor Shower",
       "url" : "/meteor-shower/",
-      "caregories" : "territory",
+      "caregories" : "",
       "tags" : "weather",
       "scarcity" : "common",
-      "img_name" : "meteor_shower.png",
+      "img_name" : "meteor_shower.webp",
       "img_alt" : "beautiful colorful meteors shooting across the sky"
     }
     ,
@@ -62,7 +84,7 @@
       "caregories" : "",
       "tags" : "death, grave, skull, fairy, woman, dagger",
       "scarcity" : "Founder's Deck",
-      "img_name" : "mihela-cleanser_of_fields.png",
+      "img_name" : "mihela-cleanser_of_fields.webp",
       "img_alt" : "grave yard fairy looking menacing and oddly attractive to some"
     }
     ,
@@ -73,7 +95,7 @@
       "caregories" : "",
       "tags" : "dragon, pair, blue, night",
       "scarcity" : "Founder's Deck",
-      "img_name" : "oshliath_and_osileth.png",
+      "img_name" : "oshliath_and_osileth.webp",
       "img_alt" : "Mother dragon watching over her resting pup"
     }
     ,
@@ -84,7 +106,7 @@
       "caregories" : "",
       "tags" : "mountain, nomad, lake, palace",
       "scarcity" : "Founder's Deck",
-      "img_name" : "palace_of_the_allele_sect.png",
+      "img_name" : "palace_of_the_allele_sect.webp",
       "img_alt" : "Explorer gazing upon an almost icicle like palace nestled in a vally with a lake."
     }
     ,
@@ -95,8 +117,19 @@
       "caregories" : "",
       "tags" : "skeleton, traveler, desert, tatoo, sun",
       "scarcity" : "Founder's Deck",
-      "img_name" : "parched_traveler.png",
+      "img_name" : "parched_traveler.webp",
       "img_alt" : "A man died, but like a chicken kept walking their path even after death."
+    }
+    ,
+  
+    {
+      "title" : "Passage Among Maples",
+      "url" : "/passage_among_maples/",
+      "caregories" : "",
+      "tags" : "boat, lake, swamp, marsh, trees, maples, arch",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "passage_among_maples.webp",
+      "img_alt" : "A swampy lake scene silhouetted between japanese maples"
     }
     ,
   
@@ -106,7 +139,7 @@
       "caregories" : "",
       "tags" : "desert, float, stones, arch",
       "scarcity" : "Founder's Deck",
-      "img_name" : "shards_desert.png",
+      "img_name" : "shards_desert.webp",
       "img_alt" : "Expansive desert with flying mystery creature and floating stones"
     }
     
