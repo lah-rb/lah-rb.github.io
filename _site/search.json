@@ -29,7 +29,7 @@
       "caregories" : "",
       "tags" : "praying_mantis, manits, illusion, mirror",
       "scarcity" : "Founder's Deck",
-      "img_name" : "branwen-mantillusion_practitioner.webp",
+      "img_name" : "branwen_mantillusion_practitioner.webp",
       "img_alt" : "Old man praying manits looking at you unnervingly"
     }
     ,
@@ -51,7 +51,7 @@
       "caregories" : "",
       "tags" : "frog, king, staff, moon, bird, wings",
       "scarcity" : "Founder's Deck",
-      "img_name" : "hilbert-king_of_avian_frogs.webp",
+      "img_name" : "hilbert_king_of_avian_frogs.webp",
       "img_alt" : "Majistic looking frog with wings perched on a branch stareing at you intently"
     }
     ,
@@ -62,14 +62,14 @@
       "caregories" : "",
       "tags" : "angelic, beautiful, healer, fairy, woman, sword",
       "scarcity" : "Founder's Deck",
-      "img_name" : "liliel-healing_fairy.webp",
+      "img_name" : "liliel_healing_fairy.webp",
       "img_alt" : "blonde light fairy with sword and alluring eyes"
     }
     ,
   
     {
       "title" : "Meteor Shower",
-      "url" : "/meteor-shower/",
+      "url" : "/meteor_shower/",
       "caregories" : "",
       "tags" : "weather",
       "scarcity" : "common",
@@ -84,7 +84,7 @@
       "caregories" : "",
       "tags" : "death, grave, skull, fairy, woman, dagger",
       "scarcity" : "Founder's Deck",
-      "img_name" : "mihela-cleanser_of_fields.webp",
+      "img_name" : "mihela_cleanser_of_fields.webp",
       "img_alt" : "grave yard fairy looking menacing and oddly attractive to some"
     }
     ,
