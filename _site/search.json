@@ -13,6 +13,17 @@
     ,
   
     {
+      "title" : "Artificer of the Salt Chancel",
+      "url" : "/artificer_of_the_salt_chancel/",
+      "caregories" : "",
+      "tags" : "wizard, sea, ocean, temple, sails, spirit, portal",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "artificer_of_the_salt_chancel.webp",
+      "img_alt" : "Four armed sea dog magistically floating above water"
+    }
+    ,
+  
+    {
       "title" : "Avian Keeper&#39;s Den",
       "url" : "/avian_keepers_den/",
       "caregories" : "",
@@ -46,6 +57,17 @@
     ,
   
     {
+      "title" : "Freezing of the Heart",
+      "url" : "/freezing_of_the_heart/",
+      "caregories" : "",
+      "tags" : "ice, heart, woman, sculpt, carve, frozen, atlantas",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "freezing_of_the_heart.webp",
+      "img_alt" : "Beautiful lady carving a heart"
+    }
+    ,
+  
+    {
       "title" : "Hilbert: King of Avian Frogs",
       "url" : "/hilbert_king_of_avian_frogs/",
       "caregories" : "",
@@ -53,6 +75,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "hilbert_king_of_avian_frogs.webp",
       "img_alt" : "Majistic looking frog with wings perched on a branch stareing at you intently"
+    }
+    ,
+  
+    {
+      "title" : "Honey",
+      "url" : "/honey/",
+      "caregories" : "",
+      "tags" : "honey, pot, bee, news",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "honey.webp",
+      "img_alt" : "Inticing pot of honey"
     }
     ,
   
@@ -72,7 +105,7 @@
       "url" : "/meteor_shower/",
       "caregories" : "",
       "tags" : "weather",
-      "scarcity" : "common",
+      "scarcity" : "Founder's Deck",
       "img_name" : "meteor_shower.webp",
       "img_alt" : "beautiful colorful meteors shooting across the sky"
     }
@@ -134,6 +167,28 @@
     ,
   
     {
+      "title" : "Plane Table Joker",
+      "url" : "/plane_table_joker/",
+      "caregories" : "",
+      "tags" : "clown, cards, joker, imp, evil",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "plane_table_joker.webp",
+      "img_alt" : "Scary joker sticks his tongue out at your face"
+    }
+    ,
+  
+    {
+      "title" : "Sboi: Threat++",
+      "url" : "/sboi_threat_plus_plus/",
+      "caregories" : "",
+      "tags" : "dragon, city, fire, tech, smoke, tower, electric, digital",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "sboi_threat_plus_plus.webp",
+      "img_alt" : "Awsome destruction!!!"
+    }
+    ,
+  
+    {
       "title" : "Shard&#39;s desert",
       "url" : "/shards_desert/",
       "caregories" : "",
@@ -141,6 +196,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "shards_desert.webp",
       "img_alt" : "Expansive desert with flying mystery creature and floating stones"
+    }
+    ,
+  
+    {
+      "title" : "To Catch a Spirit",
+      "url" : "/to_catch_a_spirit/",
+      "caregories" : "",
+      "tags" : "",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "to_catch_a_spirit.webp",
+      "img_alt" : "Yikes! Scary thing eating other scary things."
     }
     
   
