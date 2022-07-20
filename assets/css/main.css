@@ -461,7 +461,8 @@ textarea::placeholder {
   color: #a0aec0;
 }
 
-button {
+button,
+[role="button"] {
   cursor: pointer;
 }
 
@@ -816,10 +817,6 @@ video {
   --text-opacity: 1;
   color: #3182ce;
   color: rgba(49, 130, 206, var(--text-opacity));
-}
-
-.capitalize {
-  text-transform: capitalize;
 }
 
 .antialiased {
