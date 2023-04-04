@@ -46,13 +46,46 @@
     ,
   
     {
+      "title" : "Cartesian Sea",
+      "url" : "/cartesian_sea/",
+      "caregories" : "",
+      "tags" : "fish, castle, plane, cartesian, x, y, day, night",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "cartesian_sea.webp",
+      "img_alt" : "This is some pretty fishy math!"
+    }
+    ,
+  
+    {
+      "title" : "Cloth",
+      "url" : "/cloth/",
+      "caregories" : "",
+      "tags" : "retro, stack, cloth, fabric, tile",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "cloth.webp",
+      "img_alt" : "Such a soft cloth"
+    }
+    ,
+  
+    {
+      "title" : "Feathers",
+      "url" : "/feathers/",
+      "caregories" : "",
+      "tags" : "feather, bird, sky, down, float",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "feathers.webp",
+      "img_alt" : "floating bird lift, minus bird"
+    }
+    ,
+  
+    {
       "title" : "Feeding the Piffions",
       "url" : "/feeding_the_piffions/",
       "caregories" : "",
       "tags" : "boat, lake, swamp, marsh, trees, maples, arch",
       "scarcity" : "Founder's Deck",
       "img_name" : "feeding_the_piffions.webp",
-      "img_alt" : "A swampy lake scene silhouetted between japanese maples"
+      "img_alt" : "Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so."
     }
     ,
   
@@ -64,6 +97,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "freezing_of_the_heart.webp",
       "img_alt" : "Beautiful lady carving a heart"
+    }
+    ,
+  
+    {
+      "title" : "Frost Tipped Arctic Otter",
+      "url" : "/frost_tipped_arctic_otter/",
+      "caregories" : "",
+      "tags" : "otter, frost, snow, ice, artic, cold, stream",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "frost_tipped_arctic_otter.webp",
+      "img_alt" : "Sweet little face who looks cold"
     }
     ,
   
@@ -178,6 +222,28 @@
     ,
   
     {
+      "title" : "Pyrostegia Dragon",
+      "url" : "/pyrostegia_dragon/",
+      "caregories" : "",
+      "tags" : "flower, dragon, plant, fire, pyro, chinese",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "pyrostegia_dragon.webp",
+      "img_alt" : "Pretty garden in the shape of a dragon"
+    }
+    ,
+  
+    {
+      "title" : "Rooster: Calling of Light",
+      "url" : "/rooster_calling_of_light/",
+      "caregories" : "",
+      "tags" : "rooster, flower, plant, grass, light, calling",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "rooster_calling_of_light.webp",
+      "img_alt" : "Roosters are world renown as noble, honest, and brave. No bull, eat more cow."
+    }
+    ,
+  
+    {
       "title" : "Sboi: Threat++",
       "url" : "/sboi_threat_plus_plus/",
       "caregories" : "",
@@ -196,6 +262,61 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "shards_desert.webp",
       "img_alt" : "Expansive desert with flying mystery creature and floating stones"
+    }
+    ,
+  
+    {
+      "title" : "Sprite of Wilds Spirit",
+      "url" : "/sprite_of_wilds_spirit/",
+      "caregories" : "",
+      "tags" : "glowing, bear, fairy, staff, gold, plains, forest, riding, mount, stormy, cloudy",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "sprite_of_wilds_spirit.webp",
+      "img_alt" : "A golden bell, BA addition"
+    }
+    ,
+  
+    {
+      "title" : "Sticks",
+      "url" : "/sticks/",
+      "caregories" : "",
+      "tags" : "stick, sticks, pile, circle, black, white, grayscale",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "sticks.webp",
+      "img_alt" : "Sticks ordered in a circle, big foot maybe?"
+    }
+    ,
+  
+    {
+      "title" : "String",
+      "url" : "/string/",
+      "caregories" : "",
+      "tags" : "string, thread, cord, rope, needle, warhal",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "string.webp",
+      "img_alt" : "thread the needle, needle, needle needle, pop art"
+    }
+    ,
+  
+    {
+      "title" : "Tejas Curious Mech",
+      "url" : "/tejas_curious_mech/",
+      "caregories" : "",
+      "tags" : "robot, man, pieces, gears, lab, mechanic, engineer",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "tejas_curious_mech.webp",
+      "img_alt" : "Shoot, I hope I didn't break it. Where does this go?"
+    }
+    ,
+  
+    {
+      "title" : "Timebattle",
+      "url" : "/timebattle/",
+      "caregories" : "",
+      "tags" : "fish, time, battle, horse, dragon, imp, castle",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "timebattle.webp",
+      "img_alt" : "Horse, dragon, horse, horse, and imp. The battle wages... horse."
     }
     ,
   
