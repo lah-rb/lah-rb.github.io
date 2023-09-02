@@ -1,46 +1,21 @@
 ---
 layout: default
 ---
-<div class="flex">
-  <div class="hidden lg:block lg:w-1/2 lg:relative">
-    <img class="object-cover object-center absolute inset-0 w-full h-screen xl:max-h-full"
-         src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
-         alt="{{ page.img_alt }}"></img>
-  </div>
-
-  <div class="flex-col py-10 md:py-16 lg:w-1/2 lg:pl-10 lg:bg-gray-200">
-    <h1 class="text-teal-400 font-semibold text-center leading-none mb-4 text-4xl">
-      {{ page.title }}
-    </h1>
-    <img class="p-5 object-cover bg-gray-300 w-4/5 mx-auto lg:hidden"
-         src="{{ "/assets/images/" | append: page.img_name | relative_url }}"
-         alt="{{ page.img_alt }}"></img>
-    <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Card Variation: </span>
-        <p class="text-gray-700">{{ page.variation }}</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Play Style: </span>
-        <p class="text-gray-700">{{ page.play_style }}</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">History: </span>
-        <p class="text-gray-700">
-          {{ page.description }}
-        </p>
-      </li>
-      <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
-        <br>
-        <span class="text-gray-700">
-          {{ page.scarcity }}
-        </span>
-      </li>
-    </ul>
-    <div class="flex">
-      <a class="{{ site.btn-center }}" href="/">Back to Binder</a>
+<div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '{{ '/assets/images/' | append: page.img_name }}' )">
+  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+    <div class="flex flex-1 place-content-center w-screen h-fit">
+      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen">
+        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
+        {% include card_data_format.html data_title='uncrafted use' play_data=page.play_style %}
+        {% include card_data_format.html data_title='card variation' play_data=page.variation %}
+        {% include card_data_format.html data_title='Scarcity' play_data=page.scarcity %}
+        {% include card_data_format.html data_title='History' play_data=page.description %}
+        <div class="flex place-self-center">
+          <a class="{{ site.data.templates.btn-center-transparent }}" href="/">Back to Binder</a>
+        </div>
+        <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
+        <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
+      </div>
     </div>
-    <p class="font-hairline text-gray-500 text-center text-sm mt-6">{{ page.promotion }}</p>
-    <p class="font-hairline text-gray-400 text-center text-xs">{{ page.promotion_conditions }}</p>
   </div>
 </div>

@@ -1,0 +1,38 @@
+<div class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
+
+  <div class="flex flex-auto md:flex-none break-after-right md:break-after-avoid transition hover:scale-105 active:scale-100">
+    <a href="./" class="flex flex-1 place-content-center md:hidden h-28" x-transition.duration.300 x-show="terrab">
+      <img class="h-28" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+    </a>
+    <a href="./" class="hidden md:block h-32">
+      <img class="h-32" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+    </a>
+  </div>
+
+  {% if page.search %}
+    {% include {{ page.search }} %}
+  {% endif %}
+
+  <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
+    <a class="{{ site.data.templates.btn-center }}" href="./kipukas_2_player_domination.pdf">See the Rules</a>
+    <a class="{{ site.data.templates.btn-center }}" href="./about_the_binder">About the Binder</a>
+  </div>
+
+
+  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden" x-data="{ open: false }">
+    <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
+        <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
+        <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
+        <a href="./about_the_binder" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a>
+    </div>
+
+    <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
+        <span class="sr-only">Open main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'opacity-0': open } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500 ease-in-out" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
+        </div>
+    </button>
+  </div>
+</div>

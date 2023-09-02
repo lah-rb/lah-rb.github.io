@@ -1,19 +1,23 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
-  future: {
-    removeDeprecatedGapUtilities: true,
-    purgeLayersByDefault: true,
-  },
-  purge: [
-    './404.html',
-    './index.html',
-    './_layouts/**.html',
-    './_posts/**.html',
-    './_site/**.html',
+  content: [
+    './*.{html,js,yml}',
+    './_layouts/*.{html,js,yml}',
+    './_posts/*.{html,js,yml}',
+    './_data/*.{html,js,yml}',
+    './_includes/*.{html,js,yml}',
+    './sections/*.{html,js,yml}',
   ],
   theme: {
-    extend: { backgroundImage: theme => ({
-      'hero-pattern': "url('/assets/images/topography.svg')",
-      'footer-texture': "url('/img/footer-texture.png')"})
+    extend: {
+      backgroundImage: theme => ({
+      'hero-pattern': "url('/assets/images/topography.svg')"
+    }),
+      colors: {
+        'kip-red': '#9c2828',
+        'kip-drk-goldenrod': '#b87a19',
+        'kip-drk-sienna': '#341c17'
+      },
     },
   },
   variants: {
