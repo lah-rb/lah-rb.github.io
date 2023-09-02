@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <!-- Begin Jekyll SEO tag v2.7.1 -->
-<title>Plane Table Joker | Kipukas</title>
-<meta name="generator" content="Jekyll v4.2.0" />
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Plane Table Joker | Kipukas Card Binder</title>
+<meta name="generator" content="Jekyll v4.3.2" />
 <meta property="og:title" content="Plane Table Joker" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Don’t mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose." />
 <meta property="og:description" content="Don’t mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose." />
 <link rel="canonical" href="https://www.kipukas.cards/plane_table_joker/" />
 <meta property="og:url" content="https://www.kipukas.cards/plane_table_joker/" />
-<meta property="og:site_name" content="Kipukas" />
+<meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2022-06-07T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Plane Table Joker" />
 <script type="application/ld+json">
-{"description":"Don’t mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose.","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/plane_table_joker/"},"@type":"BlogPosting","url":"https://www.kipukas.cards/plane_table_joker/","headline":"Plane Table Joker","dateModified":"2022-06-07T00:00:00-06:00","datePublished":"2022-06-07T00:00:00-06:00","@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-06-07T00:00:00-06:00","datePublished":"2022-06-07T00:00:00-06:00","description":"Don’t mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose.","headline":"Plane Table Joker","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/plane_table_joker/"},"url":"https://www.kipukas.cards/plane_table_joker/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <title>Plane Table Joker • Kipukas</title>
-    <link rel="stylesheet" href="/assets/css/main.css">
+    <title>Plane Table Joker • Kipukas Card Binder</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
     <!--favicon code-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -33,99 +33,223 @@
     <link rel="shortcut icon" href="/favicon.ico?v=PYAAO2vamy">
     <meta name="apple-mobile-web-app-title" content="Kipukas">
     <meta name="application-name" content="Kipukas">
-    <meta name="msapplication-TileColor" content="#b91d47">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#ffffff">
 
 
   </head>
-  <body class="bg-gray-100 font-mono pb-10 antialiased h-screen m-0" onclick="">
-    <div class="flex">
-  <div class="hidden lg:block lg:w-1/2 lg:relative">
-    <img class="object-cover object-center absolute inset-0 w-full h-screen xl:max-h-full"
-         src="/assets/images/plane_table_joker.webp"
-         alt="Scary joker sticks his tongue out at your face"></img>
-  </div>
+  <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased">
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <div x-data="{ terrab: true }">
+      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
+      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/plane_table_joker.webp' )">
+  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+    <div class="flex flex-1 place-content-center w-screen h-fit">
+      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen">
+        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Plane Table Joker</p>
+        
+        <div x-data="{ play_data: false }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    Movement Range:  1
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+  </p>
+</div>
 
-  <div class="flex-col py-10 md:py-16 lg:w-1/2 lg:pl-10 lg:bg-gray-200">
-    <h1 class="text-teal-400 font-semibold text-center leading-none mb-4 text-4xl">
-      Plane Table Joker
-    </h1>
-    <img class="p-5 object-cover bg-gray-300 w-4/5 mx-auto lg:hidden"
-         src="/assets/images/plane_table_joker.webp"
-         alt="Scary joker sticks his tongue out at your face"></img>
-    <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Card Variation: </span>
-        <p class="text-gray-700">Species</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Movement Range: </span>
-        <p class="text-gray-700">1</p>
-      </li>
-      <li class="leading-snug py-2"><span class="text-blue-600">Gene: </span>
-        <p class="text-gray-700">
-          Cenozoic
-        </p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Motivation: </span>
-        <p class="text-gray-700">Satisfaction</p>
-      </li>
-      <li class="leading-snug py-2"><span class="text-blue-600">Keal Means: </span>
-          <br>
-          <span class="text-gray-700">
-            
-              Superficial Deck:
-              <br>
-            
-              synthetic
-              <br>
-            
-              Cringy nails:
-              <br>
-            
-              organic
-              <br>
-            
-          </span>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Keal Means Tolerance: </span>
-        <p class="text-gray-700">4</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Play Style: </span>
-        <p class="text-gray-700">Once introduced to the kipuka take your opponent's hand and combine it with your hand then shuffle. Lay all six cards face down. Take a card, then let your opponent take a card and repeat until you and your opponent have a full hand. Play the cards as your own. Rolls D6.</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Brawl Power: </span>
-        <p class="text-gray-700">hLwQ</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Habitat: </span>
-        <p class="text-gray-700">plains</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">History: </span>
-        <p class="text-gray-700">
-           Don't mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose. 
-        </p>
-      </li>
-      <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Cenozoic
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+       Once introduced to the kipuka take your opponent's hand and combine it with your hand then shuffle. Lay all six cards face down. Take a card, then let your opponent take a card and repeat until you and your opponent have a full hand. Play the cards as your own. 
+      
+      
+    
+  </p>
+</div>
+
+
+        
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      
+            Always Rolls: D6
+          
+      
+      
+    
+  </p>
+</div>
+
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Superficial Deck:
+      
+      
+    
+      Magic-Brutal
+      
         <br>
-        <span class="text-gray-700">
-          Founder's Deck
-        </span>
-      </li>
-    </ul>
+        
+        
+      Creeper face and nails:
+      
+      
+    
+      Cenozoic
+      
+        <br>
+        
+        
+  </p>
+</div>
 
-    <div class="flex">
-      <a class="text-center w-48 p-4 mx-auto bg-gray-300 active:shadow-inner inline-block hover:bg-gray-300 shadow-lg font-semibold text-blue-400 rounded" href="/">Back to Binder</a>
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Satisfaction
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      hLwQ
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      plains
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Species
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Founder's Deck
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+       Don't mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose. 
+      
+      
+    
+  </p>
+</div>
+
+        <div class="flex place-self-center">
+          <a class="text-center  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
+        </div>
+        <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+        <p class="font-hairline text-slate-300 text-xs italic"></p>
+      </div>
     </div>
-    <p class="font-hairline text-gray-500 text-sm mt-6"></p>
-    <p class="font-hairline text-gray-400 text-xs"></p>
   </div>
 </div>
 
+    </div>
   </body>
 </html>

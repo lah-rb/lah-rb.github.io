@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <!-- Begin Jekyll SEO tag v2.7.1 -->
-<title>Cloth | Kipukas</title>
-<meta name="generator" content="Jekyll v4.2.0" />
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Cloth | Kipukas Card Binder</title>
+<meta name="generator" content="Jekyll v4.3.2" />
 <meta property="og:title" content="Cloth" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="A ‘Disguise’: offers a ‘better’ chance to escape" />
 <meta property="og:description" content="A ‘Disguise’: offers a ‘better’ chance to escape" />
 <link rel="canonical" href="https://www.kipukas.cards/cloth/" />
 <meta property="og:url" content="https://www.kipukas.cards/cloth/" />
-<meta property="og:site_name" content="Kipukas" />
+<meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2023-03-13T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Cloth" />
 <script type="application/ld+json">
-{"description":"A ‘Disguise’: offers a ‘better’ chance to escape","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/cloth/"},"@type":"BlogPosting","url":"https://www.kipukas.cards/cloth/","headline":"Cloth","dateModified":"2023-03-13T00:00:00-06:00","datePublished":"2023-03-13T00:00:00-06:00","@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-03-13T00:00:00-06:00","datePublished":"2023-03-13T00:00:00-06:00","description":"A ‘Disguise’: offers a ‘better’ chance to escape","headline":"Cloth","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/cloth/"},"url":"https://www.kipukas.cards/cloth/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <title>Cloth • Kipukas</title>
-    <link rel="stylesheet" href="/assets/css/main.css">
+    <title>Cloth • Kipukas Card Binder</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
     <!--favicon code-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -33,55 +33,95 @@
     <link rel="shortcut icon" href="/favicon.ico?v=PYAAO2vamy">
     <meta name="apple-mobile-web-app-title" content="Kipukas">
     <meta name="application-name" content="Kipukas">
-    <meta name="msapplication-TileColor" content="#b91d47">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#ffffff">
 
 
   </head>
-  <body class="bg-gray-100 font-mono pb-10 antialiased h-screen m-0" onclick="">
-    <div class="flex">
-  <div class="hidden lg:block lg:w-1/2 lg:relative">
-    <img class="object-cover object-center absolute inset-0 w-full h-screen xl:max-h-full"
-         src="/assets/images/cloth.webp"
-         alt="Such a soft cloth"></img>
-  </div>
+  <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased">
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <div x-data="{ terrab: true }">
+      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
+      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/cloth.webp' )">
+  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+    <div class="flex flex-1 place-content-center w-screen h-fit">
+      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen">
+        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Cloth</p>
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    uncrafted use
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Add 1 to escape roll
+      
+      
+    
+  </p>
+</div>
 
-  <div class="flex-col py-10 md:py-16 lg:w-1/2 lg:pl-10 lg:bg-gray-200">
-    <h1 class="text-teal-400 font-semibold text-center leading-none mb-4 text-4xl">
-      Cloth
-    </h1>
-    <img class="p-5 object-cover bg-gray-300 w-4/5 mx-auto lg:hidden"
-         src="/assets/images/cloth.webp"
-         alt="Such a soft cloth"></img>
-    <ul class="p-5 text-xl w-4/5 lg:w-auto mx-auto leading-10 text-left md:text-2xl">
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Card Variation: </span>
-        <p class="text-gray-700">Item</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">Play Style: </span>
-        <p class="text-gray-700">Add 1 to escape roll</p>
-      </li>
-      <li class="leading-snug py-2">
-        <span class="text-blue-600">History: </span>
-        <p class="text-gray-700">
-          A 'Disguise': offers a 'better' chance to escape
-        </p>
-      </li>
-      <li class="leading-snug py-2"><span class="text-blue-600">Scarcity: </span>
-        <br>
-        <span class="text-gray-700">
-          Founder's Deck
-        </span>
-      </li>
-    </ul>
-    <div class="flex">
-      <a class="text-center w-48 p-4 mx-auto bg-gray-300 active:shadow-inner inline-block hover:bg-gray-300 shadow-lg font-semibold text-blue-400 rounded" href="/">Back to Binder</a>
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Item
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Founder's Deck
+      
+      
+    
+  </p>
+</div>
+
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+  <p class="capitalize" >
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      A 'Disguise': offers a 'better' chance to escape
+      
+      
+    
+  </p>
+</div>
+
+        <div class="flex place-self-center">
+          <a class="text-center  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
+        </div>
+        <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+        <p class="font-hairline text-slate-300 text-xs italic"></p>
+      </div>
     </div>
-    <p class="font-hairline text-gray-500 text-center text-sm mt-6"></p>
-    <p class="font-hairline text-gray-400 text-center text-xs"></p>
   </div>
 </div>
 
+    </div>
   </body>
 </html>

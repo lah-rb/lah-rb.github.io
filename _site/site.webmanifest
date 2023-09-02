@@ -1,15 +1,15 @@
 {
-    "name": "Kipukas",
+    "name": "Kipukas Card Binder",
     "short_name": "Kipukas",
     "icons": [
         {
-            "src": "/android-chrome-192x192.png?v=PYAAO2vamy",
+            "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/android-chrome-512x512.png?v=PYAAO2vamy",
-            "sizes": "512x512",
+            "src": "/android-chrome-384x384.png",
+            "sizes": "384x384",
             "type": "image/png"
         }
     ],

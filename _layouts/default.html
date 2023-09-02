@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
     <title>{{ page.title }} • {{ site.title }}</title>
-    <link rel="stylesheet" href="{{ "/assets/css/main.css" | relative_url }}">
+    <link rel="stylesheet" href="{{ "/assets/css/output.css" | relative_url }}">
     <!--favicon code-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -16,12 +16,17 @@
     <link rel="shortcut icon" href="/favicon.ico?v=PYAAO2vamy">
     <meta name="apple-mobile-web-app-title" content="Kipukas">
     <meta name="application-name" content="Kipukas">
-    <meta name="msapplication-TileColor" content="#b91d47">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#ffffff">
 
 
   </head>
-  <body class="{{page.bg-terra | append: "bg-gray-100 font-mono pb-10 antialiased h-screen m-0" }}" onclick="{{page.body-click}}">
-    {{ content }}
+  <body class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased" }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <div x-data="{ terrab: true }">
+      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
+      {{ content }}
+    </div>
   </body>
 </html>
