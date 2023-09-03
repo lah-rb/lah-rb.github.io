@@ -10,7 +10,7 @@ search: search_bar_link.html
 ---
 {% include header.html %}
 
-<ul class="flex flex-wrap md:px-3 md:gap-x-4">
+<ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">
   {% assign posts = site.posts | sort:"title" %}
   {% for card in posts %}
     <li class="mx-auto my-3">

@@ -1,0 +1,38 @@
+{
+    "theme_color": "#9b2c2c",
+    "background_color": "#f1f5f9",
+    "display": "fullscreen",
+    "scope": "/",
+    "start_url": "/",
+    "app_name": "Kipukas Card Binder",
+    "short_name": "The Binder",
+    "description": "Holds every card in the Kipukas collection",
+    "icons": [
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-256x256.png",
+            "sizes": "256x",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-384x384.png",
+            "sizes": "384x",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512x512.png",
+            "sizes": "512x",
+            "type": "image/png"
+        },
+        {
+            "src": "/maskable_icon.png",
+            "sizes": "512x",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
