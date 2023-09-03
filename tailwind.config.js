@@ -15,7 +15,8 @@ module.exports = {
     }),
       colors: {
         'kip-red': '#9c2828',
-        'kip-drk-goldenrod': '#b87a19',
+        'kip-goldenrod': '#b87a19',
+        'kip-drk-goldenrod': '#7A5015',
         'kip-drk-sienna': '#341c17'
       },
     },
