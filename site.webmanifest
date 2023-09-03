@@ -1,20 +1,52 @@
 {
     "name": "Kipukas Card Binder",
     "short_name": "Kipukas",
+    "theme_color": "#9b2c2c",
+    "background_color": "#f1f5f9",
+    "start_url": "https://www.kipukas.cards/",
+    "display": "standalone",
+    "app_name": "Kipukas Card Binder",
+    "short_name": "The Binder",
+    "description": "Holds every card in the Kipukas collection",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
+
         },
         {
             "src": "/android-chrome-384x384.png",
             "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
             "type": "image/png"
+        },
+        {
+            "src": "/icon-256x256.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/maskable_icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
         }
-    ],
-    "theme_color": "#ffffff",
-    "background_color": "#ffffff",
-    "start_url": "https://www.kipukas.cards",
-    "display": "standalone"
+    ]
 }
