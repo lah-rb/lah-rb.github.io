@@ -1,9 +1,9 @@
-<div x-data="{ play_data: {% if include.play_data != Nil %}true{% else %}false{% endif %} }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: {% if include.play_data != Nil %}true{% else %}false{% endif %} }" class="z-30 w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     {{ include.data_title }}
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-drk-sienna justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
     {% assign i = false %}
     {% for item in include.play_data %}

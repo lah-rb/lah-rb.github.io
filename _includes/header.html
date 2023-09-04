@@ -1,16 +1,20 @@
-<div class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
+<div x-data="{ open: false }" class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
 
-  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" x-transition.duration.300 x-show="terrab">
-    <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" x-transition.duration.300 x-show="terrab">
+  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
+    <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
       <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
   </div>
 
   <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
-    <a href="./" class="hidden md:block h-32 w-60">
+    <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
       <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
   </div>
+
+  {% unless page.search %}
+    <div class="flex-1"></div>
+  {% endunless %}
 
   {% if page.search %}
     {% include {{ page.search }} %}
@@ -22,7 +26,7 @@
   </div>
 
 
-  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden" x-data="{ open: false }">
+  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
     <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
         <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
         <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>

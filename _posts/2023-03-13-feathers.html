@@ -1,5 +1,5 @@
 ---
-layout: item
+layout: card
 variation: "Item"
 permalink: /feathers/
 redirect_from: /PhAU
@@ -12,3 +12,7 @@ Trap activates on 3,6,9. Opponent loses next turn"
 description: "Was something killed? Should I be cautious?"
 scarcity: "Founder's Deck"
 ---
+{% include card_data_format.html data_title='uncrafted use' play_data=page.play_style %}
+{% include card_data_format.html data_title='card variation' play_data=page.variation %}
+{% include card_data_format.html data_title='Scarcity' play_data=page.scarcity %}
+{% include card_data_format.html data_title='History' play_data=page.description %}
