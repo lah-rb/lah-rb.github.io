@@ -1,0 +1,48 @@
+---
+layout: default
+---
+<div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '{{ '/assets/images/' | append: page.img_name }}' )">
+  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+    <div class="flex flex-1 place-content-center w-screen h-fit">
+      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
+        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
+        {{ content }}
+        <div class="flex place-self-center">
+          <a class="{{ site.data.templates.btn-center-transparent }}" href="/">Back to Binder</a>
+        </div>
+        <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
+        <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if page.landscape %}
+  <div class="bg-hero-pattern place-content-center hidden lg:flex w-screen min-h-screen h-fit bg-fixed">
+    <img class="fixed h-screen object-none brightness-50 contrast-125 saturate-150" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}">
+    <div class="grid grid-cols-1 text-slate-200 text-justify leading-tight h-screen w-1/2 min-h-screen scroll-smooth">
+      <div class="flex-initial fixed inset-0 h-[888px] w-[1444px] invisible"></div>
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
+      {{ content }}
+      <div class="flex place-self-center">
+        <a class="{{ site.data.templates.btn-center-transparent }} z-30" href="/">Back to Binder</a>
+      </div>
+      <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
+      <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
+    </div>
+  </div>
+{% else %}
+  <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
+    <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}"></div>
+    <img class="fixed top-0 h-screen max-w-screen-md" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}">
+    <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
+      {{ content }}
+      <div class="flex place-self-center">
+        <a class="{{ site.data.templates.btn-center }}" href="/">Back to Binder</a>
+      </div>
+      <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
+      <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
+    </div>
+  </div>
+{% endif %}

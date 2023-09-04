@@ -1,21 +1,7 @@
 ---
-layout: default
+layout: card
 ---
-<div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '{{ '/assets/images/' | append: page.img_name }}' )">
-  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
-    <div class="flex flex-1 place-content-center w-screen h-fit">
-      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
-        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
-        {% include card_data_format.html data_title='entire game effect' play_data=page.play_style %}
-        {% include card_data_format.html data_title='card variation' play_data=page.variation %}
-        {% include card_data_format.html data_title='Scarcity' play_data=page.scarcity %}
-        {% include card_data_format.html data_title='History' play_data=page.description %}
-        <div class="flex place-self-center">
-          <a class="{{ site.data.templates.btn-center-transparent }}" href="/">Back to Binder</a>
-        </div>
-        <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
-        <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
-      </div>
-    </div>
-  </div>
-</div>
+{% include card_data_format.html data_title='entire game effect' play_data=page.play_style %}
+{% include card_data_format.html data_title='card variation' play_data=page.variation %}
+{% include card_data_format.html data_title='Scarcity' play_data=page.scarcity %}
+{% include card_data_format.html data_title='History' play_data=page.description %}

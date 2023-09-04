@@ -23,7 +23,6 @@
     <meta charset="utf-8">
     <title>Frost Tipped Arctic Otter • Kipukas Card Binder</title>
     <link rel="stylesheet" href="/assets/css/output.css">
-    <link rel="manifest" href="manifest.json" />
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -78,17 +77,17 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/frost_tipped_arctic_otter.webp' )">
+      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/frost_tipped_arctic_otter.webp' )">
   <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
     <div class="flex flex-1 place-content-center w-screen h-fit">
       <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
         <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Frost Tipped Arctic Otter</p>
         
-        <div x-data="{ play_data: false }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Movement Range:  1
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -96,11 +95,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     archetypal gene
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -112,11 +111,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     game effects
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -129,19 +128,19 @@
 </div>
 
 
-        
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     die rolls
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
     
       
-            Always Rolls: D6
-          
+    Always Rolls: D6
+  
       
       
     
@@ -149,11 +148,11 @@
 </div>
 
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -179,11 +178,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     motivation
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -195,11 +194,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     brawl power
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -211,11 +210,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Habitat
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -227,11 +226,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     card variation
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -243,11 +242,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Scarcity
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -259,11 +258,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     History
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -275,6 +274,7 @@
   </p>
 </div>
 
+
         <div class="flex place-self-center">
           <a class="text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
         </div>
@@ -284,6 +284,214 @@
     </div>
   </div>
 </div>
+
+
+  <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
+    <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold"></div>
+    <img class="fixed top-0 h-screen max-w-screen-md" src="/assets/images/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold">
+    <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Frost Tipped Arctic Otter</p>
+      
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Movement Range:  1
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Endothermic
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Will be wasted if it losses a keal means bout to a soul with the Cenozoic archetypal gene. Can donate 2 keal means at the cost of 1 keal means to itself.
+      
+      
+    
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      
+    Always Rolls: D6
+  
+      
+      
+    
+  </p>
+</div>
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Sharp Waxy Fur
+      
+      
+    
+      Endothermic
+      
+        <br>
+        
+        
+      Freezing Razor Teeth
+      
+      
+    
+      Endothermic-Arboreal
+      
+        <br>
+        
+        
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Survival
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      nqTG
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      mountain
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Species
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Founder's Deck
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      These creatures were created to harvest a special oil with an extreme smoke point. This oil secretes in large amounts from glandular pockets in the animal's skin and forms a cold waxy substance on its fur. While this creature was designed for humane harvest, many have started acquiring a taste for its fatty flesh.
+      
+      
+    
+  </p>
+</div>
+
+
+      <div class="flex place-self-center">
+        <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="/">Back to Binder</a>
+      </div>
+      <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+      <p class="font-hairline text-slate-300 text-xs italic"></p>
+    </div>
+  </div>
+
 
     </div>
   </body>

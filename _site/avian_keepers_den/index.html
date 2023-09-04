@@ -23,7 +23,6 @@
     <meta charset="utf-8">
     <title>Avian Keeper's Den • Kipukas Card Binder</title>
     <link rel="stylesheet" href="/assets/css/output.css">
-    <link rel="manifest" href="manifest.json" />
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -78,16 +77,16 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/avian_keepers_den.webp' )">
+      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/avian_keepers_den.webp' )">
   <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
     <div class="flex flex-1 place-content-center w-screen h-fit">
       <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
         <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Avian Keeper's Den</p>
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     game effects
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -99,11 +98,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     card variation
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -115,11 +114,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Scarcity
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -131,11 +130,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     History
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -147,6 +146,7 @@
   </p>
 </div>
 
+
         <div class="flex place-self-center">
           <a class="text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
         </div>
@@ -156,6 +156,86 @@
     </div>
   </div>
 </div>
+
+
+  <div class="bg-hero-pattern place-content-center hidden lg:flex w-screen min-h-screen h-fit bg-fixed">
+    <img class="fixed h-screen object-none brightness-50 contrast-125 saturate-150" src="/assets/images/avian_keepers_den.webp" alt="A palace floats amoung the skies where flying rays swirl about">
+    <div class="grid grid-cols-1 text-slate-200 text-justify leading-tight h-screen w-1/2 min-h-screen scroll-smooth">
+      <div class="flex-initial fixed inset-0 h-[888px] w-[1444px] invisible"></div>
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Avian Keeper's Den</p>
+      <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Acts as a prison for non-avian creatures. In order to imprison a soul, they must have only 1 injury before defeat and be in a territory touching the territory this feature is within. In order to take the prisoner, you must engaguge the enemy soul in a keal means bout with a card whose archetypal gene is avian. The card will be kept in prison until the territory is captured by the opposing player. Set the card aside out of play while imprisoned.
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Terrain Feature
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Founder's Deck
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves.
+      
+      
+    
+  </p>
+</div>
+
+
+      <div class="flex place-self-center">
+        <a class="text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded z-30" href="/">Back to Binder</a>
+      </div>
+      <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+      <p class="font-hairline text-slate-300 text-xs italic"></p>
+    </div>
+  </div>
+
 
     </div>
   </body>

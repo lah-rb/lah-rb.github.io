@@ -23,7 +23,6 @@
     <meta charset="utf-8">
     <title>Artificer of the Salt Chancel • Kipukas Card Binder</title>
     <link rel="stylesheet" href="/assets/css/output.css">
-    <link rel="manifest" href="manifest.json" />
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -78,17 +77,17 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/artificer_of_the_salt_chancel.webp' )">
+      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/artificer_of_the_salt_chancel.webp' )">
   <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
     <div class="flex flex-1 place-content-center w-screen h-fit">
       <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
         <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Artificer of the Salt Chancel</p>
         
-        <div x-data="{ play_data: false }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Movement Range:  1
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -96,11 +95,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     archetypal gene
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -112,11 +111,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     game effects
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -129,19 +128,19 @@
 </div>
 
 
-        
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     die rolls
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
     
       
-            Always Rolls: D20
-          
+    Always Rolls: D20
+  
       
       
     
@@ -149,11 +148,11 @@
 </div>
 
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -170,11 +169,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     motivation
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -186,11 +185,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     brawl power
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -202,11 +201,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Habitat
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -218,11 +217,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     card variation
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -234,11 +233,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Scarcity
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -250,11 +249,11 @@
   </p>
 </div>
 
-        <div x-data="{ play_data: true }" class="z-30 w-11/12 md:4/6 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     History
   </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-slate-200 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
   <p x-show="play_data" class="text-center">
     
@@ -266,6 +265,7 @@
   </p>
 </div>
 
+
         <div class="flex place-self-center">
           <a class="text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
         </div>
@@ -275,6 +275,205 @@
     </div>
   </div>
 </div>
+
+
+  <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
+    <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/artificer_of_the_salt_chancel.webp" alt="Four armed sea dog magistically floating above water"></div>
+    <img class="fixed top-0 h-screen max-w-screen-md" src="/assets/images/artificer_of_the_salt_chancel.webp" alt="Four armed sea dog magistically floating above water">
+    <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Artificer of the Salt Chancel</p>
+      
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Movement Range:  1
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Entropic
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      No additional effects
+      
+      
+    
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      
+    Always Rolls: D20
+  
+      
+      
+    
+  </p>
+</div>
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Power of Scrolls Four:
+      
+      
+    
+      Entropic-Astral-Brutal
+      
+        <br>
+        
+        
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Sacrifice
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      FuOw
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      water
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Species
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Founder's Deck
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+       The artificer of the salt chancel is no longer a person, through they remember when a past when it was so. They begin their end by sailing as explorers, tradesmen, or pilgrims. All who travel by sea may become the artificer if they find the misfortune to cross the chancel's path. No individual knows the role of the chancel, except for the artificer. Once the chancel meets people upon the seas, all who are unworthy of its purpose are torn from life to bind the soul to it. The unfortunate one who can serve its purpose better than the current artificer who becomes removed, imbued, and leaves disposed to never reveal the chancel's mission. 
+      
+      
+    
+  </p>
+</div>
+
+
+      <div class="flex place-self-center">
+        <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="/">Back to Binder</a>
+      </div>
+      <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+      <p class="font-hairline text-slate-300 text-xs italic"></p>
+    </div>
+  </div>
+
 
     </div>
   </body>

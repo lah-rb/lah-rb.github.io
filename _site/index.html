@@ -22,7 +22,6 @@
     <meta charset="utf-8">
     <title>Binder Home • Kipukas Card Binder</title>
     <link rel="stylesheet" href="/assets/css/output.css">
-    <link rel="manifest" href="manifest.json" />
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=PYAAO2vamy">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=PYAAO2vamy">
@@ -77,19 +76,21 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
+      <div x-data="{ open: false }" class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
 
-  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" x-transition.duration.300 x-show="terrab">
-    <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" x-transition.duration.300 x-show="terrab">
+  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
+    <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
       <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
   </div>
 
   <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
-    <a href="./" class="hidden md:block h-32 w-60">
+    <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
       <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
   </div>
+
+  
 
   
     <div class="flex flex-1 place-content-center place-self-center">
@@ -111,7 +112,7 @@
   </div>
 
 
-  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden" x-data="{ open: false }">
+  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
     <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
         <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
         <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
@@ -134,123 +135,123 @@
   
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/allele_sect_explorer/"><img class="h-40 w-40" src="/assets/thumbnails/allele_sect_explorer.webp" alt="A man with a long thin beard and blank eyes stares past your soul."></img>Allele Sect Explorer</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/allele_sect_explorer/"><img class="h-40 w-40" src="/assets/thumbnails/allele_sect_explorer.webp" alt="A man with a long thin beard and blank eyes stares past your soul." loading="lazy"></img>Allele Sect Explorer</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/artificer_of_the_salt_chancel/"><img class="h-40 w-40" src="/assets/thumbnails/artificer_of_the_salt_chancel.webp" alt="Four armed sea dog magistically floating above water"></img>Artificer of the Salt Chancel</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/artificer_of_the_salt_chancel/"><img class="h-40 w-40" src="/assets/thumbnails/artificer_of_the_salt_chancel.webp" alt="Four armed sea dog magistically floating above water" loading="lazy"></img>Artificer of the Salt Chancel</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/avian_keepers_den/"><img class="h-40 w-40" src="/assets/thumbnails/avian_keepers_den.webp" alt="A palace floats amoung the skies where flying rays swirl about"></img>Avian Keeper's Den</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/avian_keepers_den/"><img class="h-40 w-40" src="/assets/thumbnails/avian_keepers_den.webp" alt="A palace floats amoung the skies where flying rays swirl about" loading="lazy"></img>Avian Keeper's Den</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/branwen_mantillusion_practitioner/"><img class="h-40 w-40" src="/assets/thumbnails/branwen_mantillusion_practitioner.webp" alt="Old man praying manits looking at you unnervingly"></img>Branwen: Mantillusion Practitioner</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/branwen_mantillusion_practitioner/"><img class="h-40 w-40" src="/assets/thumbnails/branwen_mantillusion_practitioner.webp" alt="Old man praying manits looking at you unnervingly" loading="lazy"></img>Branwen: Mantillusion Practitioner</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cartesian_sea/"><img class="h-40 w-40" src="/assets/thumbnails/cartesian_sea.webp" alt="This is some pretty fishy math!"></img>Cartesian Sea</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cartesian_sea/"><img class="h-40 w-40" src="/assets/thumbnails/cartesian_sea.webp" alt="This is some pretty fishy math!" loading="lazy"></img>Cartesian Sea</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cloth/"><img class="h-40 w-40" src="/assets/thumbnails/cloth.webp" alt="Such a soft cloth"></img>Cloth</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cloth/"><img class="h-40 w-40" src="/assets/thumbnails/cloth.webp" alt="Such a soft cloth" loading="lazy"></img>Cloth</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feathers/"><img class="h-40 w-40" src="/assets/thumbnails/feathers.webp" alt="floating bird lift, minus bird"></img>Feathers</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feathers/"><img class="h-40 w-40" src="/assets/thumbnails/feathers.webp" alt="floating bird lift, minus bird" loading="lazy"></img>Feathers</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feeding_the_piffions/"><img class="h-40 w-40" src="/assets/thumbnails/feeding_the_piffions.webp" alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so."></img>Feeding the Piffions</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feeding_the_piffions/"><img class="h-40 w-40" src="/assets/thumbnails/feeding_the_piffions.webp" alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so." loading="lazy"></img>Feeding the Piffions</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/freezing_of_the_heart/"><img class="h-40 w-40" src="/assets/thumbnails/freezing_of_the_heart.webp" alt="Beautiful lady carving a heart"></img>Freezing of the Heart</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/freezing_of_the_heart/"><img class="h-40 w-40" src="/assets/thumbnails/freezing_of_the_heart.webp" alt="Beautiful lady carving a heart" loading="lazy"></img>Freezing of the Heart</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/frost_tipped_arctic_otter/"><img class="h-40 w-40" src="/assets/thumbnails/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold"></img>Frost Tipped Arctic Otter</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/frost_tipped_arctic_otter/"><img class="h-40 w-40" src="/assets/thumbnails/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold" loading="lazy"></img>Frost Tipped Arctic Otter</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/hilbert_king_of_avian_frogs/"><img class="h-40 w-40" src="/assets/thumbnails/hilbert_king_of_avian_frogs.webp" alt="Majistic looking frog with wings perched on a branch stareing at you intently"></img>Hilbert: King of Avian Frogs</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/hilbert_king_of_avian_frogs/"><img class="h-40 w-40" src="/assets/thumbnails/hilbert_king_of_avian_frogs.webp" alt="Majistic looking frog with wings perched on a branch stareing at you intently" loading="lazy"></img>Hilbert: King of Avian Frogs</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/honey/"><img class="h-40 w-40" src="/assets/thumbnails/honey.webp" alt="Inticing pot of honey"></img>Honey</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/honey/"><img class="h-40 w-40" src="/assets/thumbnails/honey.webp" alt="Inticing pot of honey" loading="lazy"></img>Honey</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/liliel_healing_fairy/"><img class="h-40 w-40" src="/assets/thumbnails/liliel_healing_fairy.webp" alt="blonde light fairy with sword and alluring eyes"></img>Liliel: Healing Fairy</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/liliel_healing_fairy/"><img class="h-40 w-40" src="/assets/thumbnails/liliel_healing_fairy.webp" alt="blonde light fairy with sword and alluring eyes" loading="lazy"></img>Liliel: Healing Fairy</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/meteor_shower/"><img class="h-40 w-40" src="/assets/thumbnails/meteor_shower.webp" alt="beautiful colorful meteors shooting across the sky"></img>Meteor Shower</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/meteor_shower/"><img class="h-40 w-40" src="/assets/thumbnails/meteor_shower.webp" alt="beautiful colorful meteors shooting across the sky" loading="lazy"></img>Meteor Shower</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/mihela_cleanser_of_fields/"><img class="h-40 w-40" src="/assets/thumbnails/mihela_cleanser_of_fields.webp" alt="grave yard fairy looking menacing and oddly attractive to some"></img>Mihela: Cleanser of Fields</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/mihela_cleanser_of_fields/"><img class="h-40 w-40" src="/assets/thumbnails/mihela_cleanser_of_fields.webp" alt="grave yard fairy looking menacing and oddly attractive to some" loading="lazy"></img>Mihela: Cleanser of Fields</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/oshliath_and_osileth/"><img class="h-40 w-40" src="/assets/thumbnails/oshliath_and_osileth.webp" alt="Mother dragon watching over her resting pup"></img>Oshliath and Osileth</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/oshliath_and_osileth/"><img class="h-40 w-40" src="/assets/thumbnails/oshliath_and_osileth.webp" alt="Mother dragon watching over her resting pup" loading="lazy"></img>Oshliath and Osileth</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/palace_of_the_allele_sect/"><img class="h-40 w-40" src="/assets/thumbnails/palace_of_the_allele_sect.webp" alt="Explorer gazing upon an almost icicle like palace nestled in a vally with a lake."></img>Palace of the Allele Sect</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/palace_of_the_allele_sect/"><img class="h-40 w-40" src="/assets/thumbnails/palace_of_the_allele_sect.webp" alt="Explorer gazing upon an almost icicle like palace nestled in a vally with a lake." loading="lazy"></img>Palace of the Allele Sect</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/parched_traveler/"><img class="h-40 w-40" src="/assets/thumbnails/parched_traveler.webp" alt="A man died, but like a chicken kept walking their path even after death."></img>Parched Traveler</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/parched_traveler/"><img class="h-40 w-40" src="/assets/thumbnails/parched_traveler.webp" alt="A man died, but like a chicken kept walking their path even after death." loading="lazy"></img>Parched Traveler</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/passage_among_maples/"><img class="h-40 w-40" src="/assets/thumbnails/passage_among_maples.webp" alt="A swampy lake scene silhouetted between japanese maples"></img>Passage Among Maples</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/passage_among_maples/"><img class="h-40 w-40" src="/assets/thumbnails/passage_among_maples.webp" alt="A swampy lake scene silhouetted between japanese maples" loading="lazy"></img>Passage Among Maples</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/plane_table_joker/"><img class="h-40 w-40" src="/assets/thumbnails/plane_table_joker.webp" alt="Scary joker sticks his tongue out at your face"></img>Plane Table Joker</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/plane_table_joker/"><img class="h-40 w-40" src="/assets/thumbnails/plane_table_joker.webp" alt="Scary joker sticks his tongue out at your face" loading="lazy"></img>Plane Table Joker</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/pyrostegia_dragon/"><img class="h-40 w-40" src="/assets/thumbnails/pyrostegia_dragon.webp" alt="Pretty garden in the shape of a dragon"></img>Pyrostegia Dragon</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/pyrostegia_dragon/"><img class="h-40 w-40" src="/assets/thumbnails/pyrostegia_dragon.webp" alt="Pretty garden in the shape of a dragon" loading="lazy"></img>Pyrostegia Dragon</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/rooster_calling_of_light/"><img class="h-40 w-40" src="/assets/thumbnails/rooster_calling_of_light.webp" alt="Roosters are world renown as noble, honest, and brave. No bull, eat more cow."></img>Rooster: Calling of Light</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/rooster_calling_of_light/"><img class="h-40 w-40" src="/assets/thumbnails/rooster_calling_of_light.webp" alt="Roosters are world renown as noble, honest, and brave. No bull, eat more cow." loading="lazy"></img>Rooster: Calling of Light</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sboi_threat_plus_plus/"><img class="h-40 w-40" src="/assets/thumbnails/sboi_threat_plus_plus.webp" alt="Awsome destruction!!!"></img>Sboi: Threat++</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sboi_threat_plus_plus/"><img class="h-40 w-40" src="/assets/thumbnails/sboi_threat_plus_plus.webp" alt="Awsome destruction!!!" loading="lazy"></img>Sboi: Threat++</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/shards_desert/"><img class="h-40 w-40" src="/assets/thumbnails/shards_desert.webp" alt="Expansive desert with flying mystery creature and floating stones"></img>Shard's desert</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/shards_desert/"><img class="h-40 w-40" src="/assets/thumbnails/shards_desert.webp" alt="Expansive desert with flying mystery creature and floating stones" loading="lazy"></img>Shard's desert</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sprite_of_wilds_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/sprite_of_wilds_spirit.webp" alt="A golden bell, BA addition"></img>Sprite of Wilds' Spirit</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sprite_of_wilds_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/sprite_of_wilds_spirit.webp" alt="A golden bell, BA addition" loading="lazy"></img>Sprite of Wilds' Spirit</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sticks/"><img class="h-40 w-40" src="/assets/thumbnails/sticks.webp" alt="Sticks ordered in a circle, big foot maybe?"></img>Sticks</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sticks/"><img class="h-40 w-40" src="/assets/thumbnails/sticks.webp" alt="Sticks ordered in a circle, big foot maybe?" loading="lazy"></img>Sticks</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/string/"><img class="h-40 w-40" src="/assets/thumbnails/string.webp" alt="thread the needle, needle, needle needle, pop art"></img>String</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/string/"><img class="h-40 w-40" src="/assets/thumbnails/string.webp" alt="thread the needle, needle, needle needle, pop art" loading="lazy"></img>String</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/tejas_curious_mech/"><img class="h-40 w-40" src="/assets/thumbnails/tejas_curious_mech.webp" alt="Shoot, I hope I didn't break it. Where does this go?"></img>Tejas Curious Mech</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/tejas_curious_mech/"><img class="h-40 w-40" src="/assets/thumbnails/tejas_curious_mech.webp" alt="Shoot, I hope I didn't break it. Where does this go?" loading="lazy"></img>Tejas Curious Mech</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/timebattle/"><img class="h-40 w-40" src="/assets/thumbnails/timebattle.webp" alt="Horse, dragon, horse, horse, and imp. The battle wages... horse."></img>Timebattle</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/timebattle/"><img class="h-40 w-40" src="/assets/thumbnails/timebattle.webp" alt="Horse, dragon, horse, horse, and imp. The battle wages... horse." loading="lazy"></img>Timebattle</a>
     </li>
   
     <li class="mx-auto my-3">
-      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/to_catch_a_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/to_catch_a_spirit.webp" alt="Yikes! Scary thing eating other scary things."></img>To Catch a Spirit</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/to_catch_a_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/to_catch_a_spirit.webp" alt="Yikes! Scary thing eating other scary things." loading="lazy"></img>To Catch a Spirit</a>
     </li>
   
 </ul>
