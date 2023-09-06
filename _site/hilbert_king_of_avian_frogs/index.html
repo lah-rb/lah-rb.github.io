@@ -75,6 +75,11 @@
   <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+      if (typeof navigator.serviceWorker !== 'undefined') {
+        navigator.serviceWorker.register('sw.js')
+      }
+    </script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/hilbert_king_of_avian_frogs.webp' )">

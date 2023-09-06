@@ -75,6 +75,11 @@
   <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+      if (typeof navigator.serviceWorker !== 'undefined') {
+        navigator.serviceWorker.register('sw.js')
+      }
+    </script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/cloth.webp' )">
@@ -159,10 +164,11 @@
 
 
   <div class="bg-hero-pattern place-content-center hidden lg:flex w-screen min-h-screen h-fit bg-fixed">
+    <div class=" fixed bg-slate-600/70 h-screen w-[1444px]"></div>
     <img class="fixed h-screen object-none brightness-50 contrast-125 saturate-150" src="/assets/images/cloth.webp" alt="Such a soft cloth">
     <div class="grid grid-cols-1 text-slate-200 text-justify leading-tight h-screen w-1/2 min-h-screen scroll-smooth">
       <div class="flex-initial fixed inset-0 h-[888px] w-[1444px] invisible"></div>
-      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Cloth</p>
+      <p class="text-2xl pt-5 relative top-0 md:text-4xl py-5 place-self-center text-center">Cloth</p>
       <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     uncrafted use

@@ -74,6 +74,11 @@
   <body class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+      if (typeof navigator.serviceWorker !== 'undefined') {
+        navigator.serviceWorker.register('sw.js')
+      }
+    </script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div x-data="{ open: false }" class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
@@ -147,6 +152,10 @@
     </li>
   
     <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/balanced_inline_processing_colony/"><img class="h-40 w-40" src="/assets/thumbnails/balanced_inline_processing_colony.webp" alt="Colorful brick segments abstractly forming the shape of a computer chip" loading="lazy"></img>Balanced Inline Processing Colony</a>
+    </li>
+  
+    <li class="mx-auto my-3">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/branwen_mantillusion_practitioner/"><img class="h-40 w-40" src="/assets/thumbnails/branwen_mantillusion_practitioner.webp" alt="Old man praying manits looking at you unnervingly" loading="lazy"></img>Branwen: Mantillusion Practitioner</a>
     </li>
   
@@ -183,7 +192,19 @@
     </li>
   
     <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/incubation_egg/"><img class="h-40 w-40" src="/assets/thumbnails/incubation_egg.webp" alt="andy warhol inspired eggcelent art" loading="lazy"></img>Incubation Egg</a>
+    </li>
+  
+    <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/knightsoul_of_binding_time/"><img class="h-40 w-40" src="/assets/thumbnails/knightsoul_of_binding_time.webp" alt="watercolor knight standing resolute infront of a triple infinity" loading="lazy"></img>Knightsoul of Binding Time</a>
+    </li>
+  
+    <li class="mx-auto my-3">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/liliel_healing_fairy/"><img class="h-40 w-40" src="/assets/thumbnails/liliel_healing_fairy.webp" alt="blonde light fairy with sword and alluring eyes" loading="lazy"></img>Liliel: Healing Fairy</a>
+    </li>
+  
+    <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/location_of_the_deep_apothecary_shop/"><img class="h-40 w-40" src="/assets/thumbnails/location_of_the_deep_apothecary_shop.webp" alt="hooded beings move about a store hidden in a wooded setting" loading="lazy"></img>Location of the Deep Apothecary Shop</a>
     </li>
   
     <li class="mx-auto my-3">
@@ -231,6 +252,10 @@
     </li>
   
     <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/spectral_lands_decree_and_hearing/"><img class="h-40 w-40" src="/assets/thumbnails/spectral_lands_decree_and_hearing.webp" alt="black and white abstract which looks different in diffentent orientations currently it looks as if two figures are present on subjegated to the other" loading="lazy"></img>Spectral Lands Decree and Hearing</a>
+    </li>
+  
+    <li class="mx-auto my-3">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sprite_of_wilds_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/sprite_of_wilds_spirit.webp" alt="A golden bell, BA addition" loading="lazy"></img>Sprite of Wilds' Spirit</a>
     </li>
   
@@ -243,6 +268,10 @@
     </li>
   
     <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/suspended_animation/"><img class="h-40 w-40" src="/assets/thumbnails/suspended_animation.webp" alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets" loading="lazy"></img>Suspended Animation</a>
+    </li>
+  
+    <li class="mx-auto my-3">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/tejas_curious_mech/"><img class="h-40 w-40" src="/assets/thumbnails/tejas_curious_mech.webp" alt="Shoot, I hope I didn't break it. Where does this go?" loading="lazy"></img>Tejas Curious Mech</a>
     </li>
   
@@ -252,6 +281,10 @@
   
     <li class="mx-auto my-3">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/to_catch_a_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/to_catch_a_spirit.webp" alt="Yikes! Scary thing eating other scary things." loading="lazy"></img>To Catch a Spirit</a>
+    </li>
+  
+    <li class="mx-auto my-3">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/what_do_you_see_in_the_breach/"><img class="h-40 w-40" src="/assets/thumbnails/what_do_you_see_in_the_breach.webp" alt="I could tell you what I see, but that is just my interpertation of this abstract piece. I don't want my interpertation to color your experiance as this seems to be the opposite of what the artist intended." loading="lazy"></img>What Do You See in the Breach</a>
     </li>
   
 </ul>

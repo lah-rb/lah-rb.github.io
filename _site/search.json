@@ -35,6 +35,17 @@
     ,
   
     {
+      "title" : "Balanced Inline Processing Colony",
+      "url" : "/balanced_inline_processing_colony/",
+      "caregories" : "",
+      "tags" : "brick, color, chip, computer, lightning, processor",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "balanced_inline_processing_colony.webp",
+      "img_alt" : "Colorful brick segments abstractly forming the shape of a computer chip"
+    }
+    ,
+  
+    {
       "title" : "Branwen: Mantillusion Practitioner",
       "url" : "/branwen_mantillusion_practitioner/",
       "caregories" : "",
@@ -134,6 +145,28 @@
     ,
   
     {
+      "title" : "Incubation Egg",
+      "url" : "/incubation_egg/",
+      "caregories" : "",
+      "tags" : "egg, warhol, andy, special, cubic, brick",
+      "scarcity" : "Untamed",
+      "img_name" : "incubation_egg.webp",
+      "img_alt" : "andy warhol inspired eggcelent art"
+    }
+    ,
+  
+    {
+      "title" : "Knightsoul of Binding Time",
+      "url" : "/knightsoul_of_binding_time/",
+      "caregories" : "",
+      "tags" : "triple, infinity, knight, sword, sir, regal",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "knightsoul_of_binding_time.webp",
+      "img_alt" : "watercolor knight standing resolute infront of a triple infinity"
+    }
+    ,
+  
+    {
       "title" : "Liliel: Healing Fairy",
       "url" : "/liliel_healing_fairy/",
       "caregories" : "",
@@ -141,6 +174,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "liliel_healing_fairy.webp",
       "img_alt" : "blonde light fairy with sword and alluring eyes"
+    }
+    ,
+  
+    {
+      "title" : "Location of the Deep Apothecary Shop",
+      "url" : "/location_of_the_deep_apothecary_shop/",
+      "caregories" : "",
+      "tags" : "shop, forest, hood, mystical, potion",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "location_of_the_deep_apothecary_shop.webp",
+      "img_alt" : "hooded beings move about a store hidden in a wooded setting"
     }
     ,
   
@@ -170,7 +214,7 @@
       "title" : "Oshliath and Osileth",
       "url" : "/oshliath_and_osileth/",
       "caregories" : "",
-      "tags" : "dragon, pair, blue, night",
+      "tags" : "dragon, pair, family, child, mom, night",
       "scarcity" : "Founder's Deck",
       "img_name" : "oshliath_and_osileth.webp",
       "img_alt" : "Mother dragon watching over her resting pup"
@@ -266,6 +310,17 @@
     ,
   
     {
+      "title" : "Spectral Lands Decree and Hearing",
+      "url" : "/spectral_lands_decree_and_hearing/",
+      "caregories" : "",
+      "tags" : "black, white, abstract, cave, spirit, king, subject",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "spectral_lands_decree_and_hearing.webp",
+      "img_alt" : "black and white abstract which looks different in diffentent orientations currently it looks as if two figures are present on subjegated to the other"
+    }
+    ,
+  
+    {
       "title" : "Sprite of Wilds&#39; Spirit",
       "url" : "/sprite_of_wilds_spirit/",
       "caregories" : "",
@@ -299,6 +354,17 @@
     ,
   
     {
+      "title" : "Suspended Animation",
+      "url" : "/suspended_animation/",
+      "caregories" : "",
+      "tags" : "color, brick, wave, water, paisley, drop, crystal",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "suspended_animation.webp",
+      "img_alt" : "Many blue yellow orange bricks surrounding a matrix of colorful droplets"
+    }
+    ,
+  
+    {
       "title" : "Tejas Curious Mech",
       "url" : "/tejas_curious_mech/",
       "caregories" : "",
@@ -328,6 +394,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "to_catch_a_spirit.webp",
       "img_alt" : "Yikes! Scary thing eating other scary things."
+    }
+    ,
+  
+    {
+      "title" : "What Do You See in the Breach",
+      "url" : "/what_do_you_see_in_the_breach/",
+      "caregories" : "",
+      "tags" : "african, head, light, bulb, zulu, mosiac, all, seeing, eye, color",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "what_do_you_see_in_the_breach.webp",
+      "img_alt" : "I could tell you what I see, but that is just my interpertation of this abstract piece. I don't want my interpertation to color your experiance as this seems to be the opposite of what the artist intended."
     }
     
   
