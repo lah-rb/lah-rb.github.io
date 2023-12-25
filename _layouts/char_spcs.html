@@ -2,7 +2,9 @@
 layout: card
 ---
 {% capture mvmt %}Movement Range:  {{ page.movement }}{% endcapture %}
+{% capture tolerance %}Keal Means Tolerance:  {{ page.injury_tolerance }}{% endcapture %}
 {% include card_data_format.html data_title=mvmt %}
+{% include card_data_format.html data_title=tolerance %}
 {% include card_data_format.html data_title='archetypal gene' play_data=page.genetic_disposition %}
 {% include card_data_format.html data_title='game effects' play_data=page.play_style %}
 
