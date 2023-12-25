@@ -19,7 +19,7 @@
       "tags" : "wizard, sea, ocean, temple, sails, spirit, portal",
       "scarcity" : "Founder's Deck",
       "img_name" : "artificer_of_the_salt_chancel.webp",
-      "img_alt" : "Four armed sea dog magistically floating above water"
+      "img_alt" : "Four armed sea dog majestically floating above water"
     }
     ,
   
@@ -30,7 +30,7 @@
       "tags" : "float, stone, creature, gate, sky",
       "scarcity" : "Founder's Deck",
       "img_name" : "avian_keepers_den.webp",
-      "img_alt" : "A palace floats amoung the skies where flying rays swirl about"
+      "img_alt" : "A palace floats among the skies where flying rays swirl about"
     }
     ,
   
@@ -49,7 +49,7 @@
       "title" : "Branwen: Mantillusion Practitioner",
       "url" : "/branwen_mantillusion_practitioner/",
       "caregories" : "",
-      "tags" : "praying_mantis, manits, illusion, mirror",
+      "tags" : "praying_mantis, mantis, illusion, mirror",
       "scarcity" : "Founder's Deck",
       "img_name" : "branwen_mantillusion_practitioner.webp",
       "img_alt" : "Old man praying manits looking at you unnervingly"
@@ -79,6 +79,17 @@
     ,
   
     {
+      "title" : "Enchantress of Cats",
+      "url" : "/enchantress_of_cats/",
+      "caregories" : "",
+      "tags" : "cave, cats, witch, old, lady, fire",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "enchantress_of_cats.webp",
+      "img_alt" : " Creepy cat lady now complete with creepy cats. In a creepy cave. With creepy calligraphy among the corridors. Shiver. "
+    }
+    ,
+  
+    {
       "title" : "Feathers",
       "url" : "/feathers/",
       "caregories" : "",
@@ -104,7 +115,7 @@
       "title" : "Freezing of the Heart",
       "url" : "/freezing_of_the_heart/",
       "caregories" : "",
-      "tags" : "ice, heart, woman, sculpt, carve, frozen, atlantas",
+      "tags" : "ice, heart, woman, sculpt, carve, frozen, Atlantis",
       "scarcity" : "Founder's Deck",
       "img_name" : "freezing_of_the_heart.webp",
       "img_alt" : "Beautiful lady carving a heart"
@@ -115,7 +126,7 @@
       "title" : "Frost Tipped Arctic Otter",
       "url" : "/frost_tipped_arctic_otter/",
       "caregories" : "",
-      "tags" : "otter, frost, snow, ice, artic, cold, stream",
+      "tags" : "otter, frost, snow, ice, arctic, cold, stream",
       "scarcity" : "Founder's Deck",
       "img_name" : "frost_tipped_arctic_otter.webp",
       "img_alt" : "Sweet little face who looks cold"
@@ -129,7 +140,7 @@
       "tags" : "frog, king, staff, moon, bird, wings",
       "scarcity" : "Founder's Deck",
       "img_name" : "hilbert_king_of_avian_frogs.webp",
-      "img_alt" : "Majistic looking frog with wings perched on a branch stareing at you intently"
+      "img_alt" : "Majestic looking frog with wings perched on a branch staring at you intently"
     }
     ,
   
@@ -140,7 +151,7 @@
       "tags" : "honey, pot, bee, news",
       "scarcity" : "Founder's Deck",
       "img_name" : "honey.webp",
-      "img_alt" : "Inticing pot of honey"
+      "img_alt" : "Enticing pot of honey"
     }
     ,
   
@@ -162,7 +173,7 @@
       "tags" : "triple, infinity, knight, sword, sir, regal",
       "scarcity" : "Founder's Deck",
       "img_name" : "knightsoul_of_binding_time.webp",
-      "img_alt" : "watercolor knight standing resolute infront of a triple infinity"
+      "img_alt" : "watercolor knight standing resolute in front of a triple infinity"
     }
     ,
   
@@ -185,6 +196,17 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "location_of_the_deep_apothecary_shop.webp",
       "img_alt" : "hooded beings move about a store hidden in a wooded setting"
+    }
+    ,
+  
+    {
+      "title" : "Losetany Steppes",
+      "url" : "/losetany_steppes/",
+      "caregories" : "",
+      "tags" : "jellyfish, landscape, camp, yurt, cloud, night, wonderer, ruins, statue, mountains",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "losetany_steppes.webp",
+      "img_alt" : "A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer girl look upon with amazement while standing upon the ruins of a lost civilization."
     }
     ,
   
@@ -228,7 +250,7 @@
       "tags" : "mountain, nomad, lake, palace",
       "scarcity" : "Founder's Deck",
       "img_name" : "palace_of_the_allele_sect.webp",
-      "img_alt" : "Explorer gazing upon an almost icicle like palace nestled in a vally with a lake."
+      "img_alt" : "Explorer gazing upon an almost icicle like palace nestled in a valley with a lake."
     }
     ,
   
@@ -269,7 +291,7 @@
       "title" : "Pyrostegia Dragon",
       "url" : "/pyrostegia_dragon/",
       "caregories" : "",
-      "tags" : "flower, dragon, plant, fire, pyro, chinese",
+      "tags" : "flower, dragon, plant, fire, pyro, Chinese",
       "scarcity" : "Founder's Deck",
       "img_name" : "pyrostegia_dragon.webp",
       "img_alt" : "Pretty garden in the shape of a dragon"
@@ -294,12 +316,12 @@
       "tags" : "dragon, city, fire, tech, smoke, tower, electric, digital",
       "scarcity" : "Founder's Deck",
       "img_name" : "sboi_threat_plus_plus.webp",
-      "img_alt" : "Awsome destruction!!!"
+      "img_alt" : "Awesome destruction!!!"
     }
     ,
   
     {
-      "title" : "Shard&#39;s desert",
+      "title" : "Shard&#39;s Desert",
       "url" : "/shards_desert/",
       "caregories" : "",
       "tags" : "desert, float, stones, arch",
@@ -310,13 +332,13 @@
     ,
   
     {
-      "title" : "Spectral Lands Decree and Hearing",
+      "title" : "Spectral Land&#39;s Decree and Hearing",
       "url" : "/spectral_lands_decree_and_hearing/",
       "caregories" : "",
       "tags" : "black, white, abstract, cave, spirit, king, subject",
       "scarcity" : "Founder's Deck",
       "img_name" : "spectral_lands_decree_and_hearing.webp",
-      "img_alt" : "black and white abstract which looks different in diffentent orientations currently it looks as if two figures are present on subjegated to the other"
+      "img_alt" : "black and white abstract which looks different in different orientations currently it looks as if two figures are present on subjugated to the other"
     }
     ,
   
@@ -335,7 +357,7 @@
       "title" : "Sticks",
       "url" : "/sticks/",
       "caregories" : "",
-      "tags" : "stick, sticks, pile, circle, black, white, grayscale",
+      "tags" : "stick, sticks, pile, circle, black, white, gray",
       "scarcity" : "Founder's Deck",
       "img_name" : "sticks.webp",
       "img_alt" : "Sticks ordered in a circle, big foot maybe?"
@@ -346,7 +368,7 @@
       "title" : "String",
       "url" : "/string/",
       "caregories" : "",
-      "tags" : "string, thread, cord, rope, needle, warhal",
+      "tags" : "string, thread, cord, rope, needle, Warhal",
       "scarcity" : "Founder's Deck",
       "img_name" : "string.webp",
       "img_alt" : "thread the needle, needle, needle needle, pop art"
@@ -398,13 +420,24 @@
     ,
   
     {
+      "title" : "Ushered Through Sabina Emporium",
+      "url" : "/ushered_through_sabina_emporium/",
+      "caregories" : "",
+      "tags" : "crowd, dragon, skeleton, manner, shop, mall, detailed",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "ushered_through_sabina_emporium.webp",
+      "img_alt" : "A fantastic bustling emporium with vendors galore. Likely owned by a huntsman as a dragon skeleton hangs high overhead. Then again maybe it is just waiting for the perfect moment to spring to life and get the feast of a lifetime..."
+    }
+    ,
+  
+    {
       "title" : "What Do You See in the Breach",
       "url" : "/what_do_you_see_in_the_breach/",
       "caregories" : "",
-      "tags" : "african, head, light, bulb, zulu, mosiac, all, seeing, eye, color",
+      "tags" : "African, head, light, bulb, zulu, mosaic, all, seeing, eye, color",
       "scarcity" : "Founder's Deck",
       "img_name" : "what_do_you_see_in_the_breach.webp",
-      "img_alt" : "I could tell you what I see, but that is just my interpertation of this abstract piece. I don't want my interpertation to color your experiance as this seems to be the opposite of what the artist intended."
+      "img_alt" : "I could tell you what I see, but that is just my interpretation of this abstract piece. I don't want my interpretation to color your experience as this seems to be the opposite of what the artist intended."
     }
     
   
