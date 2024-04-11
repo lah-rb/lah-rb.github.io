@@ -71,9 +71,11 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
   </head>
-  <body class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" x-data="{ showScanner: false }">
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
       if (typeof navigator.serviceWorker !== 'undefined') {
         navigator.serviceWorker.register('sw.js')
@@ -82,8 +84,7 @@
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div x-data="{ open: false }" class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
-
-  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
+  <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
     <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
       <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
@@ -99,15 +100,30 @@
 
   
     <div class="flex flex-1 place-content-center place-self-center">
+
   <a href="./search" class=" ml-auto my-auto" aria-label="Take me to the search page.">
-    <svg class="h-12 w-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="#4A5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg class="h-10 w-10 stroke-2 stroke-kip-drk-sienna fill-transparent" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
     </svg>
   </a>
-  <div class="flex flex-auto">
-    <a href="./search.html" class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md"><span class="text-gray-500 whitespace-nowrap">Search the Binder</span></a>
+
+  <div class="md:flex md:flex-auto hidden">
+    <a href="./search.html" class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md"><span class="text-gray-400 whitespace-nowrap">Search the Binder</span></a>
   </div>
+
+  <div class="flex flex-auto md:hidden">
+    <a href="./search.html" class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md"><span class="text-gray-400 whitespace-nowrap">Search</span></a>
+  </div>
+
 </div>
+
+    <button>
+  <svg xmlns="http://www.w3.org/2000/svg" @click="showScanner = !showScanner" viewBox="0 0 128 128" alt="QR Scanner Toggle" class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+    <path
+      d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+      transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+  </svg>
+</button>
 
   
 
@@ -134,6 +150,62 @@
     </button>
   </div>
 </div>
+
+<div class="z-50 fixed w-10/12 md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
+  <video id="video" class="aspect-video" x-show="showScanner" x-transition style="display:none;"></video>
+  <canvas id="canvas" class="aspect-video" style="display:none;"></canvas>
+
+  <script>
+    // Access the video and canvas elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Function to start scanning for QR codes
+    function startScanning() {
+      // Get access to the camera
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then(function(stream) {
+          video.srcObject = stream;
+          video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
+          video.play();
+          requestAnimationFrame(scan);
+        })
+        .catch(function(err) {
+          console.error('Camera access error:', err);
+        });
+    }
+
+    // Function to scan for QR codes
+    function scan() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        context.drawImage(video, 0, 0, 300, 200);
+        const imageData = context.getImageData(0, 0, 300, 200);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          console.log('QR code detected:', code.data);
+          if (code) {
+            // Assuming your QR codes contain URLs starting with "http://" or "https://"
+            const url = code.data;
+
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
+        }
+      }
+      requestAnimationFrame(scan);
+    }
+
+    // Start scanning when the page loads
+    startScanning();
+  </script>
+</div>
+
 
 
 <ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">

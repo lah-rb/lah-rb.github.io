@@ -72,9 +72,11 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
   </head>
-  <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" x-data="{ showScanner: false }">
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
       if (typeof navigator.serviceWorker !== 'undefined') {
         navigator.serviceWorker.register('sw.js')
@@ -82,7 +84,84 @@
     </script>
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/honey.webp' )">
+      <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
+
+  <button>
+    <svg xmlns="http://www.w3.org/2000/svg" @click="showScanner = !showScanner" viewBox="0 0 128 128" alt="QR Scanner Toggle" class="h-14 w-14 fill-slate-200 lg:fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+      <path
+        d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+        transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+    </svg>
+  </button>
+
+  <div class="z-50 fixed w-10/12 md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
+  <video id="video" class="aspect-video" x-show="showScanner" x-transition style="display:none;"></video>
+  <canvas id="canvas" class="aspect-video" style="display:none;"></canvas>
+
+  <script>
+    // Access the video and canvas elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Function to start scanning for QR codes
+    function startScanning() {
+      // Get access to the camera
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then(function(stream) {
+          video.srcObject = stream;
+          video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
+          video.play();
+          requestAnimationFrame(scan);
+        })
+        .catch(function(err) {
+          console.error('Camera access error:', err);
+        });
+    }
+
+    // Function to scan for QR codes
+    function scan() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        context.drawImage(video, 0, 0, 300, 200);
+        const imageData = context.getImageData(0, 0, 300, 200);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          console.log('QR code detected:', code.data);
+          if (code) {
+            // Assuming your QR codes contain URLs starting with "http://" or "https://"
+            const url = code.data;
+
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
+        }
+      }
+      requestAnimationFrame(scan);
+    }
+
+    // Start scanning when the page loads
+    startScanning();
+  </script>
+</div>
+
+
+  <a href="/">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      class="w-9 h-9 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-slate-200 lg:stroke-kip-goldenrod stroke-2 m-2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+    </svg>
+  </a>
+</div>
+
+
+<div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/honey.webp' )">
   <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
     <div class="flex flex-1 place-content-center w-screen h-fit">
       <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
@@ -152,9 +231,6 @@
 </div>
 
 
-        <div class="flex place-self-center">
-          <a class="text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded" href="/">Back to Binder</a>
-        </div>
         <p class="font-hairline text-slate-200 text-sm mt-6"></p>
         <p class="font-hairline text-slate-300 text-xs italic"></p>
       </div>
@@ -233,9 +309,6 @@
 </div>
 
 
-      <div class="flex place-self-center">
-        <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="/">Back to Binder</a>
-      </div>
       <p class="font-hairline text-slate-200 text-sm mt-6"></p>
       <p class="font-hairline text-slate-300 text-xs italic"></p>
     </div>
