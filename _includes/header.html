@@ -1,6 +1,5 @@
 <div x-data="{ open: false }" class="z-50 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
-
-  <div class="flex flex-auto md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
+  <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
     <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
       <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
     </a>
@@ -18,6 +17,7 @@
 
   {% if page.search %}
     {% include {{ page.search }} %}
+    {% include qr_button.html %}
   {% endif %}
 
   <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
@@ -43,3 +43,5 @@
     </button>
   </div>
 </div>
+
+{% include qr_scanner.html %}
