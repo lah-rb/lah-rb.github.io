@@ -54,8 +54,7 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14__iPhone_13_Pro__iPhone_13__iPhone_12_Pro__iPhone_12_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
-  </head>
-  <body class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}" x-data="{ showScanner: false }">
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
@@ -65,6 +64,28 @@
         navigator.serviceWorker.register('sw.js')
       }
     </script>
+  </head>
+  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true) }" class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}">
+
+    <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+      <template x-if="acceptPrivacy == true && noCamera == false">
+          <script>
+            startScanning(true);
+          </script>
+      </template>
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">By allowing camera access to our QR code scanner, you agree to our <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>. Breath easy, we don't collect any data.</p>
+        <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Accept & Continue
+        </button>
+        <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Don't Need It
+        </button>
+      </div>
+    </div>
+
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       {{ content }}
