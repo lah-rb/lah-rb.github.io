@@ -70,8 +70,7 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14__iPhone_13_Pro__iPhone_13__iPhone_12_Pro__iPhone_12_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
-  </head>
-  <body class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" x-data="{ showScanner: false }">
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
@@ -81,21 +80,43 @@
         navigator.serviceWorker.register('sw.js')
       }
     </script>
+  </head>
+  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true) }" class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+
+    <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+      <template x-if="acceptPrivacy == true && noCamera == false">
+          <script>
+            startScanning(true);
+          </script>
+      </template>
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">By allowing camera access to our QR code scanner, you agree to our <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>. Breath easy, we don't collect any data.</p>
+        <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Accept & Continue
+        </button>
+        <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Don't Need It
+        </button>
+      </div>
+    </div>
+
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
 
   <button>
-    <svg xmlns="http://www.w3.org/2000/svg" @click="showScanner = !showScanner" viewBox="0 0 128 128" alt="QR Scanner Toggle" class="h-14 w-14 fill-slate-200 lg:fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+    <svg xmlns="http://www.w3.org/2000/svg" @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false" viewBox="0 0 128 128" alt="QR Scanner Toggle" class="h-14 w-14 fill-slate-200 lg:fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
         d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
         transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
     </svg>
   </button>
 
-  <div class="z-50 fixed w-10/12 md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
-  <video id="video" class="aspect-video" x-show="showScanner" x-transition style="display:none;"></video>
-  <canvas id="canvas" class="aspect-video" style="display:none;"></canvas>
+  <div class="z-50 fixed w-full md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
+  <video id="video" class="aspect-video w-full h-auto" x-show="showScanner" x-transition style="display:none;"></video>
+  <canvas id="canvas" class="aspect-video w-full h-auto" style="display:none;"></canvas>
 
   <script>
     // Access the video and canvas elements
@@ -104,20 +125,21 @@
     const context = canvas.getContext('2d');
 
     // Function to start scanning for QR codes
-    function startScanning() {
-      // Get access to the camera
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-        .then(function(stream) {
-          video.srcObject = stream;
-          video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
-          video.play();
-          requestAnimationFrame(scan);
-        })
-        .catch(function(err) {
-          console.error('Camera access error:', err);
-        });
+    function startScanning(showModal) {
+      if (showModal) {
+        // Get access to the camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+          .then(function(stream) {
+            video.srcObject = stream;
+            video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
+            video.play();
+            requestAnimationFrame(scan);
+          })
+          .catch(function(err) {
+            console.error('Camera access error:', err);
+          });
+      }
     }
-
     // Function to scan for QR codes
     function scan() {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -142,9 +164,6 @@
       }
       requestAnimationFrame(scan);
     }
-
-    // Start scanning when the page loads
-    startScanning();
   </script>
 </div>
 

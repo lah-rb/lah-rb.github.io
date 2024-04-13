@@ -25,6 +25,8 @@ module.exports = {
     backgroundColor: ['responsive', 'focus', 'hover', 'active'],
     boxShadow: ['responsive', 'focus', 'hover', 'active']
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }
 // Run ./tailwindcss -i assets/css/input.css -o assets/css/output.css --watch to watch the files
