@@ -74,7 +74,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
-    <script src="https://cdn.jsdelivr.net/npm/opencv@7.0.0/lib/opencv.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
       if (typeof navigator.serviceWorker !== 'undefined') {
@@ -123,9 +122,9 @@
     </svg>
   </button>
 
-  <div class="z-50 fixed w-full md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
-  <video id="video" class="w-full h-auto" x-show="showScanner" x-transition style="display:none;"></video>
-  <canvas id="canvas" class="w-full h-auto" style="display:none;"></canvas>
+  <div class="z-50 fixed w-full md:w-auto top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-1 max-h-96">
+  <video id="video" class="w-full h-auto max-h-96 scale-y-[-1]" x-show="showScanner" x-transition style="display:none;"></video>
+  <canvas id="canvas" class="w-full h-auto max-h-96" style="display:none;"></canvas>
 
   <script>
     // Access the video and canvas elements
@@ -152,16 +151,19 @@
     // Get the image data
     let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Apply noise reduction filter
+    // Apply adaptive thresholding for noise reduction
     for (let i = 0; i < imageData.data.length; i += 4) {
         let red = imageData.data[i];
         let green = imageData.data[i + 1];
         let blue = imageData.data[i + 2];
 
-        // Apply a simple noise reduction filter
-        imageData.data[i] = Math.round((red + green + blue) / 3);
-        imageData.data[i + 1] = Math.round((red + green + blue) / 3);
-        imageData.data[i + 2] = Math.round((red + green + blue) / 3);
+        let averageColor = Math.round((red + green + blue) / 3);
+        let adaptiveThreshold = Math.max(Math.max(red, green), blue) - Math.min(Math.min(red, green), blue);
+
+        // Apply adaptive thresholding filter
+        imageData.data[i] = averageColor + adaptiveThreshold;
+        imageData.data[i + 1] = averageColor + adaptiveThreshold;
+        imageData.data[i + 2] = averageColor + adaptiveThreshold;
     }
 
     // Adjust contrast
@@ -183,7 +185,10 @@
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         context.drawImage(video, 0, 0, 300, 200);
         const imageData = context.getImageData(0, 0, 300, 200);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "attemptBoth", // or "tryInvertedFirst"
+        });
+
         if (code) {
           console.log('QR code detected:', code.data);
           if (code) {
