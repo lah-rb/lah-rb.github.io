@@ -24,40 +24,9 @@
           });
       }
     }
-    // Get the image data
-    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Apply adaptive thresholding for noise reduction
-    for (let i = 0; i < imageData.data.length; i += 4) {
-        let red = imageData.data[i];
-        let green = imageData.data[i + 1];
-        let blue = imageData.data[i + 2];
-
-        let averageColor = Math.round((red + green + blue) / 3);
-        let adaptiveThreshold = Math.max(Math.max(red, green), blue) - Math.min(Math.min(red, green), blue);
-
-        // Apply adaptive thresholding filter
-        imageData.data[i] = averageColor + adaptiveThreshold;
-        imageData.data[i + 1] = averageColor + adaptiveThreshold;
-        imageData.data[i + 2] = averageColor + adaptiveThreshold;
-    }
-
-    // Adjust contrast
-    for (let i = 0; i < imageData.data.length; i += 4) {
-        let red = imageData.data[i];
-        let green = imageData.data[i + 1];
-        let blue = imageData.data[i + 2];
-
-        // Apply a contrast enhancement filter
-        imageData.data[i] = red * 1.5; // Increase the contrast
-        imageData.data[i + 1] = green * 1.5;
-        imageData.data[i + 2] = blue * 1.5;
-    }
-
-    // Put the image data back to the canvas
-    context.putImageData(imageData, 0, 0);
     // Function to scan for QR codes
-    function scan() {
+    async function scan() {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         context.drawImage(video, 0, 0, 300, 200);
         const imageData = context.getImageData(0, 0, 300, 200);
@@ -73,6 +42,20 @@
 
             // Check if the URL starts with "http://" or "https://"
             if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Load the image from the canvas into a Mat object in OpenCV.js
+              const mat = cv.imread(canvas);
+
+              // Apply the Canny Edge Detection algorithm
+              const lowThreshold = 100;
+              const highThreshold = 200;
+              const edges = new cv.Mat();
+              cv.Canny(mat, edges, lowThreshold, highThreshold);
+
+              // Convert the result back to a canvas image
+              cv.imshow('canvas', edges);
+
+
+
               // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
               window.location.href = url.replace('http://', 'http://www.kpks.us/'); //'http://127.0.0.1:4000/');
             } else {
