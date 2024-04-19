@@ -87,30 +87,34 @@
     <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
       <template x-if="acceptPrivacy == true && noCamera == false">
           <script>
-            startScanning(true);
+           startScanning(true);
           </script>
       </template>
+      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+        <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+      </template>
 
-      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
-        <p class="mb-4 text-kip-drk-sienna">
-          By allowing camera access to our QR code scanner, you agree to our
-          <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
-           Breath easy, we don't collect any data.
-        </p>
+      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+        <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+          <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+          <p class="mb-4 text-kip-drk-sienna">
+            By allowing camera access to our QR code scanner, you agree to our
+            <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
+             Breath easy, we don't collect any data.
+          </p>
 
-        <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Accept & Continue
-        </button>
+          <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+            Accept & Continue
+          </button>
 
-        <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Don't Need It
-        </button>
+          <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+            Don't Need It
+          </button>
 
-      </div>
+        </div>
+      </template>
+
     </div>
-
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
@@ -123,19 +127,23 @@
     </svg>
   </button>
 
-  <canvas id="canvas" class="z-50 fixed w-96 h-96 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
-<video id="video" class="z-50 fixed w-96 h-96 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" x-show="showScanner" style="display:block;"></video>
-
+  <canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" x-show="showScanner" style="display:none;"></canvas>
+<video id="video" class="z-30 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" x-show="showScanner" style="display:none;"></video>
+<canvas id="debugCanvas" ></canvas>
 
 <script>
   // Access the video and canvas elements
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
+  const debugCanvas = document.createElement('canvas');
+  debugCanvas.width = 256;
+  debugCanvas.height = 128;
+  const debugContext = debugCanvas.getContext('2d');
 
   // Function to start scanning for QR codes
-  function startScanning(showModal) {
-    if (showModal) {
+  function startScanning(consent) {
+    if (consent) {
       // Get access to the camera
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
         .then(function(stream) {
@@ -150,28 +158,67 @@
     }
   }
 
+  function preProcess() {
+      context.drawImage(video, 0, 0, 300, 150);
+      const imageData = context.getImageData(0, 0, 300, 150);
+
+      let src = cv.imread('canvas')
+      //cv.imshow('debugCanvas', src)
+      let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
+      cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+
+      // Apply Canny Edge Detection for better line detection
+      let cannyMat = new cv.Mat();
+      cv.Canny(grayMat, cannyMat, 50, 150);
+
+      // Perform Hough Line Transform to detect lines in the image
+      let lines = new cv.Mat();
+      let rho = 1;
+      let theta = Math.PI / 180;
+      let threshold = 100;
+      let minLineLength = 10;
+      let maxLineGap = 10;
+      cv.HoughLinesP(cannyMat, lines, rho, theta, threshold, minLineLength, maxLineGap);
+
+      // Draw detected lines on the image
+      for (let i = 0; i < lines.rows; ++i) {
+          let lineData = lines.data32S[i * 4];
+          let x1 = lineData[0], y1 = lineData[1], x2 = lineData[2], y2 = lineData[3];
+          cv.line(src, new cv.Point(x1, y1), new cv.Point(x2, y2), [255, 0, 0, 255]);
+      }
+
+      // Convert processed image back to grayscale for QR code scanning
+
+      let finalGrayMat = new cv.Mat();
+      cv.cvtColor(src, finalGrayMat, cv.COLOR_RGBA2GRAY);
+
+      cv.imshow('canvas', finalGrayMat);
+      const resultImg = context.getImageData(0, 0, 300, 150)
+
+      return resultImg;
+  }
+
   // Function to scan for QR codes
   function scan() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      context.drawImage(video, 0, 0, 300, 200);
-      const imageData = context.getImageData(0, 0, 300, 200);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "attemptBoth", // or "tryInvertedFirst"
-      });
+    const preProcessedImage = preProcess();
+
+    const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
+      inversionAttempts: "dontInvert", // as recommended by jsQR
+    });
+    if (code) {
+      console.log('QR code detected:', code.data);
       if (code) {
-        console.log('QR code detected:', code.data);
-        if (code) {
-          // Assuming your QR codes contain URLs starting with "http://" or "https://"
-          const url = code.data;
-          // Check if the URL starts with "http://" or "https://"
-          if (url.startsWith('http://') || url.startsWith('https://')) {
-            // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-            window.location.href = url.replace('http://', 'http://www.kpks.us/'); //'http://127.0.0.1:4000/');
-          } else {
-            console.log('Invalid URL detected in QR code');
-          }
+        const url = code.data;
+        // Check if the URL starts with "http://" or "https://"
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+        } else {
+          console.log('Invalid URL detected in QR code');
         }
       }
+    }
     }
     requestAnimationFrame(scan);
   }
@@ -640,6 +687,6 @@
 
 
     </div>
-    <script async src="/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
   </body>
 </html>

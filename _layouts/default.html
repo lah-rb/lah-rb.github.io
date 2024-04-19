@@ -70,34 +70,38 @@
     <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
       <template x-if="acceptPrivacy == true && noCamera == false">
           <script>
-            startScanning(true);
+           startScanning(true);
           </script>
       </template>
+      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+        <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+      </template>
 
-      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
-        <p class="mb-4 text-kip-drk-sienna">
-          By allowing camera access to our QR code scanner, you agree to our
-          <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
-           Breath easy, we don't collect any data.
-        </p>
+      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+        <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+          <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+          <p class="mb-4 text-kip-drk-sienna">
+            By allowing camera access to our QR code scanner, you agree to our
+            <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
+             Breath easy, we don't collect any data.
+          </p>
 
-        <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Accept & Continue
-        </button>
+          <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+            Accept & Continue
+          </button>
 
-        <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Don't Need It
-        </button>
+          <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+            Don't Need It
+          </button>
 
-      </div>
+        </div>
+      </template>
+
     </div>
-
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       {{ content }}
     </div>
-    <script async src="/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
   </body>
 </html>
