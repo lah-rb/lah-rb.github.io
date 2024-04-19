@@ -1,0 +1,44 @@
+function preProcessImage(imageData) {
+  // Convert the imageData to a cv.Mat
+  const mat = cv.matFromImageData(imageData);
+
+  // Convert the mat to grayscale
+  const grayMat = new cv.Mat();
+  cv.cvtColor(mat, grayMat, cv.COLOR_RGBA2GRAY);
+
+  // Apply adaptive thresholding to the grayscale image
+  const thresholdMat = new cv.Mat();
+  cv.adaptiveThreshold(grayMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+
+  // Find contours in the thresholded image
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  cv.findContours(thresholdMat, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  // Sort the contours by area and find the largest one
+  const sortedContours = [];
+  for (let i = 0; i < contours.size(); i++) {
+    const contour = contours.get(i);
+    const area = cv.contourArea(contour);
+    sortedContours.push({ contour, area });
+  }
+  sortedContours.sort((a, b) => b.area - a.area);
+  const largestContour = sortedContours[0].contour;
+
+  // Draw the largest contour on a new mat
+  const resultMat = new cv.Mat(mat.rows, mat.cols, cv.CV_8UC4);
+  cv.drawContours(resultMat, new cv.MatVector(largestContour), -1, [255, 255, 255, 255], 2, cv.LINE_8, hierarchy, 100);
+
+  // Convert the result mat back to an ImageData object
+  const resultImageData = new ImageData(new Uint8ClampedArray(resultMat.data), resultMat.cols, resultMat.rows);
+
+  // Clean up the mats
+  mat.delete();
+  grayMat.delete();
+  thresholdMat.delete();
+  contours.delete();
+  hierarchy.delete();
+  resultMat.delete();
+
+  return resultImageData;
+}
