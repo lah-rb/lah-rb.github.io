@@ -76,9 +76,15 @@
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
-      if (typeof navigator.serviceWorker !== 'undefined') {
-        navigator.serviceWorker.register('sw.js')
-      }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('Service Worker registration failed:', error);
+        });
+    }
     </script>
   </head>
   <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
@@ -183,9 +189,9 @@
   </div>
 </div>
 
-<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" x-show="showScanner" style="display:none;"></canvas>
-<video id="video" class="z-30 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" x-show="showScanner" style="display:none;"></video>
-<canvas id="debugCanvas" ></canvas>
+<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
+<video id="video" class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 border-2 border-kip-red rounded-lg" x-show="showScanner" style="display:none;"></video>
+<!--<canvas id="debugCanvas" ></canvas>-->
 
 <script>
   // Access the video and canvas elements
@@ -215,43 +221,41 @@
   }
 
   function preProcess() {
-      context.drawImage(video, 0, 0, 300, 150);
-      const imageData = context.getImageData(0, 0, 300, 150);
+     try {
+         context.drawImage(video, 0, 0, 300, 150);
+         const imageData = context.getImageData(0, 0, 300, 150);
 
-      let src = cv.imread('canvas')
-      //cv.imshow('debugCanvas', src)
-      let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
-      cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+         let src = cv.imread('canvas');
+         //cv.imshow('debugCanvas', src)
+         let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
+         cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+         src.delete();
+         // Perform morphological operations
+         let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
+         let erodedMat = new cv.Mat();
+         cv.erode(grayMat, erodedMat, kernel);
+         grayMat.delete();
 
-      // Apply Canny Edge Detection for better line detection
-      let cannyMat = new cv.Mat();
-      cv.Canny(grayMat, cannyMat, 50, 150);
+         let dilatedMat = new cv.Mat();
+         cv.dilate(erodedMat, dilatedMat, kernel);
+         erodedMat.delete();
+         kernel.delete();
 
-      // Perform Hough Line Transform to detect lines in the image
-      let lines = new cv.Mat();
-      let rho = 1;
-      let theta = Math.PI / 180;
-      let threshold = 100;
-      let minLineLength = 10;
-      let maxLineGap = 10;
-      cv.HoughLinesP(cannyMat, lines, rho, theta, threshold, minLineLength, maxLineGap);
+         // Apply adaptive threshold
+         let thresholdMat = new cv.Mat();
+         cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
+         dilatedMat.delete();
 
-      // Draw detected lines on the image
-      for (let i = 0; i < lines.rows; ++i) {
-          let lineData = lines.data32S[i * 4];
-          let x1 = lineData[0], y1 = lineData[1], x2 = lineData[2], y2 = lineData[3];
-          cv.line(src, new cv.Point(x1, y1), new cv.Point(x2, y2), [255, 0, 0, 255]);
-      }
+         cv.imshow('canvas', thresholdMat);
+         thresholdMat.delete();
+         const resultImg = context.getImageData(0, 0, 300, 150)
 
-      // Convert processed image back to grayscale for QR code scanning
-
-      let finalGrayMat = new cv.Mat();
-      cv.cvtColor(src, finalGrayMat, cv.COLOR_RGBA2GRAY);
-
-      cv.imshow('canvas', finalGrayMat);
-      const resultImg = context.getImageData(0, 0, 300, 150)
-
-      return resultImg;
+         return resultImg;
+     }
+     catch (err) {
+         console.log('An error occurred:', err);
+         startScanning(true)
+     }
   }
 
   // Function to scan for QR codes
@@ -262,6 +266,7 @@
     const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
       inversionAttempts: "dontInvert", // as recommended by jsQR
     });
+    
     if (code) {
       console.log('QR code detected:', code.data);
       if (code) {
