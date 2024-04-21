@@ -75,7 +75,10 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
+      integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+    </script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -90,15 +93,15 @@
     </script>
 
   </head>
-  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false }" class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false, acceptPrivacy: $persist(false) }" class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-5 w-5 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle class="stroke-slate-200/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 </div>
 
-    <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+    <div x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
 
   <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
     <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
@@ -126,11 +129,12 @@
 
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
+      <div x-data="{ showCardInfo: true }">
+  <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
 
   <button>
     <svg xmlns="http://www.w3.org/2000/svg"
-      @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning(true) : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+      @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       class="h-14 w-14 fill-slate-200 lg:fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
         d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
@@ -147,7 +151,7 @@
 
 <script>
   // Access the video and canvas elements
-  let el = document.querySelector('[x-data]');
+  let alpinel = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
@@ -159,7 +163,8 @@
 
 
   // Function to start scanning for QR codes
-  function startScanning(consent) {
+  function startScanning() {
+    let consent = alpinel._x_dataStack[0].acceptPrivacy;
     if (consent) {
       // Get access to the camera
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
@@ -169,7 +174,7 @@
           video.play();
           requestAnimationFrame(scan);
           setTimeout(() => {
-            el._x_dataStack[0].videoReady = true;
+            alpinel._x_dataStack[0].videoReady = true;
           }, 300);
 
         })
@@ -184,7 +189,7 @@
     if (video.srcObject) {
       video.srcObject.getTracks()[0].stop();
       video.srcObject = null;
-      el._x_dataStack[0].videoReady = false;
+      alpinel._x_dataStack[0].videoReady = false;
     }
   }
 
@@ -254,6 +259,26 @@
 </script>
 
 
+  <button x-show="showCardInfo">
+    <svg xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      class="w-9 h-9 scale-95 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-slate-200 lg:stroke-kip-goldenrod stroke-2 m-2"
+      @click="showCardInfo = !showCardInfo">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    </svg>
+  </button>
+  <template x-if="true">
+    <button x-show="!showCardInfo">
+      <svg xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        class="w-9 h-9 scale-95 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-slate-200 lg:stroke-kip-goldenrod stroke-2 m-2"
+        @click="showCardInfo = !showCardInfo">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+      </svg>
+    </button>
+  </template>
+
   <a href="/">
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -262,15 +287,16 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
     </svg>
   </a>
+
 </div>
 
-
-<div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/frost_tipped_arctic_otter.webp' )">
-  <div class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
-    <div class="flex flex-1 place-content-center w-screen h-fit">
-      <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
-        <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Frost Tipped Arctic Otter</p>
-        
+  <!-- layout for small screens -->
+  <div class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center lg:hidden" style="background-image: url( '/assets/images/frost_tipped_arctic_otter.webp' )">
+    <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+      <div class="flex flex-1 place-content-center w-screen h-fit">
+        <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
+          <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Frost Tipped Arctic Otter</p>
+          
 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -476,13 +502,15 @@
 </div>
 
 
-        <p class="font-hairline text-slate-200 text-sm mt-6"></p>
-        <p class="font-hairline text-slate-300 text-xs italic"></p>
+          <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+          <p class="font-hairline text-slate-300 text-xs italic"></p>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- layouts for large screens -->
 
   <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
     <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold"></div>

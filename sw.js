@@ -1,11 +1,12 @@
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.1.5/workbox-sw.js');
-const CACHE_VERSION = '0.0.0'
+const CACHE_VERSION = '0.0.1'
 
 const APP_SHELL_FILES = [
   '/',
   '/index.html',
   '/offline.html',
   '/assets/css/output.css',
+  '/manifest.json',
 ];
 
 self.addEventListener('message', (event) => {

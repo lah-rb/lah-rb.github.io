@@ -7,7 +7,7 @@
 
 <script>
   // Access the video and canvas elements
-  let el = document.querySelector('[x-data]');
+  let alpinel = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
@@ -19,7 +19,8 @@
 
 
   // Function to start scanning for QR codes
-  function startScanning(consent) {
+  function startScanning() {
+    let consent = alpinel._x_dataStack[0].acceptPrivacy;
     if (consent) {
       // Get access to the camera
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
@@ -29,7 +30,7 @@
           video.play();
           requestAnimationFrame(scan);
           setTimeout(() => {
-            el._x_dataStack[0].videoReady = true;
+            alpinel._x_dataStack[0].videoReady = true;
           }, 300);
 
         })
@@ -44,7 +45,7 @@
     if (video.srcObject) {
       video.srcObject.getTracks()[0].stop();
       video.srcObject = null;
-      el._x_dataStack[0].videoReady = false;
+      alpinel._x_dataStack[0].videoReady = false;
     }
   }
 

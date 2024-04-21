@@ -74,7 +74,10 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
+      integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
+      crossorigin="anonymous" referrerpolicy="no-referrer">
+    </script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -89,15 +92,15 @@
     </script>
 
   </head>
-  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false, acceptPrivacy: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-5 w-5 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle class="stroke-slate-200/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 </div>
 
-    <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+    <div x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
 
   <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
     <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
@@ -161,7 +164,7 @@
 
       <button>
   <svg xmlns="http://www.w3.org/2000/svg"
-    @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning(true) : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+    @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
     class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
     <path
       d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
@@ -204,7 +207,7 @@
 
 <script>
   // Access the video and canvas elements
-  let el = document.querySelector('[x-data]');
+  let alpinel = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
@@ -216,7 +219,8 @@
 
 
   // Function to start scanning for QR codes
-  function startScanning(consent) {
+  function startScanning() {
+    let consent = alpinel._x_dataStack[0].acceptPrivacy;
     if (consent) {
       // Get access to the camera
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
@@ -226,7 +230,7 @@
           video.play();
           requestAnimationFrame(scan);
           setTimeout(() => {
-            el._x_dataStack[0].videoReady = true;
+            alpinel._x_dataStack[0].videoReady = true;
           }, 300);
 
         })
@@ -241,7 +245,7 @@
     if (video.srcObject) {
       video.srcObject.getTracks()[0].stop();
       video.srcObject = null;
-      el._x_dataStack[0].videoReady = false;
+      alpinel._x_dataStack[0].videoReady = false;
     }
   }
 
