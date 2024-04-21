@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="https://www.kipukas.cards/search" />
-<meta property="og:url" content="https://www.kipukas.cards/search" />
+<link rel="canonical" href="http://localhost:4000/search" />
+<meta property="og:url" content="http://localhost:4000/search" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Search Binder" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"https://www.kipukas.cards/search"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"http://localhost:4000/search"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -72,7 +72,9 @@
 
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
       integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
@@ -119,7 +121,7 @@
         Accept & Continue
       </button>
 
-      <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="noCamera = true; showModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Don't Need It
       </button>
     </div>
@@ -153,8 +155,8 @@
     </svg>
   </div>
 
-  <div class="flex flex-auto">
-    <input type="text" id="search-input" size="3" autofocus class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap">
+  <div x-data="{ capture: true }" class="flex flex-auto">
+    <input type="text" id="search-input" x-trap="capture" size="3" autofocus class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap">
   </div>
 
 </div>
@@ -325,12 +327,9 @@
       searchInput: document.getElementById('search-input'),
       resultsContainer: document.getElementById('results-container'),
       json: '/search.json',
-      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="https://www.kipukas.cards/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
+      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="http://localhost:4000/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
       noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
     })
-
-    document.getElementById('search-input').focus();
-    document.getElementById('search-input').select();
 
     document.addEventListener('keyup', (e) => {
       if (e.code === "Escape")        document.location.href = 'index.html';

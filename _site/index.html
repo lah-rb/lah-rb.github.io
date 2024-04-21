@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="https://www.kipukas.cards/" />
-<meta property="og:url" content="https://www.kipukas.cards/" />
+<link rel="canonical" href="http://localhost:4000/" />
+<meta property="og:url" content="http://localhost:4000/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Binder Home" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas Card Binder","url":"https://www.kipukas.cards/"}</script>
+{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas Card Binder","url":"http://localhost:4000/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -72,7 +72,9 @@
 
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
       integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
@@ -119,7 +121,7 @@
         Accept & Continue
       </button>
 
-      <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="noCamera = true; showModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Don't Need It
       </button>
     </div>

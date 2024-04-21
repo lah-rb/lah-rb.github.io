@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity." />
 <meta property="og:description" content="Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity." />
-<link rel="canonical" href="https://www.kipukas.cards/oshliath_and_osileth/" />
-<meta property="og:url" content="https://www.kipukas.cards/oshliath_and_osileth/" />
+<link rel="canonical" href="http://localhost:4000/oshliath_and_osileth/" />
+<meta property="og:url" content="http://localhost:4000/oshliath_and_osileth/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-10T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Oshliath and Osileth" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-10T00:00:00-06:00","datePublished":"2021-10-10T00:00:00-06:00","description":"Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.","headline":"Oshliath and Osileth","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/oshliath_and_osileth/"},"url":"https://www.kipukas.cards/oshliath_and_osileth/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-10T00:00:00-06:00","datePublished":"2021-10-10T00:00:00-06:00","description":"Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.","headline":"Oshliath and Osileth","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/oshliath_and_osileth/"},"url":"http://localhost:4000/oshliath_and_osileth/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -73,7 +73,9 @@
 
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
       integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
@@ -120,7 +122,7 @@
         Accept & Continue
       </button>
 
-      <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="noCamera = true; showModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Don't Need It
       </button>
     </div>
