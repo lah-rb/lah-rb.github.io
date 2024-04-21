@@ -75,6 +75,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js" integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
@@ -86,61 +87,64 @@
         });
     }
     </script>
+
   </head>
-  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+    <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="animate-spin h-5 w-5 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="stroke-slate-200/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+</div>
 
     <div x-data="{ acceptPrivacy: $persist(false) }" x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
-      <template x-if="acceptPrivacy == true && noCamera == false">
-          <script>
-           startScanning(true);
-          </script>
-      </template>
-      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-        <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-      </template>
 
-      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-        <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-          <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
-          <p class="mb-4 text-kip-drk-sienna">
-            By allowing camera access to our QR code scanner, you agree to our
-            <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
-             Breath easy, we don't collect any data.
-          </p>
+  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+    <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+  </template>
 
-          <button @click="acceptPrivacy = true; noCamera = false; showModal = false; startScanning(true)" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-            Accept & Continue
-          </button>
+  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+    <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+      <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+      <p class="mb-4 text-kip-drk-sienna">
+        By allowing camera access to our QR code scanner, you agree to our
+        <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
+         Breath easy, we don't collect any data.
+      </p>
 
-          <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-            Don't Need It
-          </button>
+      <button @click="acceptPrivacy = true; noCamera = false; showModal = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        Accept & Continue
+      </button>
 
-        </div>
-      </template>
-
+      <button @click="noCamera = true; showModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        Don't Need It
+      </button>
     </div>
+  </template>
+</div>
+
     <div x-data="{ terrab: true }">
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div x-data="{ open: false }" class="z-40 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
-  <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
-    <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
-      <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
-    </a>
-  </div>
+      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+  <div x-data="{ open: false }" class="z-40 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
+    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
+        <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      </a>
+    </div>
 
-  <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
-    <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
-      <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
-    </a>
-  </div>
+    <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
+      <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
+        <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      </a>
+    </div>
 
-  
+    
 
-  
-    <div class="flex flex-auto place-content-center place-self-center h-10">
+    
+      <div class="flex flex-auto place-content-center place-self-center h-10">
 
-  <div href="./search" class=" ml-auto my-auto" aria-label="Take me to the search page.">
+  <div class=" ml-auto my-auto">
     <svg class="h-10 w-10 stroke-2 stroke-kip-drk-sienna fill-transparent" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
     </svg>
@@ -152,53 +156,61 @@
 
 </div>
 
-    <button>
-  <svg xmlns="http://www.w3.org/2000/svg" @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false" viewBox="0 0 128 128" alt="QR Scanner Toggle" class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+      <button>
+  <svg xmlns="http://www.w3.org/2000/svg"
+    @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning(true) : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+    class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
     <path
       d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
       transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
   </svg>
 </button>
 
-  
+    
 
-  <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
-    <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./kipukas_2_player_domination.pdf">See the Rules</a>
-    <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./about_the_binder">About the Binder</a>
-  </div>
-
-
-  <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
-    <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
-        <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
-        <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
-        <a href="./about_the_binder" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a>
+    <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./kipukas_2_player_domination.pdf">See the Rules</a>
+      <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./about_the_binder">About the Binder</a>
     </div>
 
-    <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
-        <span class="sr-only">Open main menu</span>
-        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
-            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
-            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'opacity-0': open } "></span>
-            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500 ease-in-out" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
-        </div>
-    </button>
-  </div>
-</div>
 
-<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
-<video id="video" class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 border-2 border-kip-red rounded-lg" x-show="showScanner" style="display:none;"></video>
+    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
+      <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
+          <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
+          <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
+          <a href="./about_the_binder" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a>
+      </div>
+
+      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
+          <span class="sr-only">Open main menu</span>
+          <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'opacity-0': open } "></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500 ease-in-out" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
+          </div>
+      </button>
+    </div>
+  </div>
+</template>
+<canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
+<video id="video"
+  class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
+  x-show="showScanner && !noCamera && videoReady" style="display:none;">
+</video>
 <!--<canvas id="debugCanvas" ></canvas>-->
 
 <script>
   // Access the video and canvas elements
+  let el = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
   const debugCanvas = document.createElement('canvas');
+  const spinner = document.getElementById('spinner');
   debugCanvas.width = 256;
   debugCanvas.height = 128;
   const debugContext = debugCanvas.getContext('2d');
+
 
   // Function to start scanning for QR codes
   function startScanning(consent) {
@@ -210,10 +222,23 @@
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
           video.play();
           requestAnimationFrame(scan);
+          setTimeout(() => {
+            el._x_dataStack[0].videoReady = true;
+          }, 300);
+
         })
         .catch(function(err) {
           console.error('Camera access error:', err);
         });
+    }
+  }
+
+  function stopScanning() {
+    cancelAnimationFrame(requestAnimationFrame);
+    if (video.srcObject) {
+      video.srcObject.getTracks()[0].stop();
+      video.srcObject = null;
+      el._x_dataStack[0].videoReady = false;
     }
   }
 
@@ -263,7 +288,7 @@
     const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
       inversionAttempts: "dontInvert", // as recommended by jsQR
     });
-    
+
     if (code) {
       console.log('QR code detected:', code.data);
       if (code) {
@@ -291,23 +316,21 @@
 <script type="text/javascript" src="search-script.js"></script>
 
 <script>
-  SimpleJekyllSearch({
-    searchInput: document.getElementById('search-input'),
-    resultsContainer: document.getElementById('results-container'),
-    json: '/search.json',
-    searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="https://www.kipukas.cards/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
-    noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
-  })
-</script>
+  document.addEventListener('DOMContentLoaded', function() {
+    SimpleJekyllSearch({
+      searchInput: document.getElementById('search-input'),
+      resultsContainer: document.getElementById('results-container'),
+      json: '/search.json',
+      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="https://www.kipukas.cards/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
+      noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
+    })
 
-<script type="text/javascript">
-  document.getElementById('search-input').focus();
-  document.getElementById('search-input').select();
-</script>
+    document.getElementById('search-input').focus();
+    document.getElementById('search-input').select();
 
-<script type="text/javascript">
     document.addEventListener('keyup', (e) => {
-    if (e.code === "Escape")        document.location.href = 'index.html';
+      if (e.code === "Escape")        document.location.href = 'index.html';
+    });
   });
 </script>
 

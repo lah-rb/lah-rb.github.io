@@ -1197,6 +1197,10 @@ video {
   top: 50%;
 }
 
+.-z-10 {
+  z-index: -10;
+}
+
 .z-0 {
   z-index: 0;
 }
@@ -1326,6 +1330,10 @@ video {
   height: 10rem;
 }
 
+.h-5 {
+  height: 1.25rem;
+}
+
 .h-64 {
   height: 16rem;
 }
@@ -1407,6 +1415,10 @@ video {
   width: 15rem;
 }
 
+.w-80 {
+  width: 20rem;
+}
+
 .w-9 {
   width: 2.25rem;
 }
@@ -1426,22 +1438,6 @@ video {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-32 {
-  width: 8rem;
-}
-
-.w-64 {
-  width: 16rem;
-}
-
-.w-96 {
-  width: 24rem;
-}
-
-.w-80 {
-  width: 20rem;
 }
 
 .max-w-lg {
@@ -1525,8 +1521,14 @@ video {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
-.resize {
-  resize: both;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 .break-after-avoid {
@@ -1610,21 +1612,8 @@ video {
   border-radius: 0.375rem;
 }
 
-.rounded-sm {
-  border-radius: 0.125rem;
-}
-
-.rounded-full {
-  border-radius: 9999px;
-}
-
 .border-2 {
   border-width: 2px;
-}
-
-.border-kip-red {
-  --tw-border-opacity: 1;
-  border-color: rgb(156 40 40 / var(--tw-border-opacity));
 }
 
 .bg-amber-50 {
@@ -1679,7 +1668,7 @@ video {
 }
 
 .bg-hero-pattern {
-  background-image: url('/assets/images/topography.svg');
+  background-image: url('/assets/utility_images/topography.svg');
 }
 
 .bg-cover {
@@ -1718,8 +1707,16 @@ video {
   stroke: #e2e8f0;
 }
 
+.stroke-slate-200\/50 {
+  stroke: rgb(226 232 240 / 0.5);
+}
+
 .stroke-2 {
   stroke-width: 2;
+}
+
+.stroke-5 {
+  stroke-width: 5px;
 }
 
 .object-none {
@@ -1941,11 +1938,6 @@ video {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
-.grayscale {
-  --tw-grayscale: grayscale(100%);
-  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-}
-
 .saturate-150 {
   --tw-saturate: saturate(1.5);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -1985,6 +1977,10 @@ video {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+.delay-150 {
+  transition-delay: 150ms;
 }
 
 .duration-500 {

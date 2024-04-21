@@ -1,0 +1,11 @@
+name: kpksdev
+root: ~/Repos/lah-rb.github.io
+
+windows:
+  - hub:
+      layout: tiled
+      panes:
+        - jekyll server --livereload --watch
+        - jekyll build --watch
+        - tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
+        - cd ~/Repos/text-generation-webui-main && ./start_linux.sh

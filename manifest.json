@@ -5,7 +5,7 @@
   "background_color": "#f1f5f9",
   "start_url": "https://www.kipukas.cards/",
   "id": "kipukas_binder_pwa",
-  "display": "standalone",
+  "display": "fullscreen",
   "app_name": "Kipukas Card Binder",
   "description": "Holds every card in the Kipukas collection",
   "icons": [
