@@ -11,7 +11,7 @@ module.exports = {
   theme: {
     extend: {
       backgroundImage: theme => ({
-      'hero-pattern': "url('/assets/images/topography.svg')"
+      'hero-pattern': "url('/assets/utility_images/topography.svg')"
     }),
       colors: {
         'kip-red': '#9c2828',
@@ -19,6 +19,9 @@ module.exports = {
         'kip-drk-goldenrod': '#7A5015',
         'kip-drk-sienna': '#341c17'
       },
+      strokeWidth: {
+        '5': '5px',
+      }
     },
   },
   variants: {
@@ -29,4 +32,3 @@ module.exports = {
     require('@tailwindcss/typography'),
   ],
 }
-// Run ./tailwindcss -i assets/css/input.css -o assets/css/output.css --watch to watch the files

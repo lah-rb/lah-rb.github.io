@@ -1,16 +1,22 @@
-<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
-<video id="video" class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 border-2 border-kip-red rounded-lg" x-show="showScanner" style="display:none;"></video>
+<canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
+<video id="video"
+  class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
+  x-show="showScanner && !noCamera && videoReady" style="display:none;">
+</video>
 <!--<canvas id="debugCanvas" ></canvas>-->
 
 <script>
   // Access the video and canvas elements
+  let el = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext('2d');
   const debugCanvas = document.createElement('canvas');
+  const spinner = document.getElementById('spinner');
   debugCanvas.width = 256;
   debugCanvas.height = 128;
   const debugContext = debugCanvas.getContext('2d');
+
 
   // Function to start scanning for QR codes
   function startScanning(consent) {
@@ -22,10 +28,23 @@
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
           video.play();
           requestAnimationFrame(scan);
+          setTimeout(() => {
+            el._x_dataStack[0].videoReady = true;
+          }, 300);
+
         })
         .catch(function(err) {
           console.error('Camera access error:', err);
         });
+    }
+  }
+
+  function stopScanning() {
+    cancelAnimationFrame(requestAnimationFrame);
+    if (video.srcObject) {
+      video.srcObject.getTracks()[0].stop();
+      video.srcObject = null;
+      el._x_dataStack[0].videoReady = false;
     }
   }
 
@@ -75,7 +94,7 @@
     const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
       inversionAttempts: "dontInvert", // as recommended by jsQR
     });
-    
+
     if (code) {
       console.log('QR code detected:', code.data);
       if (code) {

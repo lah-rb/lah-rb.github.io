@@ -17,22 +17,20 @@ search: search_bar.html
 <script type="text/javascript" src="search-script.js"></script>
 
 <script>
-  SimpleJekyllSearch({
-    searchInput: document.getElementById('search-input'),
-    resultsContainer: document.getElementById('results-container'),
-    json: '/search.json',
-    searchResultTemplate: '<li class="mx-auto my-3"><a class="{{ site.data.templates.btn-center }} h-64" href="{url}"><img class="h-40 w-40" src="{{ site.url }}/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
-    noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
-  })
-</script>
+  document.addEventListener('DOMContentLoaded', function() {
+    SimpleJekyllSearch({
+      searchInput: document.getElementById('search-input'),
+      resultsContainer: document.getElementById('results-container'),
+      json: '/search.json',
+      searchResultTemplate: '<li class="mx-auto my-3"><a class="{{ site.data.templates.btn-center }} h-64" href="{url}"><img class="h-40 w-40" src="{{ site.url }}/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
+      noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
+    })
 
-<script type="text/javascript">
-  document.getElementById('search-input').focus();
-  document.getElementById('search-input').select();
-</script>
+    document.getElementById('search-input').focus();
+    document.getElementById('search-input').select();
 
-<script type="text/javascript">
     document.addEventListener('keyup', (e) => {
-    if (e.code === "Escape")        document.location.href = 'index.html';
+      if (e.code === "Escape")        document.location.href = 'index.html';
+    });
   });
 </script>

@@ -1,0 +1,23 @@
+---
+layout: default
+permalink: /offline
+title: "Binder Home"
+description: "This is the home of all the cards ever produced by Kipukas! Whether
+you are planning you next dominating game strategy or browsing for lovely pieces of
+art you came to the right place."
+bg-terra: "bg-hero-pattern "
+search: search_bar_link.html
+---
+{% include header.html %}
+<div class="">
+  Please note, this is a cached page. You are not online.
+</div>
+
+<ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">
+  {% assign posts = site.posts | sort:"title" %}
+  {% for card in posts %}
+    <li class="mx-auto my-3">
+      <a class="{{ site.data.templates.btn-center }} h-64" href="{{card.url}}"><img class="h-40 w-40" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}" loading="lazy"></img>{{card.title}}</a>
+    </li>
+  {% endfor %}
+</ul>
