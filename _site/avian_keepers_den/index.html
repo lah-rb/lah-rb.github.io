@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves." />
 <meta property="og:description" content="Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves." />
-<link rel="canonical" href="http://localhost:4000/avian_keepers_den/" />
-<meta property="og:url" content="http://localhost:4000/avian_keepers_den/" />
+<link rel="canonical" href="https://www.kipukas.cards/avian_keepers_den/" />
+<meta property="og:url" content="https://www.kipukas.cards/avian_keepers_den/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-11T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Avian Keeper’s Den" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves.","headline":"Avian Keeper’s Den","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/avian_keepers_den/"},"url":"http://localhost:4000/avian_keepers_den/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves.","headline":"Avian Keeper’s Den","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/avian_keepers_den/"},"url":"https://www.kipukas.cards/avian_keepers_den/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -75,12 +75,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    <script src=" https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js "></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.js"
-      integrity="sha512-is1ls2rgwpFZyixqKFEExPHVUUL+pPkBEPw47s/6NDQ4n1m6T/ySeDW3p54jp45z2EJ0RSOgilqee1WhtelXfA=="
-      crossorigin="anonymous" referrerpolicy="no-referrer">
-    </script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -250,6 +244,7 @@
             if (url.startsWith('http://') || url.startsWith('https://')) {
               // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
               window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+              stopScanning();
             } else {
               console.log('Invalid URL detected in QR code');
             }
