@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey." />
 <meta property="og:description" content="The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey." />
-<link rel="canonical" href="https://www.kipukas.cards/branwen_mantillusion_practitioner/" />
-<meta property="og:url" content="https://www.kipukas.cards/branwen_mantillusion_practitioner/" />
+<link rel="canonical" href="http://localhost:4000/branwen_mantillusion_practitioner/" />
+<meta property="og:url" content="http://localhost:4000/branwen_mantillusion_practitioner/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-11T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Branwen: Mantillusion Practitioner" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.","headline":"Branwen: Mantillusion Practitioner","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/branwen_mantillusion_practitioner/"},"url":"https://www.kipukas.cards/branwen_mantillusion_practitioner/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.","headline":"Branwen: Mantillusion Practitioner","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/branwen_mantillusion_practitioner/"},"url":"http://localhost:4000/branwen_mantillusion_practitioner/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -234,27 +234,28 @@
   }
 
   // Function to scan for QR codes
-  function scan() {
+  async function scan() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    const preProcessedImage = preProcess();
+      const preProcessedImage = preProcess();
 
-    const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
-      inversionAttempts: "dontInvert", // as recommended by jsQR
-    });
-
-    if (code) {
-      console.log('QR code detected:', code.data);
-      if (code) {
-        const url = code.data;
-        // Check if the URL starts with "http://" or "https://"
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
-        } else {
-          console.log('Invalid URL detected in QR code');
+      const symbols = await zbarWasm.scanImageData(preProcessedImage);
+      symbols.forEach(s => s.rawValue = s.decode('utf-8'));
+      symbols.forEach(symbol => {
+        code = symbol.rawValue;
+        if (code) {
+          console.log('QR code detected:', code);
+          if (code) {
+            const url = code;
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
         }
-      }
-    }
+      });
     }
     requestAnimationFrame(scan);
   }
@@ -750,6 +751,8 @@
 
 
     </div>
+
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>

@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="https://www.kipukas.cards/search" />
-<meta property="og:url" content="https://www.kipukas.cards/search" />
+<link rel="canonical" href="http://localhost:4000/search" />
+<meta property="og:url" content="http://localhost:4000/search" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Search Binder" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"https://www.kipukas.cards/search"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"http://localhost:4000/search"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -156,7 +156,7 @@
   </div>
 
   <div x-data="{ capture: true }" class="flex flex-auto">
-    <input type="text" id="search-input" x-trap="capture" size="3" autofocus class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap">
+    <input type="text" inputMode="text" id="search-input" x-trap="capture" size="3" autofocus class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap">
   </div>
 
 </div>
@@ -287,27 +287,28 @@
   }
 
   // Function to scan for QR codes
-  function scan() {
+  async function scan() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    const preProcessedImage = preProcess();
+      const preProcessedImage = preProcess();
 
-    const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
-      inversionAttempts: "dontInvert", // as recommended by jsQR
-    });
-
-    if (code) {
-      console.log('QR code detected:', code.data);
-      if (code) {
-        const url = code.data;
-        // Check if the URL starts with "http://" or "https://"
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
-        } else {
-          console.log('Invalid URL detected in QR code');
+      const symbols = await zbarWasm.scanImageData(preProcessedImage);
+      symbols.forEach(s => s.rawValue = s.decode('utf-8'));
+      symbols.forEach(symbol => {
+        code = symbol.rawValue;
+        if (code) {
+          console.log('QR code detected:', code);
+          if (code) {
+            const url = code;
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
         }
-      }
-    }
+      });
     }
     requestAnimationFrame(scan);
   }
@@ -327,7 +328,7 @@
       searchInput: document.getElementById('search-input'),
       resultsContainer: document.getElementById('results-container'),
       json: '/search.json',
-      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="https://www.kipukas.cards/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
+      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="http://localhost:4000/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
       noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
     })
 
@@ -338,6 +339,8 @@
 </script>
 
     </div>
+
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>

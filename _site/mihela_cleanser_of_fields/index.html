@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death." />
 <meta property="og:description" content="Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death." />
-<link rel="canonical" href="https://www.kipukas.cards/mihela_cleanser_of_fields/" />
-<meta property="og:url" content="https://www.kipukas.cards/mihela_cleanser_of_fields/" />
+<link rel="canonical" href="http://localhost:4000/mihela_cleanser_of_fields/" />
+<meta property="og:url" content="http://localhost:4000/mihela_cleanser_of_fields/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-11T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Mihela: Cleanser of Fields" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death.","headline":"Mihela: Cleanser of Fields","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/mihela_cleanser_of_fields/"},"url":"https://www.kipukas.cards/mihela_cleanser_of_fields/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death.","headline":"Mihela: Cleanser of Fields","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/mihela_cleanser_of_fields/"},"url":"http://localhost:4000/mihela_cleanser_of_fields/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -234,27 +234,28 @@
   }
 
   // Function to scan for QR codes
-  function scan() {
+  async function scan() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    const preProcessedImage = preProcess();
+      const preProcessedImage = preProcess();
 
-    const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
-      inversionAttempts: "dontInvert", // as recommended by jsQR
-    });
-
-    if (code) {
-      console.log('QR code detected:', code.data);
-      if (code) {
-        const url = code.data;
-        // Check if the URL starts with "http://" or "https://"
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
-        } else {
-          console.log('Invalid URL detected in QR code');
+      const symbols = await zbarWasm.scanImageData(preProcessedImage);
+      symbols.forEach(s => s.rawValue = s.decode('utf-8'));
+      symbols.forEach(symbol => {
+        code = symbol.rawValue;
+        if (code) {
+          console.log('QR code detected:', code);
+          if (code) {
+            const url = code;
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
         }
-      }
-    }
+      });
     }
     requestAnimationFrame(scan);
   }
@@ -746,6 +747,8 @@
 
 
     </div>
+
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>

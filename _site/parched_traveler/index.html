@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="After traveling the sand ruins created by weapons of mass destruction, researchers theorized that one would surly die if they attempted to cross by foot alone. They then developed a humanoid form as close to death as possible. It requires almost no water nor food and endures heat incredibly well. While it looks like a man, this species is not intelligent nor is it sentient. In fact, it can’t even breed. It was designed to take simple commands well. They are used as a scare tactic in war and a less than reliable scout. Despite their looks, they are easy to care for and make great pets for children." />
 <meta property="og:description" content="After traveling the sand ruins created by weapons of mass destruction, researchers theorized that one would surly die if they attempted to cross by foot alone. They then developed a humanoid form as close to death as possible. It requires almost no water nor food and endures heat incredibly well. While it looks like a man, this species is not intelligent nor is it sentient. In fact, it can’t even breed. It was designed to take simple commands well. They are used as a scare tactic in war and a less than reliable scout. Despite their looks, they are easy to care for and make great pets for children." />
-<link rel="canonical" href="https://www.kipukas.cards/parched_traveler/" />
-<meta property="og:url" content="https://www.kipukas.cards/parched_traveler/" />
+<link rel="canonical" href="http://localhost:4000/parched_traveler/" />
+<meta property="og:url" content="http://localhost:4000/parched_traveler/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-12T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Parched Traveler" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-12T00:00:00-06:00","datePublished":"2021-10-12T00:00:00-06:00","description":"After traveling the sand ruins created by weapons of mass destruction, researchers theorized that one would surly die if they attempted to cross by foot alone. They then developed a humanoid form as close to death as possible. It requires almost no water nor food and endures heat incredibly well. While it looks like a man, this species is not intelligent nor is it sentient. In fact, it can’t even breed. It was designed to take simple commands well. They are used as a scare tactic in war and a less than reliable scout. Despite their looks, they are easy to care for and make great pets for children.","headline":"Parched Traveler","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/parched_traveler/"},"url":"https://www.kipukas.cards/parched_traveler/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-12T00:00:00-06:00","datePublished":"2021-10-12T00:00:00-06:00","description":"After traveling the sand ruins created by weapons of mass destruction, researchers theorized that one would surly die if they attempted to cross by foot alone. They then developed a humanoid form as close to death as possible. It requires almost no water nor food and endures heat incredibly well. While it looks like a man, this species is not intelligent nor is it sentient. In fact, it can’t even breed. It was designed to take simple commands well. They are used as a scare tactic in war and a less than reliable scout. Despite their looks, they are easy to care for and make great pets for children.","headline":"Parched Traveler","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/parched_traveler/"},"url":"http://localhost:4000/parched_traveler/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -234,27 +234,28 @@
   }
 
   // Function to scan for QR codes
-  function scan() {
+  async function scan() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    const preProcessedImage = preProcess();
+      const preProcessedImage = preProcess();
 
-    const code = jsQR(preProcessedImage.data, preProcessedImage.width, preProcessedImage.height, {
-      inversionAttempts: "dontInvert", // as recommended by jsQR
-    });
-
-    if (code) {
-      console.log('QR code detected:', code.data);
-      if (code) {
-        const url = code.data;
-        // Check if the URL starts with "http://" or "https://"
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
-        } else {
-          console.log('Invalid URL detected in QR code');
+      const symbols = await zbarWasm.scanImageData(preProcessedImage);
+      symbols.forEach(s => s.rawValue = s.decode('utf-8'));
+      symbols.forEach(symbol => {
+        code = symbol.rawValue;
+        if (code) {
+          console.log('QR code detected:', code);
+          if (code) {
+            const url = code;
+            // Check if the URL starts with "http://" or "https://"
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+              window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+            } else {
+              console.log('Invalid URL detected in QR code');
+            }
+          }
         }
-      }
-    }
+      });
     }
     requestAnimationFrame(scan);
   }
@@ -732,6 +733,8 @@
 
 
     </div>
+
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>
