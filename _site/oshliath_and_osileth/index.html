@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity." />
 <meta property="og:description" content="Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity." />
-<link rel="canonical" href="http://localhost:4000/oshliath_and_osileth/" />
-<meta property="og:url" content="http://localhost:4000/oshliath_and_osileth/" />
+<link rel="canonical" href="https://www.kipukas.cards/oshliath_and_osileth/" />
+<meta property="og:url" content="https://www.kipukas.cards/oshliath_and_osileth/" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-10T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Oshliath and Osileth" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-10T00:00:00-06:00","datePublished":"2021-10-10T00:00:00-06:00","description":"Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.","headline":"Oshliath and Osileth","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/oshliath_and_osileth/"},"url":"http://localhost:4000/oshliath_and_osileth/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-10T00:00:00-06:00","datePublished":"2021-10-10T00:00:00-06:00","description":"Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon’s body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.","headline":"Oshliath and Osileth","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/oshliath_and_osileth/"},"url":"https://www.kipukas.cards/oshliath_and_osileth/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -168,7 +168,7 @@
           video.srcObject = stream;
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
           video.play();
-          requestAnimationFrame(scan);
+          requestAnimationFrame(scanForQR);
           setTimeout(() => {
             alpinel._x_dataStack[0].videoReady = true;
           }, 300);
@@ -191,35 +191,39 @@
 
   function preProcess() {
      try {
-         context.drawImage(video, 0, 0, 300, 150);
-         const imageData = context.getImageData(0, 0, 300, 150);
+          context.drawImage(video, 0, 0, 300, 150);
+          const imageData = context.getImageData(0, 0, 300, 150);
 
-         let src = cv.imread('canvas');
-         //cv.imshow('debugCanvas', src)
-         let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
-         cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
-         src.delete();
-         // Perform morphological operations
-         let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
-         let erodedMat = new cv.Mat();
-         cv.erode(grayMat, erodedMat, kernel);
-         grayMat.delete();
+          let src = cv.imread('canvas');
+          //cv.imshow('debugCanvas', src)
+          let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
+          cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+          src.delete();
 
-         let dilatedMat = new cv.Mat();
-         cv.dilate(erodedMat, dilatedMat, kernel);
-         erodedMat.delete();
-         kernel.delete();
+          let equalized = new cv.Mat();
+          cv.equalizeHist(grayMat, equalized);
 
-         // Apply adaptive threshold
-         let thresholdMat = new cv.Mat();
-         cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
-         dilatedMat.delete();
+          // Perform morphological operations
+          let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
+          let erodedMat = new cv.Mat();
+          cv.erode(equalized, erodedMat, kernel);
+          grayMat.delete();
 
-         cv.imshow('canvas', thresholdMat);
-         thresholdMat.delete();
-         const resultImg = context.getImageData(0, 0, 300, 150)
+          let dilatedMat = new cv.Mat();
+          cv.dilate(erodedMat, dilatedMat, kernel);
+          erodedMat.delete();
+          kernel.delete();
 
-         return resultImg;
+          // Apply adaptive threshold
+          let thresholdMat = new cv.Mat();
+          cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
+          dilatedMat.delete();
+
+          cv.imshow('canvas', thresholdMat);
+          thresholdMat.delete();
+          const resultImg = context.getImageData(0, 0, 300, 150)
+
+          return resultImg;
      }
      catch (err) {
          console.log('An error occurred:', err);
@@ -228,7 +232,7 @@
   }
 
   // Function to scan for QR codes
-  async function scan() {
+  async function scanForQR() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       const preProcessedImage = preProcess();
       const scanner = await zbarWasm.getDefaultScanner();
@@ -238,6 +242,7 @@
       	0 /* 0 for disable */
       );
       scanner.setConfig(zbarWasm.ZBarSymbolType.ZBAR_QRCODE, zbarWasm.ZBarConfigType.ZBAR_CFG_ENABLE, 1);
+      scanner.enableCache(true);
       const symbols = await zbarWasm.scanImageData(preProcessedImage, scanner);
       symbols.forEach(s => s.rawValue = s.decode('utf-8'));
       symbols.forEach(symbol => {
@@ -258,7 +263,7 @@
         }
       });
     }
-    requestAnimationFrame(scan);
+    requestAnimationFrame(scanForQR);
   }
 </script>
 

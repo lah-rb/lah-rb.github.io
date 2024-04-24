@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="http://localhost:4000/search" />
-<meta property="og:url" content="http://localhost:4000/search" />
+<link rel="canonical" href="https://www.kipukas.cards/search" />
+<meta property="og:url" content="https://www.kipukas.cards/search" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Search Binder" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"http://localhost:4000/search"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place.","headline":"Search Binder","url":"https://www.kipukas.cards/search"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -221,7 +221,7 @@
           video.srcObject = stream;
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
           video.play();
-          requestAnimationFrame(scan);
+          requestAnimationFrame(scanForQR);
           setTimeout(() => {
             alpinel._x_dataStack[0].videoReady = true;
           }, 300);
@@ -244,35 +244,39 @@
 
   function preProcess() {
      try {
-         context.drawImage(video, 0, 0, 300, 150);
-         const imageData = context.getImageData(0, 0, 300, 150);
+          context.drawImage(video, 0, 0, 300, 150);
+          const imageData = context.getImageData(0, 0, 300, 150);
 
-         let src = cv.imread('canvas');
-         //cv.imshow('debugCanvas', src)
-         let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
-         cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
-         src.delete();
-         // Perform morphological operations
-         let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
-         let erodedMat = new cv.Mat();
-         cv.erode(grayMat, erodedMat, kernel);
-         grayMat.delete();
+          let src = cv.imread('canvas');
+          //cv.imshow('debugCanvas', src)
+          let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
+          cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+          src.delete();
 
-         let dilatedMat = new cv.Mat();
-         cv.dilate(erodedMat, dilatedMat, kernel);
-         erodedMat.delete();
-         kernel.delete();
+          let equalized = new cv.Mat();
+          cv.equalizeHist(grayMat, equalized);
 
-         // Apply adaptive threshold
-         let thresholdMat = new cv.Mat();
-         cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
-         dilatedMat.delete();
+          // Perform morphological operations
+          let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
+          let erodedMat = new cv.Mat();
+          cv.erode(equalized, erodedMat, kernel);
+          grayMat.delete();
 
-         cv.imshow('canvas', thresholdMat);
-         thresholdMat.delete();
-         const resultImg = context.getImageData(0, 0, 300, 150)
+          let dilatedMat = new cv.Mat();
+          cv.dilate(erodedMat, dilatedMat, kernel);
+          erodedMat.delete();
+          kernel.delete();
 
-         return resultImg;
+          // Apply adaptive threshold
+          let thresholdMat = new cv.Mat();
+          cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
+          dilatedMat.delete();
+
+          cv.imshow('canvas', thresholdMat);
+          thresholdMat.delete();
+          const resultImg = context.getImageData(0, 0, 300, 150)
+
+          return resultImg;
      }
      catch (err) {
          console.log('An error occurred:', err);
@@ -281,7 +285,7 @@
   }
 
   // Function to scan for QR codes
-  async function scan() {
+  async function scanForQR() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       const preProcessedImage = preProcess();
       const scanner = await zbarWasm.getDefaultScanner();
@@ -291,6 +295,7 @@
       	0 /* 0 for disable */
       );
       scanner.setConfig(zbarWasm.ZBarSymbolType.ZBAR_QRCODE, zbarWasm.ZBarConfigType.ZBAR_CFG_ENABLE, 1);
+      scanner.enableCache(true);
       const symbols = await zbarWasm.scanImageData(preProcessedImage, scanner);
       symbols.forEach(s => s.rawValue = s.decode('utf-8'));
       symbols.forEach(symbol => {
@@ -311,7 +316,7 @@
         }
       });
     }
-    requestAnimationFrame(scan);
+    requestAnimationFrame(scanForQR);
   }
 </script>
 
@@ -329,7 +334,7 @@
       searchInput: document.getElementById('search-input'),
       resultsContainer: document.getElementById('results-container'),
       json: '/search.json',
-      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="http://localhost:4000/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
+      searchResultTemplate: '<li class="mx-auto my-3"><a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="{url}"><img class="h-40 w-40" src="https://www.kipukas.cards/assets/thumbnails/{img_name}" alt="{img_alt}"></img>{title}</a></li>',
       noResultsText: 'We have not made that one yet, but we take requests all the time! Also, if you make an awsome art piece to go with your idea and we use it, you will get paid!'
     })
 

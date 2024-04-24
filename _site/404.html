@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…" />
 <meta property="og:description" content="Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…" />
-<link rel="canonical" href="http://localhost:4000/404.html" />
-<meta property="og:url" content="http://localhost:4000/404.html" />
+<link rel="canonical" href="https://www.kipukas.cards/404.html" />
+<meta property="og:url" content="https://www.kipukas.cards/404.html" />
 <meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="404 Glitch" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…","headline":"404 Glitch","url":"http://localhost:4000/404.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…","headline":"404 Glitch","url":"https://www.kipukas.cards/404.html"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -167,7 +167,7 @@
           video.srcObject = stream;
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
           video.play();
-          requestAnimationFrame(scan);
+          requestAnimationFrame(scanForQR);
           setTimeout(() => {
             alpinel._x_dataStack[0].videoReady = true;
           }, 300);
@@ -190,35 +190,39 @@
 
   function preProcess() {
      try {
-         context.drawImage(video, 0, 0, 300, 150);
-         const imageData = context.getImageData(0, 0, 300, 150);
+          context.drawImage(video, 0, 0, 300, 150);
+          const imageData = context.getImageData(0, 0, 300, 150);
 
-         let src = cv.imread('canvas');
-         //cv.imshow('debugCanvas', src)
-         let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
-         cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
-         src.delete();
-         // Perform morphological operations
-         let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
-         let erodedMat = new cv.Mat();
-         cv.erode(grayMat, erodedMat, kernel);
-         grayMat.delete();
+          let src = cv.imread('canvas');
+          //cv.imshow('debugCanvas', src)
+          let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
+          cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
+          src.delete();
 
-         let dilatedMat = new cv.Mat();
-         cv.dilate(erodedMat, dilatedMat, kernel);
-         erodedMat.delete();
-         kernel.delete();
+          let equalized = new cv.Mat();
+          cv.equalizeHist(grayMat, equalized);
 
-         // Apply adaptive threshold
-         let thresholdMat = new cv.Mat();
-         cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
-         dilatedMat.delete();
+          // Perform morphological operations
+          let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
+          let erodedMat = new cv.Mat();
+          cv.erode(equalized, erodedMat, kernel);
+          grayMat.delete();
 
-         cv.imshow('canvas', thresholdMat);
-         thresholdMat.delete();
-         const resultImg = context.getImageData(0, 0, 300, 150)
+          let dilatedMat = new cv.Mat();
+          cv.dilate(erodedMat, dilatedMat, kernel);
+          erodedMat.delete();
+          kernel.delete();
 
-         return resultImg;
+          // Apply adaptive threshold
+          let thresholdMat = new cv.Mat();
+          cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
+          dilatedMat.delete();
+
+          cv.imshow('canvas', thresholdMat);
+          thresholdMat.delete();
+          const resultImg = context.getImageData(0, 0, 300, 150)
+
+          return resultImg;
      }
      catch (err) {
          console.log('An error occurred:', err);
@@ -227,7 +231,7 @@
   }
 
   // Function to scan for QR codes
-  async function scan() {
+  async function scanForQR() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       const preProcessedImage = preProcess();
       const scanner = await zbarWasm.getDefaultScanner();
@@ -237,6 +241,7 @@
       	0 /* 0 for disable */
       );
       scanner.setConfig(zbarWasm.ZBarSymbolType.ZBAR_QRCODE, zbarWasm.ZBarConfigType.ZBAR_CFG_ENABLE, 1);
+      scanner.enableCache(true);
       const symbols = await zbarWasm.scanImageData(preProcessedImage, scanner);
       symbols.forEach(s => s.rawValue = s.decode('utf-8'));
       symbols.forEach(symbol => {
@@ -257,7 +262,7 @@
         }
       });
     }
-    requestAnimationFrame(scan);
+    requestAnimationFrame(scanForQR);
   }
 </script>
 
