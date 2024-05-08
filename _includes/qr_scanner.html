@@ -1,23 +1,24 @@
-<canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
-<img id="orbTemp" src="/assets/utility_images/qr_template.png" style="display:none;" />
+<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+  width="640" height="480"
+  x-show="showScanner && !noCamera && videoReady">
+</canvas>
 <video id="video"
-  class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
-  x-show="showScanner && !noCamera && videoReady" style="display:none;">
+  class="z-30 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
+  width="640" height="480"
+  x-show="showScanner && !noCamera && videoReady">
 </video>
-<!--<canvas id="debugCanvas" ></canvas>-->
 
 <script>
-  // Access the video and canvas elements
+  // Access alpine.js x-data
   let alpinel = document.querySelector('[x-data]');
+
+  // Access the video and canvas elements
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-  const orbTemp = document.getElementById('orbTemp');
-  const context = canvas.getContext('2d');
-  const debugCanvas = document.createElement('canvas');
+  const context = canvas.getContext("2d", { willReadFrequently: true });
   const spinner = document.getElementById('spinner');
-  debugCanvas.width = 256;
-  debugCanvas.height = 128;
-  const debugContext = debugCanvas.getContext('2d');
+
+  // Establist zxing from zxing_reader.js
   var zxing = ZXing().then(function (instance) {
     zxing = instance; // this line is supposedly not required but with current emsdk it is :-/
   });
@@ -37,7 +38,7 @@
           requestAnimationFrame(scanForQR);
           setTimeout(() => {
             alpinel._x_dataStack[0].videoReady = true;
-          }, 300);
+          }, 200);
 
         })
         .catch(function(err) {
@@ -57,9 +58,8 @@
 
   function preProcess() {
 
-          context.drawImage(video, 0, 0, 300, 150);
-          const imageData = context.getImageData(0, 0, 300, 150);
-          let qr_template = cv.imread('orbTemp')
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
           let src = cv.imread('canvas');
           //cv.imshow('debugCanvas', src)
@@ -85,15 +85,12 @@
 
           cv.imshow('canvas', thresholdMat);
           thresholdMat.delete();
-          const resultImg = context.getImageData(0, 0, 300, 150)
-
-          return imageData;
   }
 
   function readBarcodeFromCanvas(canvas, format, mode) {
     var imgWidth = canvas.width;
     var imgHeight = canvas.height;
-    var imageData = canvas.getContext('2d').getImageData(0, 0, imgWidth, imgHeight);
+    var imageData = context.getImageData(0, 0, imgWidth, imgHeight);
     var sourceBuffer = imageData.data;
 
     if (zxing != null) {
@@ -109,22 +106,26 @@
 
   // Function to scan for QR codes
   function scanForQR() {
+    let QRFound = false;
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      const preProcessedImage = preProcess();
-      const resultString = readBarcodeFromCanvas(canvas, "QRCode" , true).text;
+      //preProcess();
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
       if (resultString) {
         console.log(resultString)
         const url = resultString;
         // Check if the URL starts with "http://" or "https://"
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
           stopScanning();
+          QRFound = true;
+          window.location.href = url.replace('http://', 'https://www.kpks.us/');
         } else {
           console.log('Invalid URL detected in QR code');
         }
       }
     }
-    requestAnimationFrame(scanForQR);
+    if(!QRFound) {
+      requestAnimationFrame(scanForQR);
+    }
   }
 </script>
