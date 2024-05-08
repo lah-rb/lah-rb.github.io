@@ -59,6 +59,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <script src="/assets/js-wasm/zxing_reader.js"></script>
+
     <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
@@ -81,6 +83,5 @@
     </div>
 
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>

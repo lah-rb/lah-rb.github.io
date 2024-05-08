@@ -3,7 +3,7 @@
   <head>
     <!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Plane Table Joker | Kipukas Card Binder</title>
-<meta name="generator" content="Jekyll v4.3.2" />
+<meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Plane Table Joker" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Don’t mess with this one. He tries to appear friendly, but fails in doing so. He deals cards from another plane that are said to bind your fate, yet only he can know the fate you choose." />
@@ -76,6 +76,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <script src="/assets/js-wasm/zxing_reader.js"></script>
+
     <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
@@ -139,6 +141,7 @@
   </button>
 
   <canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2" style="display:none;"></canvas>
+<img id="orbTemp" src="/assets/utility_images/qr_template.png" style="display:none;" />
 <video id="video"
   class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady" style="display:none;">
@@ -150,12 +153,16 @@
   let alpinel = document.querySelector('[x-data]');
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const orbTemp = document.getElementById('orbTemp');
   const context = canvas.getContext('2d');
   const debugCanvas = document.createElement('canvas');
   const spinner = document.getElementById('spinner');
   debugCanvas.width = 256;
   debugCanvas.height = 128;
   const debugContext = debugCanvas.getContext('2d');
+  var zxing = ZXing().then(function (instance) {
+    zxing = instance; // this line is supposedly not required but with current emsdk it is :-/
+  });
 
 
   // Function to start scanning for QR codes
@@ -163,7 +170,8 @@
     let consent = alpinel._x_dataStack[0].acceptPrivacy;
     if (consent) {
       // Get access to the camera
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: 'user' }, audio: false })
         .then(function(stream) {
           video.srcObject = stream;
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
@@ -190,9 +198,10 @@
   }
 
   function preProcess() {
-     try {
+
           context.drawImage(video, 0, 0, 300, 150);
           const imageData = context.getImageData(0, 0, 300, 150);
+          let qr_template = cv.imread('orbTemp')
 
           let src = cv.imread('canvas');
           //cv.imshow('debugCanvas', src)
@@ -200,13 +209,10 @@
           cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
           src.delete();
 
-          let equalized = new cv.Mat();
-          cv.equalizeHist(grayMat, equalized);
-
           // Perform morphological operations
           let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
           let erodedMat = new cv.Mat();
-          cv.erode(equalized, erodedMat, kernel);
+          cv.erode(grayMat, erodedMat, kernel);
           grayMat.delete();
 
           let dilatedMat = new cv.Mat();
@@ -223,45 +229,43 @@
           thresholdMat.delete();
           const resultImg = context.getImageData(0, 0, 300, 150)
 
-          return resultImg;
-     }
-     catch (err) {
-         console.log('An error occurred:', err);
-         startScanning(true)
-     }
+          return imageData;
+  }
+
+  function readBarcodeFromCanvas(canvas, format, mode) {
+    var imgWidth = canvas.width;
+    var imgHeight = canvas.height;
+    var imageData = canvas.getContext('2d').getImageData(0, 0, imgWidth, imgHeight);
+    var sourceBuffer = imageData.data;
+
+    if (zxing != null) {
+      var buffer = zxing._malloc(sourceBuffer.byteLength);
+      zxing.HEAPU8.set(sourceBuffer, buffer);
+      var result = zxing.readBarcodeFromPixmap(buffer, imgWidth, imgHeight, mode, format);
+      zxing._free(buffer);
+      return result;
+    } else {
+      return { error: "ZXing not yet initialized" };
+    }
   }
 
   // Function to scan for QR codes
-  async function scanForQR() {
+  function scanForQR() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       const preProcessedImage = preProcess();
-      const scanner = await zbarWasm.getDefaultScanner();
-      scanner.setConfig(
-      	zbarWasm.ZBarSymbolType.ZBAR_NONE, /* "None" for "All", design by original ZBar library */
-      	zbarWasm.ZBarConfigType.ZBAR_CFG_ENABLE, /* The field you want to change */
-      	0 /* 0 for disable */
-      );
-      scanner.setConfig(zbarWasm.ZBarSymbolType.ZBAR_QRCODE, zbarWasm.ZBarConfigType.ZBAR_CFG_ENABLE, 1);
-      scanner.enableCache(true);
-      const symbols = await zbarWasm.scanImageData(preProcessedImage, scanner);
-      symbols.forEach(s => s.rawValue = s.decode('utf-8'));
-      symbols.forEach(symbol => {
-        code = symbol.rawValue;
-        if (code) {
-          console.log('QR code detected:', code);
-          if (code) {
-            const url = code;
-            // Check if the URL starts with "http://" or "https://"
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-              // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
-              window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
-              stopScanning();
-            } else {
-              console.log('Invalid URL detected in QR code');
-            }
-          }
+      const resultString = readBarcodeFromCanvas(canvas, "QRCode" , true).text;
+      if (resultString) {
+        console.log(resultString)
+        const url = resultString;
+        // Check if the URL starts with "http://" or "https://"
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          // Navigate to the URL on your local server (assuming your local server's address is "http://127.0.0.1:4000/")
+          window.location.href = url.replace('http://', 'https://www.kpks.us/'); //'http://127.0.0.1:4000/');
+          stopScanning();
+        } else {
+          console.log('Invalid URL detected in QR code');
         }
-      });
+      }
     }
     requestAnimationFrame(scanForQR);
   }
@@ -741,6 +745,5 @@
     </div>
 
     <script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.10.1/dist/index.js"></script>
   </body>
 </html>
