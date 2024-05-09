@@ -1221,10 +1221,6 @@ video {
   z-index: 50;
 }
 
-.-z-10 {
-  z-index: -10;
-}
-
 .m-2 {
   margin: 0.5rem;
 }
@@ -1419,6 +1415,10 @@ video {
   width: 1.75rem;
 }
 
+.w-80 {
+  width: 20rem;
+}
+
 .w-9 {
   width: 2.25rem;
 }
@@ -1438,14 +1438,6 @@ video {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-96 {
-  width: 24rem;
-}
-
-.w-80 {
-  width: 20rem;
 }
 
 .max-w-lg {
