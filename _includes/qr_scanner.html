@@ -1,21 +1,20 @@
-<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-  width="640" height="480"
-  x-show="showScanner && !noCamera && videoReady">
+<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 hidden"
+  width="1280" height="720">
 </canvas>
 <video id="video"
-  class="z-30 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
-  width="640" height="480"
+  class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
 
 <script>
   // Access alpine.js x-data
   let alpinel = document.querySelector('[x-data]');
+  let QRFound = false;
 
   // Access the video and canvas elements
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const context = canvas.getContext("2d", { willReadFrequently: true }, { alpha: false });
   const spinner = document.getElementById('spinner');
 
   // Establist zxing from zxing_reader.js
@@ -56,37 +55,6 @@
     }
   }
 
-  function preProcess() {
-
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-          let src = cv.imread('canvas');
-          //cv.imshow('debugCanvas', src)
-          let grayMat = new cv.Mat(imageData.height, imageData.width, cv.CV_8UC1);
-          cv.cvtColor(src, grayMat, cv.COLOR_RGBA2GRAY, 0);
-          src.delete();
-
-          // Perform morphological operations
-          let kernel = cv.Mat.ones(2, 2, cv.CV_8U);
-          let erodedMat = new cv.Mat();
-          cv.erode(grayMat, erodedMat, kernel);
-          grayMat.delete();
-
-          let dilatedMat = new cv.Mat();
-          cv.dilate(erodedMat, dilatedMat, kernel);
-          erodedMat.delete();
-          kernel.delete();
-
-          // Apply adaptive threshold
-          let thresholdMat = new cv.Mat();
-          cv.adaptiveThreshold(dilatedMat, thresholdMat, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 5);
-          dilatedMat.delete();
-
-          cv.imshow('canvas', thresholdMat);
-          thresholdMat.delete();
-  }
-
   function readBarcodeFromCanvas(canvas, format, mode) {
     var imgWidth = canvas.width;
     var imgHeight = canvas.height;
@@ -106,9 +74,7 @@
 
   // Function to scan for QR codes
   function scanForQR() {
-    let QRFound = false;
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      //preProcess();
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
       if (resultString) {
