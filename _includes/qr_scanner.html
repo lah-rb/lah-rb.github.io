@@ -1,5 +1,5 @@
-<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 hidden"
-  width="320" height="240">
+<canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+  width="640" height="480">
 </canvas>
 <video id="video"
   class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
@@ -15,6 +15,10 @@
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const context = canvas.getContext("2d", { willReadFrequently: true }, { alpha: false });
+  const dpr = window.devicePixelRatio;
+  canvas.width = 320 * dpr; // Double the width and height for HD-resolution
+  canvas.height = 240 * dpr;
+  context.scale(dpr, dpr); // scale the context appropriately
   const spinner = document.getElementById('spinner');
 
   // Establish zxing from zxing_reader.js
@@ -29,7 +33,22 @@
     if (consent) {
       // Get access to the camera
       navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .getUserMedia({ video: {
+          facingMode: 'user',
+          width: {
+            ideal: 1920,
+            min: 320
+          },
+          height: {
+            ideal: 1080,
+            min: 240
+          },
+          frameRate: {
+            ideal: 60,
+            min: 10
+          }},
+          audio: false
+        })
         .then(function(stream) {
           video.srcObject = stream;
           video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
