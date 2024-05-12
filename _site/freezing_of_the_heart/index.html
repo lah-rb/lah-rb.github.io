@@ -140,7 +140,7 @@
     </svg>
   </button>
 
-  <canvas id="canvas" class="z-40 fixed -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+  <canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
   width="640" height="480">
 </canvas>
 <video id="video"
@@ -156,11 +156,8 @@
   // Access the video and canvas elements
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  //const canvas = can.transferControlToOffscreen();
   const context = canvas.getContext("2d", { willReadFrequently: true }, { alpha: false });
-  const dpr = window.devicePixelRatio;
-  canvas.width = 320 * dpr; // Double the width and height for HD-resolution
-  canvas.height = 240 * dpr;
-  context.scale(dpr, dpr); // scale the context appropriately
   const spinner = document.getElementById('spinner');
 
   // Establish zxing from zxing_reader.js
@@ -177,19 +174,9 @@
       navigator.mediaDevices
         .getUserMedia({ video: {
           facingMode: 'user',
-          width: {
-            ideal: 1920,
-            min: 320
+          focusMode: 'continous',
           },
-          height: {
-            ideal: 1080,
-            min: 240
-          },
-          frameRate: {
-            ideal: 60,
-            min: 10
-          }},
-          audio: false
+          audio: false,
         })
         .then(function(stream) {
           video.srcObject = stream;
@@ -198,7 +185,7 @@
           requestAnimationFrame(scanForQR);
           setTimeout(() => {
             alpinel._x_dataStack[0].videoReady = true;
-          }, 200);
+          }, 100);
 
         })
         .catch(function(err) {
@@ -243,17 +230,20 @@
         const url = resultString;
         // Check if the URL starts with "http://" or "https://"
         if (url.startsWith('http://') || url.startsWith('https://')) {
-          stopScanning();
           QRFound = true;
+          stopScanning();
           window.location.href = url.replace('http://', 'https://www.kpks.us/');
         } else {
           console.log('Invalid URL detected in QR code');
         }
       }
     }
-    if(!QRFound) {
-      requestAnimationFrame(scanForQR);
-    }
+    
+    setTimeout(() => {
+      if(!QRFound) {
+        requestAnimationFrame(scanForQR);
+      }
+    }, 100);
   }
 </script>
 
