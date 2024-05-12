@@ -5,7 +5,7 @@ windows:
   - hub:
       layout: tiled
       panes:
-        - sleep 2 && jekyll server --livereload --watch
+        - sleep 2 && jekyll server --host=0.0.0.0 --livereload --watch
         - jekyll build --watch
         - tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
         - cd ~/Repos/text-generation-webui-main && ./start_linux.sh
