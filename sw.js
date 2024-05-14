@@ -1,13 +1,18 @@
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.1.5/workbox-sw.js');
-const CACHE_VERSION = '0.0.1'
+const CACHE_VERSION = '0.0.2'
 
 const APP_SHELL_FILES = [
-  '/',
   '/index.html',
   '/offline.html',
   '/assets/css/output.css',
   '/manifest.json',
 ];
+
+// Precache the app shell files
+workbox.precaching.precacheAndRoute(APP_SHELL_FILES, {
+  cacheName: 'pwabuilder-app-shell-${CACHE_VERSION}'
+});
+
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -53,6 +58,3 @@ workbox.routing.registerRoute(
     cacheName: 'pwabuilder-utility_images-${CACHE_VERSION}',
   }),
 );
-
-// Precache the app shell files
-workbox.precaching.precacheAndRoute(APP_SHELL_FILES);

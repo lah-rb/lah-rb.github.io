@@ -1677,6 +1677,16 @@ video {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
 }
 
+.bg-kip-drk-goldenrod {
+  --tw-bg-opacity: 1;
+  background-color: rgb(122 80 21 / var(--tw-bg-opacity));
+}
+
+.bg-kip-goldenrod {
+  --tw-bg-opacity: 1;
+  background-color: rgb(184 122 25 / var(--tw-bg-opacity));
+}
+
 .bg-hero-pattern {
   background-image: url('/assets/utility_images/topography.svg');
 }
@@ -2113,6 +2123,31 @@ video {
 
   .lg\:hidden {
     display: none;
+  }
+
+  .lg\:bg-slate-500 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(100 116 139 / var(--tw-bg-opacity));
+  }
+
+  .lg\:bg-kip-red {
+    --tw-bg-opacity: 1;
+    background-color: rgb(156 40 40 / var(--tw-bg-opacity));
+  }
+
+  .lg\:bg-kip-drk-sienna {
+    --tw-bg-opacity: 1;
+    background-color: rgb(52 28 23 / var(--tw-bg-opacity));
+  }
+
+  .lg\:bg-slate-300 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(203 213 225 / var(--tw-bg-opacity));
+  }
+
+  .lg\:bg-slate-400 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(148 163 184 / var(--tw-bg-opacity));
   }
 
   .lg\:fill-kip-goldenrod {
