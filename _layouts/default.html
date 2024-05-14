@@ -4,7 +4,7 @@
     {% seo %}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <title>{{ page.title }} • {{ site.title }}</title>
+    <title>{{ page.title }}</title>
     <link rel="stylesheet" href="{{ "/assets/css/output.css" | relative_url }}">
     <link rel="manifest" href="/manifest.json">
     <!--favicon code realfavicongenerator.net-->
@@ -81,6 +81,5 @@
       <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
       {{ content }}
     </div>
-    <!--<script src="/opencv.js" type="text/javascript" onload="console.log('opencv.js ready')"></script>-->
   </body>
 </html>
