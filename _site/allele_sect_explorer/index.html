@@ -156,7 +156,6 @@
   // Access the video and canvas elements
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-  //const canvas = can.transferControlToOffscreen();
   const context = canvas.getContext("2d", { willReadFrequently: true }, { alpha: false });
   const spinner = document.getElementById('spinner');
 
@@ -220,15 +219,12 @@
     }
   }
 
-  // Function to scan for QR codes
   function scanForQR() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
       if (resultString) {
-        console.log(resultString)
         const url = resultString;
-        // Check if the URL starts with "http://" or "https://"
         if (url.startsWith('http://') || url.startsWith('https://')) {
           QRFound = true;
           stopScanning();
@@ -243,7 +239,7 @@
       if(!QRFound) {
         requestAnimationFrame(scanForQR);
       }
-    }, 100);
+    }, 10);
   }
 </script>
 
