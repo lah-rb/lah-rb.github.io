@@ -1,0 +1,30 @@
+<script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default behaviour (which would be to show the install prompt automatically)
+    e.preventDefault();
+    
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    });
+
+    document.querySelector('#myInstallButton').addEventListener('click', () => {
+    // Check if the deferred prompt isn't null, then show the prompt
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+    
+        // Wait for the user to make a choice 
+        deferredPrompt.userChoice.then((choiceResult) => {
+        // Log the choice to our console
+        console.log(choiceResult.outcome);
+        
+        // We've used the prompt, and can't use it again, so set this to null
+        deferredPrompt = null;
+        });
+    } else {
+        // If the user clicks the button when they're not in a state to install, just show them a message saying they'll need to click the "install" button when ready.
+        alert('You can\'t install yet. Please click the button again when you are!');
+    }
+    });
+    
+</script>
