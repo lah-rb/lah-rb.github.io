@@ -134,7 +134,7 @@
     <svg xmlns="http://www.w3.org/2000/svg"
       @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
-      class="h-14 w-14 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
+      class="h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
         d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
         transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
@@ -226,11 +226,15 @@
       const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
       if (resultString) {
         const url = resultString;
-        if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (url.startsWith('kpks.us/')) {
           QRFound = true;
           stopScanning();
-          window.location.href = url.replace('http://', 'https://www.kpks.us/');
-        } else {
+          window.location.href = url.replace('kpks.us/', 'https://www.kpks.us/');
+        } else if (url.startsWith('https://www.kpks.us/')){
+          QRFound = true;
+          stopScanning();
+          window.location.href = url
+        }else {
           console.log('Invalid URL detected in QR code');
         }
       }
@@ -291,9 +295,9 @@
 
   <!-- layout for small screens and landscape cards -->
   <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/parched_traveler.webp' )">
-    <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-contrast-125 backdrop-saturate-150">
+    <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
-        <div class="z-20 grid grid-cols-1 backdrop-blur-sm text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
+        <div class="z-20 grid grid-cols-1 bg-transparent/[0.5] text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Parched Traveler</p>
           
 

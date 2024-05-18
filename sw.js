@@ -1,5 +1,5 @@
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.1.5/workbox-sw.js');
-const CACHE_VERSION = '0.0.2'
+const CACHE_VERSION = '0.0.3'
 
 const APP_SHELL_FILES = [
   '/index.html',
@@ -10,7 +10,8 @@ const APP_SHELL_FILES = [
 
 // Precache the app shell files
 workbox.precaching.precacheAndRoute(APP_SHELL_FILES, {
-  cacheName: 'pwabuilder-app-shell-${CACHE_VERSION}'
+  cacheName: 'pwabuilder-app-shell',
+  revision: '${CACHE_VERSION}'
 });
 
 
