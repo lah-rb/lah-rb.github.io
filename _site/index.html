@@ -79,18 +79,20 @@
 
     <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(registration) {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(function(error) {
-          console.log('Service Worker registration failed:', error);
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+          });
         });
     }
     </script>
 
   </head>
-  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false, acceptPrivacy: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, noCamera: $persist(true), showModal: $persist(true), acceptPrivacy: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
@@ -170,6 +172,63 @@
   </svg>
 </button>
 
+      <div x-data="{ showFilter: false, showVariation: false, showSoulType: false }" class="relative place-content-center">
+    <div x-show="showFilter" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-36 py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+        <div><input type="checkbox" @click="filter.all = !filter.all" id="Character" checked><label for="Character">All</label></div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
+                @click="showVariation = !showVariation" :class="{ 'rotate-90': showVariation }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Variations</div>
+        </div>
+        <div x-show="showVariation">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
+        </div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
+                @click="showSoulType = !showSoulType" :class="{ 'rotate-90': showSoulType }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Soul Types</div>
+        </div>
+        <div x-show="showSoulType">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
+        </div>
+    </div>
+    <button>
+        <svg xmlns="http://www.w3.org/2000/svg" alt="Filter toggle" viewBox="0 0 24 24"
+        @click="showFilter = !showFilter"
+        class="h-14 w-14 stroke-1 stroke-slate-400 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+        </svg>
+    </button>
+</div>
+
+  
+  
     
 
     <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
@@ -179,10 +238,10 @@
 
 
     <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
-      <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
-          <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
-          <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
-          <a href="./about_the_binder" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a>
+      <div x-show="open" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+          <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+          <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+          <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
       </div>
 
       <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
@@ -200,7 +259,7 @@
   width="640" height="480">
 </canvas>
 <video id="video"
-  class="z-30 fixed w-80 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
+  class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
 
@@ -308,163 +367,163 @@
 <ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">
   
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Magic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/allele_sect_explorer/"><img class="h-40 w-40" src="/assets/thumbnails/allele_sect_explorer.webp" alt="A man with a long thin beard and blank eyes stares past your soul." loading="lazy"></img>Allele Sect Explorer</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Entropic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/artificer_of_the_salt_chancel/"><img class="h-40 w-40" src="/assets/thumbnails/artificer_of_the_salt_chancel.webp" alt="Four armed sea dog majestically floating above water" loading="lazy"></img>Artificer of the Salt Chancel</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/avian_keepers_den/"><img class="h-40 w-40" src="/assets/thumbnails/avian_keepers_den.webp" alt="A palace floats among the skies where flying rays swirl about" loading="lazy"></img>Avian Keeper's Den</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Algorithmic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/balanced_inline_processing_colony/"><img class="h-40 w-40" src="/assets/thumbnails/balanced_inline_processing_colony.webp" alt="Colorful brick segments abstractly forming the shape of a computer chip" loading="lazy"></img>Balanced Inline Processing Colony</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Telekinetic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/branwen_mantillusion_practitioner/"><img class="h-40 w-40" src="/assets/thumbnails/branwen_mantillusion_practitioner.webp" alt="Old man praying manits looking at you unnervingly" loading="lazy"></img>Branwen: Mantillusion Practitioner</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cartesian_sea/"><img class="h-40 w-40" src="/assets/thumbnails/cartesian_sea.webp" alt="This is some pretty fishy math!" loading="lazy"></img>Cartesian Sea</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.item == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/cloth/"><img class="h-40 w-40" src="/assets/thumbnails/cloth.webp" alt="Such a soft cloth" loading="lazy"></img>Cloth</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.sabotage == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/enchantress_of_cats/"><img class="h-40 w-40" src="/assets/thumbnails/enchantress_of_cats.webp" alt=" Creepy cat lady now complete with creepy cats. In a creepy cave. With creepy calligraphy among the corridors. Shiver. " loading="lazy"></img>Enchantress of Cats</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.item == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feathers/"><img class="h-40 w-40" src="/assets/thumbnails/feathers.webp" alt="floating bird lift, minus bird" loading="lazy"></img>Feathers</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/feeding_the_piffions/"><img class="h-40 w-40" src="/assets/thumbnails/feeding_the_piffions.webp" alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so." loading="lazy"></img>Feeding the Piffions</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/freezing_of_the_heart/"><img class="h-40 w-40" src="/assets/thumbnails/freezing_of_the_heart.webp" alt="Beautiful lady carving a heart" loading="lazy"></img>Freezing of the Heart</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Endothermic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/frost_tipped_arctic_otter/"><img class="h-40 w-40" src="/assets/thumbnails/frost_tipped_arctic_otter.webp" alt="Sweet little face who looks cold" loading="lazy"></img>Frost Tipped Arctic Otter</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Avian == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/hilbert_king_of_avian_frogs/"><img class="h-40 w-40" src="/assets/thumbnails/hilbert_king_of_avian_frogs.webp" alt="Majestic looking frog with wings perched on a branch staring at you intently" loading="lazy"></img>Hilbert: King of Avian Frogs</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.item == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/honey/"><img class="h-40 w-40" src="/assets/thumbnails/honey.webp" alt="Enticing pot of honey" loading="lazy"></img>Honey</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.card == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/incubation_egg/"><img class="h-40 w-40" src="/assets/thumbnails/incubation_egg.webp" alt="andy warhol inspired eggcelent art" loading="lazy"></img>Incubation Egg</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Energetic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/knightsoul_of_binding_time/"><img class="h-40 w-40" src="/assets/thumbnails/knightsoul_of_binding_time.webp" alt="watercolor knight standing resolute in front of a triple infinity" loading="lazy"></img>Knightsoul of Binding Time</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Angelic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/liliel_healing_fairy/"><img class="h-40 w-40" src="/assets/thumbnails/liliel_healing_fairy.webp" alt="blonde light fairy with sword and alluring eyes" loading="lazy"></img>Liliel: Healing Fairy</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.personal_effect == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/location_of_the_deep_apothecary_shop/"><img class="h-40 w-40" src="/assets/thumbnails/location_of_the_deep_apothecary_shop.webp" alt="hooded beings move about a store hidden in a wooded setting" loading="lazy"></img>Location of the Deep Apothecary Shop</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/losetany_steppes/"><img class="h-40 w-40" src="/assets/thumbnails/losetany_steppes.webp" alt="A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer girl look upon with amazement while standing upon the ruins of a lost civilization." loading="lazy"></img>Losetany Steppes</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/meteor_shower/"><img class="h-40 w-40" src="/assets/thumbnails/meteor_shower.webp" alt="beautiful colorful meteors shooting across the sky" loading="lazy"></img>Meteor Shower</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Brutal == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/mihela_cleanser_of_fields/"><img class="h-40 w-40" src="/assets/thumbnails/mihela_cleanser_of_fields.webp" alt="grave yard fairy looking menacing and oddly attractive to some" loading="lazy"></img>Mihela: Cleanser of Fields</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Astral == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/oshliath_and_osileth/"><img class="h-40 w-40" src="/assets/thumbnails/oshliath_and_osileth.webp" alt="Mother dragon watching over her resting pup" loading="lazy"></img>Oshliath and Osileth</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/palace_of_the_allele_sect/"><img class="h-40 w-40" src="/assets/thumbnails/palace_of_the_allele_sect.webp" alt="Explorer gazing upon an almost icicle like palace nestled in a valley with a lake." loading="lazy"></img>Palace of the Allele Sect</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Decrepit == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/parched_traveler/"><img class="h-40 w-40" src="/assets/thumbnails/parched_traveler.webp" alt="A man died, but like a chicken kept walking their path even after death." loading="lazy"></img>Parched Traveler</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/passage_among_maples/"><img class="h-40 w-40" src="/assets/thumbnails/passage_among_maples.webp" alt="A swampy lake scene silhouetted between japanese maples" loading="lazy"></img>Passage Among Maples</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Cenozoic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/plane_table_joker/"><img class="h-40 w-40" src="/assets/thumbnails/plane_table_joker.webp" alt="Scary joker sticks his tongue out at your face" loading="lazy"></img>Plane Table Joker</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Arboreal == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/pyrostegia_dragon/"><img class="h-40 w-40" src="/assets/thumbnails/pyrostegia_dragon.webp" alt="Pretty garden in the shape of a dragon" loading="lazy"></img>Pyrostegia Dragon</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Arboreal == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/rooster_calling_of_light/"><img class="h-40 w-40" src="/assets/thumbnails/rooster_calling_of_light.webp" alt="Roosters are world renown as noble, honest, and brave. No bull, eat more cow." loading="lazy"></img>Rooster: Calling of Light</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Energetic == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sboi_threat_plus_plus/"><img class="h-40 w-40" src="/assets/thumbnails/sboi_threat_plus_plus.webp" alt="Awesome destruction!!!" loading="lazy"></img>Sboi: Threat++</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.terrain_feature == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/shards_desert/"><img class="h-40 w-40" src="/assets/thumbnails/shards_desert.webp" alt="Expansive desert with flying mystery creature and floating stones" loading="lazy"></img>Shard's Desert</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.sabotage == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/spectral_lands_decree_and_hearing/"><img class="h-40 w-40" src="/assets/thumbnails/spectral_lands_decree_and_hearing.webp" alt="black and white abstract which looks different in different orientations currently it looks as if two figures are present on subjugated to the other" loading="lazy"></img>Spectral Land's Decree and Hearing</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.species == true ||  filter.Glitch == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sprite_of_wilds_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/sprite_of_wilds_spirit.webp" alt="A golden bell, BA addition" loading="lazy"></img>Sprite of Wilds' Spirit</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.item == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/sticks/"><img class="h-40 w-40" src="/assets/thumbnails/sticks.webp" alt="Sticks ordered in a circle, big foot maybe?" loading="lazy"></img>Sticks</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.item == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/string/"><img class="h-40 w-40" src="/assets/thumbnails/string.webp" alt="thread the needle, needle, needle needle, pop art" loading="lazy"></img>String</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.personal_effect == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/suspended_animation/"><img class="h-40 w-40" src="/assets/thumbnails/suspended_animation.webp" alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets" loading="lazy"></img>Suspended Animation</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.character == true ||  filter.Mechanical == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/tejas_curious_mech/"><img class="h-40 w-40" src="/assets/thumbnails/tejas_curious_mech.webp" alt="Shoot, I hope I didn't break it. Where does this go?" loading="lazy"></img>Tejas Curious Mech</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/timebattle/"><img class="h-40 w-40" src="/assets/thumbnails/timebattle.webp" alt="Horse, dragon, horse, horse, and imp. The battle wages... horse." loading="lazy"></img>Timebattle</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/to_catch_a_spirit/"><img class="h-40 w-40" src="/assets/thumbnails/to_catch_a_spirit.webp" alt="Yikes! Scary thing eating other scary things." loading="lazy"></img>To Catch a Spirit</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.trap == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/ushered_through_sabina_emporium/"><img class="h-40 w-40" src="/assets/thumbnails/ushered_through_sabina_emporium.webp" alt="A fantastic bustling emporium with vendors galore. Likely owned by a huntsman as a dragon skeleton hangs high overhead. Then again maybe it is just waiting for the perfect moment to spring to life and get the feast of a lifetime..." loading="lazy"></img>Ushered Through Sabina Emporium</a>
     </li>
   
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.sabotage == true ||  filter.all == true">
       <a class="text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded h-64" href="/what_do_you_see_in_the_breach/"><img class="h-40 w-40" src="/assets/thumbnails/what_do_you_see_in_the_breach.webp" alt="I could tell you what I see, but that is just my interpretation of this abstract piece. I don't want my interpretation to color your experience as this seems to be the opposite of what the artist intended." loading="lazy"></img>What Do You See in the Breach</a>
     </li>
   

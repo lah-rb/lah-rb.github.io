@@ -63,18 +63,20 @@
 
     <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(registration) {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(function(error) {
-          console.log('Service Worker registration failed:', error);
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+          });
         });
     }
     </script>
 
   </head>
-  <body x-data="{ showScanner: false, noCamera: $persist(true), showModal: $persist(true), videoReady: false, acceptPrivacy: $persist(false) }" class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}">
+  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, noCamera: $persist(true), showModal: $persist(true), acceptPrivacy: $persist(false) }" class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}">
     {% include spinner.html %}
     {% include qr_modal.html %}
     <div x-data="{ terrab: true }">
