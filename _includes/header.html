@@ -19,6 +19,7 @@
     {% if page.search %}
       {% include {{ page.search }} %}
       {% include qr_button.html %}
+      {% include filter.html %}
     {% endif %}
 
     <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
@@ -28,10 +29,10 @@
 
 
     <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
-      <div x-show="open" x-transition.duration.350ms class="fixed left-0 top-0 bottom-0 right-0 h-screen w-screen bg-amber-50 p-5 grid grid-cols-1 place-content-center">
-          <a href="./" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a>
-          <a href="./kipukas_2_player_domination.pdf" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a>
-          <a href="./about_the_binder" class="self-center p-6 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a>
+      <div x-show="open" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+          <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+          <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+          <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
       </div>
 
       <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">

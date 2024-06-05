@@ -13,7 +13,7 @@ search: search_bar_link.html
 <ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">
   {% assign posts = site.posts | sort:"title" %}
   {% for card in posts %}
-    <li class="mx-auto my-3">
+    <li class="mx-auto my-3" x-show="filter.{{card.layout}} == true || {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} filter.all == true">
       <a class="{{ site.data.templates.btn-center }} h-64" href="{{card.url}}"><img class="h-40 w-40" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}" loading="lazy"></img>{{card.title}}</a>
     </li>
   {% endfor %}

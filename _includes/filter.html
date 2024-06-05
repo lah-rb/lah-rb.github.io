@@ -1,0 +1,57 @@
+<div x-data="{ showFilter: false, showVariation: false, showSoulType: false }" class="relative place-content-center">
+    <div x-show="showFilter" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-36 py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+        <div><input type="checkbox" @click="filter.all = !filter.all" id="Character" checked><label for="Character">All</label></div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
+                @click="showVariation = !showVariation" :class="{ 'rotate-90': showVariation }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Variations</div>
+        </div>
+        <div x-show="showVariation">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
+        </div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
+                @click="showSoulType = !showSoulType" :class="{ 'rotate-90': showSoulType }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Soul Types</div>
+        </div>
+        <div x-show="showSoulType">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
+        </div>
+    </div>
+    <button>
+        <svg xmlns="http://www.w3.org/2000/svg" alt="Filter toggle" viewBox="0 0 24 24"
+        @click="showFilter = !showFilter"
+        class="h-14 w-14 stroke-1 stroke-slate-400 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+        </svg>
+    </button>
+</div>
+
+  
+  
