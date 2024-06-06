@@ -19,16 +19,19 @@
     {% if page.search %}
       {% include {{ page.search }} %}
       {% include qr_button.html %}
-      {% include filter.html %}
+      {% if page.search == 'search_bar_link.html' %}
+        {% include filter.html %}
+        {% include pwa_install_button.html  %}
+      {% endif %}
     {% endif %}
 
-    <div class="hidden lg:flex flex-initial gap-x-4 px-5 content-center justify-end">
+    <div class="hidden xl:flex flex-initial gap-x-4 px-5 content-center justify-end">
       <a class="{{ site.data.templates.btn-center }}" href="./kipukas_2_player_domination.pdf">See the Rules</a>
       <a class="{{ site.data.templates.btn-center }}" href="./about_the_binder">About the Binder</a>
     </div>
 
 
-    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center lg:hidden">
+    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center xl:hidden">
       <div x-show="open" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
           <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
           <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>

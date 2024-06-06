@@ -1,7 +1,7 @@
 module.exports = {
 	globDirectory: '_site/',
 	globPatterns: [
-		'**/*.{html,png,css,webp,js,wasm,svg,xml,ico,pdf,json,webmanifest}'
+		'**/*.{html,png,css,webp,js,wasm,svg,yml,ico,pdf,json,webmanifest}'
 	],
 	swDest: './sw.js',
 	ignoreURLParametersMatching: [
@@ -11,5 +11,5 @@ module.exports = {
 	runtimeCaching: [{
 		urlPattern: /https:\/\/www.kipukas.cards/,
 		handler: 'StaleWhileRevalidate'
-		}]
+		}],
 };
