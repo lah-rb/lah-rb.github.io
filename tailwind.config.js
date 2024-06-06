@@ -1,4 +1,7 @@
 /** @type {import('tailwindcss').Config} */
+
+const defaultTheme = require('tailwindcss/defaultTheme')
+
 module.exports = {
   content: [
     './*.{html,js,yml}',
@@ -21,6 +24,14 @@ module.exports = {
       },
       strokeWidth: {
         '5': '5px',
+      },
+      screens: {
+        'xs': { 'max':'450px' },
+        'sm': '450px',
+        'md': '768px', // md and past are default values
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px'
       }
     },
   },
