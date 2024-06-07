@@ -6,6 +6,7 @@ description: "In short, we don't collect data and have no use to."
 bg-terra: "bg-hero-pattern "
 ---
 {% include header.html %}
+<template x-if="true"> <!-- This fixes the cls issue completely -->
 <div class="flex place-content-center w-screen h-fit">
   <div class="z-10 grid grid-cols-1  bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
 
@@ -36,7 +37,7 @@ bg-terra: "bg-hero-pattern "
 
          <h2 class="text-2xl font-bold mt-6 mb-4">Contact</h2>
          <p>Should you have any questions or concerns about our Privacy Policy, please reach out to us at <a href="mailto:kipukas.games@gmail.com" class="text-kip-drk-sienna">kipukas.games@gmail.com</a>. Your trust is our top priority, and we're here to address any queries you may have.</p>
-         <a href="/">
+         <a href="/" aria-label="Go home">
            <svg
              xmlns="http://www.w3.org/2000/svg"
              viewBox="0 0 24 24"
@@ -46,3 +47,4 @@ bg-terra: "bg-hero-pattern "
          </a>
   </div>
 </div>
+</template>

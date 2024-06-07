@@ -159,7 +159,7 @@
 
 </div>
 
-      <button aria-label="open QR Scanner">
+      <button aria-label="Toggle QR Scanner">
   <svg xmlns="http://www.w3.org/2000/svg"
     @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
     class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
@@ -204,7 +204,7 @@
   x-show="showScanner && !noCamera && videoReady">
 </video>
 
-<script defer src="./assets/js-wasm/qr_scanner.js"></script>
+<script defer src="/assets/js-wasm/qr_scanner.js"></script>
 
 
 

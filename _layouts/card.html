@@ -21,6 +21,7 @@ search: search_bar_link.html
 
 <!-- layouts for large screens -->
 {% unless page.landscape %}
+<template x-if="true"> <!-- This fixes the cls issue completely -->
   <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
     <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}"></div>
     <img class="fixed top-0 h-screen max-w-screen-md" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}">
@@ -31,4 +32,5 @@ search: search_bar_link.html
       <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
     </div>
   </div>
+</template>
 {% endunless %}

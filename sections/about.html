@@ -8,6 +8,7 @@ play information for our cards."
 bg-terra: "bg-hero-pattern "
 ---
 {% include header.html %}
+<template x-if="true"> <!-- This fixes the cls issue completely -->
 <div class="flex place-content-center w-screen h-fit">
   <div class="z-10 grid grid-cols-1  bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
 
@@ -39,3 +40,4 @@ bg-terra: "bg-hero-pattern "
     </p>
   </div>
 </div>
+</template>

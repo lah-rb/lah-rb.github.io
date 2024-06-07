@@ -1,6 +1,6 @@
 <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
 
-  <button>
+  <button aria-label="Toggle QR Scanner">
     <svg xmlns="http://www.w3.org/2000/svg"
       @click="{{ site.data.templates.qr-click }}" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
@@ -13,7 +13,7 @@
 
   {% include qr_scanner.html %}
 
-  <button x-show="showCardInfo">
+  <button x-show="showCardInfo" aria-label="Show Background Image">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       :class="landscape ? '' : 'lg:hidden'"
@@ -24,7 +24,7 @@
     </svg>
   </button>
   <template x-if="true">
-    <button x-show="!showCardInfo">
+    <button x-show="!showCardInfo" aria-label="Show game play data">
       <svg xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         :class="landscape ? '' : 'lg:hidden'"
@@ -35,7 +35,7 @@
     </button>
   </template>
 
-  <button>
+  <button aria-label="Go to last visited page">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -45,7 +45,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
     </svg>
   </button>
-  <a href="/">
+  <a href="/" aria-label="Go to home page">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"

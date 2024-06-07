@@ -132,7 +132,7 @@
       <div x-data="{ showCardInfo: true, landscape: false }">
   <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
 
-  <button>
+  <button aria-label="Toggle QR Scanner">
     <svg xmlns="http://www.w3.org/2000/svg"
       @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
@@ -151,10 +151,10 @@
   x-show="showScanner && !noCamera && videoReady">
 </video>
 
-<script defer src="./assets/js-wasm/qr_scanner.js"></script>
+<script defer src="/assets/js-wasm/qr_scanner.js"></script>
 
 
-  <button x-show="showCardInfo">
+  <button x-show="showCardInfo" aria-label="Show Background Image">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       :class="landscape ? '' : 'lg:hidden'"
@@ -165,7 +165,7 @@
     </svg>
   </button>
   <template x-if="true">
-    <button x-show="!showCardInfo">
+    <button x-show="!showCardInfo" aria-label="Show game play data">
       <svg xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         :class="landscape ? '' : 'lg:hidden'"
@@ -176,7 +176,7 @@
     </button>
   </template>
 
-  <button>
+  <button aria-label="Go to last visited page">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -186,7 +186,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
     </svg>
   </button>
-  <a href="/">
+  <a href="/" aria-label="Go to home page">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
@@ -279,6 +279,7 @@
 
 <!-- layouts for large screens -->
 
+<template x-if="true"> <!-- This fixes the cls issue completely -->
   <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
     <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/suspended_animation.webp" alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets"></div>
     <img class="fixed top-0 h-screen max-w-screen-md" src="/assets/images/suspended_animation.webp" alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets">
@@ -353,6 +354,7 @@
       <p class="font-hairline text-slate-300 text-xs italic"></p>
     </div>
   </div>
+</template>
 
 
     </div>
