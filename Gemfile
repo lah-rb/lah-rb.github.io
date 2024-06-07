@@ -22,3 +22,6 @@ end
 
 # Use with ruby 3+
 gem "webrick", "~> 1.8"
+
+# vulnerability fix
+gem "rexml", ">= 3.2.7"

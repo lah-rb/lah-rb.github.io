@@ -59,7 +59,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <script src="/assets/js-wasm/zxing_reader.js"></script>
+    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -76,7 +76,7 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, noCamera: $persist(true), showModal: $persist(true), acceptPrivacy: $persist(false) }" class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}">
+  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, showInstallModal: false, noCamera: $persist(true), showQRModal: $persist(true), acceptPrivacy: $persist(false), hideInstallButton: $persist(false) }" class="{{page.bg-terra | append: "z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth" }}">
     {% include spinner.html %}
     {% include qr_modal.html %}
     <div x-data="{ terrab: true }">
