@@ -1,6 +1,7 @@
 require 'fileutils'
 include FileUtils
 
+=begin
 full_site_images = Dir['assets/images/*']
 thumbnail_images = Dir['assets/thumbnails/*']
 png_site_images = full_site_images #+ thumbnail_images
@@ -9,4 +10,9 @@ png_site_images.each do |image|
   path_without_suffix = image.split('.')
   system("cwebp -q 80 #{path_without_suffix[0]}.png -o #{path_without_suffix[0]}.webp -mt")
   rm image
+end
+=end
+thumbnail_images = Dir['assets/thumbnails/*']
+thumbnail_images.each do |image|
+  system("mogrify -resize 160x160 #{image}")
 end

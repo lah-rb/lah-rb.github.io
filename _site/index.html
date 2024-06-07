@@ -2,7 +2,7 @@
 <html lang="en-US">
   <head>
     <!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Binder Home | Kipukas Card Binder</title>
+<title>Binder Home</title>
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Binder Home" />
 <meta property="og:locale" content="en_US" />
@@ -10,12 +10,11 @@
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
 <link rel="canonical" href="https://www.kipukas.cards/" />
 <meta property="og:url" content="https://www.kipukas.cards/" />
-<meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Binder Home" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas Card Binder","url":"https://www.kipukas.cards/"}</script>
+{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","url":"https://www.kipukas.cards/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -75,7 +74,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <script src="/assets/js-wasm/zxing_reader.js"></script>
+    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -92,7 +91,7 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, noCamera: $persist(true), showModal: $persist(true), acceptPrivacy: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, showInstallModal: false, noCamera: $persist(true), showQRModal: $persist(true), acceptPrivacy: $persist(false), hideInstallButton: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
@@ -100,7 +99,7 @@
   </svg>
 </div>
 
-    <div x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+    <div x-show="showQRModal" class="fixed inset-0 flex items-center justify-center z-50">
 
   <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
     <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
@@ -115,11 +114,11 @@
          Breath easy, we don't collect any data.
       </p>
 
-      <button @click="acceptPrivacy = true; noCamera = false; showModal = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Accept & Continue
       </button>
 
-      <button @click="noCamera = true; showModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Don't Need It
       </button>
     </div>
@@ -131,14 +130,14 @@
       <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
   <div x-data="{ open: false }" class="z-40 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
     <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
-        <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.300 x-show="terrab">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
     <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
-      <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
-        <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
@@ -155,15 +154,14 @@
 
   <div class="hidden sm:flex flex-auto">
     <a href="./search.html" class="flex-auto h-12 bg-white border-2 px-2 py-2 rounded-md">
-      <span class="text-gray-400 whitespace-nowrap hidden md:block">Search Binder</span>
-      <!--<span class="text-gray-400 whitespace-nowrap md:hidden">Search</span>-->
-      <span class="text-gray-400 whitespace-nowrap md:hidden">Search</span>
+      <span class="text-gray-600 whitespace-nowrap hidden md:block">Search Binder</span>
+      <span class="text-gray-600 whitespace-nowrap md:hidden">Search</span>
     </a>
   </div>
 
 </div>
 
-      <button>
+      <button aria-label="open QR Scanner">
   <svg xmlns="http://www.w3.org/2000/svg"
     @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
     class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
@@ -220,7 +218,7 @@
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
         </div>
     </div>
-    <button>
+    <button aria-label="show filter options">
         <svg xmlns="http://www.w3.org/2000/svg" alt="Filter toggle" viewBox="0 0 24 24"
         @click="showFilter = !showFilter"
         class="h-14 w-14 stroke-1 stroke-slate-400 fill-slate-200 hover:fill-kip-red hover:stroke-kip-drk-sienna active:fill-kip-drk-sienna">
@@ -241,35 +239,66 @@
     deferredPrompt = e;
     });
 
-    document.querySelector('#installButton').addEventListener('click', () => {
     // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
     if (deferredPrompt) {
         deferredPrompt.prompt();
-    
-        // Wait for the user to make a choice 
+
+        // Wait for the user to make a choice
         deferredPrompt.userChoice.then((choiceResult) => {
-        // Log the choice to our console
-        console.log(choiceResult.outcome);
-        
-        // We've used the prompt, and can't use it again, so set this to null
-        deferredPrompt = null;
+            // Log the choice to our console
+            console.log(choiceResult.outcome);
+
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
         });
     } else {
-        // If the user clicks the button when they're not in a state to install, just show them a message saying they'll need to click the "install" button when ready.
-        alert('You are unable to install the Kipukas web app at this time. This is probably our fault. We will work on fixing it. If you come back later and still experiance issues, please reach out and let us know.');
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistant experiance across devices. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        alpinel._x_dataStack[0].hideInstallButton = true;
     }
-    });
+}
     
 </script>
-<div class="place-content-center">
+
+<div class="place-content-center" x-show="!hideInstallButton">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-        alt="install pwa icon" id="installButton"
+        alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
 </div>
 
+<div x-show="showInstallModal" class="fixed inset-0 flex items-center justify-center z-50">
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
   
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+          This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          No Thanks, I'll use the website as is.
+        </button>
+        <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+            
+      </div>
+    </template>
+  </div>
       
     
 
@@ -286,7 +315,7 @@
           <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
       </div>
 
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
+      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}" aria-label="extra nav menu">
           <span class="sr-only">Open main menu</span>
           <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
               <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>

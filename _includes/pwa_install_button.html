@@ -8,32 +8,63 @@
     deferredPrompt = e;
     });
 
-    document.querySelector('#installButton').addEventListener('click', () => {
     // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
     if (deferredPrompt) {
         deferredPrompt.prompt();
-    
-        // Wait for the user to make a choice 
+
+        // Wait for the user to make a choice
         deferredPrompt.userChoice.then((choiceResult) => {
-        // Log the choice to our console
-        console.log(choiceResult.outcome);
-        
-        // We've used the prompt, and can't use it again, so set this to null
-        deferredPrompt = null;
+            // Log the choice to our console
+            console.log(choiceResult.outcome);
+
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
         });
     } else {
-        // If the user clicks the button when they're not in a state to install, just show them a message saying they'll need to click the "install" button when ready.
-        alert('You are unable to install the Kipukas web app at this time. This is probably our fault. We will work on fixing it. If you come back later and still experiance issues, please reach out and let us know.');
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistant experiance across devices. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        alpinel._x_dataStack[0].hideInstallButton = true;
     }
-    });
+}
     
 </script>
-<div class="place-content-center">
+
+<div class="place-content-center" x-show="!hideInstallButton">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-        alt="install pwa icon" id="installButton"
+        alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
 </div>
 
+<div x-show="showInstallModal" class="fixed inset-0 flex items-center justify-center z-50">
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
   
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+          This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          No Thanks, I'll use the website as is.
+        </button>
+        <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+            
+      </div>
+    </template>
+  </div>

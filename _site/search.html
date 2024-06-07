@@ -2,7 +2,7 @@
 <html lang="en-US">
   <head>
     <!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Search Binder | Kipukas Card Binder</title>
+<title>Search Binder</title>
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Search Binder" />
 <meta property="og:locale" content="en_US" />
@@ -10,7 +10,6 @@
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game stratigy or browsing for lovely pieces of art you came to the right place." />
 <link rel="canonical" href="https://www.kipukas.cards/search" />
 <meta property="og:url" content="https://www.kipukas.cards/search" />
-<meta property="og:site_name" content="Kipukas Card Binder" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Search Binder" />
@@ -75,7 +74,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <script src="/assets/js-wasm/zxing_reader.js"></script>
+    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
     if ('serviceWorker' in navigator) {
@@ -92,7 +91,7 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, noCamera: $persist(true), showModal: $persist(true), acceptPrivacy: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+  <body x-data="{ filter: { all: true }, showScanner: false, videoReady: false, showInstallModal: false, noCamera: $persist(true), showQRModal: $persist(true), acceptPrivacy: $persist(false), hideInstallButton: $persist(false) }" class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
@@ -100,7 +99,7 @@
   </svg>
 </div>
 
-    <div x-show="showModal" class="fixed inset-0 flex items-center justify-center z-50">
+    <div x-show="showQRModal" class="fixed inset-0 flex items-center justify-center z-50">
 
   <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
     <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
@@ -115,11 +114,11 @@
          Breath easy, we don't collect any data.
       </p>
 
-      <button @click="acceptPrivacy = true; noCamera = false; showModal = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Accept & Continue
       </button>
 
-      <button @click="noCamera = true; showModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+      <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
         Don't Need It
       </button>
     </div>
@@ -131,14 +130,14 @@
       <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
   <div x-data="{ open: false }" class="z-40 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
     <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-28 w-52" title="Binder Home" x-transition.duration.300 x-show="terrab">
-        <img class="h-28 w-52" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.300 x-show="terrab">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
     <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
-      <a href="./" class="hidden md:block h-32 w-60" title="Binder Home">
-        <img class="h-32 w-60" src="/assets/images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
@@ -159,7 +158,7 @@
 
 </div>
 
-      <button>
+      <button aria-label="open QR Scanner">
   <svg xmlns="http://www.w3.org/2000/svg"
     @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
     class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
@@ -185,7 +184,7 @@
           <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
       </div>
 
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}">
+      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}" aria-label="extra nav menu">
           <span class="sr-only">Open main menu</span>
           <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
               <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
