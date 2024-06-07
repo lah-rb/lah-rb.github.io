@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-#title: Kipukas Card Binder
+title: Kipukas
 email: kipukas.games@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   Welcome to the Kipukas Card Binder! Here you will find all of the cards

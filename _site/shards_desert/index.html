@@ -2,7 +2,7 @@
 <html lang="en-US">
   <head>
     <!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Shard’s Desert</title>
+<title>Shard’s Desert | Kipukas</title>
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Shard’s Desert" />
 <meta property="og:locale" content="en_US" />
@@ -10,6 +10,7 @@
 <meta property="og:description" content="Few explores can tolerate the kipuka built as a heavy barometric pressure test bed. Most who go to see the progress of the wilds do not return. This is especially true for the equatorial band, where the sun blazes long, and plants refuse to grow." />
 <link rel="canonical" href="https://www.kipukas.cards/shards_desert/" />
 <meta property="og:url" content="https://www.kipukas.cards/shards_desert/" />
+<meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-11T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
@@ -70,10 +71,10 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14__iPhone_13_Pro__iPhone_13__iPhone_12_Pro__iPhone_12_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
@@ -111,7 +112,7 @@
       <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
       <p class="mb-4 text-kip-drk-sienna">
         By allowing camera access to our QR code scanner, you agree to our
-        <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600" @click="showModal = false">privacy policy</a>.
+        <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline" @click="showModal = false">privacy policy</a>.
          Breath easy, we don't collect any data.
       </p>
 
@@ -150,104 +151,7 @@
   x-show="showScanner && !noCamera && videoReady">
 </video>
 
-<script>
-  // Access alpine.js x-data
-  let alpinel = document.querySelector('[x-data]');
-  let QRFound = false;
-
-  // Access the video and canvas elements
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const context = canvas.getContext("2d", { willReadFrequently: true }, { alpha: false });
-  const spinner = document.getElementById('spinner');
-
-  // Establish zxing from zxing_reader.js
-  var zxing = ZXing().then(function (instance) {
-    zxing = instance; // this line is supposedly not required but with current emsdk it is :-/
-  });
-
-
-  // Function to start scanning for QR codes
-  function startScanning() {
-    let consent = alpinel._x_dataStack[0].acceptPrivacy;
-    if (consent) {
-      // Get access to the camera
-      navigator.mediaDevices
-        .getUserMedia({ video: {
-          facingMode: 'user',
-          focusMode: 'continous',
-          },
-          audio: false,
-        })
-        .then(function(stream) {
-          video.srcObject = stream;
-          video.setAttribute('playsinline', true); // required to tell iOS safari we don't want fullscreen
-          video.play();
-          requestAnimationFrame(scanForQR);
-          setTimeout(() => {
-            alpinel._x_dataStack[0].videoReady = true;
-          }, 100);
-
-        })
-        .catch(function(err) {
-          console.error('Camera access error:', err);
-        });
-    }
-  }
-
-  function stopScanning() {
-    cancelAnimationFrame(requestAnimationFrame);
-    if (video.srcObject) {
-      video.srcObject.getTracks()[0].stop();
-      video.srcObject = null;
-      alpinel._x_dataStack[0].videoReady = false;
-    }
-  }
-
-  function readBarcodeFromCanvas(canvas, format, mode) {
-    var imgWidth = canvas.width;
-    var imgHeight = canvas.height;
-    var imageData = context.getImageData(0, 0, imgWidth, imgHeight);
-    var sourceBuffer = imageData.data;
-
-    if (zxing != null) {
-      var buffer = zxing._malloc(sourceBuffer.byteLength);
-      zxing.HEAPU8.set(sourceBuffer, buffer);
-      var result = zxing.readBarcodeFromPixmap(buffer, imgWidth, imgHeight, mode, format);
-      zxing._free(buffer);
-      return result;
-    } else {
-      return { error: "ZXing not yet initialized" };
-    }
-  }
-
-  function scanForQR() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
-      if (resultString) {
-        const url = resultString;
-        if (url.startsWith('kpks.us/')) {
-          QRFound = true;
-          stopScanning();
-          window.location.href = url.replace('kpks.us/', 'https://www.kpks.us/');
-        } else if (url.startsWith('https://www.kpks.us/')){
-          QRFound = true;
-          stopScanning();
-          window.location.href = url
-        }else {
-          console.log('Invalid URL detected in QR code');
-        }
-      }
-    }
-    
-    setTimeout(() => {
-      if(!QRFound) {
-        requestAnimationFrame(scanForQR);
-      }
-    }, 10);
-  }
-</script>
+<script defer src="./assets/js-wasm/qr_scanner.js"></script>
 
 
   <button x-show="showCardInfo">
