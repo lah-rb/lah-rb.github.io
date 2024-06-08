@@ -134,6 +134,28 @@
     ,
   
     {
+      "title" : "Gray Wolf: Harbinger of Night",
+      "url" : "/gray_wolf_harbinger_of_night/",
+      "caregories" : "",
+      "tags" : "wolf, howling, forest, rock, edge, cliff, moon, night",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "gray_wolf_harbinger_of_night.webp",
+      "img_alt" : " A charming, cute, soft image styling of a gray wolf howling at the moon while at the edge of a cliff surrounded by forest. "
+    }
+    ,
+  
+    {
+      "title" : "Hidden Portal of Lower Dreadmont Cave",
+      "url" : "/hidden_portal_of_lower_dreadmont_cave/",
+      "caregories" : "",
+      "tags" : "cave, mystical, skull, dragon, explorer",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "hidden_portal_of_lower_dreadmont_cave.webp",
+      "img_alt" : " A mystical portal shining from the wall of a cave covered in stalactites and stalagmites. This is a skull of a dragon hinting at the great powers at play. "
+    }
+    ,
+  
+    {
       "title" : "Hilbert: King of Avian Frogs",
       "url" : "/hilbert_king_of_avian_frogs/",
       "caregories" : "",

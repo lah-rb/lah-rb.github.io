@@ -1,4 +1,4 @@
-<div x-data="{ showFilter: false, showVariation: false, showSoulType: false }" class="relative place-content-center">
+<div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false }" class="relative place-content-center">
     <div x-show="showFilter" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-36 py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
         <div><input type="checkbox" @click="filter.all = !filter.all" id="All" checked><label for="All">All</label></div>
         <div class="flex">
@@ -19,7 +19,7 @@
             <div><input type="checkbox" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
         </div>
         <div class="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Soul type toggle"
                 @click="showSoulType = !showSoulType" :class="{ 'rotate-90': showSoulType }"
                 class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -42,6 +42,25 @@
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
+        </div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Motivation toggle"
+                @click="showMotivation = !showMotivation" :class="{ 'rotate-90': showMotivation }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Motivations</div>
+        </div>
+        <div x-show="showMotivation">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit" id="Spirit"><label for="Spirit">Spirit</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Service = !filter.Service" id="Service"><label for="Service">Service</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Survival = !filter.Survival" id="Survival"><label for="Survival">Survival</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor" id="Possessor"><label for="Possessor">Possessor</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
         </div>
     </div>
     <button aria-label="show filter options">
