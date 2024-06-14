@@ -8,4 +8,4 @@ windows:
         - sleep 2 && jekyll server --host=0.0.0.0 --livereload --watch
         - jekyll build --watch
         - tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
-        - sleep 4 && firefox http://localhost:4000 &
+        - sleep 4 && nohup firefox http://localhost:4000 >/dev/null 2>&1 &
