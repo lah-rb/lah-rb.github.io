@@ -1259,6 +1259,11 @@ video {
   margin-right: auto;
 }
 
+.my-1 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
 .my-3 {
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
@@ -1839,10 +1844,6 @@ video {
   text-align: justify;
 }
 
-.indent-8 {
-  text-indent: 2rem;
-}
-
 .font-serif {
   font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
@@ -2059,6 +2060,10 @@ video {
 
 .ease-in-out {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[x-cloak] {
+  display: none !important;
 }
 
 .hover\:scale-105:hover {

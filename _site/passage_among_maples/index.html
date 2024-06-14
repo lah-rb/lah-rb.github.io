@@ -6,8 +6,8 @@
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Passage Among Maples" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
-<meta property="og:description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
+<meta name="description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
+<meta property="og:description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
 <link rel="canonical" href="https://www.kipukas.cards/passage_among_maples/" />
 <meta property="og:url" content="https://www.kipukas.cards/passage_among_maples/" />
 <meta property="og:site_name" content="Kipukas" />
@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Passage Among Maples" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-19T00:00:00-06:00","datePublished":"2021-10-19T00:00:00-06:00","description":"The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.","headline":"Passage Among Maples","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/passage_among_maples/"},"url":"https://www.kipukas.cards/passage_among_maples/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-19T00:00:00-06:00","datePublished":"2021-10-19T00:00:00-06:00","description":"The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.","headline":"Passage Among Maples","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/passage_among_maples/"},"url":"https://www.kipukas.cards/passage_among_maples/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -134,7 +134,7 @@
 
   <button aria-label="Toggle QR Scanner">
     <svg xmlns="http://www.w3.org/2000/svg"
-      @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+      @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
       class="h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
@@ -143,15 +143,15 @@
     </svg>
   </button>
 
-  <canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
+  <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
   width="640" height="480">
 </canvas>
-<video id="video"
+<video x-cloak id="video"
   class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
-
 <script defer src="/assets/js-wasm/qr_scanner.js"></script>
+
 
 
   <button x-show="showCardInfo" aria-label="Show Background Image">
@@ -261,7 +261,7 @@
   <p x-show="play_data" class="text-center">
     
     
-      The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.
+      The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.
       
       
     

@@ -1,6 +1,6 @@
-<div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false }" class="relative place-content-center">
+<div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
     <div x-show="showFilter" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-36 py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-        <div><input type="checkbox" @click="filter.all = !filter.all" id="All" checked><label for="All">All</label></div>
+        <div><input type="checkbox" @click="filter.all = !filter.all" id="All" checked><label for="All">Show All</label></div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
                 @click="showVariation = !showVariation" :class="{ 'rotate-90': showVariation }"
@@ -61,6 +61,25 @@
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
             <div><input type="checkbox" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
+        </div>
+        <div class="flex">
+            <svg xmlns="http://www.w3.org/2000/svg" alt="Habitat toggle"
+                @click="showHabitat = !showHabitat" :class="{ 'rotate-90': showHabitat }"
+                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <div>Habitats</div>
+        </div>
+        <div x-show="showHabitat">
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain" id="Mountain"><label for="Mountain">Mountain</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Forest = !filter.Forest" id="Forest"><label for="Forest">Forest</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Plains = !filter.Plains" id="Plains"><label for="Plains">Plains</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Water = !filter.Water" id="Water"><label for="Water">Water</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens" id="Heavens"><label for="Heavens">Heavens</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Underground = !filter.Underground" id="Underground"><label for="Underground">Underground</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
+            <div><input type="checkbox" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad" id="Nomad"><label for="Nomad">Nomad</label></div>
         </div>
     </div>
     <button aria-label="show filter options">

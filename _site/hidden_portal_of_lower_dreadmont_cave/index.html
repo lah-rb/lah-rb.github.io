@@ -134,7 +134,7 @@
 
   <button aria-label="Toggle QR Scanner">
     <svg xmlns="http://www.w3.org/2000/svg"
-      @click="showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+      @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
       class="h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
@@ -143,15 +143,15 @@
     </svg>
   </button>
 
-  <canvas id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
+  <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
   width="640" height="480">
 </canvas>
-<video id="video"
+<video x-cloak id="video"
   class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
-
 <script defer src="/assets/js-wasm/qr_scanner.js"></script>
+
 
 
   <button x-show="showCardInfo" aria-label="Show Background Image">
@@ -214,7 +214,7 @@
     
     
       
-Ante up a strong soul (3+ keal means tolerance) who has lost all but one keal means or is downed. Have it travel to the cave. <br> <br> <p> Step 1: Roll to determine where cave is located (territory at random) <br> Step 2: Without healing, it must make it to the territory in a slot without contention (either basecamp or momement spots) <br> <strong>The soul is now in the cave and cannot be followed, and has no effect on contention in the area.</strong> <br> Step 3: Roll, with the soul's normal attack roll, against your opponent with a D20 and win. Wait a turn. <br> Step 4: Roll, with the soul's normal attack roll, against your opponent with all their dice and win. <br> <br> Perform these steps within 3 diel cycles from the turn the card was played. </p> 
+Ante up a strong soul (3+ keal means tolerance) who has lost all but one keal means or is downed. Have it travel to the cave. <br> <br> <p> Step 1: Roll to determine where cave is located (territory at random) <br> Step 2: Without healing, it must make it to the territory in a slot without contention (either basecamp or movement spots) <br> <strong>The soul is now in the cave and cannot be followed, and has no effect on contention in the area.</strong> <br> Step 3: Roll, with the soul's normal attack roll, against your opponent with a D20 and win. Wait a turn. <br> Step 4: Roll, with the soul's normal attack roll, against your opponent with all their dice and win. <br> <br> Perform these steps within 3 diel cycles from the turn the card was played. </p> 
       
       
     

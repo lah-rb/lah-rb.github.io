@@ -51,12 +51,12 @@ If you have not already installed our pwa, check if your browser (and launcher i
   
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
       <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <h2 class="text-xl font-semibold mb-4">Install Notice</h2>
         <p class="mb-4 text-kip-drk-sienna">
           This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
         </p>
   
-        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold my-1 py-2 px-4 rounded">
           Install
         </button>
   

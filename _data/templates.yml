@@ -1,3 +1,3 @@
 btn-center: text-center  w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded
 btn-center-transparent: text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded
-qr-click: "showScanner = !showScanner, noCamera ? showModal = true : showModal = false, showScanner ? startScanning() : stopScanning()"
+qr-click: "showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"

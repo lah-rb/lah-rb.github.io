@@ -5,7 +5,7 @@
       "title" : "Allele Sect Explorer",
       "url" : "/allele_sect_explorer/",
       "caregories" : "",
-      "tags" : "skeleton, traveler, desert, tatoo, sun",
+      "tags" : "skeleton, traveler, desert, tattoo, sun",
       "scarcity" : "Founder's Deck",
       "img_name" : "allele_sect_explorer.webp",
       "img_alt" : "A man with a long thin beard and blank eyes stares past your soul."
@@ -251,6 +251,28 @@
       "scarcity" : "Founder's Deck",
       "img_name" : "mihela_cleanser_of_fields.webp",
       "img_alt" : "grave yard fairy looking menacing and oddly attractive to some"
+    }
+    ,
+  
+    {
+      "title" : "Myrthvither Raven",
+      "url" : "/myrthvither_raven/",
+      "caregories" : "",
+      "tags" : "raven, plant, flower, thorns, crow",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "myrthvither_raven.webp",
+      "img_alt" : " wings of palm leaves, body of flowers and thorns, nature's flora compose this raven "
+    }
+    ,
+  
+    {
+      "title" : "Neural Network Synapse Virus",
+      "url" : "/neural_network_synapse_virus/",
+      "caregories" : "",
+      "tags" : "node, block, brain, synapse, computer, lines, web, neuron",
+      "scarcity" : "Founder's Deck",
+      "img_name" : "neural_network_synapse_virus.webp",
+      "img_alt" : " what does a computer think of itself in abstract. This apparently? Wires, blocks, spheres. "
     }
     ,
   
