@@ -19,7 +19,10 @@ search: search_bar_link.html
       {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
       {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
       filter.all == true">
-        <a class="{{ site.data.templates.btn-center }} h-64" href="{{card.url}}"><img height="160" width="160" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}" loading="lazy"></img>{{card.title}}</a>
+        <a href="{{card.url}}" class="grid grid-cols-1 w-60 h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded">
+          <img x-cloak height="240" width="240" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}"></img>
+          <div class="text-center text-wrap">{{card.title}}</div>
+        </a>
       </li>
     {% endfor %}
   </ul>
