@@ -1,12 +1,12 @@
 <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-40 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0 bg-emerald-50/95" :class="{ 'bg-hero-pattern': terrab }">
+  <div x-data="{ open: false }" class="z-0 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
     <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
       <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.300 x-show="terrab">
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
-    <div class="hidden md:block break-after-avoid transition hover:scale-105 active:scale-95">
+    <div class="hidden md:block break-after-avoid transition hover:scale-95 active:transform-none">
       <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
@@ -18,7 +18,17 @@
 
     {% if page.search %}
       {% include {{ page.search }} %}
-      {% include qr_button.html %}
+      <button aria-label="Toggle QR Scanner">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
+          viewBox="0 0 128 128" alt="QR Scanner Toggle"
+          class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+          <path
+            d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+            transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+        </svg>
+      </button>
+      {% include qr_scanner.html %}
       {% if page.search == 'search_bar_link.html' %}
         {% include filter.html %}
         {% include install_pwa.html  %}
@@ -49,4 +59,4 @@
     </div>
   </div>
 </template>
-{% include qr_scanner.html %}
+

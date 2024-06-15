@@ -1,7 +1,7 @@
 <script>
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent the default behaviour (which would be to show the install prompt automatically)
+    // Prevent the default behavior (which would be to show the install prompt automatically)
     e.preventDefault();
     
     // Stash the event so it can be triggered later.
@@ -26,7 +26,7 @@
         
 If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
         
-If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistant experiance across devices. We will go ahead and hide the install button.`);
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistent experience across devices. We will go ahead and hide the install button.`);
 
         // Hide the install button
         alpinel._x_dataStack[0].hideInstallButton = true;
