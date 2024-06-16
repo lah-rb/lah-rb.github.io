@@ -23,6 +23,7 @@
     <title>Privacy Policy</title>
     <link rel="stylesheet" href="/assets/css/output.css">
     <link rel="manifest" href="/manifest.json">
+    
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -34,6 +35,7 @@
     <meta name="application-name" content="Kipukas">
     <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#9b2c2c">
+
     <!--favicon code progressier.com-->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14_Pro_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="splash_screens/iPhone_13_mini__iPhone_12_mini__iPhone_11_Pro__iPhone_XS__iPhone_X_landscape.png">
@@ -73,6 +75,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -92,16 +96,19 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, 
-  showScanner: false, 
-  videoReady: false, 
-  showInstallModal: false,
-  top: true, 
-  noCamera: $persist(true), 
-  showQRModal: $persist(true), 
-  acceptPrivacy: $persist(false), 
-  hideInstallButton: $persist(false) }" 
-  class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+
+  <body x-data="{ 
+                  filter: { all: true }, 
+                  showScanner: false, 
+                  videoReady: false, 
+                  showInstallModal: false,
+                  top: true,
+                  noCamera: $persist(true), 
+                  showQRModal: $persist(true), 
+                  acceptPrivacy: $persist(false), 
+                  hideInstallButton: $persist(false),
+                }" 
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -136,12 +143,10 @@
   </template>
 </div>
 
-    <div x-data="{ terrab: true }">
-      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-0 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
-    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.300 x-show="terrab">
+    <div><template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+  <div x-data="{ open: false }" class="z-30 flex px-5 py-1 gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition.duration.100 x-show="top">
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.100 x-show="top">
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
@@ -158,25 +163,27 @@
 
     
 
-    <div class="hidden xl:flex flex-initial gap-x-4 px-5 content-center justify-end">
-      <a class="text-center w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./kipukas_2_player_domination.pdf">See the Rules</a>
-      <a class="text-center w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./about_the_binder">About the Binder</a>
+
+    <div x-show="open" 
+        x-anchor.bottom-end="$refs.hamburger" 
+        x-transition.duration.350ms
+        class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+      <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+      <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+      <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
     </div>
-
-
-    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center xl:hidden">
-      <div x-show="open" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-          <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-          <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
-          <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
-      </div>
-
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}" aria-label="extra nav menu">
+    
+    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
+      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
+              @click="open = !open" 
+              :class="{'shadow-lg': ! open}" 
+              x-ref="hamburger"
+              aria-label="extra nav menu">
           <span class="sr-only">Open main menu</span>
           <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
-              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'opacity-0': open } "></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500 ease-in-out" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
+              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': open } "></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
           </div>
       </button>
     </div>
@@ -226,7 +233,6 @@
   </div>
 </div>
 </template>
-
-    </div>
+</div>
   </body>
 </html>

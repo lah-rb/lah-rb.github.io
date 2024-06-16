@@ -5,5 +5,8 @@
 @layer utilities {
     [x-cloak] { 
         display: none !important; 
+    };
+    .content-auto {
+        content-visibility: auto;
     }
 }

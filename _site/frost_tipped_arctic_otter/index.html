@@ -24,6 +24,7 @@
     <title>Frost Tipped Arctic Otter</title>
     <link rel="stylesheet" href="/assets/css/output.css">
     <link rel="manifest" href="/manifest.json">
+    
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -35,6 +36,7 @@
     <meta name="application-name" content="Kipukas">
     <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#9b2c2c">
+
     <!--favicon code progressier.com-->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14_Pro_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="splash_screens/iPhone_13_mini__iPhone_12_mini__iPhone_11_Pro__iPhone_XS__iPhone_X_landscape.png">
@@ -74,6 +76,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -93,16 +97,19 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, 
-  showScanner: false, 
-  videoReady: false, 
-  showInstallModal: false,
-  top: true, 
-  noCamera: $persist(true), 
-  showQRModal: $persist(true), 
-  acceptPrivacy: $persist(false), 
-  hideInstallButton: $persist(false) }" 
-  class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+
+  <body x-data="{ 
+                  filter: { all: true }, 
+                  showScanner: false, 
+                  videoReady: false, 
+                  showInstallModal: false,
+                  top: true,
+                  noCamera: $persist(true), 
+                  showQRModal: $persist(true), 
+                  acceptPrivacy: $persist(false), 
+                  hideInstallButton: $persist(false),
+                }" 
+        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -137,9 +144,7 @@
   </template>
 </div>
 
-    <div x-data="{ terrab: true }">
-      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <div x-data="{ showCardInfo: true, landscape: false }">
+    <div><div x-data="{ showCardInfo: true, landscape: false }">
   <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8 justify-center">
 
   <button aria-label="Toggle QR Scanner">
@@ -648,7 +653,6 @@
   </div>
 </template>
 
-
-    </div>
+</div>
   </body>
 </html>

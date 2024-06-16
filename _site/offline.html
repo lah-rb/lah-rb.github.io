@@ -23,6 +23,7 @@
     <title>Binder Home</title>
     <link rel="stylesheet" href="/assets/css/output.css">
     <link rel="manifest" href="/manifest.json">
+    
     <!--favicon code realfavicongenerator.net-->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -34,6 +35,7 @@
     <meta name="application-name" content="Kipukas">
     <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#9b2c2c">
+
     <!--favicon code progressier.com-->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14_Pro_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="splash_screens/iPhone_13_mini__iPhone_12_mini__iPhone_11_Pro__iPhone_XS__iPhone_X_landscape.png">
@@ -73,6 +75,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -92,16 +96,19 @@
     </script>
 
   </head>
-  <body x-data="{ filter: { all: true }, 
-  showScanner: false, 
-  videoReady: false, 
-  showInstallModal: false,
-  top: true, 
-  noCamera: $persist(true), 
-  showQRModal: $persist(true), 
-  acceptPrivacy: $persist(false), 
-  hideInstallButton: $persist(false) }" 
-  class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth">
+
+  <body x-data="{ 
+                  filter: { all: true }, 
+                  showScanner: false, 
+                  videoReady: false, 
+                  showInstallModal: false,
+                  top: true,
+                  noCamera: $persist(true), 
+                  showQRModal: $persist(true), 
+                  acceptPrivacy: $persist(false), 
+                  hideInstallButton: $persist(false),
+                }" 
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -136,12 +143,10 @@
   </template>
 </div>
 
-    <div x-data="{ terrab: true }">
-      <div class="absolute top-0 w-screen h-0" x-intersect:leave="terrab = false" x-intersect="terrab = true"></div>
-      <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-0 flex px-5 py-1 gap-x-4 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
-    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-105 active:scale-95" :class="{ 'hidden': open }" x-transition.duration.300 x-show="terrab">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.300 x-show="terrab">
+    <div><template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+  <div x-data="{ open: false }" class="z-30 flex px-5 py-1 gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition.duration.100 x-show="top">
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.100 x-show="top">
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
@@ -194,92 +199,188 @@
 
       
         <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
-    <div x-show="showFilter" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-36 py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-        <div><input type="checkbox" @click="filter.all = !filter.all" id="All" checked><label for="All">Show All</label></div>
+    <div x-show="showFilter" 
+        x-anchor.bottom-end="$refs.filter"
+        x-transition.duration.350ms 
+        class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+        <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" @click="filter.all = !filter.all, 
+            
+            
+                inViewallele_sect_explorer = true
+            
+                inViewartificer_of_the_salt_chancel = true
+            
+                inViewavian_keepers_den = true
+            
+                inViewbalanced_inline_processing_colony = true
+            
+                inViewbranwen_mantillusion_practitioner = true
+            
+                inViewcartesian_sea = true
+            
+                inViewcloth = true
+            
+                inViewenchantress_of_cats = true
+            
+                inViewfeathers = true
+            
+                inViewfeeding_the_piffions = true
+            
+                inViewfreezing_of_the_heart = true
+            
+                inViewfrost_tipped_arctic_otter = true
+            
+                inViewgray_wolf_harbinger_of_night = true
+            
+                inViewhidden_portal_of_lower_dreadmont_cave = true
+            
+                inViewhilbert_king_of_avian_frogs = true
+            
+                inViewhoney = true
+            
+                inViewincubation_egg = true
+            
+                inViewknightsoul_of_binding_time = true
+            
+                inViewliliel_healing_fairy = true
+            
+                inViewlocation_of_the_deep_apothecary_shop = true
+            
+                inViewlosetany_steppes = true
+            
+                inViewmeteor_shower = true
+            
+                inViewmihela_cleanser_of_fields = true
+            
+                inViewmyrthvither_raven = true
+            
+                inViewneural_network_synapse_virus = true
+            
+                inViewoshliath_and_osileth = true
+            
+                inViewpalace_of_the_allele_sect = true
+            
+                inViewparched_traveler = true
+            
+                inViewpassage_among_maples = true
+            
+                inViewplane_table_joker = true
+            
+                inViewpyrostegia_dragon = true
+            
+                inViewrooster_calling_of_light = true
+            
+                inViewsboi_threat_plus_plus = true
+            
+                inViewshards_desert = true
+            
+                inViewspectral_lands_decree_and_hearing = true
+            
+                inViewsprite_of_wilds_spirit = true
+            
+                inViewsticks = true
+            
+                inViewstring = true
+            
+                inViewsuspended_animation = true
+            
+                inViewtejas_curious_mech = true
+            
+                inViewtimebattle = true
+            
+                inViewto_catch_a_spirit = true
+            
+                inViewushered_through_sabina_emporium = true
+            
+                inViewwhat_do_you_see_in_the_breach = true
+            
+            " id="All" checked><label for="All">Show All</label></div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
                 @click="showVariation = !showVariation" :class="{ 'rotate-90': showVariation }"
-                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
             <div>Variations</div>
         </div>
         <div x-show="showVariation">
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.card   = !filter.card" id="Other"><label for="Other">Other</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Soul type toggle"
                 @click="showSoulType = !showSoulType" :class="{ 'rotate-90': showSoulType }"
-                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
             <div>Soul Types</div>
         </div>
         <div x-show="showSoulType">
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Motivation toggle"
                 @click="showMotivation = !showMotivation" :class="{ 'rotate-90': showMotivation }"
-                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
             <div>Motivations</div>
         </div>
         <div x-show="showMotivation">
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit" id="Spirit"><label for="Spirit">Spirit</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Service = !filter.Service" id="Service"><label for="Service">Service</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Survival = !filter.Survival" id="Survival"><label for="Survival">Survival</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor" id="Possessor"><label for="Possessor">Possessor</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit" id="Spirit"><label for="Spirit">Spirit</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Service = !filter.Service" id="Service"><label for="Service">Service</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Survival = !filter.Survival" id="Survival"><label for="Survival">Survival</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor" id="Possessor"><label for="Possessor">Possessor</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Habitat toggle"
                 @click="showHabitat = !showHabitat" :class="{ 'rotate-90': showHabitat }"
-                class="fill-none stroke-1 stroke-kip-drk-sienna w-6 h-6 transition-transform">
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
             <div>Habitats</div>
         </div>
         <div x-show="showHabitat">
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain" id="Mountain"><label for="Mountain">Mountain</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Forest = !filter.Forest" id="Forest"><label for="Forest">Forest</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Plains = !filter.Plains" id="Plains"><label for="Plains">Plains</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Water = !filter.Water" id="Water"><label for="Water">Water</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens" id="Heavens"><label for="Heavens">Heavens</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Underground = !filter.Underground" id="Underground"><label for="Underground">Underground</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
-            <div><input type="checkbox" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad" id="Nomad"><label for="Nomad">Nomad</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain" id="Mountain"><label for="Mountain">Mountain</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Forest = !filter.Forest" id="Forest"><label for="Forest">Forest</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Plains = !filter.Plains" id="Plains"><label for="Plains">Plains</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Water = !filter.Water" id="Water"><label for="Water">Water</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens" id="Heavens"><label for="Heavens">Heavens</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Underground = !filter.Underground" id="Underground"><label for="Underground">Underground</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad" id="Nomad"><label for="Nomad">Nomad</label></div>
         </div>
     </div>
     <button aria-label="show filter options">
         <svg xmlns="http://www.w3.org/2000/svg" alt="Filter toggle" viewBox="0 0 24 24"
         @click="showFilter = !showFilter"
+        x-ref="filter"
         class="h-14 w-14 stroke-1 stroke-slate-400 fill-slate-200 hover:fill-kip-red hover:stroke-kip-drk-sienna active:fill-kip-drk-sienna">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
         </svg>
@@ -361,25 +462,27 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
     
 
-    <div class="hidden xl:flex flex-initial gap-x-4 px-5 content-center justify-end">
-      <a class="text-center w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./kipukas_2_player_domination.pdf">See the Rules</a>
-      <a class="text-center w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" href="./about_the_binder">About the Binder</a>
+
+    <div x-show="open" 
+        x-anchor.bottom-end="$refs.hamburger" 
+        x-transition.duration.350ms
+        class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+      <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+      <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+      <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
     </div>
-
-
-    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center xl:hidden">
-      <div x-show="open" x-transition.duration.350ms class="origin-top-right absolute right-3 top-16 md:top-24 bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-          <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-          <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
-          <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
-      </div>
-
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg" @click="open = !open" :class="{'shadow-lg': ! open}" aria-label="extra nav menu">
+    
+    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
+      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
+              @click="open = !open" 
+              :class="{'shadow-lg': ! open}" 
+              x-ref="hamburger"
+              aria-label="extra nav menu">
           <span class="sr-only">Open main menu</span>
           <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
-              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500 ease-in-out" :class="{'opacity-0': open } "></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500 ease-in-out" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
+              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': open } "></span>
+              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
           </div>
       </button>
     </div>
@@ -571,7 +674,6 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </li>
   
 </ul>
-
-    </div>
+</div>
   </body>
 </html>
