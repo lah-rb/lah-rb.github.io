@@ -1422,6 +1422,16 @@ select {
   margin-bottom: 0.25rem;
 }
 
+.my-2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.my-2\.5 {
+  margin-top: 0.625rem;
+  margin-bottom: 0.625rem;
+}
+
 .my-3 {
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
@@ -1437,32 +1447,16 @@ select {
   margin-bottom: auto;
 }
 
-.my-6 {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.my-4 {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-.my-2 {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.my-2\.5 {
-  margin-top: 0.625rem;
-  margin-bottom: 0.625rem;
-}
-
 .mb-4 {
   margin-bottom: 1rem;
 }
 
 .ml-auto {
   margin-left: auto;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
 }
 
 .mt-1 {
@@ -1475,10 +1469,6 @@ select {
 
 .mt-6 {
   margin-top: 1.5rem;
-}
-
-.mr-2 {
-  margin-right: 0.5rem;
 }
 
 .block {
@@ -1560,11 +1550,6 @@ select {
 
 .h-screen {
   height: 100vh;
-}
-
-.h-max {
-  height: -moz-max-content;
-  height: max-content;
 }
 
 .min-h-screen {
@@ -1650,15 +1635,6 @@ select {
 
 .w-screen {
   width: 100vw;
-}
-
-.w-max {
-  width: -moz-max-content;
-  width: max-content;
-}
-
-.w-0 {
-  width: 0px;
 }
 
 .max-w-lg {
@@ -1914,11 +1890,6 @@ select {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
 }
 
-.bg-kip-drk-sienna {
-  --tw-bg-opacity: 1;
-  background-color: rgb(52 28 23 / var(--tw-bg-opacity));
-}
-
 .bg-hero-pattern {
   background-image: url('/assets/utility_images/topography.svg');
 }
@@ -2053,20 +2024,12 @@ select {
   padding-bottom: 0.5rem;
 }
 
-.pt-4 {
-  padding-top: 1rem;
-}
-
-.pr-2 {
-  padding-right: 0.5rem;
-}
-
-.pr-6 {
-  padding-right: 1.5rem;
-}
-
 .pl-4 {
   padding-left: 1rem;
+}
+
+.pt-4 {
+  padding-top: 1rem;
 }
 
 .text-center {
@@ -2342,12 +2305,6 @@ select {
   outline-offset: 2px;
 }
 
-.focus\:ring-0:focus {
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-}
-
 .focus\:ring-1:focus {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
@@ -2401,11 +2358,6 @@ select {
 @media (min-width: 768px) {
   .md\:m-8 {
     margin: 2rem;
-  }
-
-  .md\:mx-3 {
-    margin-left: 0.75rem;
-    margin-right: 0.75rem;
   }
 
   .md\:block {
