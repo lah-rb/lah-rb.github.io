@@ -9,21 +9,41 @@ bg-terra: "bg-hero-pattern "
 search: search_bar_link.html
 ---
 {% include header.html %}
-<template x-if="true"> <!-- This fixes the cls issue completely -->
-  <ul class="flex flex-wrap md:px-3 md:gap-x-4 scroll-smooth">
+<template x-if="true">
+  <div x-data="{
+  {% assign posts = site.posts | sort:'title' %}
+  {% for card in posts %}
+  inView{{ card.permalink | remove: '/' }}: true,
+  {% endfor %}
+  }
+  " 
+  class="flex flex-wrap md:gap-x-5 content-auto place-content-center">
     {% assign posts = site.posts | sort:"title" %}
     {% for card in posts %}
-      <li class="mx-auto my-3" x-show="
-      filter.{{card.layout}} == true || 
-      {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
-      {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
-      {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
-      filter.all == true">
-        <a href="{{card.url}}" class="grid grid-cols-1 w-60 h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded">
-          <img x-cloak height="240" width="240" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}"></img>
-          <div class="text-center text-wrap">{{card.title}}</div>
-        </a>
-      </li>
+      <div class="w-60 h-80 my-2.5" x-show="
+            filter.{{card.layout}} == true || 
+            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
+            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
+            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
+            filter.all == true" 
+      x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
+      <a href="{{card.url}}"
+          x-transition.duration.500ms
+          x-show="
+            (filter.{{card.layout}} == true || 
+            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
+            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
+            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
+            filter.all == true) &&
+            inView{{ card.permalink | remove: '/' }}
+          "
+        class="grid grid-cols-1 w-60 h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <img x-cloak height="240" width="240" src="/assets/thumbnails/{{card.img_name}}" alt="{{card.img_alt}}"></img>
+        <div class="text-center text-wrap">{{card.title}}</div>
+      </a>
+    </div>
     {% endfor %}
-  </ul>
+  </div>
 </template>
+
