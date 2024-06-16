@@ -1,5 +1,5 @@
 <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-30 flex px-5 py-1 gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+  <div x-data="{ open: false }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-3 md:gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
     <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition.duration.100 x-show="top">
       <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.100 x-show="top">
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
@@ -20,7 +20,7 @@
       {% include {{ page.search }} %}
       <button aria-label="Toggle QR Scanner">
         <svg xmlns="http://www.w3.org/2000/svg"
-          @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
+          @click="{{ site.data.templates.qr-click }}"
           viewBox="0 0 128 128" alt="QR Scanner Toggle"
           class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
           <path
