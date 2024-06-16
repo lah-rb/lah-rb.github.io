@@ -28,7 +28,7 @@ search: search_bar_link.html
             filter.all == true" 
       x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
       <a href="{{card.url}}"
-          x-transition.duration.500ms
+          x-transition
           x-show="
             (filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
