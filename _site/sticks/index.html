@@ -149,7 +149,7 @@
 
   <button aria-label="Toggle QR Scanner">
     <svg xmlns="http://www.w3.org/2000/svg"
-      @click="" viewBox="0 0 128 128" alt="QR Scanner Toggle"
+      @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
       :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
       class="h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
       <path
