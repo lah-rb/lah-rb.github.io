@@ -177,33 +177,13 @@
 
 </div>
 
-      <button aria-label="Toggle QR Scanner">
-        <svg xmlns="http://www.w3.org/2000/svg"
-          @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
-          viewBox="0 0 128 128" alt="QR Scanner Toggle"
-          class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
-          <path
-            d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
-            transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
-        </svg>
-      </button>
-      <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
-  width="640" height="480">
-</canvas>
-<video x-cloak id="video"
-  class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
-  x-show="showScanner && !noCamera && videoReady">
-</video>
-<script defer src="/assets/js-wasm/qr_scanner.js"></script>
-
-
       
         <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
     <div x-show="showFilter" 
         x-anchor.bottom-end="$refs.filter"
         x-transition.duration.350ms 
         class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-        <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" @click="filter.all = !filter.all, 
+        <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" @click="filter.all = !filter.all, 
             
             
                 inViewallele_sect_explorer = true
@@ -304,14 +284,14 @@
             <div>Variations</div>
         </div>
         <div x-show="showVariation">
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.card   = !filter.card" id="Other"><label for="Other">Other</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.character = !filter.character" id="Character"><label for="Character">Character</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.species = !filter.species" id="Species"><label for="Species">Species</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.terrain_feature  = !filter.terrain_feature" id="Terrain Feature"><label for="Terrain Feature">Terrain Feature</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.trap  = !filter.trap" id="Trap"><label for="Trap">Trap</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.sabotage  = !filter.sabotage" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.personal_effect  = !filter.personal_effect" id="Personal Effect"><label for="Personal Effect">Personal Effect</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.item   = !filter.item" id="Item"><label for="Item">Item</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.card   = !filter.card" id="Other"><label for="Other">Other</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Soul type toggle"
@@ -322,21 +302,21 @@
             <div>Soul Types</div>
         </div>
         <div x-show="showSoulType">
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic" id="Angelic"><label for="Angelic">Angelic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal" id="Brutal"><label for="Brutal">Brutal</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Astral = !filter.Astral" id="Astral"><label for="Astral">Astral</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch" id="Glitch"><label for="Glitch">Glitch</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Magic = !filter.Magic" id="Magic"><label for="Magic">Magic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Avian = !filter.Avian" id="Avian"><label for="Avian">Avian</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic" id="Energetic"><label for="Energetic">Energetic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic" id="Entropic"><label for="Entropic">Entropic</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Motivation toggle"
@@ -347,15 +327,15 @@
             <div>Motivations</div>
         </div>
         <div x-show="showMotivation">
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit" id="Spirit"><label for="Spirit">Spirit</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Service = !filter.Service" id="Service"><label for="Service">Service</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Survival = !filter.Survival" id="Survival"><label for="Survival">Survival</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor" id="Possessor"><label for="Possessor">Possessor</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit" id="Spirit"><label for="Spirit">Spirit</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Service = !filter.Service" id="Service"><label for="Service">Service</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Survival = !filter.Survival" id="Survival"><label for="Survival">Survival</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor" id="Possessor"><label for="Possessor">Possessor</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience" id="Conscience"><label for="Conscience">Conscience</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Passion = !filter.Passion" id="Passion"><label for="Passion">Passion</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Duty = !filter.Duty" id="Duty"><label for="Duty">Duty</label></div>
         </div>
         <div class="flex">
             <svg xmlns="http://www.w3.org/2000/svg" alt="Habitat toggle"
@@ -366,15 +346,15 @@
             <div>Habitats</div>
         </div>
         <div x-show="showHabitat">
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain" id="Mountain"><label for="Mountain">Mountain</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Forest = !filter.Forest" id="Forest"><label for="Forest">Forest</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Plains = !filter.Plains" id="Plains"><label for="Plains">Plains</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Water = !filter.Water" id="Water"><label for="Water">Water</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens" id="Heavens"><label for="Heavens">Heavens</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Underground = !filter.Underground" id="Underground"><label for="Underground">Underground</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
-            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad" id="Nomad"><label for="Nomad">Nomad</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain" id="Mountain"><label for="Mountain">Mountain</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Forest = !filter.Forest" id="Forest"><label for="Forest">Forest</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Plains = !filter.Plains" id="Plains"><label for="Plains">Plains</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Water = !filter.Water" id="Water"><label for="Water">Water</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens" id="Heavens"><label for="Heavens">Heavens</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Underground = !filter.Underground" id="Underground"><label for="Underground">Underground</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad" id="Nomad"><label for="Nomad">Nomad</label></div>
         </div>
     </div>
     <button aria-label="show filter options">
@@ -460,11 +440,104 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </template>
   </div>
       
+      <button aria-label="Toggle QR Scanner">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
+          viewBox="0 0 128 128" alt="QR Scanner Toggle"
+          class="h-14 w-14 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+          <path
+            d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+            transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+        </svg>
+      </button>
+      <script src="/assets/js-wasm/typing.js"></script>
+<div x-data="{ showTypeMenu: false, outcome: '', atkClick:'', defClick:''}" class="relative place-content-center">
+    <button aria-label="Toggle Type Comparison" x-ref="typeButton">
+        <svg @click="showTypeMenu = !showTypeMenu"
+            class="h-16 w-16 fill-kip-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna"
+            viewBox="66.941444 -166.9827 33.866614 26.27061"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="m 83.715193,-166.88575 c -0.17963,0.0931 -0.174138,-0.001 -0.174138,2.99205 0,1.74609 0.01432,2.86239 0.03722,2.90294 0.02046,0.0362 0.09013,0.0867 0.154791,0.11204 0.137599,0.054 0.326863,-4.7e-4 0.389931,-0.11204 0.04105,-0.0727 0.05383,-5.67031 0.01318,-5.77069 -0.02567,-0.0634 -0.209924,-0.16737 -0.293294,-0.16552 -0.02766,6.9e-4 -0.08512,0.0192 -0.127689,0.0412 z"/>
+            <path d="m 86.340653,-164.21699 c -0.06912,0.0356 -0.122794,0.11069 -0.162685,0.22769 -0.43855,1.28633 -1.185321,3.58859 -1.185321,3.6543 0,0.047 0.03609,0.12887 0.0802,0.18201 0.09994,0.12038 0.343193,0.13543 0.456322,0.0282 0.03968,-0.0376 0.136831,-0.26447 0.215883,-0.50416 0.07905,-0.23969 0.35802,-1.08141 0.619931,-1.8705 0.30981,-0.93339 0.469369,-1.46857 0.456647,-1.53164 -0.02314,-0.11471 -0.180494,-0.24256 -0.29598,-0.24049 -0.04502,7e-4 -0.12827,0.0254 -0.184999,0.0546 z"/>
+            <path d="m 91.764266,-161.72031 c -0.232351,0.032 -2.978379,0.98556 -3.212517,1.11557 -0.221212,0.12284 -0.495596,0.41872 -0.620751,0.66939 -0.07485,0.14992 -0.118675,0.33041 -0.162592,0.66964 l -0.06012,0.46441 -0.874318,-0.003 -0.874319,-0.003 -0.260847,0.11708 c -0.824637,0.37013 -1.166115,1.30224 -0.764265,2.08618 0.108165,0.211 0.383669,0.49785 0.61879,0.64426 l 0.09674,0.0602 c -0.276019,0.11138 -0.619674,0.16904 -0.784906,0.37121 -0.15093,0.18467 -0.273736,0.43651 -0.301663,0.71665 -0.02336,0.23431 0.132984,0.56114 0.2323,0.76224 0.111857,0.22649 0.915102,0.55304 1.085739,0.6401 0.07409,0.0378 0.07218,0.0117 -0.06096,0.14555 -0.316918,0.31841 -0.437491,0.64599 -0.415238,1.12811 0.01348,0.29204 0.03331,0.37308 0.142872,0.58395 0.145263,0.27959 0.412349,0.55097 0.669421,0.68019 l 0.297093,0.0621 -0.162917,0.2835 c -0.295252,0.51379 -0.299301,0.84195 -0.04335,1.37635 0.114944,0.23999 0.300732,0.51076 0.540868,0.6346 0.416653,0.21487 0.326749,0.40191 3.028616,0.38284 2.57887,-0.0182 2.97971,-0.0389 3.995377,-0.20631 0.831012,-0.13697 1.295057,-0.27219 2.186407,-0.63711 0.15761,-0.0645 0.302615,-0.0953 0.451463,-0.0959 1.102972,-0.26994 0.610793,-0.9896 -0.63554,-0.49422 -0.132876,0.0528 -0.389612,0.15447 -0.570523,0.2259 -0.692567,0.27344 -1.84457,0.48316 -3.076449,0.56007 -0.584689,0.0365 -1.335063,0.0495 -1.335063,0.0232 0,-0.008 0.0566,-0.12744 0.125769,-0.26583 0.117167,-0.23441 0.125767,-0.27806 0.125767,-0.63856 0,-0.37198 -0.0055,-0.39749 -0.142498,-0.65999 -0.07837,-0.15018 -0.195406,-0.32105 -0.260081,-0.37972 l -0.117584,-0.10667 0.249063,-0.21625 c 0.543617,-0.47197 0.68972,-1.17236 0.375487,-1.79995 -0.06255,-0.12491 -0.173185,-0.2912 -0.245874,-0.36953 l -0.132157,-0.14243 0.225225,-0.2134 c 0.615906,-0.58358 0.647142,-1.45209 0.0762,-2.11857 -0.123197,-0.14381 -0.1304,-0.16379 -0.07049,-0.19555 0.140188,-0.0743 0.331014,-0.25832 0.449726,-0.43361 0.06791,-0.10028 0.130172,-0.18232 0.138357,-0.18232 0.0082,0 0.08707,0.13612 0.175302,0.3025 0.420928,0.79372 1.285168,1.75081 1.580965,1.75081 0.169475,0 0.325924,-0.14512 0.325924,-0.30233 0,-0.11265 -0.04049,-0.1664 -0.328115,-0.43558 -0.36258,-0.33933 -0.617065,-0.64694 -0.856263,-1.03501 -0.3321,-0.53879 -0.611967,-1.22465 -0.765242,-1.87538 -0.09264,-0.3933 -0.187951,-0.53166 -0.366233,-0.53166 -0.144013,0 -1.038877,0.33089 -1.127381,0.41687 -0.0463,0.045 -0.125247,0.23291 -0.186062,0.44291 -0.337453,1.1653 -0.90372,2.13943 -1.35709,2.33456 -0.173593,0.0747 -0.412328,0.089 -0.525791,0.0315 -0.103703,-0.0526 -0.152422,-0.15302 -0.194599,-0.40117 -0.05335,-0.31386 0.348308,-3.70391 0.464381,-3.91949 0.169173,-0.3142 0.295915,-0.37794 1.802192,-0.90627 0.766209,-0.26876 1.465434,-0.49932 1.553833,-0.51238 0.249033,-0.0368 0.569216,0.0673 0.774454,0.25174 0.09392,0.0844 1.019039,1.0362 2.055816,2.11511 l 1.885051,1.96165 0.176946,0.0109 c 0.199981,0.0123 3.719098,-0.24006 3.810498,-0.27329 0.0701,-0.0255 0.17238,-0.20108 0.17238,-0.29597 0,-0.0923 -0.10678,-0.22843 -0.20771,-0.26479 -0.0493,-0.0178 -0.768859,0.0205 -1.747161,0.0929 -0.914845,0.0677 -1.717626,0.12356 -1.783961,0.12417 -0.134293,0.001 0.04915,0.18277 -2.595787,-2.56907 -0.868537,-0.90364 -1.427719,-1.45589 -1.547004,-1.52781 -0.323539,-0.19509 -0.737575,-0.27952 -1.11555,-0.22749 z"/>
+            <path d="m 87.194131,-158.20094 c 0.19366,2.3e-4 0.371249,0.0127 0.394636,0.0275 0.03441,0.0218 -0.05934,1.00145 -0.175925,1.83823 -0.0012,0.008 -0.276993,0.006 -0.613049,-0.005 -0.811159,-0.0267 -1.039525,-0.11674 -1.257312,-0.49589 -0.224708,-0.39119 -0.164592,-0.79889 0.163658,-1.10992 0.2411,-0.22844 0.457537,-0.29805 0.849484,-0.2732 0.157517,0.01 0.444845,0.0184 0.638508,0.0187 z"/>
+            <path d="m 91.058038,-157.5441 c 0.20234,0.37851 0.105197,0.83093 -0.238215,1.10946 -0.148503,0.12044 -0.48163,0.24911 -0.528925,0.20429 -0.01099,-0.0104 0.03959,-0.15706 0.112409,-0.32589 0.135509,-0.31414 0.297654,-0.76986 0.374211,-1.05173 0.05763,-0.21218 0.143389,-0.19265 0.28052,0.0639 z"/>
+            <path d="m 87.420476,-155.64717 c 0.01597,0.009 0.02919,0.0528 0.0294,0.097 6.99e-4,0.13388 0.174679,0.44484 0.327901,0.58584 0.495904,0.45633 1.474324,0.23298 1.974369,-0.45071 0.09568,-0.13082 0.124123,-0.14643 0.266323,-0.1461 0.206559,4.6e-4 0.520993,0.14057 0.655578,0.29212 0.166822,0.18785 0.228226,0.32836 0.2486,0.56885 0.02426,0.28628 -0.08605,0.54435 -0.320014,0.74869 -0.231625,0.2023 -0.464481,0.26148 -0.939009,0.23866 -0.206799,-0.01 -0.997703,-0.0418 -1.757564,-0.0707 -1.260645,-0.048 -1.396873,-0.0594 -1.556439,-0.1305 -0.198282,-0.0883 -0.816103,-0.26903 -0.896605,-0.45159 -0.03342,-0.0758 -0.178664,-0.23019 -0.172544,-0.3916 0.0056,-0.14772 0.159915,-0.30303 0.187674,-0.37316 0.11205,-0.28306 0.757541,-0.47031 1.065464,-0.54447 0.118196,-0.0285 0.827561,-0.006 0.886868,0.0277 z"/>
+            <path d="m 90.089299,-153.04413 c 0.136427,0.0384 0.250377,0.10759 0.381078,0.23143 0.50995,0.48319 0.336931,1.259 -0.341093,1.52943 -0.127478,0.0508 -0.326069,0.0549 -1.634954,0.0334 -0.819418,-0.0135 -1.581637,-0.0416 -1.69382,-0.0625 -0.26825,-0.0501 -0.501411,-0.22101 -0.644665,-0.47266 -0.266144,-0.46753 -0.0551,-1.05761 0.461659,-1.29079 0.147111,-0.0664 0.232235,-0.0687 1.715985,-0.0465 1.214906,0.0182 1.604357,0.0355 1.75581,0.0781 z"/>
+            <path d="m 89.926137,-150.51661 c 0.19648,0.0865 0.44491,0.32862 0.526176,0.51291 0.0778,0.17643 0.0679,0.55252 -0.01923,0.73045 -0.0956,0.19524 -0.293604,0.37942 -0.506938,0.47158 -0.165239,0.0714 -0.234453,0.0747 -1.354412,0.0653 -0.720791,-0.006 -1.237657,-0.0258 -1.327678,-0.0507 -0.188295,-0.0521 -0.470103,-0.28665 -0.578638,-0.48154 -0.110922,-0.19916 -0.117838,-0.60457 -0.01353,-0.79302 0.136024,-0.24576 0.371126,-0.43497 0.64258,-0.51715 0.05334,-0.0161 0.628115,-0.026 1.277264,-0.0219 1.106651,0.007 1.191136,0.0122 1.354412,0.0841 z"/>
+            <path d="m 82.285738,-148.22719 c -0.06084,0.0242 -0.129272,0.0836 -0.152065,0.13182 -0.02279,0.0483 -0.315835,0.91522 -0.651207,1.92657 -0.568846,1.71543 -0.606254,1.84575 -0.557432,1.94199 0.10593,0.2088 0.375735,0.25343 0.526119,0.087 0.06929,-0.0767 1.286577,-3.70483 1.286812,-3.83537 1.93e-4,-0.10731 -0.133745,-0.25844 -0.247257,-0.279 -0.05189,-0.009 -0.144127,0.003 -0.20497,0.027 z"/>
+            <path d="m 83.708049,-146.72468 c -0.0465,0.0178 -0.10309,0.0651 -0.125767,0.10526 -0.05405,0.0957 -0.05792,5.6997 -0.004,5.79515 0.02046,0.0362 0.09013,0.0867 0.154791,0.11203 0.1376,0.054 0.326863,-3.7e-4 0.389932,-0.11203 0.04105,-0.0727 0.05383,-5.67032 0.01318,-5.77069 -0.02597,-0.0641 -0.21154,-0.1681 -0.293294,-0.16432 -0.02766,10e-4 -0.08834,0.0168 -0.134834,0.0346 z"/>
+            <path d="m 76.066528,-161.76814 c 0.23235,0.032 2.97838,0.98556 3.21252,1.11557 0.22121,0.12284 0.49559,0.41872 0.62075,0.66939 0.0749,0.14992 0.11867,0.33041 0.16259,0.66964 l 0.0601,0.46441 0.87432,-0.003 0.87432,-0.003 0.26084,0.11708 c 0.82464,0.37013 1.16612,1.30224 0.76427,2.08618 -0.10817,0.211 -0.38367,0.49785 -0.61879,0.64426 l -0.0967,0.0602 c 0.27602,0.11138 0.61967,0.16904 0.78491,0.37121 0.15093,0.18467 0.27373,0.43651 0.30166,0.71665 0.0234,0.23431 -0.13299,0.56114 -0.2323,0.76224 -0.11186,0.22649 -0.9151,0.55304 -1.08574,0.6401 -0.0741,0.0378 -0.0722,0.0117 0.061,0.14555 0.31692,0.31841 0.43749,0.64599 0.41524,1.12811 -0.0135,0.29204 -0.0333,0.37308 -0.14287,0.58395 -0.14527,0.27959 -0.41235,0.55097 -0.66943,0.68019 l -0.29709,0.0621 0.16292,0.2835 c 0.29525,0.51379 0.2993,0.84195 0.0434,1.37635 -0.11495,0.23999 -0.30073,0.51076 -0.54087,0.6346 -0.41665,0.21487 -0.32675,0.40191 -3.02862,0.38284 -2.57887,-0.0182 -2.97971,-0.0389 -3.99538,-0.20631 -0.83101,-0.13697 -1.29505,-0.27219 -2.1864,-0.63711 -0.15761,-0.0645 -0.30262,-0.0953 -0.45147,-0.0959 -1.10297,-0.26994 -0.61079,-0.9896 0.63554,-0.49422 0.13288,0.0528 0.38962,0.15447 0.57053,0.2259 0.69256,0.27344 1.84457,0.48316 3.07645,0.56007 0.58469,0.0365 1.33506,0.0495 1.33506,0.0232 0,-0.008 -0.0566,-0.12744 -0.12577,-0.26583 -0.11717,-0.23441 -0.12577,-0.27806 -0.12577,-0.63856 0,-0.37198 0.005,-0.39749 0.1425,-0.65999 0.0784,-0.15018 0.19541,-0.32105 0.26008,-0.37972 l 0.11759,-0.10667 -0.24907,-0.21625 c -0.54361,-0.47197 -0.68972,-1.17236 -0.37548,-1.79995 0.0626,-0.12491 0.17318,-0.2912 0.24587,-0.36953 l 0.13216,-0.14243 -0.22523,-0.2134 c -0.6159,-0.58358 -0.64714,-1.45209 -0.0762,-2.11857 0.1232,-0.14381 0.1304,-0.16379 0.0705,-0.19555 -0.14019,-0.0743 -0.33101,-0.25832 -0.44972,-0.43361 -0.0679,-0.10028 -0.13018,-0.18232 -0.13836,-0.18232 -0.008,0 -0.0871,0.13612 -0.1753,0.3025 -0.42093,0.79372 -1.28517,1.75081 -1.58097,1.75081 -0.16947,0 -0.32592,-0.14512 -0.32592,-0.30233 0,-0.11265 0.0405,-0.1664 0.32811,-0.43558 0.36258,-0.33933 0.61707,-0.64694 0.85627,-1.03501 0.3321,-0.53879 0.61196,-1.22465 0.76524,-1.87538 0.0926,-0.3933 0.18795,-0.53166 0.36623,-0.53166 0.14401,0 1.03888,0.33089 1.12738,0.41687 0.0463,0.045 0.12525,0.23291 0.18606,0.44291 0.33746,1.1653 0.90372,2.13943 1.35709,2.33456 0.1736,0.0747 0.41233,0.089 0.5258,0.0315 0.1037,-0.0526 0.15242,-0.15302 0.19459,-0.40117 0.0533,-0.31386 -0.3483,-3.70391 -0.46438,-3.91949 -0.16917,-0.3142 -0.29591,-0.37794 -1.80219,-0.90627 -0.76621,-0.26876 -1.46543,-0.49932 -1.55383,-0.51238 -0.24903,-0.0368 -0.56922,0.0673 -0.77446,0.25174 -0.0939,0.0844 -1.01903,1.0362 -2.05581,2.11511 l -1.88505,1.96165 -0.17695,0.0109 c -0.19998,0.0123 -3.719097,-0.24006 -3.810497,-0.27329 -0.0701,-0.0255 -0.17238,-0.20108 -0.17238,-0.29597 0,-0.0923 0.10678,-0.22843 0.20771,-0.26479 0.0493,-0.0178 0.76886,0.0205 1.74716,0.0929 0.91485,0.0677 1.717627,0.12356 1.783967,0.12417 0.13429,0.001 -0.0491,0.18277 2.59578,-2.56907 0.86854,-0.90364 1.42772,-1.45589 1.54701,-1.52781 0.32354,-0.19509 0.73757,-0.27952 1.11555,-0.22749 z"/>
+            <path d="m 80.636668,-158.24877 c -0.19366,2.3e-4 -0.37125,0.0127 -0.39464,0.0275 -0.0344,0.0218 0.0593,1.00145 0.17592,1.83823 0.001,0.008 0.277,0.006 0.61305,-0.005 0.81116,-0.0267 1.03953,-0.11674 1.25732,-0.49589 0.2247,-0.39119 0.16459,-0.79889 -0.16366,-1.10992 -0.2411,-0.22844 -0.45754,-0.29805 -0.84949,-0.2732 -0.15751,0.01 -0.44484,0.0184 -0.6385,0.0187 z"/>
+            <path d="m 76.772758,-157.59193 c -0.20234,0.37851 -0.1052,0.83093 0.23821,1.10946 0.1485,0.12044 0.48163,0.24911 0.52893,0.20429 0.011,-0.0104 -0.0396,-0.15706 -0.11241,-0.32589 -0.13551,-0.31414 -0.29766,-0.76986 -0.37421,-1.05173 -0.0576,-0.21218 -0.14339,-0.19265 -0.28052,0.0639 z"/>
+            <path d="m 80.410318,-155.695 c -0.016,0.009 -0.0292,0.0528 -0.0294,0.097 -7e-4,0.13388 -0.17468,0.44484 -0.3279,0.58584 -0.49591,0.45633 -1.47433,0.23298 -1.97437,-0.45071 -0.0957,-0.13082 -0.12412,-0.14643 -0.26632,-0.1461 -0.20656,4.6e-4 -0.521,0.14057 -0.65558,0.29212 -0.16682,0.18785 -0.22823,0.32836 -0.2486,0.56885 -0.0243,0.28628 0.0861,0.54435 0.32001,0.74869 0.23163,0.2023 0.46448,0.26148 0.93901,0.23866 0.2068,-0.01 0.9977,-0.0418 1.75756,-0.0707 1.26065,-0.048 1.39688,-0.0594 1.55645,-0.1305 0.19828,-0.0883 0.8161,-0.26903 0.8966,-0.45159 0.0334,-0.0758 0.17866,-0.23019 0.17254,-0.3916 -0.006,-0.14772 -0.15991,-0.30303 -0.18767,-0.37316 -0.11205,-0.28306 -0.75754,-0.47031 -1.06546,-0.54447 -0.1182,-0.0285 -0.82756,-0.006 -0.88687,0.0277 z"/>
+            <path d="m 77.741498,-153.09196 c -0.13643,0.0384 -0.25038,0.10759 -0.38108,0.23143 -0.50995,0.48319 -0.33693,1.259 0.34109,1.52943 0.12748,0.0508 0.32607,0.0549 1.63495,0.0334 0.81942,-0.0135 1.58164,-0.0416 1.69383,-0.0625 0.26825,-0.0501 0.50141,-0.22101 0.64466,-0.47266 0.26615,-0.46753 0.0551,-1.05761 -0.46166,-1.29079 -0.14711,-0.0664 -0.23223,-0.0687 -1.71598,-0.0465 -1.21491,0.0182 -1.60436,0.0355 -1.75581,0.0781 z"/>
+            <path d="m 77.904658,-150.56444 c -0.19648,0.0865 -0.44491,0.32862 -0.52618,0.51291 -0.0778,0.17643 -0.0679,0.55252 0.0192,0.73045 0.0956,0.19524 0.2936,0.37942 0.50694,0.47158 0.16524,0.0714 0.23445,0.0747 1.35441,0.0653 0.72079,-0.006 1.23766,-0.0258 1.32768,-0.0507 0.1883,-0.0521 0.4701,-0.28665 0.57864,-0.48154 0.11092,-0.19916 0.11784,-0.60457 0.0135,-0.79302 -0.13602,-0.24576 -0.37113,-0.43497 -0.64258,-0.51715 -0.0533,-0.0161 -0.62812,-0.026 -1.27727,-0.0219 -1.10665,0.007 -1.19113,0.0122 -1.35441,0.0841 z"/>
+        </svg>
+    </button>
+    <div x-show="showTypeMenu"
+        x-anchor.bottom-end="$refs.typeButton"
+        x-transition.duration.350ms
+        x-data="{ outcome: '' }"
+        class="grid grid-cols-2 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-64 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+        <div>
+          <span>Attacker:</span>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="CenozoicAtk"    @click="atkClick = 'Cenozoic', outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicAtk">Cenozoic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="DecrepitAtk"    @click="atkClick = 'Decrepit', outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitAtk">Decrepit</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AngelicAtk"     @click="atkClick = 'Angelic', outcome = typeMatchup(atkClick, defClick)"><label for="AngelicAtk">Angelic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="BrutalAtk"      @click="atkClick = 'Brutal', outcome = typeMatchup(atkClick, defClick)"><label for="BrutalAtk">Brutal</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="ArborealAtk"    @click="atkClick = 'Arboreal', outcome = typeMatchup(atkClick, defClick)"><label for="ArborealAtk">Arboreal</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AstralAtk"      @click="atkClick = 'Astral', outcome = typeMatchup(atkClick, defClick)"><label for="AstralAtk">Astral</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="TelekineticAtk" @click="atkClick = 'Telekinetic', outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticAtk">Telekinetic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="GlitchAtk"      @click="atkClick = 'Glitch', outcome = typeMatchup(atkClick, defClick)"><label for="GlitchAtk">Glitch</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="MagicAtk"       @click="atkClick = 'Magic', outcome = typeMatchup(atkClick, defClick)"><label for="MagicAtk">Magic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EndothermicAtk" @click="atkClick = 'Endothermic', outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicAtk">Endothermic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AvianAtk"       @click="atkClick = 'Avian', outcome = typeMatchup(atkClick, defClick)"><label for="AvianAtk">Avian</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="MechanicalAtk"  @click="atkClick = 'Mechanical', outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalAtk">Mechanical</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AlgorithmicAtk" @click="atkClick = 'Algorithmic', outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicAtk">Algorithmic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EnergeticAtk"   @click="atkClick = 'Energetic', outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticAtk">Energetic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EntropicAtk"    @click="atkClick = 'Entropic', outcome = typeMatchup(atkClick, defClick)"><label for="EntropicAtk">Entropic</label></div>
+        </div>
+        <div>
+          <span>Defender:</span>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="CenozoicDef" @click="defClick = 'Cenozoic', outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicDef">Cenozoic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="DecrepitDef" @click="defClick = 'Decrepit', outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitDef">Decrepit</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AngelicDef" @click="defClick = 'Angelic', outcome = typeMatchup(atkClick, defClick)"><label for="AngelicDef">Angelic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="BrutalDef" @click="defClick = 'Brutal', outcome = typeMatchup(atkClick, defClick)"><label for="BrutalDef">Brutal</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="ArborealDef" @click="defClick = 'Arboreal', outcome = typeMatchup(atkClick, defClick)"><label for="ArborealDef">Arboreal</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AstralDef" @click="defClick = 'Astral', outcome = typeMatchup(atkClick, defClick)"><label for="AstralDef">Astral</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="TelekineticDef" @click="defClick = 'Telekinetic', outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticDef">Telekinetic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="GlitchDef" @click="defClick = 'Glitch', outcome = typeMatchup(atkClick, defClick)"><label for="GlitchDef">Glitch</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="MagicDef" @click="defClick = 'Magic', outcome = typeMatchup(atkClick, defClick)"><label for="MagicDef">Magic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EndothermicDef" @click="defClick = 'Endothermic', outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicDef">Endothermic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AvianDef" @click="defClick = 'Avian', outcome = typeMatchup(atkClick, defClick)"><label for="AvianDef">Avian</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="MechanicalDef" @click="defClick = 'Mechanical', outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalDef">Mechanical</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AlgorithmicDef" @click="defClick = 'Algorithmic', outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicDef">Algorithmic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EnergeticDef" @click="defClick = 'Energetic', outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticDef">Energetic</label></div>
+          <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EntropicDef" @click="defClick = 'Entropic', outcome = typeMatchup(atkClick, defClick)"><label for="EntropicDef">Entropic</label></div>
+        </div>
+        <div>
+          <span><strong>Attack Die Modifier:</strong></span>
+          <span x-text="outcome" class="place-self-center"></span>
+        </div>
+    </div>
+
+</div>
+      <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
+  width="640" height="480">
+</canvas>
+<video x-cloak id="video"
+  class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
+  x-show="showScanner && !noCamera && videoReady">
+</video>
+<script defer src="/assets/js-wasm/qr_scanner.js"></script>
+
+
     
 
 
     <div x-show="open" 
-        x-anchor.bottom-end="$refs.hamburger" 
+        x-anchor.bottom="$refs.hamburger" 
         x-transition.duration.350ms
         class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
       <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
@@ -595,7 +668,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewallele_sect_explorer = true" x-intersect:leave="inViewallele_sect_explorer = false">
       <a href="/allele_sect_explorer/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Magic == true ||  
@@ -619,7 +692,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewartificer_of_the_salt_chancel = true" x-intersect:leave="inViewartificer_of_the_salt_chancel = false">
       <a href="/artificer_of_the_salt_chancel/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Entropic == true ||  
@@ -643,7 +716,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewavian_keepers_den = true" x-intersect:leave="inViewavian_keepers_den = false">
       <a href="/avian_keepers_den/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -667,7 +740,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewbalanced_inline_processing_colony = true" x-intersect:leave="inViewbalanced_inline_processing_colony = false">
       <a href="/balanced_inline_processing_colony/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Algorithmic == true ||  
@@ -691,7 +764,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewbranwen_mantillusion_practitioner = true" x-intersect:leave="inViewbranwen_mantillusion_practitioner = false">
       <a href="/branwen_mantillusion_practitioner/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Telekinetic == true ||  
@@ -715,7 +788,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewcartesian_sea = true" x-intersect:leave="inViewcartesian_sea = false">
       <a href="/cartesian_sea/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -739,7 +812,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewcloth = true" x-intersect:leave="inViewcloth = false">
       <a href="/cloth/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.item == true || 
              
@@ -763,7 +836,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewenchantress_of_cats = true" x-intersect:leave="inViewenchantress_of_cats = false">
       <a href="/enchantress_of_cats/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.sabotage == true || 
              
@@ -787,7 +860,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewfeathers = true" x-intersect:leave="inViewfeathers = false">
       <a href="/feathers/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.item == true || 
              
@@ -811,7 +884,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewfeeding_the_piffions = true" x-intersect:leave="inViewfeeding_the_piffions = false">
       <a href="/feeding_the_piffions/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -835,7 +908,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewfreezing_of_the_heart = true" x-intersect:leave="inViewfreezing_of_the_heart = false">
       <a href="/freezing_of_the_heart/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -859,7 +932,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewfrost_tipped_arctic_otter = true" x-intersect:leave="inViewfrost_tipped_arctic_otter = false">
       <a href="/frost_tipped_arctic_otter/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Endothermic == true ||  
@@ -883,7 +956,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewgray_wolf_harbinger_of_night = true" x-intersect:leave="inViewgray_wolf_harbinger_of_night = false">
       <a href="/gray_wolf_harbinger_of_night/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Astral == true ||  
@@ -907,7 +980,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewhidden_portal_of_lower_dreadmont_cave = true" x-intersect:leave="inViewhidden_portal_of_lower_dreadmont_cave = false">
       <a href="/hidden_portal_of_lower_dreadmont_cave/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.sabotage == true || 
              
@@ -931,7 +1004,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewhilbert_king_of_avian_frogs = true" x-intersect:leave="inViewhilbert_king_of_avian_frogs = false">
       <a href="/hilbert_king_of_avian_frogs/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Avian == true ||  
@@ -955,7 +1028,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewhoney = true" x-intersect:leave="inViewhoney = false">
       <a href="/honey/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.item == true || 
              
@@ -979,7 +1052,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewincubation_egg = true" x-intersect:leave="inViewincubation_egg = false">
       <a href="/incubation_egg/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.card == true || 
              
@@ -1003,7 +1076,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewknightsoul_of_binding_time = true" x-intersect:leave="inViewknightsoul_of_binding_time = false">
       <a href="/knightsoul_of_binding_time/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Energetic == true ||  
@@ -1027,7 +1100,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewliliel_healing_fairy = true" x-intersect:leave="inViewliliel_healing_fairy = false">
       <a href="/liliel_healing_fairy/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Angelic == true ||  
@@ -1051,7 +1124,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewlocation_of_the_deep_apothecary_shop = true" x-intersect:leave="inViewlocation_of_the_deep_apothecary_shop = false">
       <a href="/location_of_the_deep_apothecary_shop/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.personal_effect == true || 
              
@@ -1075,7 +1148,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewlosetany_steppes = true" x-intersect:leave="inViewlosetany_steppes = false">
       <a href="/losetany_steppes/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -1099,7 +1172,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewmeteor_shower = true" x-intersect:leave="inViewmeteor_shower = false">
       <a href="/meteor_shower/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -1123,7 +1196,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewmihela_cleanser_of_fields = true" x-intersect:leave="inViewmihela_cleanser_of_fields = false">
       <a href="/mihela_cleanser_of_fields/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Brutal == true ||  
@@ -1147,7 +1220,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewmyrthvither_raven = true" x-intersect:leave="inViewmyrthvither_raven = false">
       <a href="/myrthvither_raven/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Decrepit == true ||  
@@ -1171,7 +1244,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewneural_network_synapse_virus = true" x-intersect:leave="inViewneural_network_synapse_virus = false">
       <a href="/neural_network_synapse_virus/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Algorithmic == true ||  
@@ -1195,7 +1268,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewoshliath_and_osileth = true" x-intersect:leave="inViewoshliath_and_osileth = false">
       <a href="/oshliath_and_osileth/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Astral == true ||  
@@ -1219,7 +1292,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewpalace_of_the_allele_sect = true" x-intersect:leave="inViewpalace_of_the_allele_sect = false">
       <a href="/palace_of_the_allele_sect/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -1243,7 +1316,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewparched_traveler = true" x-intersect:leave="inViewparched_traveler = false">
       <a href="/parched_traveler/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Decrepit == true ||  
@@ -1267,7 +1340,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewpassage_among_maples = true" x-intersect:leave="inViewpassage_among_maples = false">
       <a href="/passage_among_maples/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -1291,7 +1364,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewplane_table_joker = true" x-intersect:leave="inViewplane_table_joker = false">
       <a href="/plane_table_joker/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Cenozoic == true ||  
@@ -1315,7 +1388,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewpyrostegia_dragon = true" x-intersect:leave="inViewpyrostegia_dragon = false">
       <a href="/pyrostegia_dragon/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Arboreal == true ||  
@@ -1339,7 +1412,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewrooster_calling_of_light = true" x-intersect:leave="inViewrooster_calling_of_light = false">
       <a href="/rooster_calling_of_light/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Arboreal == true ||  
@@ -1363,7 +1436,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewsboi_threat_plus_plus = true" x-intersect:leave="inViewsboi_threat_plus_plus = false">
       <a href="/sboi_threat_plus_plus/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Energetic == true ||  
@@ -1387,7 +1460,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewshards_desert = true" x-intersect:leave="inViewshards_desert = false">
       <a href="/shards_desert/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.terrain_feature == true || 
              
@@ -1411,7 +1484,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewspectral_lands_decree_and_hearing = true" x-intersect:leave="inViewspectral_lands_decree_and_hearing = false">
       <a href="/spectral_lands_decree_and_hearing/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.sabotage == true || 
              
@@ -1435,7 +1508,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewsprite_of_wilds_spirit = true" x-intersect:leave="inViewsprite_of_wilds_spirit = false">
       <a href="/sprite_of_wilds_spirit/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.species == true || 
              filter.Glitch == true ||  
@@ -1459,7 +1532,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewsticks = true" x-intersect:leave="inViewsticks = false">
       <a href="/sticks/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.item == true || 
              
@@ -1483,7 +1556,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewstring = true" x-intersect:leave="inViewstring = false">
       <a href="/string/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.item == true || 
              
@@ -1507,7 +1580,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewsuspended_animation = true" x-intersect:leave="inViewsuspended_animation = false">
       <a href="/suspended_animation/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.personal_effect == true || 
              
@@ -1531,7 +1604,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewtejas_curious_mech = true" x-intersect:leave="inViewtejas_curious_mech = false">
       <a href="/tejas_curious_mech/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.character == true || 
              filter.Mechanical == true ||  
@@ -1555,7 +1628,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewtimebattle = true" x-intersect:leave="inViewtimebattle = false">
       <a href="/timebattle/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -1579,7 +1652,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewto_catch_a_spirit = true" x-intersect:leave="inViewto_catch_a_spirit = false">
       <a href="/to_catch_a_spirit/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -1603,7 +1676,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewushered_through_sabina_emporium = true" x-intersect:leave="inViewushered_through_sabina_emporium = false">
       <a href="/ushered_through_sabina_emporium/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.trap == true || 
              
@@ -1627,7 +1700,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true" 
       x-intersect="inViewwhat_do_you_see_in_the_breach = true" x-intersect:leave="inViewwhat_do_you_see_in_the_breach = false">
       <a href="/what_do_you_see_in_the_breach/"
-          x-transition
+          x-transition.duration.250ms
           x-show="
             (filter.sabotage == true || 
              
