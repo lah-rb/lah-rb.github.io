@@ -1,0 +1,44 @@
+Variations:
+  - Character
+  - Species
+  - TerrainFeature
+  - Trap
+  - Sabotage
+  - PersonalEffect
+  - Item
+Archetypes:
+  - Cenozoic
+  - Decrepit      
+  - Angelic
+  - Brutal
+  - Arboreal
+  - Astral
+  - Telekinetic
+  - Glitch
+  - Magic
+  - Endothermic
+  - Avian
+  - Mechanical
+  - Algorithmic
+  - Energetic
+  - Entropic
+Motivations:
+  - Spirit
+  - Service
+  - Survival
+  - Possessor
+  - Satisfaction
+  - Sacrifice
+  - Conscience
+  - Passion
+  - Duty
+Habitats:
+  - Mountain
+  - Forest
+  - Plains
+  - Water
+  - Heavens
+  - Volcanic
+  - Underground
+  - DigitalCloud
+  - Nomad
