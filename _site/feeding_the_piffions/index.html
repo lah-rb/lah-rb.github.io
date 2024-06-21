@@ -147,16 +147,9 @@
     <div><div x-data="{ showCardInfo: true, landscape: false }">
   <div class="z-50 grid fixed top-0 right-0 mx-2 my-8 md:m-8">
 
-  <button aria-label="Toggle QR Scanner" class="flex justify-center">
-    <svg xmlns="http://www.w3.org/2000/svg"
-      @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()" viewBox="0 0 128 128" alt="QR Scanner Toggle"
-      :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
-      class="h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna">
-      <path
-        d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
-        transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
-    </svg>
-  </button>
+  
+  
+  
 
   <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
   width="640" height="480">
@@ -165,15 +158,33 @@
   class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
+<button aria-label="Toggle QR Scanner" class="flex justify-center">
+  <svg xmlns="http://www.w3.org/2000/svg"
+    @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
+    viewBox="0 0 128 128" alt="QR Scanner Toggle"
+    class="
+    h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna
+  " 
+    :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
+  >
+    <path
+      d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+      transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+  </svg>
+</button>
 <script defer src="/assets/js-wasm/qr_scanner.js"></script>
 
 
 
   <script src="/assets/js-wasm/typing.js"></script>
-<div x-data="{ showTypeMenu: false, atkClick:'', defClick:'' }" class="relative place-content-center">
-    <button aria-label="Toggle Type Comparison" x-ref="typeButton" class="flex justify-center">
+<div x-data="{ showTypeMenu: false, outcome: '', atkClick:[], defClick:[] }" class="relative place-content-center">
+    <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
-            class="h-16 w-16 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna" :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
+            class="
+    h-12 w-12 fill-slate-200 hover:fill-kip-red active:fill-kip-drk-sienna
+  " 
+    :class="landscape ? '' : 'lg:fill-kip-goldenrod'"
+  
             viewBox="66.941444 -166.9827 33.866614 26.27061"
             xmlns="http://www.w3.org/2000/svg">
             <path d="m 83.715193,-166.88575 c -0.17963,0.0931 -0.174138,-0.001 -0.174138,2.99205 0,1.74609 0.01432,2.86239 0.03722,2.90294 0.02046,0.0362 0.09013,0.0867 0.154791,0.11204 0.137599,0.054 0.326863,-4.7e-4 0.389931,-0.11204 0.04105,-0.0727 0.05383,-5.67031 0.01318,-5.77069 -0.02567,-0.0634 -0.209924,-0.16737 -0.293294,-0.16552 -0.02766,6.9e-4 -0.08512,0.0192 -0.127689,0.0412 z"/>
@@ -195,55 +206,88 @@
         </svg>
     </button>
     <div x-show="showTypeMenu"
-        x-anchor.left-end="$refs.typeButton"
-        x-transition.duration.350ms 
+        x-anchor.bottom-end="$refs.typeButton"
+        x-transition.duration.350ms
         x-data="{ outcome: '' }"
-        class="grid grid-cols-2 gap-2 z-30 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-64 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
-              <div>
-                <span>Attacker:</span>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="CenozoicAtk"    @click="atkClick = 'Cenozoic', outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicAtk">Cenozoic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="DecrepitAtk"    @click="atkClick = 'Decrepit', outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitAtk">Decrepit</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AngelicAtk"     @click="atkClick = 'Angelic', outcome = typeMatchup(atkClick, defClick)"><label for="AngelicAtk">Angelic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="BrutalAtk"      @click="atkClick = 'Brutal', outcome = typeMatchup(atkClick, defClick)"><label for="BrutalAtk">Brutal</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="ArborealAtk"    @click="atkClick = 'Arboreal', outcome = typeMatchup(atkClick, defClick)"><label for="ArborealAtk">Arboreal</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AstralAtk"      @click="atkClick = 'Astral', outcome = typeMatchup(atkClick, defClick)"><label for="AstralAtk">Astral</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="TelekineticAtk" @click="atkClick = 'Telekinetic', outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticAtk">Telekinetic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="GlitchAtk"      @click="atkClick = 'Glitch', outcome = typeMatchup(atkClick, defClick)"><label for="GlitchAtk">Glitch</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="MagicAtk"       @click="atkClick = 'Magic', outcome = typeMatchup(atkClick, defClick)"><label for="MagicAtk">Magic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EndothermicAtk" @click="atkClick = 'Endothermic', outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicAtk">Endothermic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AvianAtk"       @click="atkClick = 'Avian', outcome = typeMatchup(atkClick, defClick)"><label for="AvianAtk">Avian</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="MechanicalAtk"  @click="atkClick = 'Mechanical', outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalAtk">Mechanical</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="AlgorithmicAtk" @click="atkClick = 'Algorithmic', outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicAtk">Algorithmic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EnergeticAtk"   @click="atkClick = 'Energetic', outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticAtk">Energetic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attacker" id="EntropicAtk"    @click="atkClick = 'Entropic', outcome = typeMatchup(atkClick, defClick)"><label for="EntropicAtk">Entropic</label></div>
-              </div>
-              <div>
-                <span>Defender:</span>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="CenozoicDef" @click="defClick = 'Cenozoic', outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicDef">Cenozoic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="DecrepitDef" @click="defClick = 'Decrepit', outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitDef">Decrepit</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AngelicDef" @click="defClick = 'Angelic', outcome = typeMatchup(atkClick, defClick)"><label for="AngelicDef">Angelic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="BrutalDef" @click="defClick = 'Brutal', outcome = typeMatchup(atkClick, defClick)"><label for="BrutalDef">Brutal</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="ArborealDef" @click="defClick = 'Arboreal', outcome = typeMatchup(atkClick, defClick)"><label for="ArborealDef">Arboreal</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AstralDef" @click="defClick = 'Astral', outcome = typeMatchup(atkClick, defClick)"><label for="AstralDef">Astral</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="TelekineticDef" @click="defClick = 'Telekinetic', outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticDef">Telekinetic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="GlitchDef" @click="defClick = 'Glitch', outcome = typeMatchup(atkClick, defClick)"><label for="GlitchDef">Glitch</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="MagicDef" @click="defClick = 'Magic', outcome = typeMatchup(atkClick, defClick)"><label for="MagicDef">Magic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EndothermicDef" @click="defClick = 'Endothermic', outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicDef">Endothermic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AvianDef" @click="defClick = 'Avian', outcome = typeMatchup(atkClick, defClick)"><label for="AvianDef">Avian</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="MechanicalDef" @click="defClick = 'Mechanical', outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalDef">Mechanical</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="AlgorithmicDef" @click="defClick = 'Algorithmic', outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicDef">Algorithmic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EnergeticDef" @click="defClick = 'Energetic', outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticDef">Energetic</label></div>
-                <div><input type="radio" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defender" id="EntropicDef" @click="defClick = 'Entropic', outcome = typeMatchup(atkClick, defClick)"><label for="EntropicDef">Entropic</label></div>
-              </div>
-        
-              <div>
-                <span><strong>Attack Die Modifier:</strong></span>
-                <span x-text="outcome" class="place-self-center"></span>
-              </div>
-        
+        class="
+    grid z-40 grid-cols-2 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-72 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+  ">
+        <div>
+          <span>Attacker:</span>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="CenozoicAtk"    @click="checked = !checked, atkClick.includes('Cenozoic') ? atkClick = atkClick.filter((atk) => atk !== 'Cenozoic') : atkClick.push('Cenozoic'), outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicAtk">Cenozoic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="DecrepitAtk"    @click="checked = !checked, atkClick.includes('Decrepit') ? atkClick = atkClick.filter((atk) => atk !== 'Decrepit') : atkClick.push('Decrepit'), outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitAtk">Decrepit</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AngelicAtk"    @click="checked = !checked, atkClick.includes('Angelic') ? atkClick = atkClick.filter((atk) => atk !== 'Angelic') : atkClick.push('Angelic'), outcome = typeMatchup(atkClick, defClick)"><label for="AngelicAtk">Angelic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="BrutalAtk"    @click="checked = !checked, atkClick.includes('Brutal') ? atkClick = atkClick.filter((atk) => atk !== 'Brutal') : atkClick.push('Brutal'), outcome = typeMatchup(atkClick, defClick)"><label for="BrutalAtk">Brutal</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="ArborealAtk"    @click="checked = !checked, atkClick.includes('Arboreal') ? atkClick = atkClick.filter((atk) => atk !== 'Arboreal') : atkClick.push('Arboreal'), outcome = typeMatchup(atkClick, defClick)"><label for="ArborealAtk">Arboreal</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AstralAtk"    @click="checked = !checked, atkClick.includes('Astral') ? atkClick = atkClick.filter((atk) => atk !== 'Astral') : atkClick.push('Astral'), outcome = typeMatchup(atkClick, defClick)"><label for="AstralAtk">Astral</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="TelekineticAtk"    @click="checked = !checked, atkClick.includes('Telekinetic') ? atkClick = atkClick.filter((atk) => atk !== 'Telekinetic') : atkClick.push('Telekinetic'), outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticAtk">Telekinetic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="GlitchAtk"    @click="checked = !checked, atkClick.includes('Glitch') ? atkClick = atkClick.filter((atk) => atk !== 'Glitch') : atkClick.push('Glitch'), outcome = typeMatchup(atkClick, defClick)"><label for="GlitchAtk">Glitch</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="MagicAtk"    @click="checked = !checked, atkClick.includes('Magic') ? atkClick = atkClick.filter((atk) => atk !== 'Magic') : atkClick.push('Magic'), outcome = typeMatchup(atkClick, defClick)"><label for="MagicAtk">Magic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EndothermicAtk"    @click="checked = !checked, atkClick.includes('Endothermic') ? atkClick = atkClick.filter((atk) => atk !== 'Endothermic') : atkClick.push('Endothermic'), outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicAtk">Endothermic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AvianAtk"    @click="checked = !checked, atkClick.includes('Avian') ? atkClick = atkClick.filter((atk) => atk !== 'Avian') : atkClick.push('Avian'), outcome = typeMatchup(atkClick, defClick)"><label for="AvianAtk">Avian</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="MechanicalAtk"    @click="checked = !checked, atkClick.includes('Mechanical') ? atkClick = atkClick.filter((atk) => atk !== 'Mechanical') : atkClick.push('Mechanical'), outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalAtk">Mechanical</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AlgorithmicAtk"    @click="checked = !checked, atkClick.includes('Algorithmic') ? atkClick = atkClick.filter((atk) => atk !== 'Algorithmic') : atkClick.push('Algorithmic'), outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicAtk">Algorithmic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EnergeticAtk"    @click="checked = !checked, atkClick.includes('Energetic') ? atkClick = atkClick.filter((atk) => atk !== 'Energetic') : atkClick.push('Energetic'), outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticAtk">Energetic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EntropicAtk"    @click="checked = !checked, atkClick.includes('Entropic') ? atkClick = atkClick.filter((atk) => atk !== 'Entropic') : atkClick.push('Entropic'), outcome = typeMatchup(atkClick, defClick)"><label for="EntropicAtk">Entropic</label></div>
+          
+        </div>
+        <div>
+          <span>Defender:</span>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="CenozoicDef"    @click="checked = !checked, defClick.includes('Cenozoic') ? defClick = defClick.filter((def) => def !== 'Cenozoic') : defClick.push('Cenozoic'), outcome = typeMatchup(atkClick, defClick)"><label for="CenozoicDef">Cenozoic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="DecrepitDef"    @click="checked = !checked, defClick.includes('Decrepit') ? defClick = defClick.filter((def) => def !== 'Decrepit') : defClick.push('Decrepit'), outcome = typeMatchup(atkClick, defClick)"><label for="DecrepitDef">Decrepit</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AngelicDef"    @click="checked = !checked, defClick.includes('Angelic') ? defClick = defClick.filter((def) => def !== 'Angelic') : defClick.push('Angelic'), outcome = typeMatchup(atkClick, defClick)"><label for="AngelicDef">Angelic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="BrutalDef"    @click="checked = !checked, defClick.includes('Brutal') ? defClick = defClick.filter((def) => def !== 'Brutal') : defClick.push('Brutal'), outcome = typeMatchup(atkClick, defClick)"><label for="BrutalDef">Brutal</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="ArborealDef"    @click="checked = !checked, defClick.includes('Arboreal') ? defClick = defClick.filter((def) => def !== 'Arboreal') : defClick.push('Arboreal'), outcome = typeMatchup(atkClick, defClick)"><label for="ArborealDef">Arboreal</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AstralDef"    @click="checked = !checked, defClick.includes('Astral') ? defClick = defClick.filter((def) => def !== 'Astral') : defClick.push('Astral'), outcome = typeMatchup(atkClick, defClick)"><label for="AstralDef">Astral</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="TelekineticDef"    @click="checked = !checked, defClick.includes('Telekinetic') ? defClick = defClick.filter((def) => def !== 'Telekinetic') : defClick.push('Telekinetic'), outcome = typeMatchup(atkClick, defClick)"><label for="TelekineticDef">Telekinetic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="GlitchDef"    @click="checked = !checked, defClick.includes('Glitch') ? defClick = defClick.filter((def) => def !== 'Glitch') : defClick.push('Glitch'), outcome = typeMatchup(atkClick, defClick)"><label for="GlitchDef">Glitch</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="MagicDef"    @click="checked = !checked, defClick.includes('Magic') ? defClick = defClick.filter((def) => def !== 'Magic') : defClick.push('Magic'), outcome = typeMatchup(atkClick, defClick)"><label for="MagicDef">Magic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EndothermicDef"    @click="checked = !checked, defClick.includes('Endothermic') ? defClick = defClick.filter((def) => def !== 'Endothermic') : defClick.push('Endothermic'), outcome = typeMatchup(atkClick, defClick)"><label for="EndothermicDef">Endothermic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AvianDef"    @click="checked = !checked, defClick.includes('Avian') ? defClick = defClick.filter((def) => def !== 'Avian') : defClick.push('Avian'), outcome = typeMatchup(atkClick, defClick)"><label for="AvianDef">Avian</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="MechanicalDef"    @click="checked = !checked, defClick.includes('Mechanical') ? defClick = defClick.filter((def) => def !== 'Mechanical') : defClick.push('Mechanical'), outcome = typeMatchup(atkClick, defClick)"><label for="MechanicalDef">Mechanical</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AlgorithmicDef"    @click="checked = !checked, defClick.includes('Algorithmic') ? defClick = defClick.filter((def) => def !== 'Algorithmic') : defClick.push('Algorithmic'), outcome = typeMatchup(atkClick, defClick)"><label for="AlgorithmicDef">Algorithmic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EnergeticDef"    @click="checked = !checked, defClick.includes('Energetic') ? defClick = defClick.filter((def) => def !== 'Energetic') : defClick.push('Energetic'), outcome = typeMatchup(atkClick, defClick)"><label for="EnergeticDef">Energetic</label></div>
+          
+            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EntropicDef"    @click="checked = !checked, defClick.includes('Entropic') ? defClick = defClick.filter((def) => def !== 'Entropic') : defClick.push('Entropic'), outcome = typeMatchup(atkClick, defClick)"><label for="EntropicDef">Entropic</label></div>
+          
+        </div>
+        <div>
+          <span><strong>Attack Die Modifier:</strong></span>
+          <span x-text="outcome" class="place-self-center"></span>
+        </div>
     </div>
 
 </div>
+
 
   <button x-show="showCardInfo" aria-label="Show Background Image" class="flex justify-center">
     <svg xmlns="http://www.w3.org/2000/svg"
@@ -277,6 +321,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
     </svg>
   </button>
+  
   <a href="/" aria-label="Go to home page" class="flex justify-center">
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -288,7 +333,6 @@
   </a>
 
 </div>
-
   <!-- layout for small screens and landscape cards -->
   <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '/assets/images/feeding_the_piffions.webp' )">
     <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
@@ -407,7 +451,7 @@
     <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/feeding_the_piffions.webp" alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so."></div>
     <img class="fixed top-0 h-screen max-w-screen-md" src="/assets/images/feeding_the_piffions.webp" alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so.">
     <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
-      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Feeding the Piffions</p>
+      <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center text-wrap">Feeding the Piffions</p>
       <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Activation-detection Criteria
