@@ -10,6 +10,6 @@ module.exports = {
 	],
 	runtimeCaching: [{
 		urlPattern: /https:\/\/www.kipukas.cards/,
-		handler: 'NetworkFirst'
+		handler: 'StaleWhileRevalidate'
 		}],
 };
