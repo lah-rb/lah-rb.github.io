@@ -76,7 +76,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -103,6 +103,7 @@
                   videoReady: false, 
                   showInstallModal: false,
                   top: true,
+                  clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
@@ -117,50 +118,30 @@
   </svg>
 </div>
 
-    <div x-show="showQRModal" class="fixed inset-0 flex items-center justify-center z-50">
-
-  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-    <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-  </template>
-
-  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-    <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-      <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
-      <p class="mb-4 text-kip-drk-sienna">
-        By allowing camera access to our QR code scanner, you agree to our
-        <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline" @click="showModal = false">privacy policy</a>.
-         Breath easy, we don't collect any data.
-      </p>
-
-      <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-        Accept & Continue
-      </button>
-
-      <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-        Don't Need It
-      </button>
-    </div>
-  </template>
-</div>
-
     <div><template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-3 md:gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
-    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition.duration.100 x-show="top">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.100 x-show="top">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+  <div x-data="{ showHamburger: false, showTools: true }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+    
+    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition x-show="top">
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition x-show="top">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
-
-    <div class="hidden md:block break-after-avoid transition hover:scale-95 active:transform-none">
+    <div class="hidden md:block lg:hidden break-after-avoid transition hover:scale-95 active:transform-none" x-transition x-show="top">
       <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
+      </a>
+    </div>
+    <div class="hidden lg:block break-after-avoid transition hover:scale-95 active:transform-none">
+      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
+    <!-- fills up extra space on pages like about and privacy -->
     
-
-    
-      <div class="flex sm:flex-1 place-content-center place-self-center">
+    <div class="z-30 flex-1 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap" x-show="showTools" x-collapse.horizontal>
+      
+        <div class="flex sm:flex-1 place-content-center place-self-center">
 
   <a href="./search" class=" ml-auto my-auto" aria-label="Take me to the search page.">
     <svg class="h-10 w-10 stroke-2 stroke-kip-drk-sienna fill-transparent" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -177,8 +158,9 @@
 
 </div>
 
-      
-        <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
+
+        
+          <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
     <div x-show="showFilter" 
         x-anchor.bottom-end="$refs.filter"
         x-transition.duration.350ms 
@@ -412,7 +394,7 @@
 
   
   
-        <script>
+          <script>
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the default behavior (which would be to show the install prompt automatically)
@@ -440,7 +422,7 @@
         
 If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
         
-If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistent experience across devices. We will go ahead and hide the install button.`);
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
 
         // Hide the install button
         alpinel._x_dataStack[0].hideInstallButton = true;
@@ -449,13 +431,15 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<div class="place-content-center" x-show="!hideInstallButton">
+<button class="place-content-center" x-show="!hideInstallButton">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
-</div>
+</button>
+
+
 
 <div x-show="showInstallModal" class="fixed inset-0 flex items-center justify-center z-50">
 
@@ -467,24 +451,27 @@ If you have not already installed our pwa, check if your browser (and launcher i
       <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
         <h2 class="text-xl font-semibold mb-4">Install Notice</h2>
         <p class="mb-4 text-kip-drk-sienna">
-          This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+            This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
         </p>
   
-        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold my-1 py-2 px-4 rounded">
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
           Install
         </button>
   
         <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          No Thanks, I'll use the website as is.
+          I'll use the website as is.
         </button>
-        <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
-            
+        
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+
       </div>
     </template>
   </div>
-      
         
-        <script src="/assets/js-wasm/typing.js"></script>
+
+          
+
+          <script src="/assets/js-wasm/typing.js"></script>
 <div x-data="{ showTypeMenu: false, outcome: '', atkClick:[], defClick:[] }" class="relative place-content-center">
     <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
@@ -514,8 +501,8 @@ If you have not already installed our pwa, check if your browser (and launcher i
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
         class="
-          grid z-40 grid-cols-2 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-72 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-        ">
+            grid z-40 grid-cols-2 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-72 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+          ">
         <div>
           <span>Attacker:</span>
           
@@ -591,13 +578,47 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </div>
 
 </div>
-        <canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
+          
+          <!-- Modal for getting camera permission -->
+
+
+<div x-show="showQRModal" class="fixed inset-0 flex items-center justify-center z-50">
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            
+  By allowing camera access to our QR code scanner, you agree to our
+  <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline" @click="showModal = false">privacy policy</a>.
+  Breath easy, we don't collect any data.
+
+        </p>
+  
+        <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Accept & Continue
+        </button>
+  
+        <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Don't Need It
+        </button>
+        
+      </div>
+    </template>
+  </div>
+<!-- Video for scanning QRs -->
+<canvas x-cloak id="canvas" class="-z-10 fixed -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 hidden"
   width="640" height="480">
 </canvas>
 <video x-cloak id="video"
   class="z-30 fixed w-80 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 scale-x-[-1] top-1/2 left-1/2 rounded-lg transition delay-150"
   x-show="showScanner && !noCamera && videoReady">
 </video>
+<!-- Button to toggle scanning code and video -->
 <button aria-label="Toggle QR Scanner" class="">
   <svg xmlns="http://www.w3.org/2000/svg"
     @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
@@ -608,35 +629,40 @@ If you have not already installed our pwa, check if your browser (and launcher i
       transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
   </svg>
 </button>
+<!-- Script for scanning QRs in canvas -->
 <script defer src="/assets/js-wasm/qr_scanner.js"></script>
 
 
-      
-
-
-    <div x-show="open" 
-        x-anchor.bottom="$refs.hamburger" 
-        x-transition.duration.350ms
-        class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-      <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-      <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
-      <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+        
     </div>
-    
-    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
-              @click="open = !open" 
-              :class="{'shadow-lg': ! open}" 
-              x-ref="hamburger"
-              aria-label="extra nav menu">
-          <span class="sr-only">Open main menu</span>
-          <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
-              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': open } "></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
-          </div>
-      </button>
-    </div>
+    <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+        @click="showTools = !showTools" :class="{ '-rotate-90': showTools }"
+        class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform rotate-90 place-self-center">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+    </svg>
+    <div x-show="showHamburger" 
+    x-anchor.bottom="$refs.hamburger" 
+    x-transition.duration.350ms
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+    <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+    <div><a href="/kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+    <div><a href="/about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+</div>
+
+<div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
+    <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
+            @click="showHamburger = !showHamburger" 
+            :class="{'shadow-lg': ! showHamburger}" 
+            x-ref="hamburger"
+            aria-label="extra nav menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
   </div>
 </template>
 
@@ -738,7 +764,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
   class="flex flex-wrap gap-x-5 content-auto place-content-center">
     
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Magic == true ||  
              filter.Spirit == true ||  
@@ -755,21 +781,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewallele_sect_explorer
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/allele_sect_explorer.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/allele_sect_explorer.webp 1x,
         /assets/thumbnails/x2/allele_sect_explorer.webp 2x,
         /assets/thumbnails/x3/allele_sect_explorer.webp 3x,
         /assets/thumbnails/x4/allele_sect_explorer.webp 4x,
         /assets/thumbnails/x5/allele_sect_explorer.webp 5x,
         " alt="A man with a long thin beard and blank eyes stares past your soul."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/allele_sect_explorer.webp 1x,
+        /assets/thumbnails/x4/allele_sect_explorer.webp 2x
+        " alt="A man with a long thin beard and blank eyes stares past your soul."></img>
         <div class="text-center text-wrap">Allele Sect Explorer</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Entropic == true ||  
              filter.Sacrifice == true ||  
@@ -786,21 +817,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewartificer_of_the_salt_chancel
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/artificer_of_the_salt_chancel.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/artificer_of_the_salt_chancel.webp 1x,
         /assets/thumbnails/x2/artificer_of_the_salt_chancel.webp 2x,
         /assets/thumbnails/x3/artificer_of_the_salt_chancel.webp 3x,
         /assets/thumbnails/x4/artificer_of_the_salt_chancel.webp 4x,
         /assets/thumbnails/x5/artificer_of_the_salt_chancel.webp 5x,
         " alt="Four armed sea dog majestically floating above water"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/artificer_of_the_salt_chancel.webp 1x,
+        /assets/thumbnails/x4/artificer_of_the_salt_chancel.webp 2x
+        " alt="Four armed sea dog majestically floating above water"></img>
         <div class="text-center text-wrap">Artificer of the Salt Chancel</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -817,21 +853,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewavian_keepers_den
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/avian_keepers_den.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/avian_keepers_den.webp 1x,
         /assets/thumbnails/x2/avian_keepers_den.webp 2x,
         /assets/thumbnails/x3/avian_keepers_den.webp 3x,
         /assets/thumbnails/x4/avian_keepers_den.webp 4x,
         /assets/thumbnails/x5/avian_keepers_den.webp 5x,
         " alt="A palace floats among the skies where flying rays swirl about"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/avian_keepers_den.webp 1x,
+        /assets/thumbnails/x4/avian_keepers_den.webp 2x
+        " alt="A palace floats among the skies where flying rays swirl about"></img>
         <div class="text-center text-wrap">Avian Keeper's Den</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Algorithmic == true ||  
              filter.service == true ||  
@@ -848,21 +889,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewbalanced_inline_processing_colony
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/balanced_inline_processing_colony.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/balanced_inline_processing_colony.webp 1x,
         /assets/thumbnails/x2/balanced_inline_processing_colony.webp 2x,
         /assets/thumbnails/x3/balanced_inline_processing_colony.webp 3x,
         /assets/thumbnails/x4/balanced_inline_processing_colony.webp 4x,
         /assets/thumbnails/x5/balanced_inline_processing_colony.webp 5x,
         " alt="Colorful brick segments abstractly forming the shape of a computer chip"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/balanced_inline_processing_colony.webp 1x,
+        /assets/thumbnails/x4/balanced_inline_processing_colony.webp 2x
+        " alt="Colorful brick segments abstractly forming the shape of a computer chip"></img>
         <div class="text-center text-wrap">Balanced Inline Processing Colony</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Telekinetic == true ||  
              filter.Service == true ||  
@@ -879,21 +925,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewbranwen_mantillusion_practitioner
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/branwen_mantillusion_practitioner.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/branwen_mantillusion_practitioner.webp 1x,
         /assets/thumbnails/x2/branwen_mantillusion_practitioner.webp 2x,
         /assets/thumbnails/x3/branwen_mantillusion_practitioner.webp 3x,
         /assets/thumbnails/x4/branwen_mantillusion_practitioner.webp 4x,
         /assets/thumbnails/x5/branwen_mantillusion_practitioner.webp 5x,
         " alt="Old man praying manits looking at you unnervingly"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/branwen_mantillusion_practitioner.webp 1x,
+        /assets/thumbnails/x4/branwen_mantillusion_practitioner.webp 2x
+        " alt="Old man praying manits looking at you unnervingly"></img>
         <div class="text-center text-wrap">Branwen: Mantillusion Practitioner</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -910,21 +961,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewcartesian_sea
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/cartesian_sea.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/cartesian_sea.webp 1x,
         /assets/thumbnails/x2/cartesian_sea.webp 2x,
         /assets/thumbnails/x3/cartesian_sea.webp 3x,
         /assets/thumbnails/x4/cartesian_sea.webp 4x,
         /assets/thumbnails/x5/cartesian_sea.webp 5x,
         " alt="This is some pretty fishy math!"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/cartesian_sea.webp 1x,
+        /assets/thumbnails/x4/cartesian_sea.webp 2x
+        " alt="This is some pretty fishy math!"></img>
         <div class="text-center text-wrap">Cartesian Sea</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
@@ -941,21 +997,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewcloth
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/cloth.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/cloth.webp 1x,
         /assets/thumbnails/x2/cloth.webp 2x,
         /assets/thumbnails/x3/cloth.webp 3x,
         /assets/thumbnails/x4/cloth.webp 4x,
         /assets/thumbnails/x5/cloth.webp 5x,
         " alt="Such a soft cloth"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/cloth.webp 1x,
+        /assets/thumbnails/x4/cloth.webp 2x
+        " alt="Such a soft cloth"></img>
         <div class="text-center text-wrap">Cloth</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
@@ -972,21 +1033,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewenchantress_of_cats
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/enchantress_of_cats.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/enchantress_of_cats.webp 1x,
         /assets/thumbnails/x2/enchantress_of_cats.webp 2x,
         /assets/thumbnails/x3/enchantress_of_cats.webp 3x,
         /assets/thumbnails/x4/enchantress_of_cats.webp 4x,
         /assets/thumbnails/x5/enchantress_of_cats.webp 5x,
         " alt=" Creepy cat lady now complete with creepy cats. In a creepy cave. With creepy calligraphy among the corridors. Shiver. "></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/enchantress_of_cats.webp 1x,
+        /assets/thumbnails/x4/enchantress_of_cats.webp 2x
+        " alt=" Creepy cat lady now complete with creepy cats. In a creepy cave. With creepy calligraphy among the corridors. Shiver. "></img>
         <div class="text-center text-wrap">Enchantress of Cats</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
@@ -1003,21 +1069,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewfeathers
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/feathers.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/feathers.webp 1x,
         /assets/thumbnails/x2/feathers.webp 2x,
         /assets/thumbnails/x3/feathers.webp 3x,
         /assets/thumbnails/x4/feathers.webp 4x,
         /assets/thumbnails/x5/feathers.webp 5x,
         " alt="floating bird lift, minus bird"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/feathers.webp 1x,
+        /assets/thumbnails/x4/feathers.webp 2x
+        " alt="floating bird lift, minus bird"></img>
         <div class="text-center text-wrap">Feathers</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -1034,21 +1105,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewfeeding_the_piffions
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/feeding_the_piffions.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/feeding_the_piffions.webp 1x,
         /assets/thumbnails/x2/feeding_the_piffions.webp 2x,
         /assets/thumbnails/x3/feeding_the_piffions.webp 3x,
         /assets/thumbnails/x4/feeding_the_piffions.webp 4x,
         /assets/thumbnails/x5/feeding_the_piffions.webp 5x,
         " alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/feeding_the_piffions.webp 1x,
+        /assets/thumbnails/x4/feeding_the_piffions.webp 2x
+        " alt="Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so."></img>
         <div class="text-center text-wrap">Feeding the Piffions</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -1065,21 +1141,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewfreezing_of_the_heart
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/freezing_of_the_heart.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/freezing_of_the_heart.webp 1x,
         /assets/thumbnails/x2/freezing_of_the_heart.webp 2x,
         /assets/thumbnails/x3/freezing_of_the_heart.webp 3x,
         /assets/thumbnails/x4/freezing_of_the_heart.webp 4x,
         /assets/thumbnails/x5/freezing_of_the_heart.webp 5x,
         " alt="Beautiful lady carving a heart"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/freezing_of_the_heart.webp 1x,
+        /assets/thumbnails/x4/freezing_of_the_heart.webp 2x
+        " alt="Beautiful lady carving a heart"></img>
         <div class="text-center text-wrap">Freezing of the Heart</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Endothermic == true ||  
              filter.Survival == true ||  
@@ -1096,21 +1177,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewfrost_tipped_arctic_otter
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/frost_tipped_arctic_otter.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/frost_tipped_arctic_otter.webp 1x,
         /assets/thumbnails/x2/frost_tipped_arctic_otter.webp 2x,
         /assets/thumbnails/x3/frost_tipped_arctic_otter.webp 3x,
         /assets/thumbnails/x4/frost_tipped_arctic_otter.webp 4x,
         /assets/thumbnails/x5/frost_tipped_arctic_otter.webp 5x,
         " alt="Sweet little face who looks cold"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/frost_tipped_arctic_otter.webp 1x,
+        /assets/thumbnails/x4/frost_tipped_arctic_otter.webp 2x
+        " alt="Sweet little face who looks cold"></img>
         <div class="text-center text-wrap">Frost Tipped Arctic Otter</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Astral == true ||  
              filter.Spirit == true ||  
@@ -1127,21 +1213,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewgray_wolf_harbinger_of_night
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/gray_wolf_harbinger_of_night.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/gray_wolf_harbinger_of_night.webp 1x,
         /assets/thumbnails/x2/gray_wolf_harbinger_of_night.webp 2x,
         /assets/thumbnails/x3/gray_wolf_harbinger_of_night.webp 3x,
         /assets/thumbnails/x4/gray_wolf_harbinger_of_night.webp 4x,
         /assets/thumbnails/x5/gray_wolf_harbinger_of_night.webp 5x,
         " alt=" A charming, cute, soft image styling of a gray wolf howling at the moon while at the edge of a cliff surrounded by forest. "></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/gray_wolf_harbinger_of_night.webp 1x,
+        /assets/thumbnails/x4/gray_wolf_harbinger_of_night.webp 2x
+        " alt=" A charming, cute, soft image styling of a gray wolf howling at the moon while at the edge of a cliff surrounded by forest. "></img>
         <div class="text-center text-wrap">Gray Wolf: Harbinger of Night</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
@@ -1158,21 +1249,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewhidden_portal_of_lower_dreadmont_cave
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/hidden_portal_of_lower_dreadmont_cave.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/hidden_portal_of_lower_dreadmont_cave.webp 1x,
         /assets/thumbnails/x2/hidden_portal_of_lower_dreadmont_cave.webp 2x,
         /assets/thumbnails/x3/hidden_portal_of_lower_dreadmont_cave.webp 3x,
         /assets/thumbnails/x4/hidden_portal_of_lower_dreadmont_cave.webp 4x,
         /assets/thumbnails/x5/hidden_portal_of_lower_dreadmont_cave.webp 5x,
         " alt=" A mystical portal shining from the wall of a cave covered in stalactites and stalagmites. This is a skull of a dragon hinting at the great powers at play. "></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/hidden_portal_of_lower_dreadmont_cave.webp 1x,
+        /assets/thumbnails/x4/hidden_portal_of_lower_dreadmont_cave.webp 2x
+        " alt=" A mystical portal shining from the wall of a cave covered in stalactites and stalagmites. This is a skull of a dragon hinting at the great powers at play. "></img>
         <div class="text-center text-wrap">Hidden Portal of Lower Dreadmont Cave</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Avian == true ||  
              filter.Passion == true ||  
@@ -1189,21 +1285,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewhilbert_king_of_avian_frogs
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/hilbert_king_of_avian_frogs.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/hilbert_king_of_avian_frogs.webp 1x,
         /assets/thumbnails/x2/hilbert_king_of_avian_frogs.webp 2x,
         /assets/thumbnails/x3/hilbert_king_of_avian_frogs.webp 3x,
         /assets/thumbnails/x4/hilbert_king_of_avian_frogs.webp 4x,
         /assets/thumbnails/x5/hilbert_king_of_avian_frogs.webp 5x,
         " alt="Majestic looking frog with wings perched on a branch staring at you intently"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/hilbert_king_of_avian_frogs.webp 1x,
+        /assets/thumbnails/x4/hilbert_king_of_avian_frogs.webp 2x
+        " alt="Majestic looking frog with wings perched on a branch staring at you intently"></img>
         <div class="text-center text-wrap">Hilbert: King of Avian Frogs</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
@@ -1220,21 +1321,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewhoney
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/honey.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/honey.webp 1x,
         /assets/thumbnails/x2/honey.webp 2x,
         /assets/thumbnails/x3/honey.webp 3x,
         /assets/thumbnails/x4/honey.webp 4x,
         /assets/thumbnails/x5/honey.webp 5x,
         " alt="Enticing pot of honey"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/honey.webp 1x,
+        /assets/thumbnails/x4/honey.webp 2x
+        " alt="Enticing pot of honey"></img>
         <div class="text-center text-wrap">Honey</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.card == true || 
              
              
@@ -1251,21 +1357,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewincubation_egg
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/incubation_egg.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/incubation_egg.webp 1x,
         /assets/thumbnails/x2/incubation_egg.webp 2x,
         /assets/thumbnails/x3/incubation_egg.webp 3x,
         /assets/thumbnails/x4/incubation_egg.webp 4x,
         /assets/thumbnails/x5/incubation_egg.webp 5x,
         " alt="andy warhol inspired eggcelent art"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/incubation_egg.webp 1x,
+        /assets/thumbnails/x4/incubation_egg.webp 2x
+        " alt="andy warhol inspired eggcelent art"></img>
         <div class="text-center text-wrap">Incubation Egg</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Energetic == true ||  
              filter.Duty == true ||  
@@ -1282,21 +1393,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewknightsoul_of_binding_time
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/knightsoul_of_binding_time.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/knightsoul_of_binding_time.webp 1x,
         /assets/thumbnails/x2/knightsoul_of_binding_time.webp 2x,
         /assets/thumbnails/x3/knightsoul_of_binding_time.webp 3x,
         /assets/thumbnails/x4/knightsoul_of_binding_time.webp 4x,
         /assets/thumbnails/x5/knightsoul_of_binding_time.webp 5x,
         " alt="watercolor knight standing resolute in front of a triple infinity"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/knightsoul_of_binding_time.webp 1x,
+        /assets/thumbnails/x4/knightsoul_of_binding_time.webp 2x
+        " alt="watercolor knight standing resolute in front of a triple infinity"></img>
         <div class="text-center text-wrap">Knightsoul of Binding Time</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Angelic == true ||  
              filter.Duty == true ||  
@@ -1313,21 +1429,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewliliel_healing_fairy
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/liliel_healing_fairy.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/liliel_healing_fairy.webp 1x,
         /assets/thumbnails/x2/liliel_healing_fairy.webp 2x,
         /assets/thumbnails/x3/liliel_healing_fairy.webp 3x,
         /assets/thumbnails/x4/liliel_healing_fairy.webp 4x,
         /assets/thumbnails/x5/liliel_healing_fairy.webp 5x,
         " alt="blonde light fairy with sword and alluring eyes"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/liliel_healing_fairy.webp 1x,
+        /assets/thumbnails/x4/liliel_healing_fairy.webp 2x
+        " alt="blonde light fairy with sword and alluring eyes"></img>
         <div class="text-center text-wrap">Liliel: Healing Fairy</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.PersonalEffect == true || 
              
              
@@ -1344,21 +1465,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewlocation_of_the_deep_apothecary_shop
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/location_of_the_deep_apothecary_shop.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/location_of_the_deep_apothecary_shop.webp 1x,
         /assets/thumbnails/x2/location_of_the_deep_apothecary_shop.webp 2x,
         /assets/thumbnails/x3/location_of_the_deep_apothecary_shop.webp 3x,
         /assets/thumbnails/x4/location_of_the_deep_apothecary_shop.webp 4x,
         /assets/thumbnails/x5/location_of_the_deep_apothecary_shop.webp 5x,
         " alt="hooded beings move about a store hidden in a wooded setting"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/location_of_the_deep_apothecary_shop.webp 1x,
+        /assets/thumbnails/x4/location_of_the_deep_apothecary_shop.webp 2x
+        " alt="hooded beings move about a store hidden in a wooded setting"></img>
         <div class="text-center text-wrap">Location of the Deep Apothecary Shop</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -1375,21 +1501,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewlosetany_steppes
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/losetany_steppes.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/losetany_steppes.webp 1x,
         /assets/thumbnails/x2/losetany_steppes.webp 2x,
         /assets/thumbnails/x3/losetany_steppes.webp 3x,
         /assets/thumbnails/x4/losetany_steppes.webp 4x,
         /assets/thumbnails/x5/losetany_steppes.webp 5x,
         " alt="A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer girl look upon with amazement while standing upon the ruins of a lost civilization."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/losetany_steppes.webp 1x,
+        /assets/thumbnails/x4/losetany_steppes.webp 2x
+        " alt="A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer girl look upon with amazement while standing upon the ruins of a lost civilization."></img>
         <div class="text-center text-wrap">Losetany Steppes</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -1406,21 +1537,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewmeteor_shower
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/meteor_shower.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/meteor_shower.webp 1x,
         /assets/thumbnails/x2/meteor_shower.webp 2x,
         /assets/thumbnails/x3/meteor_shower.webp 3x,
         /assets/thumbnails/x4/meteor_shower.webp 4x,
         /assets/thumbnails/x5/meteor_shower.webp 5x,
         " alt="beautiful colorful meteors shooting across the sky"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/meteor_shower.webp 1x,
+        /assets/thumbnails/x4/meteor_shower.webp 2x
+        " alt="beautiful colorful meteors shooting across the sky"></img>
         <div class="text-center text-wrap">Meteor Shower</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Brutal == true ||  
              filter.Satisfaction == true ||  
@@ -1437,21 +1573,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewmihela_cleanser_of_fields
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/mihela_cleanser_of_fields.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/mihela_cleanser_of_fields.webp 1x,
         /assets/thumbnails/x2/mihela_cleanser_of_fields.webp 2x,
         /assets/thumbnails/x3/mihela_cleanser_of_fields.webp 3x,
         /assets/thumbnails/x4/mihela_cleanser_of_fields.webp 4x,
         /assets/thumbnails/x5/mihela_cleanser_of_fields.webp 5x,
         " alt="grave yard fairy looking menacing and oddly attractive to some"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/mihela_cleanser_of_fields.webp 1x,
+        /assets/thumbnails/x4/mihela_cleanser_of_fields.webp 2x
+        " alt="grave yard fairy looking menacing and oddly attractive to some"></img>
         <div class="text-center text-wrap">Mihela: Cleanser of Fields</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Decrepit == true ||  
              filter.Satisfaction == true ||  
@@ -1468,21 +1609,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewmyrthvither_raven
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/myrthvither_raven.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/myrthvither_raven.webp 1x,
         /assets/thumbnails/x2/myrthvither_raven.webp 2x,
         /assets/thumbnails/x3/myrthvither_raven.webp 3x,
         /assets/thumbnails/x4/myrthvither_raven.webp 4x,
         /assets/thumbnails/x5/myrthvither_raven.webp 5x,
         " alt=" wings of palm leaves, body of flowers and thorns, nature's flora compose this raven "></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/myrthvither_raven.webp 1x,
+        /assets/thumbnails/x4/myrthvither_raven.webp 2x
+        " alt=" wings of palm leaves, body of flowers and thorns, nature's flora compose this raven "></img>
         <div class="text-center text-wrap">Myrthvither Raven</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Algorithmic == true ||  
              filter.Possessor == true ||  
@@ -1499,21 +1645,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewneural_network_synapse_virus
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/neural_network_synapse_virus.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/neural_network_synapse_virus.webp 1x,
         /assets/thumbnails/x2/neural_network_synapse_virus.webp 2x,
         /assets/thumbnails/x3/neural_network_synapse_virus.webp 3x,
         /assets/thumbnails/x4/neural_network_synapse_virus.webp 4x,
         /assets/thumbnails/x5/neural_network_synapse_virus.webp 5x,
         " alt=" what does a computer think of itself in abstract. This apparently? Wires, blocks, spheres. "></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/neural_network_synapse_virus.webp 1x,
+        /assets/thumbnails/x4/neural_network_synapse_virus.webp 2x
+        " alt=" what does a computer think of itself in abstract. This apparently? Wires, blocks, spheres. "></img>
         <div class="text-center text-wrap">Neural Network Synapse Virus</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Astral == true ||  
              filter.Survival == true ||  
@@ -1530,21 +1681,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewoshliath_and_osileth
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/oshliath_and_osileth.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/oshliath_and_osileth.webp 1x,
         /assets/thumbnails/x2/oshliath_and_osileth.webp 2x,
         /assets/thumbnails/x3/oshliath_and_osileth.webp 3x,
         /assets/thumbnails/x4/oshliath_and_osileth.webp 4x,
         /assets/thumbnails/x5/oshliath_and_osileth.webp 5x,
         " alt="Mother dragon watching over her resting pup"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/oshliath_and_osileth.webp 1x,
+        /assets/thumbnails/x4/oshliath_and_osileth.webp 2x
+        " alt="Mother dragon watching over her resting pup"></img>
         <div class="text-center text-wrap">Oshliath and Osileth</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -1561,21 +1717,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewpalace_of_the_allele_sect
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/palace_of_the_allele_sect.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/palace_of_the_allele_sect.webp 1x,
         /assets/thumbnails/x2/palace_of_the_allele_sect.webp 2x,
         /assets/thumbnails/x3/palace_of_the_allele_sect.webp 3x,
         /assets/thumbnails/x4/palace_of_the_allele_sect.webp 4x,
         /assets/thumbnails/x5/palace_of_the_allele_sect.webp 5x,
         " alt="Explorer gazing upon an almost icicle like palace nestled in a valley with a lake."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/palace_of_the_allele_sect.webp 1x,
+        /assets/thumbnails/x4/palace_of_the_allele_sect.webp 2x
+        " alt="Explorer gazing upon an almost icicle like palace nestled in a valley with a lake."></img>
         <div class="text-center text-wrap">Palace of the Allele Sect</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Decrepit == true ||  
              filter.Conscience == true ||  
@@ -1592,21 +1753,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewparched_traveler
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/parched_traveler.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/parched_traveler.webp 1x,
         /assets/thumbnails/x2/parched_traveler.webp 2x,
         /assets/thumbnails/x3/parched_traveler.webp 3x,
         /assets/thumbnails/x4/parched_traveler.webp 4x,
         /assets/thumbnails/x5/parched_traveler.webp 5x,
         " alt="A man died, but like a chicken kept walking their path even after death."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/parched_traveler.webp 1x,
+        /assets/thumbnails/x4/parched_traveler.webp 2x
+        " alt="A man died, but like a chicken kept walking their path even after death."></img>
         <div class="text-center text-wrap">Parched Traveler</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -1623,21 +1789,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewpassage_among_maples
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/passage_among_maples.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/passage_among_maples.webp 1x,
         /assets/thumbnails/x2/passage_among_maples.webp 2x,
         /assets/thumbnails/x3/passage_among_maples.webp 3x,
         /assets/thumbnails/x4/passage_among_maples.webp 4x,
         /assets/thumbnails/x5/passage_among_maples.webp 5x,
         " alt="A swampy lake scene silhouetted between japanese maples"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/passage_among_maples.webp 1x,
+        /assets/thumbnails/x4/passage_among_maples.webp 2x
+        " alt="A swampy lake scene silhouetted between japanese maples"></img>
         <div class="text-center text-wrap">Passage Among Maples</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Cenozoic == true ||  
              filter.Satisfaction == true ||  
@@ -1654,21 +1825,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewplane_table_joker
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/plane_table_joker.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/plane_table_joker.webp 1x,
         /assets/thumbnails/x2/plane_table_joker.webp 2x,
         /assets/thumbnails/x3/plane_table_joker.webp 3x,
         /assets/thumbnails/x4/plane_table_joker.webp 4x,
         /assets/thumbnails/x5/plane_table_joker.webp 5x,
         " alt="Scary joker sticks his tongue out at your face"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/plane_table_joker.webp 1x,
+        /assets/thumbnails/x4/plane_table_joker.webp 2x
+        " alt="Scary joker sticks his tongue out at your face"></img>
         <div class="text-center text-wrap">Plane Table Joker</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Arboreal == true ||  
              filter.Spirit == true ||  
@@ -1685,21 +1861,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewpyrostegia_dragon
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/pyrostegia_dragon.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/pyrostegia_dragon.webp 1x,
         /assets/thumbnails/x2/pyrostegia_dragon.webp 2x,
         /assets/thumbnails/x3/pyrostegia_dragon.webp 3x,
         /assets/thumbnails/x4/pyrostegia_dragon.webp 4x,
         /assets/thumbnails/x5/pyrostegia_dragon.webp 5x,
         " alt="Pretty garden in the shape of a dragon"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/pyrostegia_dragon.webp 1x,
+        /assets/thumbnails/x4/pyrostegia_dragon.webp 2x
+        " alt="Pretty garden in the shape of a dragon"></img>
         <div class="text-center text-wrap">Pyrostegia Dragon</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Arboreal == true ||  
              filter.Duty == true ||  
@@ -1716,21 +1897,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewrooster_calling_of_light
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/rooster_calling_of_light.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/rooster_calling_of_light.webp 1x,
         /assets/thumbnails/x2/rooster_calling_of_light.webp 2x,
         /assets/thumbnails/x3/rooster_calling_of_light.webp 3x,
         /assets/thumbnails/x4/rooster_calling_of_light.webp 4x,
         /assets/thumbnails/x5/rooster_calling_of_light.webp 5x,
         " alt="Roosters are world renown as noble, honest, and brave. No bull, eat more cow."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/rooster_calling_of_light.webp 1x,
+        /assets/thumbnails/x4/rooster_calling_of_light.webp 2x
+        " alt="Roosters are world renown as noble, honest, and brave. No bull, eat more cow."></img>
         <div class="text-center text-wrap">Rooster: Calling of Light</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Energetic == true ||  
              filter.Possessor == true ||  
@@ -1747,21 +1933,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewsboi_threat_plus_plus
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/sboi_threat_plus_plus.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/sboi_threat_plus_plus.webp 1x,
         /assets/thumbnails/x2/sboi_threat_plus_plus.webp 2x,
         /assets/thumbnails/x3/sboi_threat_plus_plus.webp 3x,
         /assets/thumbnails/x4/sboi_threat_plus_plus.webp 4x,
         /assets/thumbnails/x5/sboi_threat_plus_plus.webp 5x,
         " alt="Awesome destruction!!!"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/sboi_threat_plus_plus.webp 1x,
+        /assets/thumbnails/x4/sboi_threat_plus_plus.webp 2x
+        " alt="Awesome destruction!!!"></img>
         <div class="text-center text-wrap">Sboi: Threat++</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
@@ -1778,21 +1969,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewshards_desert
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/shards_desert.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/shards_desert.webp 1x,
         /assets/thumbnails/x2/shards_desert.webp 2x,
         /assets/thumbnails/x3/shards_desert.webp 3x,
         /assets/thumbnails/x4/shards_desert.webp 4x,
         /assets/thumbnails/x5/shards_desert.webp 5x,
         " alt="Expansive desert with flying mystery creature and floating stones"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/shards_desert.webp 1x,
+        /assets/thumbnails/x4/shards_desert.webp 2x
+        " alt="Expansive desert with flying mystery creature and floating stones"></img>
         <div class="text-center text-wrap">Shard's Desert</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
@@ -1809,21 +2005,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewspectral_lands_decree_and_hearing
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/spectral_lands_decree_and_hearing.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/spectral_lands_decree_and_hearing.webp 1x,
         /assets/thumbnails/x2/spectral_lands_decree_and_hearing.webp 2x,
         /assets/thumbnails/x3/spectral_lands_decree_and_hearing.webp 3x,
         /assets/thumbnails/x4/spectral_lands_decree_and_hearing.webp 4x,
         /assets/thumbnails/x5/spectral_lands_decree_and_hearing.webp 5x,
         " alt="black and white abstract which looks different in different orientations currently it looks as if two figures are present on subjugated to the other"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/spectral_lands_decree_and_hearing.webp 1x,
+        /assets/thumbnails/x4/spectral_lands_decree_and_hearing.webp 2x
+        " alt="black and white abstract which looks different in different orientations currently it looks as if two figures are present on subjugated to the other"></img>
         <div class="text-center text-wrap">Spectral Land's Decree and Hearing</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Glitch == true ||  
              filter.Sacrifice == true ||  
@@ -1840,21 +2041,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewsprite_of_wilds_spirit
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/sprite_of_wilds_spirit.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/sprite_of_wilds_spirit.webp 1x,
         /assets/thumbnails/x2/sprite_of_wilds_spirit.webp 2x,
         /assets/thumbnails/x3/sprite_of_wilds_spirit.webp 3x,
         /assets/thumbnails/x4/sprite_of_wilds_spirit.webp 4x,
         /assets/thumbnails/x5/sprite_of_wilds_spirit.webp 5x,
         " alt="A golden bell, BA addition"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/sprite_of_wilds_spirit.webp 1x,
+        /assets/thumbnails/x4/sprite_of_wilds_spirit.webp 2x
+        " alt="A golden bell, BA addition"></img>
         <div class="text-center text-wrap">Sprite of Wilds' Spirit</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
@@ -1871,21 +2077,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewsticks
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/sticks.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/sticks.webp 1x,
         /assets/thumbnails/x2/sticks.webp 2x,
         /assets/thumbnails/x3/sticks.webp 3x,
         /assets/thumbnails/x4/sticks.webp 4x,
         /assets/thumbnails/x5/sticks.webp 5x,
         " alt="Sticks ordered in a circle, big foot maybe?"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/sticks.webp 1x,
+        /assets/thumbnails/x4/sticks.webp 2x
+        " alt="Sticks ordered in a circle, big foot maybe?"></img>
         <div class="text-center text-wrap">Sticks</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
@@ -1902,21 +2113,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewstring
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/string.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/string.webp 1x,
         /assets/thumbnails/x2/string.webp 2x,
         /assets/thumbnails/x3/string.webp 3x,
         /assets/thumbnails/x4/string.webp 4x,
         /assets/thumbnails/x5/string.webp 5x,
         " alt="thread the needle, needle, needle needle, pop art"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/string.webp 1x,
+        /assets/thumbnails/x4/string.webp 2x
+        " alt="thread the needle, needle, needle needle, pop art"></img>
         <div class="text-center text-wrap">String</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.PersonalEffect == true || 
              
              
@@ -1933,21 +2149,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewsuspended_animation
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/suspended_animation.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/suspended_animation.webp 1x,
         /assets/thumbnails/x2/suspended_animation.webp 2x,
         /assets/thumbnails/x3/suspended_animation.webp 3x,
         /assets/thumbnails/x4/suspended_animation.webp 4x,
         /assets/thumbnails/x5/suspended_animation.webp 5x,
         " alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/suspended_animation.webp 1x,
+        /assets/thumbnails/x4/suspended_animation.webp 2x
+        " alt="Many blue yellow orange bricks surrounding a matrix of colorful droplets"></img>
         <div class="text-center text-wrap">Suspended Animation</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Mechanical == true ||  
              filter.Passion == true ||  
@@ -1964,21 +2185,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewtejas_curious_mech
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/tejas_curious_mech.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/tejas_curious_mech.webp 1x,
         /assets/thumbnails/x2/tejas_curious_mech.webp 2x,
         /assets/thumbnails/x3/tejas_curious_mech.webp 3x,
         /assets/thumbnails/x4/tejas_curious_mech.webp 4x,
         /assets/thumbnails/x5/tejas_curious_mech.webp 5x,
         " alt="Shoot, I hope I didn't break it. Where does this go?"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/tejas_curious_mech.webp 1x,
+        /assets/thumbnails/x4/tejas_curious_mech.webp 2x
+        " alt="Shoot, I hope I didn't break it. Where does this go?"></img>
         <div class="text-center text-wrap">Tejas Curious Mech</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -1995,21 +2221,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewtimebattle
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/timebattle.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/timebattle.webp 1x,
         /assets/thumbnails/x2/timebattle.webp 2x,
         /assets/thumbnails/x3/timebattle.webp 3x,
         /assets/thumbnails/x4/timebattle.webp 4x,
         /assets/thumbnails/x5/timebattle.webp 5x,
         " alt="Horse, dragon, horse, horse, and imp. The battle wages... horse."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/timebattle.webp 1x,
+        /assets/thumbnails/x4/timebattle.webp 2x
+        " alt="Horse, dragon, horse, horse, and imp. The battle wages... horse."></img>
         <div class="text-center text-wrap">Timebattle</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -2026,21 +2257,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewto_catch_a_spirit
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/to_catch_a_spirit.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/to_catch_a_spirit.webp 1x,
         /assets/thumbnails/x2/to_catch_a_spirit.webp 2x,
         /assets/thumbnails/x3/to_catch_a_spirit.webp 3x,
         /assets/thumbnails/x4/to_catch_a_spirit.webp 4x,
         /assets/thumbnails/x5/to_catch_a_spirit.webp 5x,
         " alt="Yikes! Scary thing eating other scary things."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/to_catch_a_spirit.webp 1x,
+        /assets/thumbnails/x4/to_catch_a_spirit.webp 2x
+        " alt="Yikes! Scary thing eating other scary things."></img>
         <div class="text-center text-wrap">To Catch a Spirit</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
@@ -2057,21 +2293,26 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewushered_through_sabina_emporium
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/ushered_through_sabina_emporium.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/ushered_through_sabina_emporium.webp 1x,
         /assets/thumbnails/x2/ushered_through_sabina_emporium.webp 2x,
         /assets/thumbnails/x3/ushered_through_sabina_emporium.webp 3x,
         /assets/thumbnails/x4/ushered_through_sabina_emporium.webp 4x,
         /assets/thumbnails/x5/ushered_through_sabina_emporium.webp 5x,
         " alt="A fantastic bustling emporium with vendors galore. Likely owned by a huntsman as a dragon skeleton hangs high overhead. Then again maybe it is just waiting for the perfect moment to spring to life and get the feast of a lifetime..."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/ushered_through_sabina_emporium.webp 1x,
+        /assets/thumbnails/x4/ushered_through_sabina_emporium.webp 2x
+        " alt="A fantastic bustling emporium with vendors galore. Likely owned by a huntsman as a dragon skeleton hangs high overhead. Then again maybe it is just waiting for the perfect moment to spring to life and get the feast of a lifetime..."></img>
         <div class="text-center text-wrap">Ushered Through Sabina Emporium</div>
       </a>
     </div>
     
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
@@ -2088,15 +2329,20 @@ If you have not already installed our pwa, check if your browser (and launcher i
             filter.all == true) &&
             inViewwhat_do_you_see_in_the_breach
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/what_do_you_see_in_the_breach.webp"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/what_do_you_see_in_the_breach.webp 1x,
         /assets/thumbnails/x2/what_do_you_see_in_the_breach.webp 2x,
         /assets/thumbnails/x3/what_do_you_see_in_the_breach.webp 3x,
         /assets/thumbnails/x4/what_do_you_see_in_the_breach.webp 4x,
         /assets/thumbnails/x5/what_do_you_see_in_the_breach.webp 5x,
+        " alt="I could tell you what I see, but that is just my interpretation of this abstract piece. I don't want my interpretation to color your experience as this seems to be the opposite of what the artist intended."></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/what_do_you_see_in_the_breach.webp 1x,
+        /assets/thumbnails/x4/what_do_you_see_in_the_breach.webp 2x
         " alt="I could tell you what I see, but that is just my interpretation of this abstract piece. I don't want my interpretation to color your experience as this seems to be the opposite of what the artist intended."></img>
         <div class="text-center text-wrap">What Do You See in the Breach</div>
       </a>

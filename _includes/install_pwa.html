@@ -26,7 +26,7 @@
         
 If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
         
-If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Google Chrome) deliver the most consistent experience across devices. We will go ahead and hide the install button.`);
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
 
         // Hide the install button
         alpinel._x_dataStack[0].hideInstallButton = true;
@@ -35,36 +35,25 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<div class="place-content-center" x-show="!hideInstallButton">
+<button class="place-content-center" x-show="!hideInstallButton">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
-</div>
+</button>
 
-<div x-show="showInstallModal" class="fixed inset-0 flex items-center justify-center z-50">
 
-    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-    </template>
-  
-    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 class="text-xl font-semibold mb-4">Install Notice</h2>
-        <p class="mb-4 text-kip-drk-sienna">
-          This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
-        </p>
-  
-        <button id="installButton" @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold my-1 py-2 px-4 rounded">
-          Install
-        </button>
-  
-        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          No Thanks, I'll use the website as is.
-        </button>
-        <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
-            
-      </div>
-    </template>
-  </div>
+{% capture hideButton %}
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="{{ site.data.templates.checkbox }}"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+{% endcapture %}
+{% include modal.html 
+  showCriteria='showInstallModal' 
+  modalTitle='Install Notice' 
+  modalMessage='This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.'
+  acceptButtonText='Install' 
+  acceptClick='showInstallModal = !showInstallModal, handlePWAInstall()'
+  denyButtonText="I'll use the website as is."
+  denyClick='showInstallModal = !showInstallModal'
+  optionalContent=hideButton
+%}

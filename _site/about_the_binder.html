@@ -76,7 +76,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -103,6 +103,7 @@
                   videoReady: false, 
                   showInstallModal: false,
                   top: true,
+                  clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
@@ -117,76 +118,60 @@
   </svg>
 </div>
 
-    <div x-show="showQRModal" class="fixed inset-0 flex items-center justify-center z-50">
-
-  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-    <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
-  </template>
-
-  <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-    <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-      <h2 class="text-xl font-semibold mb-4">Privacy Notice</h2>
-      <p class="mb-4 text-kip-drk-sienna">
-        By allowing camera access to our QR code scanner, you agree to our
-        <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline" @click="showModal = false">privacy policy</a>.
-         Breath easy, we don't collect any data.
-      </p>
-
-      <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-        Accept & Continue
-      </button>
-
-      <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-        Don't Need It
-      </button>
-    </div>
-  </template>
-</div>
-
     <div><template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ open: false }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-3 md:gap-x-6 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
-    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition.duration.100 x-show="top">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition.duration.100 x-show="top">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+  <div x-data="{ showHamburger: false, showTools: true }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+    
+    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition x-show="top">
+      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition x-show="top">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
-
-    <div class="hidden md:block break-after-avoid transition hover:scale-95 active:transform-none">
+    <div class="hidden md:block lg:hidden break-after-avoid transition hover:scale-95 active:transform-none" x-transition x-show="top">
       <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.webp" alt="Kipukas Complete Card Collection"></img>
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
+      </a>
+    </div>
+    <div class="hidden lg:block break-after-avoid transition hover:scale-95 active:transform-none">
+      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
+        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
 
+    <!-- fills up extra space on pages like about and privacy -->
     
       <div class="flex-1"></div>
     
-
-    
-
-
-    <div x-show="open" 
-        x-anchor.bottom="$refs.hamburger" 
-        x-transition.duration.350ms
-        class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-      <div><a href="./" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-      <div><a href="./kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
-      <div><a href="./about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+    <div class="z-30 flex-1 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap" x-show="showTools" x-collapse.horizontal>
+      
     </div>
-    
-    <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
-      <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
-              @click="open = !open" 
-              :class="{'shadow-lg': ! open}" 
-              x-ref="hamburger"
-              aria-label="extra nav menu">
-          <span class="sr-only">Open main menu</span>
-          <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
-              <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': open,' -translate-y-1.5': !open }"></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': open } "></span>
-              <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': open, ' translate-y-1.5': !open}"></span>
-          </div>
-      </button>
-    </div>
+    <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+        @click="showTools = !showTools" :class="{ '-rotate-90': showTools }"
+        class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform rotate-90 place-self-center">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+    </svg>
+    <div x-show="showHamburger" 
+    x-anchor.bottom="$refs.hamburger" 
+    x-transition.duration.350ms
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+    <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+    <div><a href="/kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+    <div><a href="/about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+</div>
+
+<div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
+    <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
+            @click="showHamburger = !showHamburger" 
+            :class="{'shadow-lg': ! showHamburger}" 
+            x-ref="hamburger"
+            aria-label="extra nav menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
   </div>
 </template>
 
