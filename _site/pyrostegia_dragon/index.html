@@ -103,6 +103,7 @@
                   showScanner: false, 
                   videoReady: false, 
                   showInstallModal: false,
+                  showKealModal: false,
                   top: true,
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
@@ -297,15 +298,7 @@
 
 </div>
 
-  <script>
-    function fillClearTrack(track, globalClearSize, localClearSize){
-      for(var i = 0; i < globalClearSize - localClearSize; i++) {
-        track.push(true);
-      }
-    }
-  </script>
-
-  <button @click="clearDamage.push(true)" class="flex justify-center">
+  <button @click="showKealModal = !showKealModal" class="flex justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 24 24" 
       class="
@@ -368,7 +361,6 @@
         <div class="z-20 grid grid-cols-1 bg-transparent/[0.5] text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Pyrostegia Dragon</p>
           
-
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Movement Range:  0
@@ -381,9 +373,142 @@
   </p>
 </div>
 
+
+<div x-show="showKealModal" class="fixed inset-0 flex items-center justify-center z-50">
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Clear Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?
+        </p>
+  
+        <button @click="clearDamage.push(true); showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Clear All Damage
+        </button>
+  
+        <button @click="showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Don't Clear
+        </button>
+        
+      </div>
+    </template>
+  </div>
+
+
+
+
+
+
+
+<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-data="{ pyrostegia_dragon_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), pyrostegia_dragon_clear: $persist([]) }">
+  <p class="text-left">Card Status:</p>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track1"
+        :checked="pyrostegia_dragon_damage[1]" 
+        :disabled="pyrostegia_dragon_damage[0] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_1"  
+        @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[1] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[1] = false)">
+        <label for="pyrostegia_dragon_damage_slot_1" x-anchor.bottom.start="$refs.pyrostegia_dragon_track1"> 1 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track2"
+        :checked="pyrostegia_dragon_damage[2]" 
+        :disabled="pyrostegia_dragon_damage[1] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_2"  
+        @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[2] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[2] = false)">
+        <label for="pyrostegia_dragon_damage_slot_2" x-anchor.bottom.start="$refs.pyrostegia_dragon_track2"> 2 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track3"
+        :checked="pyrostegia_dragon_damage[3]" 
+        :disabled="pyrostegia_dragon_damage[2] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_3"  
+        @click="pyrostegia_dragon_damage[3] = !pyrostegia_dragon_damage[3]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[3] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[3] = false)">
+        <label for="pyrostegia_dragon_damage_slot_3" x-anchor.bottom.start="$refs.pyrostegia_dragon_track3"> 3 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track4"
+        :checked="pyrostegia_dragon_damage[4]" 
+        :disabled="pyrostegia_dragon_damage[3] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_4"  
+        @click="pyrostegia_dragon_damage[4] = !pyrostegia_dragon_damage[4]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[4] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[4] = false)">
+        <label for="pyrostegia_dragon_damage_slot_4" x-anchor.bottom.start="$refs.pyrostegia_dragon_track4"> 4 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track5"
+        :checked="pyrostegia_dragon_damage[5]" 
+        :disabled="pyrostegia_dragon_damage[4] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_5"  
+        @click="pyrostegia_dragon_damage[5] = !pyrostegia_dragon_damage[5]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[5] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[5] = false)">
+        <label for="pyrostegia_dragon_damage_slot_5" x-anchor.bottom.start="$refs.pyrostegia_dragon_track5"> 5 </label>
+    </div>
+  
+  
+  <div class="mx-2 place-self-center">
+    <input 
+    type="checkbox" 
+    x-ref="pyrostegia_dragon_track_wasted"
+    :checked="pyrostegia_dragon_damage['wasted']" 
+    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+    :disabled="pyrostegia_dragon_damage[2] == false" 
+    name="damageTrack" id="pyrostegia_dragon_wasted"  
+    @click="pyrostegia_dragon_damage['wasted'] = !pyrostegia_dragon_damage['wasted']" 
+    x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage['wasted'] = false, fillClearTrack(pyrostegia_dragon_clear, clearDamage.length, pyrostegia_dragon_clear.length))">
+    <label for="pyrostegia_dragon_wasted" x-anchor.bottom.start="$refs.pyrostegia_dragon_track_wasted"> wasted </label>
+  </div>
+</div>
+
+<script>
+    function fillClearTrack(track, globalClearSize, localClearSize){
+      for(var i = 0; i < globalClearSize - localClearSize; i++) {
+        track.push(true);
+      }
+    }
+</script>
+
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Keal Means Tolerance:  2
+    
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
@@ -590,7 +715,6 @@
     <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
       <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center text-wrap">Pyrostegia Dragon</p>
       
-
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     Movement Range:  0
@@ -603,9 +727,142 @@
   </p>
 </div>
 
+
+<div x-show="showKealModal" class="fixed inset-0 flex items-center justify-center z-50">
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Clear Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?
+        </p>
+  
+        <button @click="clearDamage.push(true); showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Clear All Damage
+        </button>
+  
+        <button @click="showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Don't Clear
+        </button>
+        
+      </div>
+    </template>
+  </div>
+
+
+
+
+
+
+
+<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-data="{ pyrostegia_dragon_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), pyrostegia_dragon_clear: $persist([]) }">
+  <p class="text-left">Card Status:</p>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track1"
+        :checked="pyrostegia_dragon_damage[1]" 
+        :disabled="pyrostegia_dragon_damage[0] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_1"  
+        @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[1] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[1] = false)">
+        <label for="pyrostegia_dragon_damage_slot_1" x-anchor.bottom.start="$refs.pyrostegia_dragon_track1"> 1 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track2"
+        :checked="pyrostegia_dragon_damage[2]" 
+        :disabled="pyrostegia_dragon_damage[1] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_2"  
+        @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[2] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[2] = false)">
+        <label for="pyrostegia_dragon_damage_slot_2" x-anchor.bottom.start="$refs.pyrostegia_dragon_track2"> 2 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track3"
+        :checked="pyrostegia_dragon_damage[3]" 
+        :disabled="pyrostegia_dragon_damage[2] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_3"  
+        @click="pyrostegia_dragon_damage[3] = !pyrostegia_dragon_damage[3]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[3] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[3] = false)">
+        <label for="pyrostegia_dragon_damage_slot_3" x-anchor.bottom.start="$refs.pyrostegia_dragon_track3"> 3 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track4"
+        :checked="pyrostegia_dragon_damage[4]" 
+        :disabled="pyrostegia_dragon_damage[3] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_4"  
+        @click="pyrostegia_dragon_damage[4] = !pyrostegia_dragon_damage[4]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[4] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[4] = false)">
+        <label for="pyrostegia_dragon_damage_slot_4" x-anchor.bottom.start="$refs.pyrostegia_dragon_track4"> 4 </label>
+    </div>
+  
+    
+    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
+      <input 
+        type="checkbox" 
+        x-ref="pyrostegia_dragon_track5"
+        :checked="pyrostegia_dragon_damage[5]" 
+        :disabled="pyrostegia_dragon_damage[4] == false" 
+        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+        name="damageTrack" 
+        id="pyrostegia_dragon_damage_slot_5"  
+        @click="pyrostegia_dragon_damage[5] = !pyrostegia_dragon_damage[5]" 
+        x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage[5] = false), $watch('clearDamage', value => pyrostegia_dragon_damage[5] = false)">
+        <label for="pyrostegia_dragon_damage_slot_5" x-anchor.bottom.start="$refs.pyrostegia_dragon_track5"> 5 </label>
+    </div>
+  
+  
+  <div class="mx-2 place-self-center">
+    <input 
+    type="checkbox" 
+    x-ref="pyrostegia_dragon_track_wasted"
+    :checked="pyrostegia_dragon_damage['wasted']" 
+    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+    :disabled="pyrostegia_dragon_damage[2] == false" 
+    name="damageTrack" id="pyrostegia_dragon_wasted"  
+    @click="pyrostegia_dragon_damage['wasted'] = !pyrostegia_dragon_damage['wasted']" 
+    x-init="clearDamage.length == pyrostegia_dragon_clear.length || (pyrostegia_dragon_damage['wasted'] = false, fillClearTrack(pyrostegia_dragon_clear, clearDamage.length, pyrostegia_dragon_clear.length))">
+    <label for="pyrostegia_dragon_wasted" x-anchor.bottom.start="$refs.pyrostegia_dragon_track_wasted"> wasted </label>
+  </div>
+</div>
+
+<script>
+    function fillClearTrack(track, globalClearSize, localClearSize){
+      for(var i = 0; i < globalClearSize - localClearSize; i++) {
+        track.push(true);
+      }
+    }
+</script>
+
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Keal Means Tolerance:  2
+    
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>

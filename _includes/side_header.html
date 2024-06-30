@@ -22,15 +22,7 @@
       classBinder=side-menu-class-binder
   %}
 
-  <script>
-    function fillClearTrack(track, globalClearSize, localClearSize){
-      for(var i = 0; i < globalClearSize - localClearSize; i++) {
-        track.push(true);
-      }
-    }
-  </script>
-
-  <button @click="clearDamage.push(true)" class="flex justify-center">
+  <button @click="showKealModal = !showKealModal" class="flex justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 24 24" 
       class="{{ side-menu-svg-base }}" {{ side-menu-class-binder }}>
