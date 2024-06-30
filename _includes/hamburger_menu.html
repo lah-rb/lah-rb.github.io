@@ -1,0 +1,23 @@
+<div x-show="showHamburger" 
+    x-anchor.bottom="$refs.hamburger" 
+    x-transition.duration.350ms
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+    <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
+    <div><a href="/kipukas_2_player_domination.pdf" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+    <div><a href="/about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+</div>
+
+<div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
+    <button class="hover:bg-amber-100 active:bg-amber-100 text-kip-drk-goldenrod w-12 h-12 relative bg-amber-50 rounded-lg"
+            @click="showHamburger = !showHamburger" 
+            :class="{'shadow-lg': ! showHamburger}" 
+            x-ref="hamburger"
+            aria-label="extra nav menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>

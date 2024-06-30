@@ -1,10 +1,45 @@
 ---
 layout: card
 ---
+
+{% capture cardName %}{{ page.permalink | remove: '/' }}{% endcapture %}
 {% capture mvmt %}Movement Range:  {{ page.movement }}{% endcapture %}
-{% capture tolerance %}Keal Means Tolerance:  {{ page.injury_tolerance }}{% endcapture %}
 {% include card_data_format.html data_title=mvmt %}
-{% include card_data_format.html data_title=tolerance %}
+
+{% capture damageTrack %}{{ cardName | append: '_damage' }}{% endcapture %}
+{% capture clearTrack %}{{ cardName | append: '_clear' }}{% endcapture %}
+
+<div class="grid grid-cols-6 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center" x-data="{ {{ damageTrack }}: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), {{ clearTrack }}: $persist([]) }">
+  <p class="text-left">Keal Means Loss Tracking:</p>
+  {% for i in (1..5) %}
+    {% capture damageSlot %}{{ page.permalink | remove: '/' }}_damage_slot_{{ i }}{% endcapture %}
+    <div class="mx-2 place-self-center" x-show="{{ page.injury_tolerance }} >= {{ i }}">
+      <input 
+        type="checkbox" 
+        :checked="{{ damageTrack }}[{{ i }}]" 
+        :disabled="{{ damageTrack }}[{{ i | minus: 1 }}] == false" 
+        class="{{ site.data.templates.checkbox }}" 
+        name="damageTrack" 
+        id="{{ damageSlot }}"  
+        @click="{{ damageTrack }}[{{ i }}] = !{{ damageTrack }}[{{ i }}]" 
+        x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}[{{ i }}] = false), $watch('clearDamage', value => {{ damageTrack }}[{{ i }}] = false)">
+        <label for="{{ damageSlot }}"> {{ i }} </label>
+    </div>
+  {% endfor %}
+  {% capture wasted %}{{ page.permalink | remove: '/' }}_wasted{% endcapture %}
+  <div class="mx-2 place-self-center">
+    <input 
+    type="checkbox" 
+    :checked="{{ damageTrack }}['wasted']" 
+    class="{{ site.data.templates.checkbox }}" 
+    :disabled="{{ damageTrack }}[{{ page.injury_tolerance }}] == false" 
+    name="damageTrack" id="{{ wasted }}"  
+    @click="{{ damageTrack }}['wasted'] = !{{ damageTrack }}['wasted']" 
+    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }}, clearDamage.length, {{ clearTrack }}.length))">
+    <label for="{{ wasted }}"> wasted </label>
+  </div>
+</div>
+
 {% include card_data_format.html data_title='archetypal gene' play_data=page.genetic_disposition %}
 {% include card_data_format.html data_title='game effects' play_data=page.play_style %}
 

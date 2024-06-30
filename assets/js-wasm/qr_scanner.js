@@ -74,16 +74,13 @@
       const resultString = readBarcodeFromCanvas(canvas, "QRCode", false).text;
       if (resultString) {
         const url = resultString;
-        if (url.startsWith('kpks.us/')) {
+        if (url.startsWith('kpks.us/') || url.startsWith('https://www.kpks.us/')) {
           QRFound = true;
+          const pattern = /kpks.us\/|https:\/\/www.kpks.us\//
           stopScanning();
-          window.location.href = url.replace('kpks.us/', 'https://www.kpks.us/');
-        } else if (url.startsWith('https://www.kpks.us/')){
-          QRFound = true;
-          stopScanning();
-          window.location.href = url
+          window.location.href = url.replace(pattern, 'https://www.kipukas.cards/');
         }else {
-          console.log('Invalid URL detected in QR code');
+          alert('Invalid URL detected in QR code');
         }
       }
     }

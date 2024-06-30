@@ -20,7 +20,7 @@ search: search_bar_link.html
   class="flex flex-wrap gap-x-5 content-auto place-content-center">
     {% assign posts = site.posts | sort:"title" %}
     {% for card in posts %}
-      <div class="w-40 h-64 my-2.5" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
@@ -37,15 +37,20 @@ search: search_bar_link.html
             filter.all == true) &&
             inView{{ card.permalink | remove: '/' }}
           "
-        class="grid grid-cols-1 w-40 h-64 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak height="160" width="160" 
-        src="/assets/thumbnails/x1/{{card.img_name}}"
+        <img x-cloak width="160" height="160" class="md:hidden"
         srcset="
+        /assets/thumbnails/x1/{{card.img_name}} 1x,
         /assets/thumbnails/x2/{{card.img_name}} 2x,
         /assets/thumbnails/x3/{{card.img_name}} 3x,
         /assets/thumbnails/x4/{{card.img_name}} 4x,
         /assets/thumbnails/x5/{{card.img_name}} 5x,
+        " alt="{{card.img_alt}}"></img>
+        <img x-cloak width="320" height="320" class="hidden md:block"
+        srcset="
+        /assets/thumbnails/x2/{{card.img_name}} 1x,
+        /assets/thumbnails/x4/{{card.img_name}} 2x
         " alt="{{card.img_alt}}"></img>
         <div class="text-center text-wrap">{{card.title}}</div>
       </a>
