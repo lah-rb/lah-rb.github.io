@@ -1339,6 +1339,10 @@ select {
   visibility: hidden;
 }
 
+.static {
+  position: static;
+}
+
 .fixed {
   position: fixed;
 }
@@ -1373,6 +1377,10 @@ select {
 
 .top-1\/2 {
   top: 50%;
+}
+
+.left-0 {
+  left: 0px;
 }
 
 .-z-10 {
@@ -1867,6 +1875,10 @@ select {
   justify-self: center;
 }
 
+.overscroll-auto {
+  overscroll-behavior: auto;
+}
+
 .scroll-smooth {
   scroll-behavior: smooth;
 }
@@ -1977,6 +1989,10 @@ select {
   fill: transparent;
 }
 
+.\!fill-kip-goldenrod {
+  fill: #b87a19 !important;
+}
+
 .stroke-kip-drk-goldenrod {
   stroke: #7A5015;
 }
@@ -1999,6 +2015,10 @@ select {
 
 .stroke-slate-500\/50 {
   stroke: rgb(100 116 139 / 0.5);
+}
+
+.\!stroke-kip-goldenrod {
+  stroke: #b87a19 !important;
 }
 
 .stroke-1 {
@@ -2084,16 +2104,16 @@ select {
   padding-bottom: 0.5rem;
 }
 
+.pb-4 {
+  padding-bottom: 1rem;
+}
+
 .pl-4 {
   padding-left: 1rem;
 }
 
 .pt-4 {
   padding-top: 1rem;
-}
-
-.pb-4 {
-  padding-bottom: 1rem;
 }
 
 .text-left {

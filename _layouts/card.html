@@ -3,9 +3,18 @@ layout: default
 search: search_bar_link.html
 ---
 <div x-data="{ showCardInfo: true, landscape: {% if page.landscape == true %}true{% else %}false{% endif %} }">
-  {% include side_header.html %}
+  {% include side_header.html
+    qr_scanner=true
+    type_matchup=true
+    damage_tracker=true
+    showCardInfo=true
+    lastPage=true
+    goHome=true
+    base_fill='fill-slate-200'
+    base_stroke='stroke-slate-200'
+  %}
   <!-- layout for small screens and landscape cards -->
-  <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" style="background-image: url( '{{ '/assets/images/' | append: page.img_name }}' )">
+  <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" :style='`background-image: url( "{{ "/assets/images/" | append: page.img_name }}" )`'>
     <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
         <div class="z-20 grid grid-cols-1 bg-transparent/[0.5] text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
@@ -17,7 +26,7 @@ search: search_bar_link.html
       </div>
     </div>
   </div>
-</div>
+
 
 <!-- layouts for large screens -->
 {% unless page.landscape %}
@@ -34,3 +43,4 @@ search: search_bar_link.html
   </div>
 </template>
 {% endunless %}
+</div>

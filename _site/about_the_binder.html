@@ -119,8 +119,7 @@
   </svg>
 </div>
 
-    <div><template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-  <div x-data="{ showHamburger: false, showTools: true }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
+    <div>  <div x-data="{ showHamburger: false, showTools: true }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
     
     <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition x-show="top">
       <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition x-show="top">
@@ -137,20 +136,20 @@
         <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
       </a>
     </div>
+  
+  
+    <div class="flex-1"></div>
+  
 
-    <!-- fills up extra space on pages like about and privacy -->
+  <div class="z-30 flex-1 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap" x-show="showTools" x-collapse.horizontal>
     
-      <div class="flex-1"></div>
-    
-    <div class="z-30 flex-1 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap" x-show="showTools" x-collapse.horizontal>
-      
-    </div>
-    <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
-        @click="showTools = !showTools" :class="{ '-rotate-90': showTools }"
-        class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform rotate-90 place-self-center">
-        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-    </svg>
-    <div x-show="showHamburger" 
+  </div>
+  <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+      @click="showTools = !showTools" :class="{ '-rotate-90': showTools }"
+      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform rotate-90 place-self-center">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+  </svg>
+  <div x-show="showHamburger" 
     x-anchor.bottom="$refs.hamburger" 
     x-transition.duration.350ms
     class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
@@ -174,8 +173,6 @@
     </button>
   </div>
   </div>
-</template>
-
 
 <template x-if="true"> <!-- This fixes the cls issue completely -->
 <div class="flex place-content-center w-screen h-fit">
