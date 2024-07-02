@@ -2,7 +2,10 @@
 <div x-data="{ showTypeMenu: false, outcome: '', atkClick:[], defClick:[] }" class="relative place-content-center">
     <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
-            class="{{ include.buttonClass }}" {{ include.classBinder }}
+            {% unless page.landscape %}
+              :class="'lg:fill-kip-goldenrod'"
+            {% endunless %}
+            class="{{ include.base_fill }}{{ include.svgClass }}"
             viewBox="66.941444 -166.9827 33.866614 26.27061"
             xmlns="http://www.w3.org/2000/svg">
             <path d="m 83.715193,-166.88575 c -0.17963,0.0931 -0.174138,-0.001 -0.174138,2.99205 0,1.74609 0.01432,2.86239 0.03722,2.90294 0.02046,0.0362 0.09013,0.0867 0.154791,0.11204 0.137599,0.054 0.326863,-4.7e-4 0.389931,-0.11204 0.04105,-0.0727 0.05383,-5.67031 0.01318,-5.77069 -0.02567,-0.0634 -0.209924,-0.16737 -0.293294,-0.16552 -0.02766,6.9e-4 -0.08512,0.0192 -0.127689,0.0412 z"/>
@@ -23,7 +26,7 @@
             <path d="m 77.904658,-150.56444 c -0.19648,0.0865 -0.44491,0.32862 -0.52618,0.51291 -0.0778,0.17643 -0.0679,0.55252 0.0192,0.73045 0.0956,0.19524 0.2936,0.37942 0.50694,0.47158 0.16524,0.0714 0.23445,0.0747 1.35441,0.0653 0.72079,-0.006 1.23766,-0.0258 1.32768,-0.0507 0.1883,-0.0521 0.4701,-0.28665 0.57864,-0.48154 0.11092,-0.19916 0.11784,-0.60457 0.0135,-0.79302 -0.13602,-0.24576 -0.37113,-0.43497 -0.64258,-0.51715 -0.0533,-0.0161 -0.62812,-0.026 -1.27727,-0.0219 -1.10665,0.007 -1.19113,0.0122 -1.35441,0.0841 z"/>
         </svg>
     </button>
-    <div x-show="showTypeMenu"
+    <div x-show="showTypeMenu" x-cloak
         x-anchor.bottom-end="$refs.typeButton"
         x-transition.duration.350ms
         x-data="{ outcome: '' }"

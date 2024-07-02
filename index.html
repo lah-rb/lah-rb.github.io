@@ -8,7 +8,15 @@ art you came to the right place."
 bg-terra: "bg-hero-pattern "
 search: search_bar_link.html
 ---
-{% include header.html %}
+
+{% include header.html 
+  qr_scanner=true 
+  type_matchup=true
+  lastPage=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+%}
+
 <template x-if="true">
   <div x-data="{
   {% assign posts = site.posts | sort:'title' %}

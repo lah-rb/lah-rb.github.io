@@ -1,0 +1,6 @@
+qr-scanner: >-
+  {% include qr_scanner.html 
+    classBinder=side-menu-class-binder 
+    buttonClass="flex justify-center" 
+    svgClass=side-menu-svg-base
+  %}

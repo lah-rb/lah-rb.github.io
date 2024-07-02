@@ -1,20 +1,9 @@
-{% include modal.html 
-    showCriteria='showKealModal' 
-    modalTitle='Clear Notice' 
-    modalMessage='You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?'
-    acceptButtonText='Clear All Damage' 
-    acceptClick='clearDamage.push(true); showKealModal = !showKealModal'
-    denyButtonText="Don't Clear"
-    denyClick='showKealModal = !showKealModal'
-%}
-
-
 {% capture cardName %}{{ page.permalink | remove: '/' }}{% endcapture %}
 {% capture damageTrack %}{{ cardName | append: '_damage' }}{% endcapture %}
 {% capture clearTrack %}{{ cardName | append: '_clear' }}{% endcapture %}
 {% capture trackRef %}{{ cardName | append: '_track' }}{% endcapture %}
 
-<div class="grid grid-cols-{{ page.injury_tolerance | plus: 2 }} z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-data="{ {{ damageTrack }}: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), {{ clearTrack }}: $persist([]) }">
+<div class="grid grid-cols-{{ page.injury_tolerance | plus: 2 }} z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ {{ damageTrack }}: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), {{ clearTrack }}: $persist([]) }">
   <p class="text-left">Card Status:</p>
   {% for i in (1..5) %}
     {% capture damageSlot %}{{ page.permalink | remove: '/' }}_damage_slot_{{ i }}{% endcapture %}
