@@ -27,7 +27,7 @@
         </svg>
     </button>
     <div x-show="showTypeMenu" x-cloak
-        x-anchor.bottom-end="$refs.typeButton"
+        x-anchor.right-end.offset.10="$refs.typeButton"
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
         class="{{ include.menuClass }}">

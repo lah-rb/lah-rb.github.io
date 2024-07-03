@@ -31,7 +31,7 @@
     :disabled="{{ damageTrack }}[{{ page.injury_tolerance }}] == false" 
     name="damageTrack" id="{{ wasted }}"  
     @click="{{ damageTrack }}['wasted'] = !{{ damageTrack }}['wasted']" 
-    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }}, clearDamage.length, {{ clearTrack }}.length))">
+    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }}, clearDamage.length, {{ clearTrack }}.length)), $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)">
     <label for="{{ wasted }}" x-anchor.bottom.start="$refs.{{ trackRef | append: '_wasted' }}"> wasted </label>
   </div>
 </div>

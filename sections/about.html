@@ -7,10 +7,19 @@ is the Kipukas digital binder, a place that will forever hold all the important
 play information for our cards."
 bg-terra: "bg-hero-pattern "
 ---
-{% include header.html %}
+{% include side_header.html 
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-emerald-50/80'
+%}
 <template x-if="true"> <!-- This fixes the cls issue completely -->
 <div class="flex place-content-center w-screen h-fit">
-  <div class="z-10 grid grid-cols-1  bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+  <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
 
     <p class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">About the Binder</p>
 
