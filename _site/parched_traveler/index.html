@@ -104,6 +104,7 @@
                   videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
+                  searchQuery: '',
                   top: true,
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
@@ -113,8 +114,8 @@
                 }" 
         class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
-    <div id="spinner" x-show="showScanner && !videoReady" class="z-40 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-  <svg class="animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
@@ -122,34 +123,44 @@
 
     <div><div x-data="{ showCardInfo: true, landscape: false }">
   <!-- includes available
+hamburger
 qr_scanner
 type_matchup
 damage_tracker
 showCardInfo
 lastPage
+logo
 goHome
+hideTools
+base_fill
+base_stroke
+background_color
+  
 -->
 
-<div class="z-40 grid fixed top-0 right-0 mx-2 my-8 md:m-8">
 
+
+<div x-cloak x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true) }" class="z-40  rounded-lg grid justify-items-center fixed top-0 right-0 w-15 pt-2 mx-2 my-6 md:m-8">
   
 
   
 
   
-
-  
   
 
-
   
-    <!-- Modal for getting camera permission -->
+
+  <div  class="grid grid-cols-1">
+    
+
+    
+      <!-- Modal for getting camera permission -->
 
 
-<div x-show="showQRModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-40" x-cloak>
+<div x-show="showQRModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
 
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="z-40 absolute inset-0 bg-slate-300 opacity-75"></div>
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
     </template>
   
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
@@ -193,7 +204,7 @@ goHome
     
     class="
     fill-slate-200
-  h-12 w-12 hover:fill-kip-red active:fill-kip-drk-sienna">
+  h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna">
     <path
       d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
       transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
@@ -203,10 +214,12 @@ goHome
 <script defer src="/assets/js-wasm/qr_scanner.js"></script>
 
 
-  
+    
 
-  
-    <script src="/assets/js-wasm/typing.js"></script>
+    
+
+    
+      <script src="/assets/js-wasm/typing.js"></script>
 <div x-data="{ showTypeMenu: false, outcome: '', atkClick:[], defClick:[] }" class="relative place-content-center">
     <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
@@ -215,7 +228,7 @@ goHome
             
             class="
     fill-slate-200
-  h-12 w-12 hover:fill-kip-red active:fill-kip-drk-sienna"
+  h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna"
             viewBox="66.941444 -166.9827 33.866614 26.27061"
             xmlns="http://www.w3.org/2000/svg">
             <path d="m 83.715193,-166.88575 c -0.17963,0.0931 -0.174138,-0.001 -0.174138,2.99205 0,1.74609 0.01432,2.86239 0.03722,2.90294 0.02046,0.0362 0.09013,0.0867 0.154791,0.11204 0.137599,0.054 0.326863,-4.7e-4 0.389931,-0.11204 0.04105,-0.0727 0.05383,-5.67031 0.01318,-5.77069 -0.02567,-0.0634 -0.209924,-0.16737 -0.293294,-0.16552 -0.02766,6.9e-4 -0.08512,0.0192 -0.127689,0.0412 z"/>
@@ -237,7 +250,7 @@ goHome
         </svg>
     </button>
     <div x-show="showTypeMenu" x-cloak
-        x-anchor.bottom-end="$refs.typeButton"
+        x-anchor.right-end.offset.10="$refs.typeButton"
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
         class="
@@ -318,26 +331,28 @@ goHome
     </div>
 
 </div>
-  
+    
 
-  
-    <button @click="showKealModal = !showKealModal" class="flex justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 24 24"
-        
-          :class="'lg:fill-kip-goldenrod'"
-        
-        class="h-12 w-12 
+    
+
+    
+      <button @click="showKealModal = !showKealModal" class="flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24"
+          
+            :class="'lg:fill-kip-goldenrod'"
+          
+          class="h-12 w-12 
     fill-slate-200
-   hover:fill-kip-red active:fill-kip-drk-sienna">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-      </svg>    
-    </button>
-    <!-- include here instead of damage_tracker.html for formatting consistency -->
-    <div x-show="showKealModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-40" x-cloak>
+   hover:fill-kip-red z-auto active:fill-kip-drk-sienna">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+        </svg>    
+      </button>
+      <!-- include here instead of damage_tracker.html for formatting consistency -->
+      <div x-show="showKealModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
 
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="z-40 absolute inset-0 bg-slate-300 opacity-75"></div>
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
     </template>
   
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
@@ -359,76 +374,78 @@ goHome
     </template>
   </div>
 
-  
+    
 
-  
-    <button x-show="showCardInfo" aria-label="Show Background Image" class="flex justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        
-          :class="'lg:hidden'"
-        
-        class="w-9 h-9 scale-95 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
+    
+      <button x-show="showCardInfo" aria-label="Show Background Image" class="flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          
+            :class="'lg:hidden'"
+          
+          class="w-9 h-9 scale-95 z-auto fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
     stroke-slate-200
    stroke-2 m-2"
-        @click="showCardInfo = !showCardInfo">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-      </svg>
-    </button>
+          @click="showCardInfo = !showCardInfo">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      </button>
 
-    <button x-show="!showCardInfo" aria-label="Show game play data" class="flex justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        
-          :class="'lg:hidden'"
-        
-        class="w-9 h-9 scale-95 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
+      <button x-show="!showCardInfo" aria-label="Show game play data" class="flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          
+            :class="'lg:hidden'"
+          
+          class="w-9 h-9 scale-95 z-auto fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
     stroke-slate-200
    stroke-2 m-2"
-        @click="showCardInfo = !showCardInfo">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-      </svg>
-    </button>
-  
+          @click="showCardInfo = !showCardInfo">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+        </svg>
+      </button>
+    
 
-  
-    <button aria-label="Go to last visited page" class="flex justify-center">
+    
+      <button aria-label="Go to last visited page" class="flex justify-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          @click="window.history.back();"
+          
+            :class="'lg:stroke-kip-goldenrod'"
+          
+          class="w-9 h-9 fill-transparent z-auto hover:stroke-kip-red active:stroke-kip-drk-sienna 
+    stroke-slate-200
+   stroke-2 m-2" 
+    stroke-slate-200
+  >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </button>
+    
+    
+    
+    <a href="/" aria-label="Go to home page" class="flex justify-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        @click="window.history.back();"
         
           :class="'lg:stroke-kip-goldenrod'"
         
-        class="w-9 h-9 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
+        class="w-9 h-9 fill-transparent z-auto hover:stroke-kip-red active:stroke-kip-drk-sienna 
     stroke-slate-200
    stroke-2 m-2" 
     stroke-slate-200
   >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
       </svg>
-    </button>
+    </a>
+    
+  </div>
   
   
-  
-  <a href="/" aria-label="Go to home page" class="flex justify-center">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      
-        :class="'lg:stroke-kip-goldenrod'"
-      
-      class="w-9 h-9 fill-transparent hover:stroke-kip-red active:stroke-kip-drk-sienna 
-    stroke-slate-200
-   stroke-2 m-2" 
-    stroke-slate-200
-  >
-        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    </svg>
-  </a>
-  
-
 </div>
   <!-- layout for small screens and landscape cards -->
   <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" :style='`background-image: url( "/assets/images/parched_traveler.webp" )`'>
@@ -543,7 +560,7 @@ goHome
     :disabled="parched_traveler_damage[0] == false" 
     name="damageTrack" id="parched_traveler_wasted"  
     @click="parched_traveler_damage['wasted'] = !parched_traveler_damage['wasted']" 
-    x-init="clearDamage.length == parched_traveler_clear.length || (parched_traveler_damage['wasted'] = false, fillClearTrack(parched_traveler_clear, clearDamage.length, parched_traveler_clear.length))">
+    x-init="clearDamage.length == parched_traveler_clear.length || (parched_traveler_damage['wasted'] = false, fillClearTrack(parched_traveler_clear, clearDamage.length, parched_traveler_clear.length)), $watch('clearDamage', value => parched_traveler_damage['wasted'] = false)">
     <label for="parched_traveler_wasted" x-anchor.bottom.start="$refs.parched_traveler_track_wasted"> wasted </label>
   </div>
 </div>
@@ -871,7 +888,7 @@ goHome
     :disabled="parched_traveler_damage[0] == false" 
     name="damageTrack" id="parched_traveler_wasted"  
     @click="parched_traveler_damage['wasted'] = !parched_traveler_damage['wasted']" 
-    x-init="clearDamage.length == parched_traveler_clear.length || (parched_traveler_damage['wasted'] = false, fillClearTrack(parched_traveler_clear, clearDamage.length, parched_traveler_clear.length))">
+    x-init="clearDamage.length == parched_traveler_clear.length || (parched_traveler_damage['wasted'] = false, fillClearTrack(parched_traveler_clear, clearDamage.length, parched_traveler_clear.length)), $watch('clearDamage', value => parched_traveler_damage['wasted'] = false)">
     <label for="parched_traveler_wasted" x-anchor.bottom.start="$refs.parched_traveler_track_wasted"> wasted </label>
   </div>
 </div>

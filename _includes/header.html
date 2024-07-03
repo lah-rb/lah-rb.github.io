@@ -24,10 +24,8 @@
     {% if page.search %}
       {% include {{ page.search }} %}
 
-      {% if page.search == 'search_bar_link.html' %}
         {% include filter.html %}
         {% include install_pwa.html  %}
-      {% endif %}
 
         {% capture anchor-menu %}
           {{ site.data.templates.anchor-menu }}

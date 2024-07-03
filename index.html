@@ -6,15 +6,21 @@ description: "This is the home of all the cards ever produced by Kipukas! Whethe
 you are planning you next dominating game strategy or browsing for lovely pieces of
 art you came to the right place."
 bg-terra: "bg-hero-pattern "
-search: search_bar_link.html
 ---
 
-{% include header.html 
+{% include side_header.html 
   qr_scanner=true 
   type_matchup=true
   lastPage=true
+  hamburger=true
+  filter=true
+  install_pwa=true
+  logo=true
+  hideTools=true
+  search=true
   base_fill='fill-kip-goldenrod'
   base_stroke='stroke-kip-goldenrod'
+  background_color='bg-emerald-50/85'
 %}
 
 <template x-if="true">
@@ -28,12 +34,16 @@ search: search_bar_link.html
   class="flex flex-wrap gap-x-5 content-auto place-content-center">
     {% assign posts = site.posts | sort:"title" %}
     {% for card in posts %}
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
+      {% assign tag_string = card.tags | join: '' %}
+      {% assign card_title = card.permalink | remove: '/' %}
+      {% assign raw_search = tag_string | append: card_title%}
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-init="console.log(new RegExp(searchQuery))" x-show="
             filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
             {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
-            filter.all == true" 
+            (new RegExp(searchQuery).test('{{ raw_search }}') && searchQuery != '') ||
+            filter.all == true"
       x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
       <a href="{{card.url}}"
           x-transition.duration.250ms
@@ -41,7 +51,8 @@ search: search_bar_link.html
             (filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
-            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
+            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %}
+            (new RegExp(searchQuery).test('{{ raw_search }}') && searchQuery != '') || 
             filter.all == true) &&
             inView{{ card.permalink | remove: '/' }}
           "
