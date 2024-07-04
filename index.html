@@ -37,7 +37,7 @@ bg-terra: "bg-hero-pattern "
       {% assign tag_string = card.tags | join: '' %}
       {% assign card_title = card.permalink | remove: '/' %}
       {% assign raw_search = tag_string | append: card_title%}
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-init="console.log(new RegExp(searchQuery))" x-show="
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
