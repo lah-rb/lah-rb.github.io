@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…" />
 <meta property="og:description" content="Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…" />
-<link rel="canonical" href="http://0.0.0.0:4000/404.html" />
-<meta property="og:url" content="http://0.0.0.0:4000/404.html" />
+<link rel="canonical" href="https://www.kipukas.cards/404.html" />
+<meta property="og:url" content="https://www.kipukas.cards/404.html" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="404 Glitch" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…","headline":"404 Glitch","url":"http://0.0.0.0:4000/404.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well… most ambitious sentient made by God or man. But then it all when wrong… (sniffle). I know you can’t stay forever, so take the link back home. Be well and come back soon…","headline":"404 Glitch","url":"https://www.kipukas.cards/404.html"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -76,7 +76,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -120,7 +120,6 @@
   </svg>
 </div>
 
-    <script type="javascript">window.addEventListener('load', checkPWAStatus();)</script>
     <div><div x-data="{ showCardInfo: true, landscape: false }">
   <!-- includes available
 hamburger
@@ -254,8 +253,8 @@ background_color
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
         class="
-    grid z-40 grid-cols-2 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-72 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-  ">
+    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+   grid grid-cols-2 h-fit w-72">
         <div>
           <span>Attacker:</span>
           
@@ -330,6 +329,40 @@ background_color
         </div>
     </div>
 
+</div>
+    
+
+    
+        <div x-data="{ showTurnTracker: false, alarms: $persist([]) }">
+    <svg xmlns="http://www.w3.org/2000/svg" 
+    @click="showTurnTracker = !showTurnTracker"
+    x-ref="turnTracker"
+    viewBox="0 0 24 24" 
+    class="
+    stroke-slate-200
+  
+    fill-slate-200
+  h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+
+    <div x-show="showTurnTracker" x-cloak
+    x-anchor.right-end.offset.10="$refs.turnTracker"
+    x-transition.duration.350ms
+    class="
+    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+   grid grid-cols-1 h-fit w-40">
+        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 0 }">
+            <input type="number" name="turnsSelector" value="1" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector">Event Turns</label>
+            <button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
+        </div>
+    </div>
+    <div class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">
+        <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none">Click here on each diel cycle roll</p>
+        <template x-for="alarm in alarms">
+            <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Event time Complete</p><p x-show="alarm != 0">Turns to Alarm: &#20</p><p x-show="alarm != 0" x-text="alarm"></p></div>
+        </template>
+    </div>
 </div>
     
 

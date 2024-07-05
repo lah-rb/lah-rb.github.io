@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards." />
 <meta property="og:description" content="Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards." />
-<link rel="canonical" href="http://0.0.0.0:4000/about_the_binder" />
-<meta property="og:url" content="http://0.0.0.0:4000/about_the_binder" />
+<link rel="canonical" href="https://www.kipukas.cards/about_the_binder" />
+<meta property="og:url" content="https://www.kipukas.cards/about_the_binder" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="About the Binder" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards.","headline":"About the Binder","url":"http://0.0.0.0:4000/about_the_binder"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards.","headline":"About the Binder","url":"https://www.kipukas.cards/about_the_binder"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -76,7 +76,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
@@ -120,7 +120,6 @@
   </svg>
 </div>
 
-    <script type="javascript">window.addEventListener('load', checkPWAStatus();)</script>
     <div><!-- includes available
 hamburger
 qr_scanner
@@ -188,14 +187,18 @@ background_color
     window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the default behavior (which would be to show the install prompt automatically)
     e.preventDefault();
-    
+    const promptTriggered = true;
     // Stash the event so it can be triggered later.
     deferredPrompt = e;
     });
 
     function checkPWAStatus() {
-        if (deferredPrompt == null) { return true; } else { return false; }
-        //return false; //for development debugging
+        try {
+            if (promptTriggered != null) { return false; } else { return true; }
+            //return false; //for development debugging
+        } catch (error) {
+            
+        }
     }
 
     // Check if the deferred prompt isn't null, then show the prompt
@@ -261,6 +264,8 @@ If you have not already installed our pwa, check if your browser (and launcher i
       </div>
     </template>
   </div>
+
+    
 
     
 

@@ -72,6 +72,15 @@ background_color
       %}
     {% endif %}
 
+    {% if include.turn_tracker %}
+        {% include turn_tracker.html
+          svgClass='h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna'
+          menuClass=anchor-menu
+          base_stroke=base_stroke
+          base_fill=base_fill
+        %}
+    {% endif %}
+
     {% if include.filter %}
       {% include filter.html %}
     {% endif %}

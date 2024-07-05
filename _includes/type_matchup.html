@@ -30,7 +30,7 @@
         x-anchor.right-end.offset.10="$refs.typeButton"
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
-        class="{{ include.menuClass }}">
+        class="{{ include.menuClass }} grid grid-cols-2 h-fit w-72">
         <div>
           <span>Attacker:</span>
           {% for type in site.data.types.Archetypes %}

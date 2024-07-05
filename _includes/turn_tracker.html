@@ -1,0 +1,25 @@
+<div x-data="{ showTurnTracker: false, alarms: $persist([]) }">
+    <svg xmlns="http://www.w3.org/2000/svg" 
+    @click="showTurnTracker = !showTurnTracker"
+    x-ref="turnTracker"
+    viewBox="0 0 24 24" 
+    class="{{ include.base_stroke }}{{ include.base_fill }}{{ include.svgClass }}">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+
+    <div x-show="showTurnTracker" x-cloak
+    x-anchor.right-end.offset.10="$refs.turnTracker"
+    x-transition.duration.350ms
+    class="{{ include.menuClass }} grid grid-cols-1 h-fit w-40">
+        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 0 }">
+            <input type="number" name="turnsSelector" value="1" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector">Event Turns</label>
+            <button aria-label="Submit turn timer" class="{{ site.data.templates.red-btn }} mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
+        </div>
+    </div>
+    <div class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">
+        <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none">Click here on each diel cycle roll</p>
+        <template x-for="alarm in alarms">
+            <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Event time Complete</p><p x-show="alarm != 0">Turns to Alarm: &#20</p><p x-show="alarm != 0" x-text="alarm"></p></div>
+        </template>
+    </div>
+</div>
