@@ -3,14 +3,18 @@
     window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the default behavior (which would be to show the install prompt automatically)
     e.preventDefault();
-    
+    const promptTriggered = true;
     // Stash the event so it can be triggered later.
     deferredPrompt = e;
     });
 
     function checkPWAStatus() {
-        if (deferredPrompt == null) { return true; } else { return false; }
-        //return false; //for development debugging
+        try {
+            if (promptTriggered != null) { return false; } else { return true; }
+            //return false; //for development debugging
+        } catch (error) {
+            
+        }
     }
 
     // Check if the deferred prompt isn't null, then show the prompt
