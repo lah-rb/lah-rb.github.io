@@ -73,12 +73,12 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14__iPhone_13_Pro__iPhone_13__iPhone_12_Pro__iPhone_12_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
@@ -338,11 +338,12 @@ background_color
     <svg xmlns="http://www.w3.org/2000/svg" 
     @click="showTurnTracker = !showTurnTracker"
     x-ref="turnTracker"
-    viewBox="0 0 24 24" 
+    viewBox="0 0 24 24"
+    
+        :class="'lg:stroke-kip-goldenrod'"
+    
     class="
     stroke-slate-200
-  
-    fill-slate-200
   h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
@@ -353,17 +354,27 @@ background_color
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
    grid grid-cols-1 h-fit w-40">
-        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 0 }">
-            <input type="number" name="turnsSelector" value="1" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector">Event Turns</label>
+        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 1 }">
+            <input type="range" name="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
             <button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
         </div>
     </div>
-    <div class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">
-        <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none">Click here on each diel cycle roll</p>
-        <template x-for="alarm in alarms">
-            <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Event time Complete</p><p x-show="alarm != 0">Turns to Alarm: &#20</p><p x-show="alarm != 0" x-text="alarm"></p></div>
-        </template>
+    <div x-data="{showAlarms: $persist(true)}" class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0">
+        <div x-collapse x-show="showAlarms">
+            <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">Click here on each diel cycle roll</p>
+            <template x-for="alarm in alarms">
+                <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Complete, click above to close</p><p x-show="alarm != 0">Turns to Alarm: <strong x-show="alarm != 0" x-text="alarm"></strong></p></div>
+            </template>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+            @click="showAlarms = !showAlarms" :class="{ 'rotate-180': !showAlarms }" x-transition
+            class="fill-none stroke-2 
+    stroke-slate-200
+   w-6 h-6 mb-2 justify-left">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+        </svg>
     </div>
+
 </div>
     
 
@@ -510,7 +521,7 @@ background_color
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track1"
@@ -525,7 +536,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track2"
@@ -540,7 +551,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track3"
@@ -555,7 +566,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track4"
@@ -570,7 +581,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track5"
@@ -591,7 +602,7 @@ background_color
     x-ref="balanced_inline_processing_colony_track_wasted"
     :checked="balanced_inline_processing_colony_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="balanced_inline_processing_colony_damage[0 ( 1 in capital )] == false" 
+    :disabled="balanced_inline_processing_colony_damage[0] == false" 
     name="damageTrack" id="balanced_inline_processing_colony_wasted"  
     @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']" 
     x-init="clearDamage.length == balanced_inline_processing_colony_clear.length || (balanced_inline_processing_colony_damage['wasted'] = false, fillClearTrack(balanced_inline_processing_colony_clear, clearDamage.length, balanced_inline_processing_colony_clear.length)), $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)">
@@ -644,7 +655,7 @@ background_color
   <p x-show="play_data" class="text-center">
     
     
-       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. 
+       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
       
     
@@ -829,7 +840,7 @@ background_color
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track1"
@@ -844,7 +855,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track2"
@@ -859,7 +870,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track3"
@@ -874,7 +885,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track4"
@@ -889,7 +900,7 @@ background_color
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="0 ( 1 in capital ) >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
         x-ref="balanced_inline_processing_colony_track5"
@@ -910,7 +921,7 @@ background_color
     x-ref="balanced_inline_processing_colony_track_wasted"
     :checked="balanced_inline_processing_colony_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="balanced_inline_processing_colony_damage[0 ( 1 in capital )] == false" 
+    :disabled="balanced_inline_processing_colony_damage[0] == false" 
     name="damageTrack" id="balanced_inline_processing_colony_wasted"  
     @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']" 
     x-init="clearDamage.length == balanced_inline_processing_colony_clear.length || (balanced_inline_processing_colony_damage['wasted'] = false, fillClearTrack(balanced_inline_processing_colony_clear, clearDamage.length, balanced_inline_processing_colony_clear.length)), $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)">
@@ -963,7 +974,7 @@ background_color
   <p x-show="play_data" class="text-center">
     
     
-       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. 
+       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
       
     

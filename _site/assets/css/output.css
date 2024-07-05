@@ -868,6 +868,10 @@ select {
   margin-right: 0.5rem;
 }
 
+.mr-4 {
+  margin-right: 1rem;
+}
+
 .mt-1 {
   margin-top: 0.25rem;
 }
@@ -878,10 +882,6 @@ select {
 
 .mt-6 {
   margin-top: 1.5rem;
-}
-
-.mr-4 {
-  margin-right: 1rem;
 }
 
 .block {
@@ -1797,6 +1797,11 @@ select {
   border-color: rgb(156 40 40 / var(--tw-border-opacity));
 }
 
+.focus\:bg-kip-red:focus {
+  --tw-bg-opacity: 1;
+  background-color: rgb(156 40 40 / var(--tw-bg-opacity));
+}
+
 .focus\:outline-none:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -1830,6 +1835,11 @@ select {
 
 .active\:bg-slate-800\/70:active {
   background-color: rgb(30 41 59 / 0.7);
+}
+
+.active\:bg-kip-red:active {
+  --tw-bg-opacity: 1;
+  background-color: rgb(156 40 40 / var(--tw-bg-opacity));
 }
 
 .active\:fill-kip-drk-sienna:active {

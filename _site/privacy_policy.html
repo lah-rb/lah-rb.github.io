@@ -72,12 +72,12 @@
     <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash_screens/iPhone_14__iPhone_13_Pro__iPhone_13__iPhone_12_Pro__iPhone_12_portrait.png">
     <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="splash_screens/iPhone_11__iPhone_XR_landscape.png">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.0/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.0/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
@@ -242,19 +242,9 @@ background_color
     window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the default behavior (which would be to show the install prompt automatically)
     e.preventDefault();
-    const promptTriggered = true;
     // Stash the event so it can be triggered later.
     deferredPrompt = e;
     });
-
-    function checkPWAStatus() {
-        try {
-            if (promptTriggered != null) { return false; } else { return true; }
-            //return false; //for development debugging
-        } catch (error) {
-            
-        }
-    }
 
     // Check if the deferred prompt isn't null, then show the prompt
     function handlePWAInstall() {
@@ -283,7 +273,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<button class="place-content-center" x-show="!hideInstallButton" x-init="$nextTick(() => { hideInstallButton = checkPWAStatus() });">
+<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="$nextTick(() => console.log(deferredPrompt))">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
