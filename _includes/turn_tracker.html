@@ -28,7 +28,7 @@
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
             @click="showAlarms = !showAlarms" :class="{ 'rotate-180': !showAlarms }" x-transition
-            class="fill-none stroke-2 {{ include.base_stroke }} w-6 h-6 mb-2 justify-left">
+            class="fill-none stroke-2 z-50 {{ include.base_stroke }} w-6 h-6 mb-2 justify-left {% unless page.landscape %} lg:stroke-kip-goldenrod {% endunless %}">
             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
         </svg>
     </div>
