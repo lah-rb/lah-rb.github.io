@@ -34,7 +34,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="$nextTick(() => console.log(deferredPrompt))">
+<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="window.onload = function() { console.log(deferredPrompt); }">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
