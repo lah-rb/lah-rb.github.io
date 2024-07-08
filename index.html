@@ -38,12 +38,13 @@ bg-terra: "bg-hero-pattern "
       {% assign tag_string = card.tags | join: '' %}
       {% assign card_title = card.permalink | remove: '/' %}
       {% assign raw_search = tag_string | append: card_title%}
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
             {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
-            (new RegExp(searchQuery).test('{{ raw_search }}') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
       <a href="{{card.url}}"
@@ -53,7 +54,7 @@ bg-terra: "bg-hero-pattern "
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
             {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %}
-            (new RegExp(searchQuery).test('{{ raw_search }}') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') || 
             filter.all == true) &&
             inView{{ card.permalink | remove: '/' }}
           "
