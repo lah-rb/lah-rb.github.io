@@ -11,8 +11,8 @@
       <input 
         type="checkbox" 
         x-ref="{{ trackRef | append: i }}"
-        :checked="{{ damageTrack }}[{{ i }}]" 
-        :disabled="{{ damageTrack }}[{{ i | minus: 1 }}] == false" 
+        :checked="{{ damageTrack }}[{{ i }}]"
+        :disabled="{{ damageTrack }}[{{ i | minus: 1 }}] == false || {{ damageTrack }}[{{ i | plus: 1 }}] == true || {{ damageTrack }}['wasted'] == true" 
         class="{{ site.data.templates.checkbox }}" 
         name="damageTrack" 
         id="{{ damageSlot }}"  
@@ -31,15 +31,17 @@
     :disabled="{{ damageTrack }}[{{ page.injury_tolerance }}] == false" 
     name="damageTrack" id="{{ wasted }}"  
     @click="{{ damageTrack }}['wasted'] = !{{ damageTrack }}['wasted']" 
-    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }}, clearDamage.length, {{ clearTrack }}.length)), $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)">
+    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }},clearDamage.length, {{ clearTrack }}.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)">
     <label for="{{ wasted }}" x-anchor.bottom.start="$refs.{{ trackRef | append: '_wasted' }}"> wasted </label>
   </div>
 </div>
 
 <script>
     function fillClearTrack(track, globalClearSize, localClearSize){
-      for(var i = 0; i < globalClearSize - localClearSize; i++) {
-        track.push(true);
+      if (globalClearSize >= 10) { track.length = 0; } else {
+        for(var i = 0; i < globalClearSize - localClearSize; i++) {
+          track.push(true);
+        }
       }
     }
 </script>

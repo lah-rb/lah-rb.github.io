@@ -105,13 +105,15 @@
                   showKealModal: false,
                   searchQuery: '',
                   top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

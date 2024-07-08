@@ -105,13 +105,15 @@
                   showKealModal: false,
                   searchQuery: '',
                   top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -192,6 +194,17 @@ background_color
     deferredPrompt = e;
     });
 
+    const timer = ms => new Promise(res => setTimeout(res, ms))
+
+    async function checkPWAInstallStatus() {
+        let i = 0;
+        while ( i < 10 ){
+            console.log(deferredPrompt);
+            await timer(1000);
+            i++;
+        }
+    }
+
     // Check if the deferred prompt isn't null, then show the prompt
     function handlePWAInstall() {
     if (deferredPrompt) {
@@ -219,7 +232,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="window.onload = function() { console.log(deferredPrompt); }">
+<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="checkPWAInstallStatus();">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
@@ -738,11 +751,10 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 
     
-      <button aria-label="Go to last visited page" class="flex justify-center">
+      <a :href="previousURL" aria-label="Go to last visited page" class="flex justify-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          @click="window.history.back();"
           
             :class="'lg:stroke-kip-goldenrod'"
           
@@ -753,7 +765,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
   >
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
         </svg>
-      </button>
+      </a>
     
     
     
@@ -874,12 +886,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Magic == true ||  
              filter.Spirit == true ||  
              filter.Nomad == true ||  
-            (new RegExp(searchQuery).test('skeletontravelerdeserttattoosunallele_sect_explorer') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('skeletontravelerdeserttattoosunallele_sect_explorer') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewallele_sect_explorer = true" x-intersect:leave="inViewallele_sect_explorer = false">
       <a href="/allele_sect_explorer/"
@@ -889,7 +902,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Magic == true ||  
              filter.Spirit == true ||  
              filter.Nomad == true || 
-            (new RegExp(searchQuery).test('skeletontravelerdeserttattoosunallele_sect_explorer') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('skeletontravelerdeserttattoosunallele_sect_explorer') && searchQuery != '') || 
             filter.all == true) &&
             inViewallele_sect_explorer
           "
@@ -915,12 +928,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Entropic == true ||  
              filter.Sacrifice == true ||  
              filter.Water == true ||  
-            (new RegExp(searchQuery).test('wizardseaoceantemplesailsspiritportalartificer_of_the_salt_chancel') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('wizardseaoceantemplesailsspiritportalartificer_of_the_salt_chancel') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewartificer_of_the_salt_chancel = true" x-intersect:leave="inViewartificer_of_the_salt_chancel = false">
       <a href="/artificer_of_the_salt_chancel/"
@@ -930,7 +944,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Entropic == true ||  
              filter.Sacrifice == true ||  
              filter.Water == true || 
-            (new RegExp(searchQuery).test('wizardseaoceantemplesailsspiritportalartificer_of_the_salt_chancel') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('wizardseaoceantemplesailsspiritportalartificer_of_the_salt_chancel') && searchQuery != '') || 
             filter.all == true) &&
             inViewartificer_of_the_salt_chancel
           "
@@ -956,12 +970,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('floatstonecreaturegateskyavian_keepers_den') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('floatstonecreaturegateskyavian_keepers_den') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewavian_keepers_den = true" x-intersect:leave="inViewavian_keepers_den = false">
       <a href="/avian_keepers_den/"
@@ -971,7 +986,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('floatstonecreaturegateskyavian_keepers_den') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('floatstonecreaturegateskyavian_keepers_den') && searchQuery != '') || 
             filter.all == true) &&
             inViewavian_keepers_den
           "
@@ -997,12 +1012,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Algorithmic == true ||  
              filter.service == true ||  
              filter.DigitalCloud == true ||  
-            (new RegExp(searchQuery).test('brickcolorchipcomputerlightningprocessorbalanced_inline_processing_colony') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('brickcolorchipcomputerlightningprocessorbalanced_inline_processing_colony') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewbalanced_inline_processing_colony = true" x-intersect:leave="inViewbalanced_inline_processing_colony = false">
       <a href="/balanced_inline_processing_colony/"
@@ -1012,7 +1028,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Algorithmic == true ||  
              filter.service == true ||  
              filter.DigitalCloud == true || 
-            (new RegExp(searchQuery).test('brickcolorchipcomputerlightningprocessorbalanced_inline_processing_colony') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('brickcolorchipcomputerlightningprocessorbalanced_inline_processing_colony') && searchQuery != '') || 
             filter.all == true) &&
             inViewbalanced_inline_processing_colony
           "
@@ -1038,12 +1054,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Telekinetic == true ||  
              filter.Service == true ||  
              filter.Forest == true ||  
-            (new RegExp(searchQuery).test('praying_mantismantisillusionmirrorbranwen_mantillusion_practitioner') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('praying_mantismantisillusionmirrorbranwen_mantillusion_practitioner') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewbranwen_mantillusion_practitioner = true" x-intersect:leave="inViewbranwen_mantillusion_practitioner = false">
       <a href="/branwen_mantillusion_practitioner/"
@@ -1053,7 +1070,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Telekinetic == true ||  
              filter.Service == true ||  
              filter.Forest == true || 
-            (new RegExp(searchQuery).test('praying_mantismantisillusionmirrorbranwen_mantillusion_practitioner') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('praying_mantismantisillusionmirrorbranwen_mantillusion_practitioner') && searchQuery != '') || 
             filter.all == true) &&
             inViewbranwen_mantillusion_practitioner
           "
@@ -1079,12 +1096,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('fishcastleplanecartesianxydaynightcartesian_sea') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('fishcastleplanecartesianxydaynightcartesian_sea') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewcartesian_sea = true" x-intersect:leave="inViewcartesian_sea = false">
       <a href="/cartesian_sea/"
@@ -1094,7 +1112,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('fishcastleplanecartesianxydaynightcartesian_sea') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('fishcastleplanecartesianxydaynightcartesian_sea') && searchQuery != '') || 
             filter.all == true) &&
             inViewcartesian_sea
           "
@@ -1120,12 +1138,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
              
-            (new RegExp(searchQuery).test('retrostackclothfabrictilecloth') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('retrostackclothfabrictilecloth') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewcloth = true" x-intersect:leave="inViewcloth = false">
       <a href="/cloth/"
@@ -1135,7 +1154,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('retrostackclothfabrictilecloth') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('retrostackclothfabrictilecloth') && searchQuery != '') || 
             filter.all == true) &&
             inViewcloth
           "
@@ -1161,12 +1180,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
              
-            (new RegExp(searchQuery).test('cavecatswitcholdladyfireenchantress_of_cats') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('cavecatswitcholdladyfireenchantress_of_cats') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewenchantress_of_cats = true" x-intersect:leave="inViewenchantress_of_cats = false">
       <a href="/enchantress_of_cats/"
@@ -1176,7 +1196,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('cavecatswitcholdladyfireenchantress_of_cats') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('cavecatswitcholdladyfireenchantress_of_cats') && searchQuery != '') || 
             filter.all == true) &&
             inViewenchantress_of_cats
           "
@@ -1202,12 +1222,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
              
-            (new RegExp(searchQuery).test('featherbirdskydownfloatfeathers') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('featherbirdskydownfloatfeathers') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewfeathers = true" x-intersect:leave="inViewfeathers = false">
       <a href="/feathers/"
@@ -1217,7 +1238,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('featherbirdskydownfloatfeathers') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('featherbirdskydownfloatfeathers') && searchQuery != '') || 
             filter.all == true) &&
             inViewfeathers
           "
@@ -1243,12 +1264,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('boatlakeswampmarshtreesmaplesarchfeeding_the_piffions') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('boatlakeswampmarshtreesmaplesarchfeeding_the_piffions') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewfeeding_the_piffions = true" x-intersect:leave="inViewfeeding_the_piffions = false">
       <a href="/feeding_the_piffions/"
@@ -1258,7 +1280,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('boatlakeswampmarshtreesmaplesarchfeeding_the_piffions') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('boatlakeswampmarshtreesmaplesarchfeeding_the_piffions') && searchQuery != '') || 
             filter.all == true) &&
             inViewfeeding_the_piffions
           "
@@ -1284,12 +1306,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('iceheartwomansculptcarvefrozenAtlantisfreezing_of_the_heart') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('iceheartwomansculptcarvefrozenAtlantisfreezing_of_the_heart') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewfreezing_of_the_heart = true" x-intersect:leave="inViewfreezing_of_the_heart = false">
       <a href="/freezing_of_the_heart/"
@@ -1299,7 +1322,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('iceheartwomansculptcarvefrozenAtlantisfreezing_of_the_heart') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('iceheartwomansculptcarvefrozenAtlantisfreezing_of_the_heart') && searchQuery != '') || 
             filter.all == true) &&
             inViewfreezing_of_the_heart
           "
@@ -1325,12 +1348,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Endothermic == true ||  
              filter.Survival == true ||  
              filter.Mountain == true ||  
-            (new RegExp(searchQuery).test('otterfrostsnowicearcticcoldstreamfrost_tipped_arctic_otter') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('otterfrostsnowicearcticcoldstreamfrost_tipped_arctic_otter') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewfrost_tipped_arctic_otter = true" x-intersect:leave="inViewfrost_tipped_arctic_otter = false">
       <a href="/frost_tipped_arctic_otter/"
@@ -1340,7 +1364,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Endothermic == true ||  
              filter.Survival == true ||  
              filter.Mountain == true || 
-            (new RegExp(searchQuery).test('otterfrostsnowicearcticcoldstreamfrost_tipped_arctic_otter') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('otterfrostsnowicearcticcoldstreamfrost_tipped_arctic_otter') && searchQuery != '') || 
             filter.all == true) &&
             inViewfrost_tipped_arctic_otter
           "
@@ -1366,12 +1390,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Astral == true ||  
              filter.Spirit == true ||  
              filter.Forest == true ||  
-            (new RegExp(searchQuery).test('wolfhowlingforestrockedgecliffmoonnightgray_wolf_harbinger_of_night') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('wolfhowlingforestrockedgecliffmoonnightgray_wolf_harbinger_of_night') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewgray_wolf_harbinger_of_night = true" x-intersect:leave="inViewgray_wolf_harbinger_of_night = false">
       <a href="/gray_wolf_harbinger_of_night/"
@@ -1381,7 +1406,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Astral == true ||  
              filter.Spirit == true ||  
              filter.Forest == true || 
-            (new RegExp(searchQuery).test('wolfhowlingforestrockedgecliffmoonnightgray_wolf_harbinger_of_night') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('wolfhowlingforestrockedgecliffmoonnightgray_wolf_harbinger_of_night') && searchQuery != '') || 
             filter.all == true) &&
             inViewgray_wolf_harbinger_of_night
           "
@@ -1407,12 +1432,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
              
-            (new RegExp(searchQuery).test('cavemysticalskulldragonexplorerhidden_portal_of_lower_dreadmont_cave') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('cavemysticalskulldragonexplorerhidden_portal_of_lower_dreadmont_cave') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewhidden_portal_of_lower_dreadmont_cave = true" x-intersect:leave="inViewhidden_portal_of_lower_dreadmont_cave = false">
       <a href="/hidden_portal_of_lower_dreadmont_cave/"
@@ -1422,7 +1448,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('cavemysticalskulldragonexplorerhidden_portal_of_lower_dreadmont_cave') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('cavemysticalskulldragonexplorerhidden_portal_of_lower_dreadmont_cave') && searchQuery != '') || 
             filter.all == true) &&
             inViewhidden_portal_of_lower_dreadmont_cave
           "
@@ -1448,12 +1474,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Avian == true ||  
              filter.Passion == true ||  
              filter.Forest == true ||  
-            (new RegExp(searchQuery).test('frogkingstaffmoonbirdwingshilbert_king_of_avian_frogs') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('frogkingstaffmoonbirdwingshilbert_king_of_avian_frogs') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewhilbert_king_of_avian_frogs = true" x-intersect:leave="inViewhilbert_king_of_avian_frogs = false">
       <a href="/hilbert_king_of_avian_frogs/"
@@ -1463,7 +1490,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Avian == true ||  
              filter.Passion == true ||  
              filter.Forest == true || 
-            (new RegExp(searchQuery).test('frogkingstaffmoonbirdwingshilbert_king_of_avian_frogs') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('frogkingstaffmoonbirdwingshilbert_king_of_avian_frogs') && searchQuery != '') || 
             filter.all == true) &&
             inViewhilbert_king_of_avian_frogs
           "
@@ -1489,12 +1516,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
              
-            (new RegExp(searchQuery).test('honeypotbeenewshoney') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('honeypotbeenewshoney') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewhoney = true" x-intersect:leave="inViewhoney = false">
       <a href="/honey/"
@@ -1504,7 +1532,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('honeypotbeenewshoney') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('honeypotbeenewshoney') && searchQuery != '') || 
             filter.all == true) &&
             inViewhoney
           "
@@ -1530,12 +1558,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Decrepit == true ||  
              filter.Survival == true ||  
              filter.Underground == true ||  
-            (new RegExp(searchQuery).test('batwingsdeerskulltreesjunglecreepyscythemarshillia_and_dorsay_the_buck_skull') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('batwingsdeerskulltreesjunglecreepyscythemarshillia_and_dorsay_the_buck_skull') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewillia_and_dorsay_the_buck_skull = true" x-intersect:leave="inViewillia_and_dorsay_the_buck_skull = false">
       <a href="/illia_and_dorsay_the_buck_skull/"
@@ -1545,7 +1574,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Decrepit == true ||  
              filter.Survival == true ||  
              filter.Underground == true || 
-            (new RegExp(searchQuery).test('batwingsdeerskulltreesjunglecreepyscythemarshillia_and_dorsay_the_buck_skull') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('batwingsdeerskulltreesjunglecreepyscythemarshillia_and_dorsay_the_buck_skull') && searchQuery != '') || 
             filter.all == true) &&
             inViewillia_and_dorsay_the_buck_skull
           "
@@ -1571,12 +1600,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.card == true || 
              
              
              
-            (new RegExp(searchQuery).test('eggwarholandyspecialcubicbrickincubation_egg') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('eggwarholandyspecialcubicbrickincubation_egg') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewincubation_egg = true" x-intersect:leave="inViewincubation_egg = false">
       <a href="/incubation_egg/"
@@ -1586,7 +1616,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('eggwarholandyspecialcubicbrickincubation_egg') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('eggwarholandyspecialcubicbrickincubation_egg') && searchQuery != '') || 
             filter.all == true) &&
             inViewincubation_egg
           "
@@ -1612,12 +1642,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Energetic == true ||  
              filter.Duty == true ||  
              filter.Nomad == true ||  
-            (new RegExp(searchQuery).test('tripleinfinityknightswordsirregalknightsoul_of_binding_time') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('tripleinfinityknightswordsirregalknightsoul_of_binding_time') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewknightsoul_of_binding_time = true" x-intersect:leave="inViewknightsoul_of_binding_time = false">
       <a href="/knightsoul_of_binding_time/"
@@ -1627,7 +1658,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Energetic == true ||  
              filter.Duty == true ||  
              filter.Nomad == true || 
-            (new RegExp(searchQuery).test('tripleinfinityknightswordsirregalknightsoul_of_binding_time') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('tripleinfinityknightswordsirregalknightsoul_of_binding_time') && searchQuery != '') || 
             filter.all == true) &&
             inViewknightsoul_of_binding_time
           "
@@ -1653,12 +1684,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Angelic == true ||  
              filter.Duty == true ||  
              filter.Nomad == true ||  
-            (new RegExp(searchQuery).test('angelicbeautifulhealerfairywomanswordliliel_healing_fairy') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('angelicbeautifulhealerfairywomanswordliliel_healing_fairy') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewliliel_healing_fairy = true" x-intersect:leave="inViewliliel_healing_fairy = false">
       <a href="/liliel_healing_fairy/"
@@ -1668,7 +1700,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Angelic == true ||  
              filter.Duty == true ||  
              filter.Nomad == true || 
-            (new RegExp(searchQuery).test('angelicbeautifulhealerfairywomanswordliliel_healing_fairy') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('angelicbeautifulhealerfairywomanswordliliel_healing_fairy') && searchQuery != '') || 
             filter.all == true) &&
             inViewliliel_healing_fairy
           "
@@ -1694,12 +1726,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.PersonalEffect == true || 
              
              
              
-            (new RegExp(searchQuery).test('shopforesthoodmysticalpotionlocation_of_the_deep_apothecary_shop') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('shopforesthoodmysticalpotionlocation_of_the_deep_apothecary_shop') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewlocation_of_the_deep_apothecary_shop = true" x-intersect:leave="inViewlocation_of_the_deep_apothecary_shop = false">
       <a href="/location_of_the_deep_apothecary_shop/"
@@ -1709,7 +1742,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('shopforesthoodmysticalpotionlocation_of_the_deep_apothecary_shop') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('shopforesthoodmysticalpotionlocation_of_the_deep_apothecary_shop') && searchQuery != '') || 
             filter.all == true) &&
             inViewlocation_of_the_deep_apothecary_shop
           "
@@ -1735,12 +1768,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('jellyfishlandscapecampyurtcloudnightwondererruinsstatuemountainslosetany_steppes') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('jellyfishlandscapecampyurtcloudnightwondererruinsstatuemountainslosetany_steppes') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewlosetany_steppes = true" x-intersect:leave="inViewlosetany_steppes = false">
       <a href="/losetany_steppes/"
@@ -1750,7 +1784,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('jellyfishlandscapecampyurtcloudnightwondererruinsstatuemountainslosetany_steppes') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('jellyfishlandscapecampyurtcloudnightwondererruinsstatuemountainslosetany_steppes') && searchQuery != '') || 
             filter.all == true) &&
             inViewlosetany_steppes
           "
@@ -1776,12 +1810,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('weathermeteor_shower') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('weathermeteor_shower') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewmeteor_shower = true" x-intersect:leave="inViewmeteor_shower = false">
       <a href="/meteor_shower/"
@@ -1791,7 +1826,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('weathermeteor_shower') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('weathermeteor_shower') && searchQuery != '') || 
             filter.all == true) &&
             inViewmeteor_shower
           "
@@ -1817,12 +1852,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Brutal == true ||  
              filter.Satisfaction == true ||  
              filter.Plains == true ||  
-            (new RegExp(searchQuery).test('deathgraveskullfairywomandaggermihela_cleanser_of_fields') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('deathgraveskullfairywomandaggermihela_cleanser_of_fields') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewmihela_cleanser_of_fields = true" x-intersect:leave="inViewmihela_cleanser_of_fields = false">
       <a href="/mihela_cleanser_of_fields/"
@@ -1832,7 +1868,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Brutal == true ||  
              filter.Satisfaction == true ||  
              filter.Plains == true || 
-            (new RegExp(searchQuery).test('deathgraveskullfairywomandaggermihela_cleanser_of_fields') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('deathgraveskullfairywomandaggermihela_cleanser_of_fields') && searchQuery != '') || 
             filter.all == true) &&
             inViewmihela_cleanser_of_fields
           "
@@ -1858,12 +1894,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Avian == true ||  
              filter.Satisfaction == true ||  
              filter.Nomad == true ||  
-            (new RegExp(searchQuery).test('ravenplantflowerthornscrowmyrthvither_raven') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('ravenplantflowerthornscrowmyrthvither_raven') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewmyrthvither_raven = true" x-intersect:leave="inViewmyrthvither_raven = false">
       <a href="/myrthvither_raven/"
@@ -1873,7 +1910,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Avian == true ||  
              filter.Satisfaction == true ||  
              filter.Nomad == true || 
-            (new RegExp(searchQuery).test('ravenplantflowerthornscrowmyrthvither_raven') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('ravenplantflowerthornscrowmyrthvither_raven') && searchQuery != '') || 
             filter.all == true) &&
             inViewmyrthvither_raven
           "
@@ -1899,12 +1936,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Algorithmic == true ||  
              filter.Possessor == true ||  
              filter.DigitalCloud == true ||  
-            (new RegExp(searchQuery).test('nodeblockbrainsynapsecomputerlineswebneuronneural_network_synapse_virus') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('nodeblockbrainsynapsecomputerlineswebneuronneural_network_synapse_virus') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewneural_network_synapse_virus = true" x-intersect:leave="inViewneural_network_synapse_virus = false">
       <a href="/neural_network_synapse_virus/"
@@ -1914,7 +1952,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Algorithmic == true ||  
              filter.Possessor == true ||  
              filter.DigitalCloud == true || 
-            (new RegExp(searchQuery).test('nodeblockbrainsynapsecomputerlineswebneuronneural_network_synapse_virus') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('nodeblockbrainsynapsecomputerlineswebneuronneural_network_synapse_virus') && searchQuery != '') || 
             filter.all == true) &&
             inViewneural_network_synapse_virus
           "
@@ -1940,12 +1978,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Astral == true ||  
              filter.Survival == true ||  
              filter.Mountain == true ||  
-            (new RegExp(searchQuery).test('dragonpairfamilychildmomnightoshliath_and_osileth') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('dragonpairfamilychildmomnightoshliath_and_osileth') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewoshliath_and_osileth = true" x-intersect:leave="inViewoshliath_and_osileth = false">
       <a href="/oshliath_and_osileth/"
@@ -1955,7 +1994,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Astral == true ||  
              filter.Survival == true ||  
              filter.Mountain == true || 
-            (new RegExp(searchQuery).test('dragonpairfamilychildmomnightoshliath_and_osileth') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('dragonpairfamilychildmomnightoshliath_and_osileth') && searchQuery != '') || 
             filter.all == true) &&
             inViewoshliath_and_osileth
           "
@@ -1981,12 +2020,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('mountainnomadlakepalacepalace_of_the_allele_sect') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('mountainnomadlakepalacepalace_of_the_allele_sect') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewpalace_of_the_allele_sect = true" x-intersect:leave="inViewpalace_of_the_allele_sect = false">
       <a href="/palace_of_the_allele_sect/"
@@ -1996,7 +2036,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('mountainnomadlakepalacepalace_of_the_allele_sect') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('mountainnomadlakepalacepalace_of_the_allele_sect') && searchQuery != '') || 
             filter.all == true) &&
             inViewpalace_of_the_allele_sect
           "
@@ -2022,12 +2062,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Decrepit == true ||  
              filter.Conscience == true ||  
              filter.Volcanic == true ||  
-            (new RegExp(searchQuery).test('skeletontravelerdeserttatoosunparched_traveler') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('skeletontravelerdeserttatoosunparched_traveler') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewparched_traveler = true" x-intersect:leave="inViewparched_traveler = false">
       <a href="/parched_traveler/"
@@ -2037,7 +2078,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Decrepit == true ||  
              filter.Conscience == true ||  
              filter.Volcanic == true || 
-            (new RegExp(searchQuery).test('skeletontravelerdeserttatoosunparched_traveler') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('skeletontravelerdeserttatoosunparched_traveler') && searchQuery != '') || 
             filter.all == true) &&
             inViewparched_traveler
           "
@@ -2063,12 +2104,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('boatlakeswampmarshtreesmaplesarchpassage_among_maples') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('boatlakeswampmarshtreesmaplesarchpassage_among_maples') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewpassage_among_maples = true" x-intersect:leave="inViewpassage_among_maples = false">
       <a href="/passage_among_maples/"
@@ -2078,7 +2120,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('boatlakeswampmarshtreesmaplesarchpassage_among_maples') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('boatlakeswampmarshtreesmaplesarchpassage_among_maples') && searchQuery != '') || 
             filter.all == true) &&
             inViewpassage_among_maples
           "
@@ -2104,12 +2146,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Cenozoic == true ||  
              filter.Satisfaction == true ||  
              filter.Plains == true ||  
-            (new RegExp(searchQuery).test('clowncardsjokerimpevilplane_table_joker') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('clowncardsjokerimpevilplane_table_joker') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewplane_table_joker = true" x-intersect:leave="inViewplane_table_joker = false">
       <a href="/plane_table_joker/"
@@ -2119,7 +2162,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Cenozoic == true ||  
              filter.Satisfaction == true ||  
              filter.Plains == true || 
-            (new RegExp(searchQuery).test('clowncardsjokerimpevilplane_table_joker') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('clowncardsjokerimpevilplane_table_joker') && searchQuery != '') || 
             filter.all == true) &&
             inViewplane_table_joker
           "
@@ -2145,12 +2188,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Arboreal == true ||  
              filter.Spirit == true ||  
              filter.Mountain == true ||  
-            (new RegExp(searchQuery).test('flowerdragonplantfirepyroChinesepyrostegia_dragon') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('flowerdragonplantfirepyroChinesepyrostegia_dragon') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewpyrostegia_dragon = true" x-intersect:leave="inViewpyrostegia_dragon = false">
       <a href="/pyrostegia_dragon/"
@@ -2160,7 +2204,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Arboreal == true ||  
              filter.Spirit == true ||  
              filter.Mountain == true || 
-            (new RegExp(searchQuery).test('flowerdragonplantfirepyroChinesepyrostegia_dragon') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('flowerdragonplantfirepyroChinesepyrostegia_dragon') && searchQuery != '') || 
             filter.all == true) &&
             inViewpyrostegia_dragon
           "
@@ -2186,12 +2230,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Arboreal == true ||  
              filter.Duty == true ||  
              filter.Mountain == true ||  
-            (new RegExp(searchQuery).test('roosterflowerplantgrasslightcallingrooster_calling_of_light') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('roosterflowerplantgrasslightcallingrooster_calling_of_light') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewrooster_calling_of_light = true" x-intersect:leave="inViewrooster_calling_of_light = false">
       <a href="/rooster_calling_of_light/"
@@ -2201,7 +2246,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Arboreal == true ||  
              filter.Duty == true ||  
              filter.Mountain == true || 
-            (new RegExp(searchQuery).test('roosterflowerplantgrasslightcallingrooster_calling_of_light') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('roosterflowerplantgrasslightcallingrooster_calling_of_light') && searchQuery != '') || 
             filter.all == true) &&
             inViewrooster_calling_of_light
           "
@@ -2227,12 +2272,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Energetic == true ||  
              filter.Possessor == true ||  
              filter.DigitalCloud == true ||  
-            (new RegExp(searchQuery).test('dragoncityfiretechsmoketowerelectricdigitalsboi_threat_plus_plus') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('dragoncityfiretechsmoketowerelectricdigitalsboi_threat_plus_plus') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewsboi_threat_plus_plus = true" x-intersect:leave="inViewsboi_threat_plus_plus = false">
       <a href="/sboi_threat_plus_plus/"
@@ -2242,7 +2288,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Energetic == true ||  
              filter.Possessor == true ||  
              filter.DigitalCloud == true || 
-            (new RegExp(searchQuery).test('dragoncityfiretechsmoketowerelectricdigitalsboi_threat_plus_plus') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('dragoncityfiretechsmoketowerelectricdigitalsboi_threat_plus_plus') && searchQuery != '') || 
             filter.all == true) &&
             inViewsboi_threat_plus_plus
           "
@@ -2268,12 +2314,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.TerrainFeature == true || 
              
              
              
-            (new RegExp(searchQuery).test('desertfloatstonesarchshards_desert') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('desertfloatstonesarchshards_desert') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewshards_desert = true" x-intersect:leave="inViewshards_desert = false">
       <a href="/shards_desert/"
@@ -2283,7 +2330,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('desertfloatstonesarchshards_desert') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('desertfloatstonesarchshards_desert') && searchQuery != '') || 
             filter.all == true) &&
             inViewshards_desert
           "
@@ -2309,12 +2356,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
              
-            (new RegExp(searchQuery).test('blackwhiteabstractcavespiritkingsubjectspectral_lands_decree_and_hearing') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('blackwhiteabstractcavespiritkingsubjectspectral_lands_decree_and_hearing') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewspectral_lands_decree_and_hearing = true" x-intersect:leave="inViewspectral_lands_decree_and_hearing = false">
       <a href="/spectral_lands_decree_and_hearing/"
@@ -2324,7 +2372,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('blackwhiteabstractcavespiritkingsubjectspectral_lands_decree_and_hearing') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('blackwhiteabstractcavespiritkingsubjectspectral_lands_decree_and_hearing') && searchQuery != '') || 
             filter.all == true) &&
             inViewspectral_lands_decree_and_hearing
           "
@@ -2350,12 +2398,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Species == true || 
              filter.Glitch == true ||  
              filter.Sacrifice == true ||  
              filter.Mountain == true ||  
-            (new RegExp(searchQuery).test('glowingbearfairystaffgoldplainsforestridingmountstormycloudysprite_of_wilds_spirit') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('glowingbearfairystaffgoldplainsforestridingmountstormycloudysprite_of_wilds_spirit') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewsprite_of_wilds_spirit = true" x-intersect:leave="inViewsprite_of_wilds_spirit = false">
       <a href="/sprite_of_wilds_spirit/"
@@ -2365,7 +2414,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Glitch == true ||  
              filter.Sacrifice == true ||  
              filter.Mountain == true || 
-            (new RegExp(searchQuery).test('glowingbearfairystaffgoldplainsforestridingmountstormycloudysprite_of_wilds_spirit') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('glowingbearfairystaffgoldplainsforestridingmountstormycloudysprite_of_wilds_spirit') && searchQuery != '') || 
             filter.all == true) &&
             inViewsprite_of_wilds_spirit
           "
@@ -2391,12 +2440,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
              
-            (new RegExp(searchQuery).test('stickstickspilecircleblackwhitegraysticks') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('stickstickspilecircleblackwhitegraysticks') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewsticks = true" x-intersect:leave="inViewsticks = false">
       <a href="/sticks/"
@@ -2406,7 +2456,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('stickstickspilecircleblackwhitegraysticks') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('stickstickspilecircleblackwhitegraysticks') && searchQuery != '') || 
             filter.all == true) &&
             inViewsticks
           "
@@ -2432,12 +2482,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Item == true || 
              
              
              
-            (new RegExp(searchQuery).test('stringthreadcordropeneedleWarhalstring') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('stringthreadcordropeneedleWarhalstring') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewstring = true" x-intersect:leave="inViewstring = false">
       <a href="/string/"
@@ -2447,7 +2498,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('stringthreadcordropeneedleWarhalstring') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('stringthreadcordropeneedleWarhalstring') && searchQuery != '') || 
             filter.all == true) &&
             inViewstring
           "
@@ -2473,12 +2524,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.PersonalEffect == true || 
              
              
              
-            (new RegExp(searchQuery).test('colorbrickwavewaterpaisleydropcrystalsuspended_animation') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('colorbrickwavewaterpaisleydropcrystalsuspended_animation') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewsuspended_animation = true" x-intersect:leave="inViewsuspended_animation = false">
       <a href="/suspended_animation/"
@@ -2488,7 +2540,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('colorbrickwavewaterpaisleydropcrystalsuspended_animation') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('colorbrickwavewaterpaisleydropcrystalsuspended_animation') && searchQuery != '') || 
             filter.all == true) &&
             inViewsuspended_animation
           "
@@ -2514,12 +2566,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              
              filter.Sacrifice == true ||  
              filter.Heavens == true ||  
-            (new RegExp(searchQuery).test('skycityancientrainbowcolorfulwinghaloflowblondetears_for_oly') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('skycityancientrainbowcolorfulwinghaloflowblondetears_for_oly') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewtears_for_oly = true" x-intersect:leave="inViewtears_for_oly = false">
       <a href="/tears_for_oly/"
@@ -2529,7 +2582,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              filter.Sacrifice == true ||  
              filter.Heavens == true || 
-            (new RegExp(searchQuery).test('skycityancientrainbowcolorfulwinghaloflowblondetears_for_oly') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('skycityancientrainbowcolorfulwinghaloflowblondetears_for_oly') && searchQuery != '') || 
             filter.all == true) &&
             inViewtears_for_oly
           "
@@ -2555,12 +2608,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Mechanical == true ||  
              filter.Passion == true ||  
              filter.Nomad == true ||  
-            (new RegExp(searchQuery).test('robotmanpiecesgearslabmechanicengineertejas_curious_mech') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('robotmanpiecesgearslabmechanicengineertejas_curious_mech') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewtejas_curious_mech = true" x-intersect:leave="inViewtejas_curious_mech = false">
       <a href="/tejas_curious_mech/"
@@ -2570,7 +2624,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Mechanical == true ||  
              filter.Passion == true ||  
              filter.Nomad == true || 
-            (new RegExp(searchQuery).test('robotmanpiecesgearslabmechanicengineertejas_curious_mech') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('robotmanpiecesgearslabmechanicengineertejas_curious_mech') && searchQuery != '') || 
             filter.all == true) &&
             inViewtejas_curious_mech
           "
@@ -2596,12 +2650,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('fishtimebattlehorsedragonimpcastletimebattle') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('fishtimebattlehorsedragonimpcastletimebattle') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewtimebattle = true" x-intersect:leave="inViewtimebattle = false">
       <a href="/timebattle/"
@@ -2611,7 +2666,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('fishtimebattlehorsedragonimpcastletimebattle') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('fishtimebattlehorsedragonimpcastletimebattle') && searchQuery != '') || 
             filter.all == true) &&
             inViewtimebattle
           "
@@ -2637,12 +2692,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Character == true || 
              filter.Mechanical == true ||  
              filter.Service == true ||  
              filter.Heavens == true ||  
-            (new RegExp(searchQuery).test('skyhandsbuildmachinewandredindustrialtira_marvelous_myriad') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('skyhandsbuildmachinewandredindustrialtira_marvelous_myriad') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewtira_marvelous_myriad = true" x-intersect:leave="inViewtira_marvelous_myriad = false">
       <a href="/tira_marvelous_myriad/"
@@ -2652,7 +2708,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              filter.Mechanical == true ||  
              filter.Service == true ||  
              filter.Heavens == true || 
-            (new RegExp(searchQuery).test('skyhandsbuildmachinewandredindustrialtira_marvelous_myriad') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('skyhandsbuildmachinewandredindustrialtira_marvelous_myriad') && searchQuery != '') || 
             filter.all == true) &&
             inViewtira_marvelous_myriad
           "
@@ -2678,12 +2734,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('skulldecaydemonmoonghostcapturejarto_catch_a_spirit') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('skulldecaydemonmoonghostcapturejarto_catch_a_spirit') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewto_catch_a_spirit = true" x-intersect:leave="inViewto_catch_a_spirit = false">
       <a href="/to_catch_a_spirit/"
@@ -2693,7 +2750,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('skulldecaydemonmoonghostcapturejarto_catch_a_spirit') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('skulldecaydemonmoonghostcapturejarto_catch_a_spirit') && searchQuery != '') || 
             filter.all == true) &&
             inViewto_catch_a_spirit
           "
@@ -2719,12 +2776,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Trap == true || 
              
              
              
-            (new RegExp(searchQuery).test('crowddragonskeletonmannershopmalldetailedushered_through_sabina_emporium') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('crowddragonskeletonmannershopmalldetailedushered_through_sabina_emporium') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewushered_through_sabina_emporium = true" x-intersect:leave="inViewushered_through_sabina_emporium = false">
       <a href="/ushered_through_sabina_emporium/"
@@ -2734,7 +2792,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('crowddragonskeletonmannershopmalldetailedushered_through_sabina_emporium') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('crowddragonskeletonmannershopmalldetailedushered_through_sabina_emporium') && searchQuery != '') || 
             filter.all == true) &&
             inViewushered_through_sabina_emporium
           "
@@ -2760,12 +2818,13 @@ If you have not already installed our pwa, check if your browser (and launcher i
       
       
       
+      <!-- div to trigger transition animation when entering and leaving the screen -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.Sabotage == true || 
              
              
              
-            (new RegExp(searchQuery).test('Africanheadlightbulbzulumosaicallseeingeyecolorwhat_do_you_see_in_the_breach') && searchQuery != '') ||
+            (new RegExp(searchQuery, 'i').test('Africanheadlightbulbzulumosaicallseeingeyecolorwhat_do_you_see_in_the_breach') && searchQuery != '') ||
             filter.all == true"
       x-intersect="inViewwhat_do_you_see_in_the_breach = true" x-intersect:leave="inViewwhat_do_you_see_in_the_breach = false">
       <a href="/what_do_you_see_in_the_breach/"
@@ -2775,7 +2834,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
              
              
             
-            (new RegExp(searchQuery).test('Africanheadlightbulbzulumosaicallseeingeyecolorwhat_do_you_see_in_the_breach') && searchQuery != '') || 
+            (new RegExp(searchQuery, 'i').test('Africanheadlightbulbzulumosaicallseeingeyecolorwhat_do_you_see_in_the_breach') && searchQuery != '') || 
             filter.all == true) &&
             inViewwhat_do_you_see_in_the_breach
           "

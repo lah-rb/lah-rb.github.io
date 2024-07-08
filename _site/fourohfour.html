@@ -105,13 +105,15 @@
                   showKealModal: false,
                   searchQuery: '',
                   top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
+        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -452,11 +454,10 @@ background_color
     
 
     
-      <button aria-label="Go to last visited page" class="flex justify-center">
+      <a :href="previousURL" aria-label="Go to last visited page" class="flex justify-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          @click="window.history.back();"
           
             :class="'lg:stroke-kip-goldenrod'"
           
@@ -467,7 +468,7 @@ background_color
   >
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
         </svg>
-      </button>
+      </a>
     
     
     
@@ -524,8 +525,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track1"
-        :checked="fourohfour_damage[1]" 
-        :disabled="fourohfour_damage[0] == false" 
+        :checked="fourohfour_damage[1]"
+        :disabled="fourohfour_damage[0] == false || fourohfour_damage[2] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_1"  
@@ -539,8 +540,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track2"
-        :checked="fourohfour_damage[2]" 
-        :disabled="fourohfour_damage[1] == false" 
+        :checked="fourohfour_damage[2]"
+        :disabled="fourohfour_damage[1] == false || fourohfour_damage[3] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_2"  
@@ -554,8 +555,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track3"
-        :checked="fourohfour_damage[3]" 
-        :disabled="fourohfour_damage[2] == false" 
+        :checked="fourohfour_damage[3]"
+        :disabled="fourohfour_damage[2] == false || fourohfour_damage[4] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_3"  
@@ -569,8 +570,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track4"
-        :checked="fourohfour_damage[4]" 
-        :disabled="fourohfour_damage[3] == false" 
+        :checked="fourohfour_damage[4]"
+        :disabled="fourohfour_damage[3] == false || fourohfour_damage[5] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_4"  
@@ -584,8 +585,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track5"
-        :checked="fourohfour_damage[5]" 
-        :disabled="fourohfour_damage[4] == false" 
+        :checked="fourohfour_damage[5]"
+        :disabled="fourohfour_damage[4] == false || fourohfour_damage[6] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_5"  
@@ -604,15 +605,17 @@ background_color
     :disabled="fourohfour_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
     name="damageTrack" id="fourohfour_wasted"  
     @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']" 
-    x-init="clearDamage.length == fourohfour_clear.length || (fourohfour_damage['wasted'] = false, fillClearTrack(fourohfour_clear, clearDamage.length, fourohfour_clear.length)), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
+    x-init="clearDamage.length == fourohfour_clear.length || (fourohfour_damage['wasted'] = false, fillClearTrack(fourohfour_clear,clearDamage.length, fourohfour_clear.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
     <label for="fourohfour_wasted" x-anchor.bottom.start="$refs.fourohfour_track_wasted"> wasted </label>
   </div>
 </div>
 
 <script>
     function fillClearTrack(track, globalClearSize, localClearSize){
-      for(var i = 0; i < globalClearSize - localClearSize; i++) {
-        track.push(true);
+      if (globalClearSize >= 10) { track.length = 0; } else {
+        for(var i = 0; i < globalClearSize - localClearSize; i++) {
+          track.push(true);
+        }
       }
     }
 </script>
@@ -843,8 +846,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track1"
-        :checked="fourohfour_damage[1]" 
-        :disabled="fourohfour_damage[0] == false" 
+        :checked="fourohfour_damage[1]"
+        :disabled="fourohfour_damage[0] == false || fourohfour_damage[2] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_1"  
@@ -858,8 +861,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track2"
-        :checked="fourohfour_damage[2]" 
-        :disabled="fourohfour_damage[1] == false" 
+        :checked="fourohfour_damage[2]"
+        :disabled="fourohfour_damage[1] == false || fourohfour_damage[3] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_2"  
@@ -873,8 +876,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track3"
-        :checked="fourohfour_damage[3]" 
-        :disabled="fourohfour_damage[2] == false" 
+        :checked="fourohfour_damage[3]"
+        :disabled="fourohfour_damage[2] == false || fourohfour_damage[4] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_3"  
@@ -888,8 +891,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track4"
-        :checked="fourohfour_damage[4]" 
-        :disabled="fourohfour_damage[3] == false" 
+        :checked="fourohfour_damage[4]"
+        :disabled="fourohfour_damage[3] == false || fourohfour_damage[5] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_4"  
@@ -903,8 +906,8 @@ background_color
       <input 
         type="checkbox" 
         x-ref="fourohfour_track5"
-        :checked="fourohfour_damage[5]" 
-        :disabled="fourohfour_damage[4] == false" 
+        :checked="fourohfour_damage[5]"
+        :disabled="fourohfour_damage[4] == false || fourohfour_damage[6] == true || fourohfour_damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
         id="fourohfour_damage_slot_5"  
@@ -923,15 +926,17 @@ background_color
     :disabled="fourohfour_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
     name="damageTrack" id="fourohfour_wasted"  
     @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']" 
-    x-init="clearDamage.length == fourohfour_clear.length || (fourohfour_damage['wasted'] = false, fillClearTrack(fourohfour_clear, clearDamage.length, fourohfour_clear.length)), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
+    x-init="clearDamage.length == fourohfour_clear.length || (fourohfour_damage['wasted'] = false, fillClearTrack(fourohfour_clear,clearDamage.length, fourohfour_clear.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
     <label for="fourohfour_wasted" x-anchor.bottom.start="$refs.fourohfour_track_wasted"> wasted </label>
   </div>
 </div>
 
 <script>
     function fillClearTrack(track, globalClearSize, localClearSize){
-      for(var i = 0; i < globalClearSize - localClearSize; i++) {
-        track.push(true);
+      if (globalClearSize >= 10) { track.length = 0; } else {
+        for(var i = 0; i < globalClearSize - localClearSize; i++) {
+          track.push(true);
+        }
       }
     }
 </script>

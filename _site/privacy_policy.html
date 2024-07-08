@@ -105,13 +105,15 @@
                   showKealModal: false,
                   searchQuery: '',
                   top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
                   clearDamage: $persist([]),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh">
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -247,6 +249,17 @@ background_color
     deferredPrompt = e;
     });
 
+    const timer = ms => new Promise(res => setTimeout(res, ms))
+
+    async function checkPWAInstallStatus() {
+        let i = 0;
+        while ( i < 10 ){
+            console.log(deferredPrompt);
+            await timer(1000);
+            i++;
+        }
+    }
+
     // Check if the deferred prompt isn't null, then show the prompt
     function handlePWAInstall() {
     if (deferredPrompt) {
@@ -274,7 +287,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 
-<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="window.onload = function() { console.log(deferredPrompt); }">
+<button class="place-content-center mb-2" x-show="!hideInstallButton" x-init="checkPWAInstallStatus();">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
         alt="install pwa icon" @click="showInstallModal = !showInstallModal"
         class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
@@ -328,11 +341,10 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 
     
-      <button aria-label="Go to last visited page" class="flex justify-center">
+      <a :href="previousURL" aria-label="Go to last visited page" class="flex justify-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          @click="window.history.back();"
           
             :class="'lg:stroke-kip-goldenrod'"
           
@@ -343,7 +355,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
   >
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
         </svg>
-      </button>
+      </a>
     
     
     
