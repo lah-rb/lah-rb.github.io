@@ -1,0 +1,81 @@
+---
+layout: default
+permalink: /recipes
+title: "Item Recipe Lookup"
+description: "In Kipukas, you can craft recipes from base items. This page
+details all the recipes for the first 5 item combinations to showcase the
+mechanic."
+bg-terra: "bg-hero-pattern "
+---
+<script src="/assets/js-wasm/recipes.js"></script>
+<script>
+  function checkDisabled (items) {
+    var checked = 0;
+    for (const item in items) {
+      if ( items[item] == true){
+        checked++;
+      }
+    }
+    if (checked < 3){
+      return false
+    } else{
+      return true
+    }
+  }
+
+  function checkFirst(item, items) {
+    const sortedKeys = Object.keys(items).sort();
+    for (const key of sortedKeys) {
+        if (key < item && items[key] === true) {
+            return true;
+        }
+    }
+    return false;
+  }
+</script>
+<template x-if="true"> <!-- This fixes the cls issue completely -->
+    <div class="flex place-content-center w-screen h-fit" x-data="{ items: { cloth: false, feathers: false, honey: false, sticks: false, string: false }, recipe: []}">
+      <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose pb-4 px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+        {% include side_header.html 
+          hamburger=true
+          goHome=true
+          lastPage=true
+          install_pwa=true
+          base_fill='fill-kip-goldenrod'
+          base_stroke='stroke-kip-goldenrod'
+          background_color='bg-slate-100/80'
+        %}
+        <h1 class="text-3xl font-bold text-left my-4">Recipe Lookup</h1>
+        <p>
+          In Kipukas, you can craft recipes from base items. This page
+          details all the recipes for the first 5 item combinations in the founder's decks.
+          Just select the items that you want to craft and a recipe will appear! We made this 
+          page to showcase the game mechanic, particularly how flexible it behaves. For competition purposes,
+          these recipes will always be valid to use. As the game matures, we plan on giving out recipes 
+          with each order. These will be kept in each player's personal recipe book and they will only
+          be allowed to play recipes from within their books for competitive play.
+        </p>
+        <div class="flex m-4 justify-center h-40">
+          {% for item in site.data.types.Items %}
+          <p class="text-7xl content-center" x-transition x-show="items['{{ item }}'] && checkFirst('{{ item }}', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['{{ item }}']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/{{item | append: '.webp'}} 1x,
+            /assets/thumbnails/x2/{{item | append: '.webp'}} 2x,
+            /assets/thumbnails/x3/{{item | append: '.webp'}} 3x,
+            /assets/thumbnails/x4/{{item | append: '.webp'}} 4x,
+            /assets/thumbnails/x5/{{item | append: '.webp'}} 5x,
+            " alt="{{ item }}"></img>
+          {% endfor %}
+        </div>
+        <div class="md:grid md:grid-cols-2">
+          <div class="outline outline-kip-drk-goldenrod p-6 content-center">
+            {% for item in site.data.types.Items %}
+              <div x-data="{ checked: false }"><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="checkDisabled(items) && !checked" @click="items['{{ item }}'] = !items['{{ item }}'], checked = !checked" :checked="checked" name="items" id="items['{{ item }}']"><label for="items['{{ item }}']">{{ item | capitalize }}</label></div>
+            {% endfor %}
+          </div>
+          <div x-init="$watch( 'items', value => recipe = recipeBook(value) )" class="p-6 content-center"><p><strong class="text-xl" x-text="recipe[0]"></strong><br><span x-text="recipe[1]"></span></div>
+        </div>
+      </div>
+    </div>
+</template>
