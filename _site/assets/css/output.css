@@ -820,6 +820,10 @@ select {
   margin: 1.5rem;
 }
 
+.m-4 {
+  margin: 1rem;
+}
+
 .mx-2 {
   margin-left: 0.5rem;
   margin-right: 0.5rem;
@@ -953,6 +957,10 @@ select {
 
 .h-screen {
   height: 100vh;
+}
+
+.h-40 {
+  height: 10rem;
 }
 
 .min-h-screen {
@@ -1332,10 +1340,6 @@ select {
   background-color: rgb(236 253 245 / 0.8);
 }
 
-.bg-emerald-50\/85 {
-  background-color: rgb(236 253 245 / 0.85);
-}
-
 .bg-emerald-50\/95 {
   background-color: rgb(236 253 245 / 0.95);
 }
@@ -1343,6 +1347,10 @@ select {
 .bg-kip-red {
   --tw-bg-opacity: 1;
   background-color: rgb(156 40 40 / var(--tw-bg-opacity));
+}
+
+.bg-slate-100\/80 {
+  background-color: rgb(241 245 249 / 0.8);
 }
 
 .bg-slate-200 {
@@ -1560,6 +1568,16 @@ select {
   line-height: 1rem;
 }
 
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-7xl {
+  font-size: 4.5rem;
+  line-height: 1;
+}
+
 .font-bold {
   font-weight: 700;
 }
@@ -1651,6 +1669,10 @@ select {
 
 .outline {
   outline-style: solid;
+}
+
+.outline-1 {
+  outline-width: 1px;
 }
 
 .outline-kip-drk-goldenrod {
@@ -1856,6 +1878,10 @@ select {
     display: block;
   }
 
+  .md\:grid {
+    display: grid;
+  }
+
   .md\:hidden {
     display: none;
   }
@@ -1879,6 +1905,10 @@ select {
   .md\:break-after-avoid {
     -moz-column-break-after: avoid;
          break-after: avoid;
+  }
+
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .md\:text-4xl {

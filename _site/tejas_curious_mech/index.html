@@ -108,7 +108,7 @@
                   top: true,
                   previousURL: $persist(''),
                   currentURL: $persist(''),
-                  clearDamage: $persist([]),
+                  clearDamage: $persist('U7G789Rc'),
                   noCamera: $persist(true), 
                   showQRModal: $persist(true), 
                   acceptPrivacy: $persist(false), 
@@ -395,6 +395,21 @@ background_color
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
         </svg>    
       </button>
+
+      <script>
+        function makeid(length) {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            let counter = 0;
+            while (counter < length) {
+              result += characters.charAt(Math.floor(Math.random() * charactersLength));
+              counter += 1;
+            }
+            return result;
+        }
+      </script>
+
       <!-- include here instead of damage_tracker.html for formatting consistency -->
       <div x-show="showKealModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
 
@@ -409,7 +424,7 @@ background_color
             You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?
         </p>
   
-        <button @click="clearDamage.push(true); showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        <button @click="clearDamage = makeid(9); showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
           Clear All Damage
         </button>
   
@@ -532,7 +547,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_1"  
         @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[1] = false), $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false), $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)">
         <label for="tejas_curious_mech_damage_slot_1" x-anchor.bottom.start="$refs.tejas_curious_mech_track1"> 1 </label>
     </div>
   
@@ -547,7 +562,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_2"  
         @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[2] = false), $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false), $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)">
         <label for="tejas_curious_mech_damage_slot_2" x-anchor.bottom.start="$refs.tejas_curious_mech_track2"> 2 </label>
     </div>
   
@@ -562,7 +577,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_3"  
         @click="tejas_curious_mech_damage[3] = !tejas_curious_mech_damage[3]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[3] = false), $watch('clearDamage', value => tejas_curious_mech_damage[3] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[3] = false), $watch('clearDamage', value => tejas_curious_mech_damage[3] = false)">
         <label for="tejas_curious_mech_damage_slot_3" x-anchor.bottom.start="$refs.tejas_curious_mech_track3"> 3 </label>
     </div>
   
@@ -577,7 +592,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_4"  
         @click="tejas_curious_mech_damage[4] = !tejas_curious_mech_damage[4]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[4] = false), $watch('clearDamage', value => tejas_curious_mech_damage[4] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[4] = false), $watch('clearDamage', value => tejas_curious_mech_damage[4] = false)">
         <label for="tejas_curious_mech_damage_slot_4" x-anchor.bottom.start="$refs.tejas_curious_mech_track4"> 4 </label>
     </div>
   
@@ -592,7 +607,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_5"  
         @click="tejas_curious_mech_damage[5] = !tejas_curious_mech_damage[5]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[5] = false), $watch('clearDamage', value => tejas_curious_mech_damage[5] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[5] = false), $watch('clearDamage', value => tejas_curious_mech_damage[5] = false)">
         <label for="tejas_curious_mech_damage_slot_5" x-anchor.bottom.start="$refs.tejas_curious_mech_track5"> 5 </label>
     </div>
   
@@ -606,20 +621,10 @@ background_color
     :disabled="tejas_curious_mech_damage[1] == false" 
     name="damageTrack" id="tejas_curious_mech_wasted"  
     @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']" 
-    x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage['wasted'] = false, fillClearTrack(tejas_curious_mech_clear,clearDamage.length, tejas_curious_mech_clear.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
+    x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
     <label for="tejas_curious_mech_wasted" x-anchor.bottom.start="$refs.tejas_curious_mech_track_wasted"> wasted </label>
   </div>
 </div>
-
-<script>
-    function fillClearTrack(track, globalClearSize, localClearSize){
-      if (globalClearSize >= 10) { track.length = 0; } else {
-        for(var i = 0; i < globalClearSize - localClearSize; i++) {
-          track.push(true);
-        }
-      }
-    }
-</script>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -850,7 +855,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_1"  
         @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[1] = false), $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false), $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)">
         <label for="tejas_curious_mech_damage_slot_1" x-anchor.bottom.start="$refs.tejas_curious_mech_track1"> 1 </label>
     </div>
   
@@ -865,7 +870,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_2"  
         @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[2] = false), $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false), $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)">
         <label for="tejas_curious_mech_damage_slot_2" x-anchor.bottom.start="$refs.tejas_curious_mech_track2"> 2 </label>
     </div>
   
@@ -880,7 +885,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_3"  
         @click="tejas_curious_mech_damage[3] = !tejas_curious_mech_damage[3]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[3] = false), $watch('clearDamage', value => tejas_curious_mech_damage[3] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[3] = false), $watch('clearDamage', value => tejas_curious_mech_damage[3] = false)">
         <label for="tejas_curious_mech_damage_slot_3" x-anchor.bottom.start="$refs.tejas_curious_mech_track3"> 3 </label>
     </div>
   
@@ -895,7 +900,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_4"  
         @click="tejas_curious_mech_damage[4] = !tejas_curious_mech_damage[4]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[4] = false), $watch('clearDamage', value => tejas_curious_mech_damage[4] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[4] = false), $watch('clearDamage', value => tejas_curious_mech_damage[4] = false)">
         <label for="tejas_curious_mech_damage_slot_4" x-anchor.bottom.start="$refs.tejas_curious_mech_track4"> 4 </label>
     </div>
   
@@ -910,7 +915,7 @@ background_color
         name="damageTrack" 
         id="tejas_curious_mech_damage_slot_5"  
         @click="tejas_curious_mech_damage[5] = !tejas_curious_mech_damage[5]" 
-        x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage[5] = false), $watch('clearDamage', value => tejas_curious_mech_damage[5] = false)">
+        x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[5] = false), $watch('clearDamage', value => tejas_curious_mech_damage[5] = false)">
         <label for="tejas_curious_mech_damage_slot_5" x-anchor.bottom.start="$refs.tejas_curious_mech_track5"> 5 </label>
     </div>
   
@@ -924,20 +929,10 @@ background_color
     :disabled="tejas_curious_mech_damage[1] == false" 
     name="damageTrack" id="tejas_curious_mech_wasted"  
     @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']" 
-    x-init="clearDamage.length == tejas_curious_mech_clear.length || (tejas_curious_mech_damage['wasted'] = false, fillClearTrack(tejas_curious_mech_clear,clearDamage.length, tejas_curious_mech_clear.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
+    x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
     <label for="tejas_curious_mech_wasted" x-anchor.bottom.start="$refs.tejas_curious_mech_track_wasted"> wasted </label>
   </div>
 </div>
-
-<script>
-    function fillClearTrack(track, globalClearSize, localClearSize){
-      if (globalClearSize >= 10) { track.length = 0; } else {
-        for(var i = 0; i < globalClearSize - localClearSize; i++) {
-          track.push(true);
-        }
-      }
-    }
-</script>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >

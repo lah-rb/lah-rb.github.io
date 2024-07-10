@@ -2,25 +2,25 @@
 <html lang="en-US">
   <head>
     <!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Binder Home | Kipukas</title>
+<title>Item Recipe Lookup | Kipukas</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="Binder Home" />
+<meta property="og:title" content="Item Recipe Lookup" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
-<meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="https://www.kipukas.cards/offline" />
-<meta property="og:url" content="https://www.kipukas.cards/offline" />
+<meta name="description" content="In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic." />
+<meta property="og:description" content="In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic." />
+<link rel="canonical" href="https://www.kipukas.cards/recipes" />
+<meta property="og:url" content="https://www.kipukas.cards/recipes" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Binder Home" />
+<meta property="twitter:title" content="Item Recipe Lookup" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","url":"https://www.kipukas.cards/offline"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic.","headline":"Item Recipe Lookup","url":"https://www.kipukas.cards/recipes"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf-8">
-    <title>Binder Home</title>
+    <title>Item Recipe Lookup</title>
     <link rel="stylesheet" href="/assets/css/output.css">
     <link rel="manifest" href="/manifest.json">
     
@@ -122,37 +122,63 @@
   </svg>
 </div>
 
-    <div>  <div x-data="{ showHamburger: false, showTools: true }" class="z-30 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap sticky top-0" :class="top || 'bg-emerald-50/95'">
-    
-    <div class="flex basis-full md:hidden break-after-right md:break-after-avoid transition hover:scale-95 active:scale-95" x-transition x-show="top">
-      <a href="./" class="flex flex-1 place-content-center md:hidden h-32 w-64" title="Binder Home" x-transition x-show="top">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
-      </a>
-    </div>
-    <div class="hidden md:block lg:hidden break-after-avoid transition hover:scale-95 active:transform-none" x-transition x-show="top">
-      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
-      </a>
-    </div>
-    <div class="hidden lg:block break-after-avoid transition hover:scale-95 active:transform-none">
-      <a href="./" class="hidden md:block h-32 w-64" title="Binder Home">
-        <img class="h-32 w-64" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
-      </a>
-    </div>
+    <div><script src="/assets/js-wasm/recipes.js"></script>
+<script>
+  function checkDisabled (items) {
+    var checked = 0;
+    for (const item in items) {
+      if ( items[item] == true){
+        checked++;
+      }
+    }
+    if (checked < 3){
+      return false
+    } else{
+      return true
+    }
+  }
+
+  function checkFirst(item, items) {
+    const sortedKeys = Object.keys(items).sort();
+    for (const key of sortedKeys) {
+        if (key < item && items[key] === true) {
+            return true;
+        }
+    }
+    return false;
+  }
+</script>
+<template x-if="true"> <!-- This fixes the cls issue completely -->
+    <div class="flex place-content-center w-screen h-fit" x-data="{ items: { cloth: false, feathers: false, honey: false, sticks: false, string: false }, recipe: []}">
+      <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose pb-4 px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+        <!-- includes available
+hamburger
+qr_scanner
+type_matchup
+damage_tracker
+showCardInfo
+lastPage
+logo
+goHome
+hideTools
+base_fill
+base_stroke
+background_color
   
-  
-    <div class="flex-1"></div>
+-->
+
+
+
+<div x-cloak x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true) }" class="z-40 bg-slate-100/80 rounded-lg grid justify-items-center fixed top-0 right-0 w-15 pt-2 mx-2 my-6 md:m-8">
   
 
-  <div class="z-30 flex-1 flex place-content-center px-0.5 lg:px-5 py-1 gap-x-0.5 lg:gap-x-3 flex-wrap" x-show="showTools" x-collapse.horizontal>
-    
-  </div>
-  <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
-      @click="showTools = !showTools" :class="{ '-rotate-90': showTools }"
-      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform rotate-90 place-self-center">
-      <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-  </svg>
-  <div x-show="showHamburger" 
+  
+
+  
+  
+
+  
+    <div x-show="showHamburger" 
     x-anchor.right-end.offset.10="$refs.hamburger" 
     x-transition.duration.350ms
     x-cloak
@@ -179,10 +205,231 @@
         </div>
     </button>
   </div>
+  
+
+  <div  class="grid grid-cols-1">
+    
+      <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default behavior (which would be to show the install prompt automatically)
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    });
+
+    const timer = ms => new Promise(res => setTimeout(res, ms))
+
+    async function checkPWAInstallStatus() {
+        let i = 0;
+        while ( i < 10 ){
+            console.log(deferredPrompt);
+            await timer(1000);
+            i++;
+        }
+    }
+
+    // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+
+        // Wait for the user to make a choice
+        deferredPrompt.userChoice.then((choiceResult) => {
+            // Log the choice to our console
+            console.log(choiceResult.outcome);
+
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
+        });
+    } else {
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        alpinel._x_dataStack[0].hideInstallButton = true;
+    }
+}
+    
+</script>
+<template x-if="true">
+    <button class="place-content-center mb-2" x-show="!hideInstallButton">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+            alt="install pwa icon" @click="showInstallModal = !showInstallModal"
+            class="h-14 w-14 stroke-2 fill-none stroke-kip-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+    </button>
+</template>
+
+
+
+<div x-show="showInstallModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 class="text-xl font-semibold mb-4 text-kip-drk-sienna">Install Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          I'll use the website as is.
+        </button>
+        
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+
+      </div>
+    </template>
   </div>
 
-<div class="">
-  Please note, this is a cached page. You are not online.
-</div></div>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+      <a :href="previousURL" aria-label="Go to last visited page" class="flex justify-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          
+            :class="'lg:stroke-kip-goldenrod'"
+          
+          class="w-9 h-9 fill-transparent z-auto hover:stroke-kip-red active:stroke-kip-drk-sienna 
+    stroke-kip-goldenrod
+   stroke-2 m-2" 
+    stroke-kip-goldenrod
+  >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </a>
+    
+    
+    
+    <a href="/" aria-label="Go to home page" class="flex justify-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        
+          :class="'lg:stroke-kip-goldenrod'"
+        
+        class="w-9 h-9 fill-transparent z-auto hover:stroke-kip-red active:stroke-kip-drk-sienna 
+    stroke-kip-goldenrod
+   stroke-2 m-2" 
+    stroke-kip-goldenrod
+  >
+          <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+      </svg>
+    </a>
+    
+  </div>
+  
+  
+</div>
+        <h1 class="text-3xl font-bold text-left my-4">Recipe Lookup</h1>
+        <p>
+          In Kipukas, you can craft recipes from base items. This page
+          details all the recipes for the first 5 item combinations in the founder's decks.
+          Just select the items that you want to craft and a recipe will appear! We made this 
+          page to showcase the game mechanic, particularly how flexible it behaves. For competition purposes,
+          these recipes will always be valid to use. As the game matures, we plan on giving out recipes 
+          with each order. These will be kept in each player's personal recipe book and they will only
+          be allowed to play recipes from within their books for competitive play.
+        </p>
+        <div class="flex m-4 justify-center h-40">
+          
+          <p class="text-7xl content-center" x-transition x-show="items['cloth'] && checkFirst('cloth', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['cloth']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/cloth.webp 1x,
+            /assets/thumbnails/x2/cloth.webp 2x,
+            /assets/thumbnails/x3/cloth.webp 3x,
+            /assets/thumbnails/x4/cloth.webp 4x,
+            /assets/thumbnails/x5/cloth.webp 5x,
+            " alt="cloth"></img>
+          
+          <p class="text-7xl content-center" x-transition x-show="items['feathers'] && checkFirst('feathers', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['feathers']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/feathers.webp 1x,
+            /assets/thumbnails/x2/feathers.webp 2x,
+            /assets/thumbnails/x3/feathers.webp 3x,
+            /assets/thumbnails/x4/feathers.webp 4x,
+            /assets/thumbnails/x5/feathers.webp 5x,
+            " alt="feathers"></img>
+          
+          <p class="text-7xl content-center" x-transition x-show="items['honey'] && checkFirst('honey', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['honey']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/honey.webp 1x,
+            /assets/thumbnails/x2/honey.webp 2x,
+            /assets/thumbnails/x3/honey.webp 3x,
+            /assets/thumbnails/x4/honey.webp 4x,
+            /assets/thumbnails/x5/honey.webp 5x,
+            " alt="honey"></img>
+          
+          <p class="text-7xl content-center" x-transition x-show="items['sticks'] && checkFirst('sticks', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['sticks']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/sticks.webp 1x,
+            /assets/thumbnails/x2/sticks.webp 2x,
+            /assets/thumbnails/x3/sticks.webp 3x,
+            /assets/thumbnails/x4/sticks.webp 4x,
+            /assets/thumbnails/x5/sticks.webp 5x,
+            " alt="sticks"></img>
+          
+          <p class="text-7xl content-center" x-transition x-show="items['string'] && checkFirst('string', items )">+</p>
+            <img x-cloak x-transition width="160" height="160" x-show="items['string']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
+            srcset="
+            /assets/thumbnails/x1/string.webp 1x,
+            /assets/thumbnails/x2/string.webp 2x,
+            /assets/thumbnails/x3/string.webp 3x,
+            /assets/thumbnails/x4/string.webp 4x,
+            /assets/thumbnails/x5/string.webp 5x,
+            " alt="string"></img>
+          
+        </div>
+        <div class="md:grid md:grid-cols-2">
+          <div class="outline outline-kip-drk-goldenrod p-6 content-center">
+            
+              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['cloth'] = !items['cloth'], checked = !checked" :checked="checked" name="items" id="items['cloth']"><label for="items['cloth']">Cloth</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['feathers'] = !items['feathers'], checked = !checked" :checked="checked" name="items" id="items['feathers']"><label for="items['feathers']">Feathers</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['honey'] = !items['honey'], checked = !checked" :checked="checked" name="items" id="items['honey']"><label for="items['honey']">Honey</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['sticks'] = !items['sticks'], checked = !checked" :checked="checked" name="items" id="items['sticks']"><label for="items['sticks']">Sticks</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['string'] = !items['string'], checked = !checked" :checked="checked" name="items" id="items['string']"><label for="items['string']">String</label></div>
+            
+          </div>
+          <div x-init="$watch( 'items', value => recipe = recipeBook(value) )" class="p-6 content-center"><p><strong class="text-xl" x-text="recipe[0]"></strong><br><span x-text="recipe[1]"></span></div>
+        </div>
+      </div>
+    </div>
+</template></div>
   </body>
 </html>

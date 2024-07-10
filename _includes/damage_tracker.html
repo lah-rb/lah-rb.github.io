@@ -17,7 +17,7 @@
         name="damageTrack" 
         id="{{ damageSlot }}"  
         @click="{{ damageTrack }}[{{ i }}] = !{{ damageTrack }}[{{ i }}]" 
-        x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}[{{ i }}] = false), $watch('clearDamage', value => {{ damageTrack }}[{{ i }}] = false)">
+        x-init="clearDamage == {{ clearTrack }} || ({{ damageTrack }}[{{ i }}] = false), $watch('clearDamage', value => {{ damageTrack }}[{{ i }}] = false)">
         <label for="{{ damageSlot }}" x-anchor.bottom.start="$refs.{{ trackRef | append: i }}"> {{ i }} </label>
     </div>
   {% endfor %}
@@ -31,17 +31,7 @@
     :disabled="{{ damageTrack }}[{{ page.injury_tolerance }}] == false" 
     name="damageTrack" id="{{ wasted }}"  
     @click="{{ damageTrack }}['wasted'] = !{{ damageTrack }}['wasted']" 
-    x-init="clearDamage.length == {{ clearTrack }}.length || ({{ damageTrack }}['wasted'] = false, fillClearTrack({{ clearTrack }},clearDamage.length, {{ clearTrack }}.length)), clearDamage.length >= 10 && clearDamage.splice(0, clearDamage.length), $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)">
+    x-init="clearDamage == {{ clearTrack }} || ({{ damageTrack }}['wasted'] = false), $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)">
     <label for="{{ wasted }}" x-anchor.bottom.start="$refs.{{ trackRef | append: '_wasted' }}"> wasted </label>
   </div>
 </div>
-
-<script>
-    function fillClearTrack(track, globalClearSize, localClearSize){
-      if (globalClearSize >= 10) { track.length = 0; } else {
-        for(var i = 0; i < globalClearSize - localClearSize; i++) {
-          track.push(true);
-        }
-      }
-    }
-</script>
