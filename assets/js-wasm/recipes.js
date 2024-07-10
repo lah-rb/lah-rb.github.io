@@ -11,7 +11,7 @@ function recipeBook (itemObject) {
     recipeMap.set(JSON.stringify({ cloth: false, feathers: false, honey: false, sticks: false, string: true }), ['Tangle up the situation! ', ' Opponent losses 2 damage from their next attack roll. Two String cards must be played together to activate effect.']);
 
     recipeMap.set(JSON.stringify({ cloth: false, feathers: true, honey: false, sticks: true, string: false }), ['Atlatl: ', ' Wielder now has a ranged attack and can attack 1 movement stand away with Cenozoic D6 vs defender keal means.']);
-    recipeMap.set(JSON.stringify({ cloth: true, feathers: false, honey: false, sticks: false, string: true }), ['Bag on stick: ', ' Wielder may move 3 reasonable items or 1 reasonable trap.']);
+    recipeMap.set(JSON.stringify({ cloth: true, feathers: false, honey: false, sticks: true, string: false }), ['Bag on stick: ', ' Wielder may move 3 reasonable items or 1 reasonable trap.']);
     recipeMap.set(JSON.stringify({ cloth: false, feathers: true, honey: false, sticks: false, string: true }), ['Fire Starter? ', ' Chance to destroy terrain feature. Win with a D6 vs D20.']);
     recipeMap.set(JSON.stringify({ cloth: true, feathers: false, honey: false, sticks: false, string: true }), ['Tunic: ', ' No damage is taken due to storm. Once effect activates, the items are wasted.']);
     recipeMap.set(JSON.stringify({ cloth: false, feathers: true, honey: true, sticks: false, string: false }), ['Sticky feather trap! ', ' Take 1 damage from targets rolls until they attempt to swim in or cross water (without a boat). Trap activates on D20: 3, 5, 11, Std Detection.']);

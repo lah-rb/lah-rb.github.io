@@ -350,18 +350,25 @@ If you have not already installed our pwa, check if your browser (and launcher i
   
 </div>
         <h1 class="text-3xl font-bold text-left my-4">Recipe Lookup</h1>
-        <p>
-          In Kipukas, you can craft recipes from base items. This page
-          details all the recipes for the first 5 item combinations in the founder's decks.
-          Just select the items that you want to craft and a recipe will appear! We made this 
-          page to showcase the game mechanic, particularly how flexible it behaves. For competition purposes,
-          these recipes will always be valid to use. As the game matures, we plan on giving out recipes 
-          with each order. These will be kept in each player's personal recipe book and they will only
-          be allowed to play recipes from within their books for competitive play.
-        </p>
-        <div class="flex m-4 justify-center h-40">
+        <div class="md:flex md:flex-row md:gap-x-4">
+          <div class="outline outline-kip-drk-goldenrod p-4 pr-20 content-center w-fit h-fit">
+            
+              <div x-data="{ checked: false }" class="flex content-center"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100 place-self-center" :disabled="checkDisabled(items) && !checked" @click="items['cloth'] = !items['cloth'], checked = !checked" :checked="checked" name="items" id="items['cloth']"><label for="items['cloth']">Cloth</label></div>
+            
+              <div x-data="{ checked: false }" class="flex content-center"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100 place-self-center" :disabled="checkDisabled(items) && !checked" @click="items['feathers'] = !items['feathers'], checked = !checked" :checked="checked" name="items" id="items['feathers']"><label for="items['feathers']">Feathers</label></div>
+            
+              <div x-data="{ checked: false }" class="flex content-center"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100 place-self-center" :disabled="checkDisabled(items) && !checked" @click="items['honey'] = !items['honey'], checked = !checked" :checked="checked" name="items" id="items['honey']"><label for="items['honey']">Honey</label></div>
+            
+              <div x-data="{ checked: false }" class="flex content-center"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100 place-self-center" :disabled="checkDisabled(items) && !checked" @click="items['sticks'] = !items['sticks'], checked = !checked" :checked="checked" name="items" id="items['sticks']"><label for="items['sticks']">Sticks</label></div>
+            
+              <div x-data="{ checked: false }" class="flex content-center"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100 place-self-center" :disabled="checkDisabled(items) && !checked" @click="items['string'] = !items['string'], checked = !checked" :checked="checked" name="items" id="items['string']"><label for="items['string']">String</label></div>
+            
+          </div>
+          <div x-init="$watch( 'items', value => recipe = recipeBook(value) )" class="pt-4 content-center"><p><strong class="text-xl" x-text="recipe[0]"></strong><br><span x-text="recipe[1]"></span></div>
+        </div>
+        <div class="flex flex-wrap m-4 justify-center md:h-40 gap-4">
           
-          <p class="text-7xl content-center" x-transition x-show="items['cloth'] && checkFirst('cloth', items )">+</p>
+            <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['cloth'] && checkFirst('cloth', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['cloth']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
             srcset="
             /assets/thumbnails/x1/cloth.webp 1x,
@@ -371,7 +378,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             /assets/thumbnails/x5/cloth.webp 5x,
             " alt="cloth"></img>
           
-          <p class="text-7xl content-center" x-transition x-show="items['feathers'] && checkFirst('feathers', items )">+</p>
+            <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['feathers'] && checkFirst('feathers', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['feathers']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
             srcset="
             /assets/thumbnails/x1/feathers.webp 1x,
@@ -381,7 +388,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             /assets/thumbnails/x5/feathers.webp 5x,
             " alt="feathers"></img>
           
-          <p class="text-7xl content-center" x-transition x-show="items['honey'] && checkFirst('honey', items )">+</p>
+            <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['honey'] && checkFirst('honey', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['honey']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
             srcset="
             /assets/thumbnails/x1/honey.webp 1x,
@@ -391,7 +398,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             /assets/thumbnails/x5/honey.webp 5x,
             " alt="honey"></img>
           
-          <p class="text-7xl content-center" x-transition x-show="items['sticks'] && checkFirst('sticks', items )">+</p>
+            <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['sticks'] && checkFirst('sticks', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['sticks']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
             srcset="
             /assets/thumbnails/x1/sticks.webp 1x,
@@ -401,7 +408,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             /assets/thumbnails/x5/sticks.webp 5x,
             " alt="sticks"></img>
           
-          <p class="text-7xl content-center" x-transition x-show="items['string'] && checkFirst('string', items )">+</p>
+            <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['string'] && checkFirst('string', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['string']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
             srcset="
             /assets/thumbnails/x1/string.webp 1x,
@@ -412,21 +419,17 @@ If you have not already installed our pwa, check if your browser (and launcher i
             " alt="string"></img>
           
         </div>
-        <div class="md:grid md:grid-cols-2">
-          <div class="outline outline-kip-drk-goldenrod p-6 content-center">
-            
-              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['cloth'] = !items['cloth'], checked = !checked" :checked="checked" name="items" id="items['cloth']"><label for="items['cloth']">Cloth</label></div>
-            
-              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['feathers'] = !items['feathers'], checked = !checked" :checked="checked" name="items" id="items['feathers']"><label for="items['feathers']">Feathers</label></div>
-            
-              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['honey'] = !items['honey'], checked = !checked" :checked="checked" name="items" id="items['honey']"><label for="items['honey']">Honey</label></div>
-            
-              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['sticks'] = !items['sticks'], checked = !checked" :checked="checked" name="items" id="items['sticks']"><label for="items['sticks']">Sticks</label></div>
-            
-              <div x-data="{ checked: false }"><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="checkDisabled(items) && !checked" @click="items['string'] = !items['string'], checked = !checked" :checked="checked" name="items" id="items['string']"><label for="items['string']">String</label></div>
-            
-          </div>
-          <div x-init="$watch( 'items', value => recipe = recipeBook(value) )" class="p-6 content-center"><p><strong class="text-xl" x-text="recipe[0]"></strong><br><span x-text="recipe[1]"></span></div>
+        <div>
+          <h2 class="text-xl"><strong>About the lookup</strong></h2>
+          <p>
+            In Kipukas, you can craft recipes from base items. This page
+            details all the recipes for the first 5 item combinations in the founder's decks.
+            Just select the items that you want to craft and a recipe will appear! We made this 
+            page to showcase the game mechanic, particularly how flexible it behaves. For competition purposes,
+            these recipes will always be valid to use. As the game matures, we plan on giving out recipes 
+            with each order. These will be kept in each player's personal recipe book and they will only
+            be allowed to play recipes from within their books for competitive play.
+          </p>
         </div>
       </div>
     </div>
