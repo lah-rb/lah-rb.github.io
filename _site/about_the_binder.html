@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards." />
 <meta property="og:description" content="Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards." />
-<link rel="canonical" href="https://www.kipukas.cards/about_the_binder" />
-<meta property="og:url" content="https://www.kipukas.cards/about_the_binder" />
+<link rel="canonical" href="http://0.0.0.0:4000/about_the_binder" />
+<meta property="og:url" content="http://0.0.0.0:4000/about_the_binder" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="About the Binder" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards.","headline":"About the Binder","url":"https://www.kipukas.cards/about_the_binder"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Binders hold a collection of like items, traditionally paper. This is the Kipukas digital binder, a place that will forever hold all the important play information for our cards.","headline":"About the Binder","url":"http://0.0.0.0:4000/about_the_binder"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -184,7 +184,7 @@ background_color
   </div>
   
 
-  <div  class="grid grid-cols-1">
+  <div x-show="showTools" x-collapse  class="grid grid-cols-1">
     
       <script>
     let deferredPrompt;
@@ -323,6 +323,12 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </a>
     
   </div>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+    @click="showTools = !showTools" :class="{ 'rotate-180': !showTools }" x-transition
+    class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 mb-2 place-self-center">
+    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+  </svg>
   
   
 </div>

@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic." />
 <meta property="og:description" content="In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic." />
-<link rel="canonical" href="https://www.kipukas.cards/recipes" />
-<meta property="og:url" content="https://www.kipukas.cards/recipes" />
+<link rel="canonical" href="http://0.0.0.0:4000/recipes" />
+<meta property="og:url" content="http://0.0.0.0:4000/recipes" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Item Recipe Lookup" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic.","headline":"Item Recipe Lookup","url":"https://www.kipukas.cards/recipes"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"In Kipukas, you can craft recipes from base items. This page details all the recipes for the first 5 item combinations to showcase the mechanic.","headline":"Item Recipe Lookup","url":"http://0.0.0.0:4000/recipes"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -207,7 +207,7 @@ background_color
   </div>
   
 
-  <div  class="grid grid-cols-1">
+  <div x-show="showTools" x-collapse  class="grid grid-cols-1">
     
       <script>
     let deferredPrompt;
@@ -346,6 +346,12 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </a>
     
   </div>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
+    @click="showTools = !showTools" :class="{ 'rotate-180': !showTools }" x-transition
+    class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 mb-2 place-self-center">
+    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+  </svg>
   
   
 </div>
