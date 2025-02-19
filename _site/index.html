@@ -161,7 +161,7 @@ background_color
     x-cloak
     class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
     <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-    <div><a href="/web/viewer.html#pagemode=none" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
+    <div><a href="/game_rules/rules.html" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
     <!-- encodeURIComponent should be used later to navigate to the pdf after a ? in the URL once we have more PDFs to link to -->
     <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>
     <div><a href="/privacy_policy" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Privacy Policy</a></div>
@@ -257,7 +257,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
             This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
         </p>
   
-        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
           Install
         </button>
   
@@ -294,7 +294,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
 
         </p>
   
-        <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+        <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
           Accept & Continue
         </button>
   
@@ -307,7 +307,8 @@ If you have not already installed our pwa, check if your browser (and launcher i
   </div>
 
 <!-- Video for scanning QRs -->
-<div x-cloak class="z-30 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 rounded-lg transition delay-150">
+<div x-cloak class="z-30 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 rounded-lg transition delay-150" 
+x-show="showScanner && !noCamera && videoReady">
   <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
     width="640" height="480">
   </canvas>
@@ -494,7 +495,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
    grid grid-cols-1 h-fit w-40">
         <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 1 }">
             <input type="range" name="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
-            <button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
+            <button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
         </div>
     </div>
     <div x-data="{showAlarms: $persist(true)}" class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0">

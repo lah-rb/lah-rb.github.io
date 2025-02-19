@@ -10,6 +10,7 @@ module.exports = {
     './_data/*.{html,js,yml}',
     './_includes/*.{html,js,yml}',
     './sections/*.{html,js,yml}',
+    './game_rules/*.{html,js,yml}',
   ],
   safelist: [
     'grid-cols-3',

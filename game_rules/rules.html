@@ -1,0 +1,2051 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Kipukas Rules</title>
+
+    <meta name="description" content="Online description of how to play Kipukas">
+    <meta name="author" content="Luke Hayes">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../assets/css/output.css">
+    <link rel="stylesheet" href="dist/reset.css">
+    <link rel="stylesheet" href="dist/reveal.css">
+    <link rel="stylesheet" href="dist/theme/sky.css" id="theme">
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css">
+
+</head>
+
+<body>
+
+    <div class="reveal">
+        <!-- Any section element inside of this container is displayed as a slide -->
+        <div class="slides">
+            <section id="welcome" data-name="Welcome and Navigation">
+                <section id="overview">
+                    <h2>Hey there!</h2>
+                    <p>
+                        Welcome to the Kipuka! <b><i>I am glad you are here</i> and want to play by the rules.</b>
+                        We have put a lot of time into organizing our rules to make viewing pleasurable on a variety of
+                        device
+                        and still look good on paper. Before we dive into the rules lets go over navigating the rules.
+                        <b>Click the down arrow</b> to continue reading this section.
+                    </p>
+
+                    <div class="w-fit text-slate-400 flex place-items-center">
+                        <a href="?print-pdf" @click="setTimeout(() => window.print(), 1000);">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                class="h-28 !m-5 stroke-1 fill-none stroke-slate-400">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                            </svg>
+                        </a>
+                        <p class="self-center">
+                            Make Me Printable! <br> Tip: Convert to PDF & select multi-page layout to reduce paper usage.
+                            (Each page has only a bite of information to make it digestable, but this eats a lot of paper.)
+                        </p>
+                    </div>
+
+                </section>
+                <section>
+                    <h3>You made it!</h3>
+                    <p>
+                        When you are ready you can click the right arrow to advance to the first part of the rules.
+                        We would like to show you one quick thing first, so kindly <b>click the down button</b> again.
+                    </p>
+                </section>
+                <section>
+                    <a href="#links"><img src="./images/k.svg" alt="back to links"></a>
+                    <p>When you see our logo you can click it to take you to our links page.</p>
+                </section>
+                <section>
+                    <a href="https://www.kipukas.cards/">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                            class="h-96 stroke-1 fill-slate-100 stroke-slate-400">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                        </svg>
+                    </a>
+                    <p>Also when you click the book icon, it will take you back to the binder homepage.</p>
+                </section>
+            </section>
+            <section id="toc">
+                <div class="grid grid-rows-3">
+                    <h2 class="grid-span-2">Table of Contents</h2>
+                    <div class="menubar !text-3xl h-3/4 w-3/4 justify-center content-center static">
+                        <ul class="menu"></ul>
+                    </div>
+                </div>
+            </section>
+            <section id="forward" data-name="Game Forward">
+                <section>
+                    <h2>Game Forward</h2>
+                    <p>You may skip if you prefer</p>
+                </section>
+                <section>
+                    <p>
+                        Kipukas is a game which draws the best concepts from creature card games
+                        and melds them with land conquering play. While I have personally enjoyed
+                        playing in other competitive card based games, I grew frustrated with
+                        becoming attached to certain characters, styles, and strategies only to have
+                        them become re-released, competitively invalid by the latest deck release, or
+                        banned due to corporate oversight. On top of this, game companies tend to
+                        produce very poor quality cards which are not meant to last, yet some manage
+                        to reach unfathomable prices not worthy of the underlying paper. Kipukas
+                        seeks to be different. I want Kipukas, both as a game and a durable good, to
+                        outlast myself. By making cards which are updatable without new releases, we
+                        keep all the cards we produce competitively relevant. Additionally, with most
+                        cards produced at extremely low rates, Kipukas challengers are much more
+                        diverse and play mechanics are protected from having to be changed due to
+                        our oversight. While most land conquering games are enjoyable as well as
+                        strategically challenging, I was dissatisfied with the amount of pure luck the
+                        games hinge on. By combining with the complex card v. card mechanics,
+                        Kipukas battles feel more engaging, all the while retaining the larger scale
+                        strategies of the land conquering play. While complex and entertaining play is
+                        great, I want Kipukas to take on deep meaning and help spread that to many
+                        wonderful people in this world. Kipukas will set industry standards for
+                        innovative play, company interaction and support of fan base, and
+                        environmental impact. Additionally, I hope many find Kipukas as enjoyable as
+                        I have found my competition. Better yet, more so.
+                    </p>
+                    <img src="./images/initials.svg" class="absolute right-0" alt="LAH">
+                </section>
+            </section>
+            <section id="background" data-name="Game Background">
+                <section>
+                    <h2>Background</h2>
+                    <p>May also be skipped</p>
+                </section>
+                <section>
+                    <p>
+                        Kipukas is a visualization of a world where society creates new worlds as they
+                        see fit. Each of these worlds are known as kipuka, which comes from the
+                        Hawaiian word for 'land between lava flows', and is symbolic of the destruction
+                        and rebirth of worlds. Cloning and genetic manipulation are the preferred
+                        methods of populating, expanding, and manipulating the worlds. In the game,
+                        the kipukas are represented by the 3D game map and the souls take life in the
+                        cards. The game represents the strife to control the world, while the players
+                        provide the motivation for the strife. The companion book series, Conscious
+                        Territory, which takes a deep dive into these concepts, is in progress with the
+                        first three chapters released and ready for reading. I have personally enjoyed
+                        working the concepts and hope you will enjoy contemplating them as well.
+                    </p>
+                    <img class="h-96" src="./images/front_cover.jpeg" alt="ConsciousTerritory Cover">
+                </section>
+            </section>
+            <section id="win" data-name="Winning the Game">
+                <h2>Objective: Conquer</h2>
+                <h3>Winning the game</h3>
+                <p>
+                    Get off to a good start and establish base camps across the board. Win fights
+                    and think strategically to take your frenemies base camps and if you dare their
+                    capital! Once one player claims all base camps and capitals, they dominate the
+                    kipuka and win the game.
+                </p>
+            </section>
+            <section id="pieces" data-name="Required Game Pieces">
+                <section>
+                    <h2>Required Game Pieces</h2>
+                    <p>Let's go over the pieces for a 2 player game</p>
+                    <p class="!italic">These are almost all provided in the starter kit for 2 players</p>
+                </section>
+                <section>
+                    <dl class="!text-4xl">
+                        <dt>
+                            Personal Player Devices
+                        <dd>
+                            Practically any Android or Apple Phone, laptop computer will work with our game.
+                            If you want to use are QR codes (highly recommended) it will need a camera.
+                            This one is up to you to provide; we are not Oprah.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Token Sets
+                        <dd>
+                            Set includes 10 Soul tokens, 11 Base Camp tokens, and a Capital token
+                            <div class="grid grid-cols-3">
+                                <div>
+                                    <img src="./images/capital.jpeg" alt="capital token">
+                                    <p><b>Capital:</b> The hardest area to take</p>
+                                </div>
+                                <div>
+                                    <img src="./images/basecamp.jpeg" alt="base camp token">
+                                    <p><b>Base Camp:</b> The standard base of operations</p>
+                                </div>
+                                <div>
+                                    <img src="./images/soul_token.jpeg" alt="soul token">
+                                    <p><b>Soul Token:</b> Reveals a souls position on the map</p>
+                                </div>
+                            </div>
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+                <section>
+                    <dl class="!text-4xl">
+                        <dt>
+                            Dice Sets
+                        <dd>
+                            Set includes 2 six sided dice, a 20 sided die, and a Diel Die
+                            <div class="grid grid-cols-3">
+                                <div>
+                                    <img src="./images/d6.jpeg" alt="d6">
+                                    <p><b>D6:</b> A die with 6 faces</p>
+                                </div>
+                                <div>
+                                    <img src="./images/diel_die.jpeg" alt="diel die">
+                                    <p><b>Diel Die</b> Controls the day, night and storm cycle</p>
+                                </div>
+                                <div>
+                                    <img src="./images/d20.jpeg" alt="d20">
+                                    <p><b>D20:</b> A die with more faces!</p>
+                                </div>
+                            </div>
+                        </dd>
+                        </dt>
+                        <dt>
+                            3D Kipuka Map
+                        <dd>
+                            This is the field of play where the souls move, battle, and claim
+                            <img src="./images/map_perspective.jpeg" alt="d20">
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+                <section>
+                    <dl class="!text-4xl">
+                        <dt>
+                            Field Mat
+                        <dd>
+                            This organizes the play by keeping track of which cards are in which territory
+                        </dd>
+                        </dt>
+                        <dt>
+                            Card Decks
+                        <dd>
+                            One deck per player. Both must be built with 30 cards and should meet the criteria listed at
+                            <a href="#building_decks">Building Decks</a>
+                        </dd>
+                        </dt>
+                        <dt>
+                            Phone Stands
+                        <dd>
+                            These make scanning the QR codes nice and easy
+                        </dd>
+                        </dt>
+                        <dt>
+                            Game Rules
+                        <dd>
+                            You are here. These are avaliable on the card binder, kipukas.cards, for digital viewing or
+                            printing.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Mini Dry Erase Boards (and Pens)
+                        <dd>
+                            These are for used for aspects of attack and defense
+                        </dd>
+                        </dt>
+                        <dt>
+                            Friend
+                        <dd>
+                            We can’t provide this one. We measured, they don’t fit in the box. <br>
+                            Even if we succeeded, “Friend” would be a strong word.
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+            </section>
+            <section id="conventions" data-name="Conventions, Courtesy, and Quarks">
+                <section>
+                    <h2>Conventions, Courtesy, and Quarks</h2>
+                    <p>
+                        Kipukas relies on cards, small game pieces, a game board, and a mat for play and
+                        organization. The cards we produce do not include the play mechanics on the
+                        card as, to my knowledge, all other card companies do. Instead, we let the artist’s
+                        work be as big and beautiful as possible. In fact, we do not even let the name of the
+                        card get in the way of showcasing artists talent. Instead, we have made the play data
+                        for every card we produce accessible from the QR code printed on their back.
+                    </p>
+                </section>
+                <section>
+                    <div class="grid grid-cols-2">
+                        <img src="./images/hilbert_king_of_avian_frogs.jpeg" alt="hilbert winged frog">
+                        <img src="./images/hilbert_king_of_avian_frogs_back.jpeg" alt="back hilbert winged frog">
+                    </div>
+                    <p>(above) Front and back of a the Kipukas card ”Hilbert: King of Avian Frogs”.</p>
+                </section>
+                <section>
+                    <p>
+                        In order to make this process as user-friendly as possible, we have included a private site only
+                        QR scanner which runs locally on your device on our web app. At kipukas.cards click the QR button
+                        in the tool bar, accept the privacy statement, then a camera will pop up. Give the beautiful face
+                        presented a gracious smile and show a card to the scanner. It will take you to that cards play data
+                        page. If for some reason you need to cancel scanning, you can click eye in the top left of the scanner to close it.
+                        This scanner only works for QR codes which pattern match against kipukas playing cards.
+                        The scanner will work best during a game if your device does not sleep during the play through.
+                        It is optional or recommended use or install a caffine mode for this purpose. Keeping your
+                        device
+                        plugged in during the game is also recommended. I hope you don't mind terrible selfies, because
+                        I screenshot one to show how this works. BTW I am holding the card way too far away on purpose
+                        for the shot. The QR code should take up most of the camera frame.
+                    </p>
+                    <div class="grid grid-cols-1">
+                        <img src="./images/QR_modal.png" alt="QR modal">
+                        <img src="./images/QR_scanner.png" alt="QR scanner">
+                    </div>
+                </section>
+                <section>
+                    <p>
+                        A last note about the cards. The center of the edge on the cards is colored to reflect
+                        their archetypal adaptation. This is a unique feature that allows players to see what
+                        type of card is on its way. Take advantage!
+                        <br><br>
+                        Kipukas uses many small game pieces to keep track of play. All pieces should be
+                        treated as <b>choking hazards for children and pets!</b> Do not let children under
+                        3 years of age or pets play with the pieces, especially unsupervised.
+                        When play has concluded, it is the responsibility of the legal guardians to keep
+                        the pieces safely organized in the box and the box out of reach of children and pets.
+                        <br><br>
+                        By continuing to play with our products, you acknowledge that Kipukas accepts no
+                        liability for damages incurred by the misuse of our products.
+                    </p>
+                </section>
+                <section>
+                    <p>
+                        The following image shows an example of our game board, a.k.a. the map or kipuka.
+                        For your convenience, it is labeled with token placement and boundary line nomenclature.
+                    </p>
+                    <div class="grid grid-cols-2">
+                        <img src="./images/map_top.jpeg" alt="game board top view pic">
+                        <img src="./images/12_slot_rec_mat.jpg" alt="mat top view pic">
+                    </div>
+                    <p>
+                        Note the numbers on each base camp stand. This is the reference for that territory.
+                        The following is an example of a mat that would be paired with the above map.
+                    </p>
+                    <p>
+                        The slot numbers reference the territory numbers on the board. When cards are
+                        played, they are played on these slots. Once a soul token moves between territories,
+                        their corresponding card is moved from the old territory slot to the new territory slot on the
+                        mat.
+                    </p>
+                </section>
+            </section>
+            <section id="game_setup" data-name="Game Setup">
+                <h2>Game Setup</h2>
+                <div class="!text-4xl">
+                    <ol class="h-screen">
+                        <li>
+                            Place the 3D map on the outlined square printed on the mat. Gather and place the required
+                            game pieces
+                            next to both players.
+                        </li>
+                        <li>
+                            Unlock your device, turn on caffeine mode, then visit kipukas.cards (ideally on
+                            a chormium based browser) with your devices camera facing you.
+                        </li>
+                        <li>
+                            Each player declares an affinity for one archetypal adaptation for use over the duration of
+                            the game.
+                            Say “The blank are my crux.” where blank is an archetypal adaptation. For example, “The
+                            brutal are my
+                            crux.” (See <a href="#affinity">Affinity</a> for more information) (For a list of archetypal
+                            adaptations, see
+                            <a href="#adaptations">Character and Species (Soul) Cards: archetypal adaptations</a>)
+                        </li>
+                        <li>
+                            To determine who places first, see if any player would prefer to place first and play
+                            second.
+                            If either everyone or no one wants to place first, both players roll a 6 sided die. The
+                            higher roll
+                            places first and takes their turn second within a diel cycle roll for the duration of the
+                            game.
+                        </li>
+                        <li>
+                            One player takes the first territory by placing their capital, the other
+                            player then takes a territory with their capital. After this, each player
+                            makes claims with base camps until both players have 3 territories. This
+                            will leave 2 to 4 territories unclaimed, depending on the map in use
+                        </li>
+                        <li>
+                            Place the personal effect card that you will be using in front of you. You
+                            are not obligated to reveal what it does until you use it. If you do not
+                            have a personal effect card, use the default effect. (See <a
+                                href="#personal_effects">Personal Effects</a>
+                            for more information) Note: Founder’s Deck and Starter Decks
+                            do not include personal effect cards
+                        </li>
+                        <li>
+                            Respectfully shuffle each other’s decks, then hand the deck back to its
+                            owner. <b>DON’T BRIDGE THE CARDS!</b> Slide the cards along one
+                            another, lifting then placing small groups to change the card order.
+                            Remember that these cards are fine art and should be respected as such!
+                        </li>
+                        <li>
+                            Draw three cards from the top of the deck
+                            <br><br>
+                            <i>
+                                <b>NOTE:</b> This is your <b>absolute max</b> hand size. You cannot have
+                                more than three cards in your hand at any given time. Also, you
+                                cannot play more than 3 cards from your hand within a diel roll
+                            </i>
+                        </li>
+                        <li>
+                            Begin the game on the turn of the player who placed their capital
+                            second. The first diel cycle is always day, followed by night. In this way,
+                            both players get the chance to play cards and refresh their hand once
+                            before diel cycle rolling starts
+                        </li>
+                    </ol>
+                </div>
+            </section>
+            <section id="diel_cycle" data-name="Diel Cycle and Turn Advancement">
+                <section>
+                    <h2>Diel Cycle and Turn Advancement</h2>
+                    <p>
+                        If you followed along up to this point, you should now be ready to play the
+                        game! Let’s go! The first thing you need to do is roll the diel die. It has faces
+                        that show a sun (day), a moon (night), and lighting (storm). This roll
+                        dictates the actions you can take over the course of this turn (one player’s
+                        actions during the diel cycle), as outlined below. Numbers indicate the
+                        sequence of actions.
+                        <br><br>
+                        <b>Each diel roll, and its turn actions, apply to all players.</b>
+                    </p>
+                </section>
+                <section id="day">
+                    <h3>Day Roll (Sun)</h3>
+                    <ol>
+                        <li>
+                            If enemies are in your territory, choose to attack or retreat (See
+                            <a href="#ADR">Attack, Defense, and Retreat</a> as well as
+                            <a href="#contention">Maps (The Kipukas): Claiming Territories: Contention</a>
+                            for more information)
+                        </li>
+                        <li>
+                            Once you have resolved enemies, if any, in your territory you may skip
+                            the rest of this diel cycle if you don’t see a good move to make.
+                        </li>
+                        <li>
+                            After addressing contention, you can place one card into play. This can
+                            be a terrain feature, trap, or soul in revealed or unrevealed position on a
+                            territory you control. (See <a href="#card_variations">Card Variations</a> for more
+                            information)
+                        </li>
+                        <li>
+                            Reveal anor 1 move souls to adjacent spaces within their movement
+                            range if desired (See <a href="#movement">Maps (The Kipukas): Movement</a> for
+                            more information)
+                            <ul>
+                                <li>
+                                    Upon movement into a territory where your opponent has
+                                    unrevealed cards, your opponent will have you roll a D20 for trap
+                                    activation. If one of these cards becomes activated, deal with the
+                                    consequences. If no cards are activated, roll for detection. (See
+                                    <a href="#card_activation">Card Activation
+                                        Sequence</a>
+                                    and <a href="#traps">Trap Cards</a> for more information)
+                                </li>
+                                <li>
+                                    If the transit or base camp stand that you moved onto is occupied,
+                                    then attack the soul(s) in that space. You may wait until other
+                                    souls have moved into the space to attack, but you must attack
+                                    before the next diel cycle roll. (See
+                                    <a href="#ADR">Attack, Defense, and Retreat</a> for more information)
+                                </li>
+                                <li>
+                                    If the space occupied is a base camp, and it is not under
+                                    contention, place or replace a base camp token on the territory.
+                                    (See <a href="#claiming_territories">Maps (The Kipukas): Claiming Territories</a>
+                                    for
+                                    more information)
+                                </li>
+                            </ul>
+                        </li>
+                    </ol>
+                </section>
+                <section id="night">
+                    <h3>Night Roll (Cresent Moon)</h3>
+                    <ol>
+                        <li>
+                            If you so desire, you can discard 1 card from your hand.
+                        </li>
+                        <li>
+                            Draw cards to fill your hand back to three cards if your hand is
+                            diminished.
+                        </li>
+                        <li>
+                            You may choose to craft any items, then play or hide them.
+                            (See <a href="#crafting">Item Cards: Crafting</a> for more info)
+                        </li>
+                        <li>
+                            You may play a sabotage card before the night
+                            concludes. (See <a href="#sabotage">Sabotage cards</a> for more info)
+                        </li>
+                    </ol>
+                </section>
+                <section id="storm">
+                    <h3>Storm Roll (Wind)</h3>
+                    <p>
+                        Take Shelter! If a storm is rolled, any card caught in it i.e. not within a
+                        capital or base camp will take KEAL means damage and any downed cards
+                        will be removed from play. (See
+                        <a href="#keal_means_DHT">KEAL Means Damage, Healing, and Tolerance</a>
+                        for more information) Storm rolls apply to both players
+                    </p>
+                </section>
+            </section>
+            <section id="card_variations" data-name="Card Variations">
+                <section>
+                    <h2>Card Variations Used in Game Play</h2>
+                    <p class="!text-4xl">
+                        In Kipukas there are several types of cards that compose a deck which are
+                        listed below with a qr code link to an example of the variation. Each has its
+                        own section to describe their specific role in the game play. Click the QR codes
+                        to see a representative member of each card type.
+                    </p>
+                    <div class="grid grid-cols-2 grid-rows-3">
+                        <div>
+                            <a href="#character_species">Character and Species Cards</a>
+                            <a href="https://www.kpks.us/HMPU">
+                                <img class="w-40" src="./images/hilbert_king_of_avian_frogs_qr.jpeg" alt="Character QR">
+                            </a>
+                            <p>Take and defend territories. a.k.a. soul cards</p>
+                        </div>
+                        <div>
+                            <a href="#terrain_features">Terrain Feature Cards</a>
+                            <a href="https://www.kpks.us/ioqs">
+                                <img class="w-40" src="./images/palace_of_the_allele_sect_qr.jpeg" alt="Terrain QR">
+                            </a>
+                            <p>Modify play within a territory</p>
+                        </div>
+                        <div>
+                            <a href="#traps">Trap Cards</a>
+                            <a href="https://www.kpks.us/K_vJ">
+                                <img class="w-40" src="./images/feeding_the_piffions_qr.jpeg" alt="Trap QR">
+                            </a>
+                            <p>Act as passive defenses</p>
+                        </div>
+                        <div>
+                            <a href="#sabotage">Sabotage Cards</a>
+                            <a href="https://www.kpks.us/fFvj">
+                                <img class="w-40" src="./images/onironauta_qr.png" alt="Sabotage QR">
+                            </a>
+                            <p>Interfear with your opponent at night</p>
+                        </div>
+                        <div>
+                            <a href="#items">Item Cards</a>
+                            <a href="https://www.kpks.us/ro1A">
+                                <img class="w-40" src="./images/honey_qr.jpeg" alt="Item QR">
+                            </a>
+                            <p>Build or bolster cards</p>
+                        </div>
+                        <div>
+                            <a href="#personal_effects">Personal Effect Cards</a>
+                            <a href="https://www.kpks.us/aS1Q">
+                                <img class="w-40" src="./images/location_of_the_deep_apothecary_shop_qr.png" alt="Personal Effect QR">
+                            </a>
+                            <p>Grant players an effect for the duration of the game</p>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h3>Allele</h3>
+                    <p>
+                        These are the slight variations between cards. Some variations are planned,
+                        while others are spontaneous. These may include changes in presentation,
+                        play characteristics, etc.
+                    </p>
+                </section>
+            </section>
+            <section id="roll_modifiers" data-name="Roll Modifiers">
+                <section>
+                    <h2>What modifies a roll?</h3>
+                        <dl>
+                            <dt>
+                                Apply effect to all battle rolls:
+                            <dd>
+                                <b>Affinity Type</b> If the card’s archetypal adaptation matches the player’s
+                                declared <a href="#affinity">affinity</a> type, apply the bonus
+                            </dd>
+                            </dt>
+                            <dt>
+                                Apply effect to KEAL means rolls:
+                            <dd>
+                                <b>Habitat</b> When the <a href="#geography">geography</a> of a territory matches a soul’s
+                                habitat
+                                apply the primary habitat bonus; otherwise, check if the secondary
+                                bonus applies.
+                            </dd>
+                            <dd>
+                                <b>Archetypal Material</b> Check if the <a href="#materials">archetypal materials</a>
+                                interact using
+                                the fists tool on kipukas.cards. If so, apply modifier to attack roll.
+                            </dd>
+                            </dt>
+                            <dt>
+                                Apply effect to final attack rolls:
+                            <dd>
+                                <b>Archetypal adaptions</b> Check for interactions in the fists tool on kipukas.cards.
+                                Apply the modifier shown to the attack roll.
+                            </dd>
+                            <dd>
+                                <b>Motivation</b> Check table for <a href="#motivation">motives</a> modifier interactions.
+                            </dd>
+                            </dt>
+                            <dt>
+                                Apply effect at direction of card:
+                            <dd>
+                                <b>Terrain Feature</b> Within a territory where a <a href="#terrain_features">terrain
+                                    feature</a> has been
+                                staked, roll modifiers are applied, where applicable, to any card
+                                currently within the territory.
+                            </dd>
+                            <dd>
+                                <b>Traps</b> Once triggered, certain <a href="#traps">traps</a> attach to soul(s) then
+                                modify
+                                future rolls. Specifics dictated by the trap card in question.
+                            </dd>
+                            <dd>
+                                <b>Items</b> Players may attach certain <a href="#items">items</a> and crafted items to a
+                                soul,
+                                which modifies that card’s rolls according to the specific card or
+                                recipe.
+                            </dd>
+                            <dd>
+                                <b>Personal Effects</b> Play specifics vary with the <a href="#personal_effects">personal
+                                    effect</a>, but generally target one player globally through the game.
+                            </dd>
+                            </dt>
+                        </dl>
+                    </section>
+                    <section id="card_activation">
+                        <h3>Card Activation Sequence</h3>
+                        <ol>
+                            <li>Trap cards activated</li>
+                            <li>Trap cards detected</li>
+                            <li>Terrain feature card</li>
+                            <li>Revealed entities</li>
+                            <li>Unrevealed entities</li>
+                        </ol>
+                    </section>
+            </section>
+            <section id="character_species" data-name="Character and Species Cards">
+                <section>
+                    <h2>Character and Species (Collectively Soul) Cards</h2>
+                    <p>
+                        These cards are the soul of Kipukas. Species cards tell the story of a species
+                        as a whole, while characters tell the story of an individual within a species.
+                        Until tameability is fully implemented, no playable differences between
+                        character and species cards exist. Throughout this guide, we refer to these as
+                        souls or soul cards when the context applies to both characters and species.
+                        Most souls have the ability to move and interact with traps and items, unless
+                        otherwise stated. (See <a href="#traps">Trap Cards</a> and <a href="#items">Item Cards</a> for
+                        more information)
+                        We encourage you to develop story lines for your favorite cards to make the
+                        game more imaginative and personal. These should be pliable details each
+                        player develops through play in order to form the soul’s personality. If you
+                        learn by example better than explanation, read Typing summary and example
+                        below first and check our website kipukas.us for game play through videos
+                        which I will post as interest grows.
+                    </p>
+                </section>
+                <section id="keal_means">
+                    <h2>KEAL Means</h2>
+                    <p>
+                        Each card has a unique set of qualities used in attack and defense called
+                        KEAL means. These must be injured or broken to defeat the card. (See
+                        <a href="#ADR">Attack, Defense, and Retreat</a> for more information) If a KEAL means
+                        becomes injured/broken, then the card which did so may not attack that
+                        KEAL means until it becomes healed. Other souls may; however, attack
+                        the injured KEAL means. Each part is composed of a material with
+                        archetypal qualities and is influenced by the habitat of the soul. By the way,
+                        KEAL stands for <u>K</u>eep <u>E</u>veryone <u>AL</u>ive and emphasizes the importance
+                        of every card you play.
+                    </p>
+                </section>
+                <section id="materials">
+                    <h3>Archetypal Material</h3>
+                    <p>
+                        KEAL means represent some physical trait or object that helps represent
+                        the soul it belongs to. These are all made of some manner of matter or
+                        energy, and can be thought of as materials. These materials share the same
+                        archetypal adaptations presented in the soul type chart. The major difference
+                        is that a card’s soul type represents its general adaptations, where KEAL
+                        means specify the card’s individual preferences/traits. Where each card only
+                        has one archetypal adaptation in its soul type, each KEAL means may have
+                        up to three archetypal adaptations. These bonuses stack and counteract each
+                        other, where each archetypal adaptation of the attacking K. E. A. L. means
+                        interacts with each adaptation of the defending K. E. A. L. means.
+                    </p>
+                </section>
+                <section id="habitat">
+                    <h3>Habitat</h3>
+                    <p>
+                        This is where the soul was created to live. Group effects maybe applied based
+                        on habitat. Bonuses are applied to KEAL means bouts. See the next page for
+                        habitat types and effects also see <a href="#geography">Maps (The Kipukas): Geography</a>.
+                    </p>
+                </section>
+                <section>
+                    <dl class="md:w-screen !text-4xl">
+                        <dt class="!text-5xl">Mountain
+                        <dd>
+                            <b>Primary Effect:</b> Add 2 to mountain dweller rolls <br>
+                            <b>Secondary Effect:</b> Take two from plains dweller rolls
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Forest
+                        <dd>
+                            <b>Primary Effect:</b> Add 2 to forest dweller rolls <br>
+                            <b>Secondary Effect:</b> Take two from plains dweller rolls
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Plains
+                        <dd>
+                            <b>Primary Effect:</b> Add 3 to plains dweller rolls <br>
+                            <b>Secondary Effect:</b> Heal revealed souls in territory 1 KEAL Means per 2 turns
+                            rested, when not under contention
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Water
+                        <dd>
+                            <b>Primary Effect:</b> Aquatic dwellers move in water without boats or rolling to swim <br>
+                            <b>Secondary Effect:</b> Other souls swim by rolling 2 D6 and obtaining 2+2
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Heavens
+                        <dd>
+                            <b>Primary Effect:</b> Typically have high movement ability <br>
+                            <b>Secondary Effect:</b> Heavens dwellers may fly over spaces without interacting with the
+                            cards below
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Volcanic
+                        <dd>
+                            <b>Primary Effect:</b> Volcanic dwellers are immune to volcanic area damage <br>
+                            <b>Secondary Effect:</b> Souls take 1 KEAL means damage once per diel cycle
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Underground
+                        <dd>
+                            <b>Primary Effect:</b> Underground dwellers can travel through underground tunnels <br>
+                            <b>Secondary Effect:</b> Undergroud dwellers can make underground tunnels
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Digital Cloud
+                        <dd>
+                            <b>Primary Effect:</b> Occupy no space in territory <br>
+                            <b>Secondary Effect:</b> Are unable to take or hold base camps or capitals
+                        </dd>
+                        </dt>
+                        <dt class="!text-5xl">Nomad
+                        <dd>
+                            <b>Primary Effect:</b> Habitat effects do not apply to battles with nomads <br>
+                            <b>Secondary Effect:</b> Nomads swim by rolling a D6 with the result of 1 or 2
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+
+
+                <section id="soul_type">
+                    <h2>Soul Type</h2>
+                    <p>
+                        This is the predominate structure of the soul. After inflicting the necessary
+                        number of injuries on the card, you must best the card in a crushing final
+                        attack. This pits the inner-self of each soul against one another. Each soul
+                        possesses an archetypal adaptation and a motivation which effects the roll of a
+                        final blow attack.
+                    </p>
+                </section>
+                <section id="adaptations">
+                    <h3>Archeptypal Adaptations</h3>
+                    <p>
+                        These control the general physical makeup of the soul. Group effects might
+                        apply based on the soul’s genetic makeup. Use the fists tool on kipukas.cards
+                        to determine the typing match-up. This tool also supports <a href="#materials">archetypal
+                            materials</a>
+                        type match-up determination and the descriptions on the next
+                    </p>
+                    <img src="./images/fists_closed.png" alt="fists closed pic">
+                    <img src="./images/fists_open.png" alt="fists open pic">
+                </section>
+                <section>
+                    <h3>Archetypal Adaptations Overview</h3>
+                    <dl class="!text-4xl">
+                        <dt>
+                            Cenozoic
+                        <dd>
+                            Conforms to modern era evolution norms
+                        </dd>
+                        </dt>
+                        <dt>
+                            Decript
+                        <dd>
+                            Barely held together, hardly alive
+                        </dd>
+                        </dt>
+                        <dt>
+                            Angelic
+                        <dd>
+                            Beautiful, graceful, heavenly
+                        </dd>
+                        </dt>
+                        <dt>
+                            Burtal
+                        <dd>
+                            Conforms to modern era evolution norms
+                        </dd>
+                        </dt>
+                        <dt>
+                            Arboreal
+                        <dd>
+                            Look as if they live among the trees,
+                            Tend to be large, hairy, and predatory
+                        </dd>
+                        </dt>
+                        <dt>
+                            Astral
+                        <dd>
+                            Look as if they live among the stars,
+                            Tend to carry interesting adaptations
+                        </dd>
+                        </dt>
+                        <dt>
+                            Telekinetic
+                        <dd>
+                            Physical traits tend to receed in favor of greater mental control
+                        </dd>
+                        </dt>
+                        <dt>
+                            Glitch
+                        <dd>
+                            Genetic mishaps. Favor Fringe, goth, angsty, punk, anor techie flair
+                        </dd>
+                        </dt>
+                        <dt>
+                            Magic
+                        <dd>
+                            Spiritually adept with abilities to sense or manipulate the ’supernatural’
+                        </dd>
+                        </dt>
+                        <dt>
+                            Endothermic
+                        <dd>
+                            Excessively cold blooded and require outside heat to sustain bodily reactions,
+                            Tend to steal enough heat to freeze their surroundings
+                        </dd>
+                        </dt>
+                        <dt>
+                            Avain
+                        <dd>
+                            Of, relating to, or characteric of birds
+                        </dd>
+                        </dt>
+                        <dt>
+                            Mechanical
+                        <dd>
+                            Some call them robots, but these souls are as dependent on their chassis as people
+                            are as dependent on their bodies.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Algorithmic
+                        <dd>
+                            Machine sentient intelligence
+                            comes in many forms, but these
+                            are not dependent on any particu-
+                            lar chassis.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Energetic
+                        <dd>
+                            Bodies consist of highly energized
+                            matter, the total of their body
+                            might be split between dimensions
+                            or planes
+                        </dd>
+                        </dt>
+                        <dt>
+                            Entropic
+                        <dd>
+                            Embody chaos in one of its infinte forms,
+                            life is mearly an empirical quantitation
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+
+                <section id="motivation">
+                    <h2>Motivation</h2>
+                    <p>
+                        This is the other type considered for the final blow attack. Motivation reflects
+                        the soul’s purpose and drive. Motivation is broken into several groups, the
+                        first three show what the soul will fight to preserve and have bonuses as
+                        follows
+                    </p>
+                    <img src="./images/motive_table.png" alt="motive table">
+                    <img src="./images/motives.png" alt="motive diagram">
+                </section>
+
+                <section id="tameability">
+                    <h2>Tameability</h2>
+                    <p>
+                        α mechanic that applies only to species cards Some species are easy to
+                        work with while others are quite persnickety. The tameability scale represents
+                        this phenomenon. Other souls and equipment may need to be played in order
+                        to wrangle these species. 9 means the species is untameable (no amount of
+                        bonuses will tame them) while 0 means the species does not require taming.
+                        A species becomes tame once player affinity and effects are applied. At this
+                        point, the soul will be under the full control of the player. If the player
+                        chooses to play the creature untamed or the opponent reduces your control of
+                        the creature below its tameability then the creature becomes under its own
+                        influence. See Rouge Species below. Additionally, some cards can be played at
+                        a lower tameability rating without going rouge. However, not all of their
+                        KEAL means or play effects will be available for use at the lower affinity.
+                        Instead, they will require a higher player affinity to use these awesome
+                        abilities.
+                    </p>
+                </section>
+                <section id="rouge">
+                    <h3>Rouge Species</h3>
+                    <p>
+                        Each day, before either player’s turn, you must roll for the rouge species’
+                        movement. If the territory it moves into is occupied by souls you or your
+                        frenemy controls, it must attack all souls in the territory until either it or its
+                        enemies within the territory are defeated. Either player can choose to attack
+                        either a rouge soul or the other player’s souls during their normal or both
+                        should they have the cards to do so during their normal turn. Souls on the
+                        top of the card stack will be attacked first. If it defeats all soul cards in the
+                        territory, remove the claim token on the territory. Rouge species must roll
+                        against trap and terrain feature cards when applicable, then reap
+                        consequences as well as benefits. Rouge entities must be revealed. Failure to
+                        do so will result in an immediate victory for the opposite player. If a rouge
+                        soul manages to defeat a player, the other player must defeat or tame the
+                        rouge soul. Failure to do so will result in a dual defeat.
+                    </p>
+                </section>
+                <section>
+                    <h3>Taming Rouge Species</h3>
+                    <p>
+                        Either player can attempt to tame a rouge soul and bring it under their
+                        control. This will require boosting player affinity higher than the tameability
+                        of the soul using items and the player’s base affinity level. This is the same
+                        manner that species which require taming are placed normally. Taming occurs
+                        at the begining of the day cycle, before either player makes other moves.
+                    </p>
+                </section>
+
+                <section id="affinity">
+                    <h2>Affinity</h2>
+                    <p>
+                        The ultimate goal of affinity is to be a long term game play strategy alongside
+                        loyalties attached to the soul cards. When a full Kipukas phone application is
+                        developed, your affinity for certain types will increase as you declare them at
+                        the start of a game. Likewise, loyalty will increase a with the number of times
+                        that you play the soul card. (This is limited to once per day, except at
+                        tournaments, which will be once per match.) Loyalty will also increase if you
+                        came to own the card through an incubation card. When loyalty is high, the
+                        card will not need to be tamed. Until the app is developed, there will not be a
+                        loyalty tracker. In its place, players will add 1 to attack and defense rolls
+                        made for their declared type.
+                    </p>
+                </section>
+            </section>
+            <section id="ADR" data-name="Attack, Defense, Retreat, and Healing">
+                <section>
+                    <h2>Attack, Defense, Retreat, and Healing</h2>
+                    <h3>Defeating a Soul</h3>
+                    <p>
+                        In order to defeat a soul, you must first weaken them by injuring or breaking
+                        their KEAL means. This is accomplished by attacking with your soul’s
+                        KEAL means. Each soul has a certain KEAL means tolerance that it
+                        can take before becoming vulnerable to a final attack. See KEAL means
+                        count below. Modifiers are applied based on the KEAL means being used.
+                        (See <a href="#keal_means">Character and Species (Soul): KEAL Means</a> for more
+                        information) After an unsuccessful blow, the player loses their ability to
+                        attack with that card for this diel cycle. On the defender’s next turn, they
+                        must choose to attack or retreat. If an effect says souls take X damage, then
+                        the damage will apply to either the KEAL means or the final blow. If it
+                        applies to the final blow, the card becomes wasted and is <a href="#discarding_runout">discarded</a>
+                        without
+                        a final attack.
+                    </p>
+                </section>
+                <section id="keal_means_DHT">
+                    <h3>KEAL Means Damage, Healing, and Tolerance</h3>
+                    <p>
+                        As souls accrue injuries (lose KEAL means), their tolerance for new injuries
+                        becomes smaller. Injuries usually occur one at a time, but some can inflict
+                        multiple at once. See below for an example. Some can even defeat souls
+                        without contest under the correct conditions. Injuries should be noted on the
+                        KEAL Means Damage Tracker on the cards page on kipukas.cards. When any card’s
+                        KEAL means count reaches the last number, they become downed. This means they can’t
+                        take any more punishment and become vulnerable to being engaged in a final
+                        attack. If the card either survives a final attack or is not engaged in a final
+                        attack, it won’t be able to engage in attacks. As well, its movement speed is
+                        halved unless it is healed. (See <a href="#moving_downed_souls">Maps (The Kipukas): Movement:
+                            Moving Downed Souls</a>
+                        for more information) If a soul is caught exposed during a storm they will lose one KEAL
+                        means
+                        or if they are downed they will be wasted.
+                        <br><br>
+                        Souls can be healed by other souls, terrain features, or items with a healing
+                        ability. Unless otherwise stated, healing occurs during the night. The soul
+                        must be within the same territory as the healing entity or within its specified
+                        healing range. Healers can only heal a certain number of KEAL means with
+                        in a certain number of diel cycles. Most healers have the ability to heal
+                        themselves under the same conditions mentioned above, unless they are
+                        downed.
+                    </p>
+                    <div class="grid grid-cols-2">
+                        <div>
+                            <img src="./images/keal_means_tracker.png" alt="keal tracker">
+                            <img src="./images/keal_means_tracker_downed.png" alt="keal downed">
+                            <img src="./images/keal_means_tracker_wasted.png" alt="keal wasted">
+                            <p>KEAL means tracker on kipukas.cards</p>
+                        </div>
+                        <div>
+                            <img src="./images/keal_means_clean.png" alt="keal clean">
+                            <p>Toolbar option to reset the KEAL state of the cards (use after your game is complete</p>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h3>Methods of Attack Against KEAL Means</h3>
+                    <ul>
+                        <li>
+                            The default will be dice based attacking. The attacking die type will be
+                            determined by the attacking card. Material and Habitat bonuses may
+                            apply. Check the typing guides for applicable bonuses
+                        </li>
+                        <li>
+                            Some cards will support mini-games where appropriate. (i.e., a thief
+                            themed card may involve a timed lock picking competition)
+                        </li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>Methods of Defense Against KEAL Means</h3>
+                    <ul>
+                        <li>
+                            The default will be dice based defending. The defending die type will be
+                            determined by the defending card. Material and Habitat bonuses may
+                            apply. Check the typing guides for applicable bonuses.
+                        </li>
+                        <li>
+                            When defending against mini-games there are a few options
+                            <ol>
+                                <li>
+                                    Beat them at their own game
+                                </li>
+                                <li>
+                                    Attack them before they can attack you
+                                </li>
+                                <li>
+                                    Engage them with terrain features, traps, and items to defeat them
+                                    without playing the mini-game
+                                </li>
+                            </ol>
+                        </li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>Final Attack</h3>
+                    <p>
+                        Once a soul’s KEAL means count is down to 0, it may be engaged in a final
+                        attack. This must be won in order to waste the soul under attack. This is
+                        always two D20s rolled against each other. The resulting rolls are adjusted
+                        based on archetypal adaptation and motivation. (See <a href="#soul_type">Character and Species
+                            (Soul) Cards: Soul Type</a> for more information) If the attack is
+                        lost, then the attack comes to a close. If the attack is won, the defender is
+                        wasted. (See <a href="#discarding_runout">Discarding Cards and Deck Runout</a> for more
+                        information)
+                    </p>
+                </section>
+                <section id="brawl">
+                    <h3>Brawl in the Event of a Tie</h3>
+                    <p>
+                        If an attack results in a tie (i.e., the values of the attack and defense dice rolls
+                        after modifiers are applied are equal or if the mini-game does not result in a clear winner),
+                        the souls will engage in a brawl. In order to complete a brawl,
+                        both players need to look at their soul’s four digit brawl sequence. The brawl
+                        sequence consists of letters, numbers, dashes, and underscores. In order to
+                        determine the victor, players compare the characters from left to right
+                        according to the table below:
+                    </p>
+                    <img src="./images/brawl_sequence_explaination.png" alt="brawl sequence table">
+                    <img src="./images/brawl_sequence_example.png" alt="brawl sequence example table">
+                </section>
+                <section id="retreat">
+                    <h3>Retreat</h3>
+                    <p>
+                        If you are in a badly losing fight, retreating may be beneficial. It can allow
+                        you to regroup and redeploy to a more favorable position. Players may retreat
+                        from an attack after their opponent has stopped their attack, but before
+                        launching a counterattack. At this point, the opposing player decides if they
+                        let you go, or they challenge the escape. If the opposing player wishes to
+                        prevent the escape, the escapee must win a roll of 2 D6 against a D20 for each
+                        soul they wish to retreat. After these rolls, for each success, you get to decide
+                        which soul to retreat. Downed souls may only retreat with the company of a
+                        not downed soul.
+                    </p>
+                </section>
+                <section>
+                    <h3>Attack Progression Example</h3>
+                    <div class="grid grid-cols-2">
+                        <div class="grid grid-cols-1">
+                            <img src="./images/hilbert_king_of_avian_frogs.jpeg" alt="hibert winged frog">
+                            <p><b>This is our old friend hilbert!</b></p>
+                        </div>
+                        <div class="grid grid-cols-1">
+                            <img src="./images/myrthvither_raven.webp" alt="myrthvither_raven">
+                            <p><b>Let’s pit him against one of the myrthvither raven species members</b></p>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h3>Let’s go over the scenario</h3>
+                    <b>Currert Geography:</b> Forest
+                    <div class="grid grid-cols-2">
+                        <img src="./images/map_top_example.png" alt="map top">
+                        <img src="./images/log_cabin.jpeg" alt="log cabin">
+                    </div>
+                    <p>
+                        This bout is taking place in territory 7 (hightlighted with pink) which as indicated by the log
+                        cabin is a forest territory
+                    </p>
+                </section>
+                <section>
+                    <div class="grid grid-cols-2">
+                        <div>
+                            <h4><b>Defending Card</b><br> Hilbert: King of Avian Frogs</h4>
+                            <dl>
+                                <dt>Affinity Declared:
+                                <dd>Avian</dd>
+                                </dt>
+                                <dt>Archeptypal Adaption:
+                                <dd>Avian</dd>
+                                </dt>
+                                <dt>Game Effects:
+                                <dd>None</dd>
+                                </dt>
+                                <dt>Motivation:
+                                <dd>Passion</dd>
+                                </dt>
+                                <dt>Die Roll:
+                                <dd>D6-D6</dd>
+                                </dt>
+                                <dt>Keal Means:
+                                <dd>
+                                    <dl>
+                                        <dt>Crescent Staff:
+                                        <dd>Telekinetic</dd>
+                                        </dt>
+                                        <dt>King’s Mojo:
+                                        <dd>Energetic-Angelic</dd>
+                                        </dt>
+                                        <dt>Majestic Break:
+                                        <dd>Avian</dd>
+                                        </dt>
+                                    </dl>
+                                </dd>
+                                </dt>
+                                <dt>Habitat:
+                                <dd>Forest</dd>
+                                </dt>
+                                <dt>Card Status (health):
+                                <dd>1</dd>
+                                </dt>
+                            </dl>
+                        </div>
+                        <div>
+                            <h4><b>Attacking Card</b><br> Myrthvither Raven</h4>
+                            <dl>
+                                <dt>Affinity Declared:
+                                <dd>Decript</dd>
+                                </dt>
+                                <dt>Archeptypal Adaption:
+                                <dd>Avian</dd>
+                                </dt>
+                                <dt>
+                                    Game Effects:
+                                <dd>
+                                    Opponent must roll std. detection before engaging in a keal means bout. It is wasted
+                                    if it loses the bout.
+                                    Reveals cards in a territory as it moves into the territory.
+                                    These cards can be reset to unrevealed once they are not in the same territory as
+                                    Myrthvither Raven.
+                                </dd>
+                                </dt>
+                                <dt>Motivation:
+                                <dd>Satisfaction</dd>
+                                </dt>
+                                <dt>Die Roll:
+                                <dd>D6</dd>
+                                </dt>
+                                <dt>Keal Means:
+                                <dd>
+                                    <dl>
+                                        <dt>Scout’s Vision:
+                                        <dd>Avian-Cenozoic</dd>
+                                        </dt>
+                                        <dt>Symbiont Barrage:
+                                        <dd>Decrepit-Arboreal</dd>
+                                        </dt>
+                                    </dl>
+                                </dd>
+                                </dt>
+                                <dt>Habitat:
+                                <dd>Nomad</dd>
+                                </dt>
+                                <dt>Card Status (health):
+                                <dd>0</dd>
+                                </dt>
+                            </dl>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h3>Scenario Walkthrough</h3>
+                    <p>
+                        In the above examples, we have our character, Hilbert, locked in battle with
+                        a species card called the Myrthvither Raven. The
+                        defending card’s (Hilbert) archetypal adaptation matches the player’s declared affinity,
+                        so the card receives a bonus to all rolls made by the card. The first attack
+                        launched will be a KEAL means attack. The habitat of this card is forest
+                        and the battle, according to the geography, is taking place in forest. This
+                        gives the defender a bonus to each KEAL attack made in this territory.
+                        Unfortunately, the defender is a nomad, which neutralizes this bonus.
+                        In this case, neither cards habitat's secondary effect kicks in.
+                        Next, each player chooses a KEAL means and writes it on their grease
+                        board. On the count of three, players reveal their choice to one another.
+                        Don't worry we will get back at the opponent.
+                    </p>
+                </section>
+                <section>
+                    <h3>Scenario Walkthrough</h3>
+                    <p>
+                        Hilbert will use his Majestic Beak to defend against the Raven's Symbiont Barrage,
+                        and the bonus would be checked against the fists tool on kipukas.cards
+                        (See <a href="#adaptations">Soul Type: Archeptypal Adaptations</a> for more information.) anor
+                        using the provided typing table documentation if you perfer a manual check.
+                        A key thing to note is that each type has a different effect on the other type's
+                        attack power, up to three per type positive or negatively. This can really influence
+                        the result of the bout. In this case, the attack die modifier is an decrease of 5. If
+                        the attack wins (which it has a very miserable chance of), the defender’s (Hilbert) KEAL
+                        means count is reduced by one and the attacker has the opportunity to push
+                        on and attack again. This continues until the attacker loses, chooses to stop
+                        the attack, the defenders KEAL means count drops to 0, or the defending opponent attempts
+                        a retreat for all the cards in the conflicted territory. Hilbert rolls with 2 D6 dice
+                        where as the Myrthvither Raven rolls with only 1 D6. This coupled with the type
+                        advantage of Hilbert's KEAL means ensures his victory in this defense. So,
+                        the turn ends for the attactker.
+                    </p>
+                </section>
+                <section>
+                    <h3>Scenario Walkthrough</h3>
+                    <p>
+                        The Next day the shoe is on the other foot, so to say.
+                        Now Hilbert is going to attack the Myrthvither Raven. Normally, this would involve the reverse
+                        role of the previous scenario, but the Myrthvither Raven is special. It modifies how the
+                        opponent
+                        can engauge it at the expense of 0 KEAL means. This means if it losses once, it is wasted.
+                        In order to face the Myrthvither Hilbert successfully roll the standard trap detection to find
+                        the raven. Assuming this is successful the raven will likely be defeaded due to being weak
+                        compaired
+                        to the almighty King Hilbert. It is a mear scout after all. We could assume it was wasted.
+                        However;
+                        let's pretend that the Myrthvither Raven is now equipted with some item that gives it one
+                        additional
+                        K.E.A.L means to lose. This would mean that it is now downed and vulnerable to the final blow.
+                        Now Hilbert engages in the final attack. Given that both cards have the Avian archetypal
+                        adaptation
+                        neither is at a disadvantage since adaptations of the same type usualy do not interact.
+                        Additionally,
+                        neither motive has an advantage against the other. However; the Myrthvither Raven is in the
+                        Support Preservation triad with it's motivational type with would give it a bonus of 3 to it's
+                        final defense roll. Hilberts motivational triad ability only applies in defense, so it will not
+                        kick in here. If the final attack is successful (always two D20 rolled against each other) then
+                        the defender
+                        normally gets removed from the game (See <a href="#discarding_runout">Discarding Cards and Deck
+                            Runout</a>
+                        for more information). If at any point the sum of the rolls and bonuses were tied the battle
+                        match would end
+                        with a <a href="#brawl">brawl</a>. We will assume Hilbert won the final bout and end the
+                        scenario here.
+                    </p>
+                </section>
+            </section>
+            <section id="terrain_features" data-name="Terrain Feature Cards">
+                <section>
+                    <h2>Terrain Features</h2>
+                    <p>
+                        These cards modify territory either to benefit or hinder souls in the area.
+                        Some may be placed at random across the entire board, while others may
+                        offer controlled placement. These may target your opponent’s territory claims,
+                        your territory claims, unclaimed territories, or any territory regardless of
+                        status. Only one terrain feature can be in play on a territory at a time.
+                        Territory features cannot be placed within a territory if it was taken this play.
+                        Unless otherwise specified, a new terrain feature played in a territory will
+                        replace the terrain feature card currently in play on the territory. Some of
+                        these cards must be revealed because their effects are instant and continuous.
+                        Unless stated otherwise, most terrain features are revealed at the discretion of
+                        the claim owner. If a section is claimed with an unrevealed terrain feature,
+                        you must reveal that feature to your opponent. These cannot be moved by a
+                        soul unless otherwise stated.
+                    </p>
+                </section>
+                <section>
+                    <h3>Random Territory Selection</h3>
+                    <p>
+                        Some cards apply an effect to a territory via a method of random selection. In
+                        order to properly select this territory, roll a D20 (or a D12 if you own any). If
+                        the number rolled is within the highest number on the board, then apply the
+                        effect to that territory. Otherwise, re-roll until the roll is less than or equal to
+                        the highest territory number. Alternatively, a random number generator is a
+                        good fit here. There are a bunch of free ones that you can use if you prefer
+                    </p>
+                </section>
+            </section>
+            <section id="traps" data-name="Trap Cards">
+                <h2>Trap Cards</h2>
+                Lay these in territories to activate as entities move between and through
+                territories. These require a reasonable soul to lay them unless stated
+                otherwise on the card. Upon moving a soul into or within a territory with
+                frenemy unrevealed cards, traps must first be rolled against to see if any are
+                activated. If the trap is activated via the conditions listed in the trap card’s
+                description, then apply its effects against the enemy attacker on top of the
+                card stack. If the trap is not sprung, roll to determine if the trap is detected.
+                If detected, remove from play; otherwise, the trap will attempt to activate as
+                the enemy moves through the territory where it is placed. Most traps activate
+                on a D20 roll, which is why players must always roll when entering a territory
+                under with opposing unrevealed cards. Traps are detected if a 1,2,7, or 8 is
+                rolled. Some very rare cards may have the ability to change these numbers, so
+                be careful! Once laid, these cards can be moved by a soul unless otherwise
+                stated. As always, the reasonability of this action can be challenged. They
+                remain unrevealed during movement, but the opponent can now deduce that
+                it is either a trap or an item card, as moving terrain features and souls via
+                this method is extremely rare
+            </section>
+            <section id="sabotage" data-name="Sabotage Cards">
+                <h2>Sabotage Cards</h2>
+                <p>
+                    Play these cards under the cover of night and mess with your opponent’s next
+                    turn. Sabotage card effects can target a wide variety of play aspects, from
+                    temporarily disabling mechanical souls to blowing up terrain features.
+                    Sabotage cards can only be played once a night. Their effects are usually
+                    applied to the next day roll; however, cards can change this if specified.
+                    Unlike most other cards in Kipukas, the effects of sabotage cards tend to be
+                    fixable under specific conditions or after a certain number of turns. Also,
+                    sabotage cards have a higher likelihood of success when compared to traps.
+                    Unlike traps; however, sabotage cards have consequences for the player who
+                    attempted to sabotage if they fail. This can be anything from jailing souls for
+                    a number of turns to wasting the soul who attempted to plant the explosive.
+                    As such, these cards have three aspects important to game play: Success
+                    Criteria, Successful Sabotage Result, and Failure Consequence. Typically,
+                    sabotage cards will state rolling a D20 against two D6 as the activation
+                    criteria.
+                </p>
+            </section>
+            <section id="items" data-name="Item Cards">
+                <section>
+                    <h2>Item Cards</h2>
+                    <p>
+                        These cards are used in crafting. Crafting provides potions, equipment, and
+                        other boosters. A single item will have far less power (or no power) than a
+                        crafted item. Furthermore, the more items used in a craft, the more powerful
+                        the final crafted item will be. Unless otherwise stated, items can be moved
+                        unrevealed by souls. Generally, if an effect or attack with an equipped item
+                        fails, you may try that effect or attack again during the next diel cycle. If a
+                        crafted item emulates another card type (i.e. trap card, soul card, etc.) please
+                        review the respective section on how to play the card. Items and crafted items
+                        are generally not destroyed, but rather dropped when a soul equipped withthem is
+                        wasted. If a territory is under contention when this happens, each
+                        player chooses a suitable card to attempt to grab the item. A KEAL means
+                        bout will ensue where the victor equips the item and the loser takes KEAL
+                        means damage. (See <a href="#ADR">Attack, Defense, and Retreat</a> for more information)
+                        If only one player has a suitable soul(s), the opponent can only defend the
+                        dropped item, not equip it. If neither player has a suitable soul in the
+                        territory, the dropped item is ignored until a suitable soul move into the
+                        conflict or the contention is resolved.
+                    </p>
+                </section>
+                <section id="crafting">
+                    <h3>Crafting</h3>
+                    <p>
+                        Crafting an item takes a full play and involves using two to three item cards
+                        (see <a href="#recipes">recipes</a> below). If a crafting recipe is being guessed (competitors
+                        and
+                        refs can tell you if you are correct) and the guess is wrong, then discard and
+                        draw a new hand. Once an item is crafted, you can keep the cards together to
+                        represent that item, or if you prefer, you can submit the recipe to Kipukas
+                        then purchase a single card representation of the crafted item when available.
+                        Crafted items may enhance cards from other categories or produce cards from
+                        other categories. Once applied to a card, an enhancement can be moved or
+                        removed, unless otherwise specified. Crafting creature cards is the only way to
+                        have more than a single copy of a creature in your deck, but you can only
+                        have one natural soul card and one crafted soul card. There will be no
+                        exceptions to this rule. Once an item is crafted, it either needs to be used
+                        according to the recipe’s description or hidden on a controlled territory (max
+                        1 per territory). To use hidden items, you simply pull the item from the
+                        territory and craft as normal. If a territory is taken which contains hidden
+                        items, the items must be revealed unless protected by a different active card.
+                        Control of the revealed cards, while in play, is given to the new claim holder.
+                        The claim holder must then decide to use, hide the items again, or discard the
+                        items.
+                    </p>
+                </section>
+                <section>
+                    <h3>Equip Items to Souls</h3>
+                    <p>
+                        Items are often able to equip to a soul to increase some aspect of the card’s
+                        abilities. Items are equipped the night they are crafted or during the day
+                        before the end of your turn. Equipped items may transfer between souls if
+                        they occupy the same space (i.e., same base camp or transit stand). Equipped
+                        items may be allowed to be unequipped where they stay in the territory which
+                        they were unequipped for any soul to be able to pick up. The cards follow the
+                        soul as a stack of cards.
+                    </p>
+                </section>
+                <section id="recipes">
+                    <h3>Recipes</h3>
+                    <p>
+                        Crafting recipes must be discovered and kept for reference later. In
+                        competition, recipes maybe guessed and confirmed by event refs or
+                        competitors. If confirmed, you may use the recipe in the match. Only one
+                        recipe can be used in this fashion. Normally, you present the recipe from your
+                        recipe deck to the other player to prove you can play the item combo
+                    </p>
+                </section>
+            </section>
+            <section id="personal_effects" data-name="Personal Effect Cards">
+                <h2>Personal Effect Cards</h2>
+                <p>
+                    These cards are played at the beginning of the game and cannot be changed.
+                    They add an ability for the player to use throughout the game. If no player
+                    effect card is owned or the player prefers, then they can use the default effect as follows:
+                    <br><br>
+                    Place any card from the deck in front of the player. Play it in 5 diel cycles
+                </p>
+                <h3>Play Effect Examples</h3>
+                <ul>
+                    <li>Increase player affinity for an archetypal adaptation</li>
+                    <li>Immediate crafting of recipes that would otherwise require a special soul to be in play</li>
+                    <li>Decreased frenemy effects</li>
+                    <li>Search your deck and draw any card of a given type, either at the start
+                        of the game or after so many diel cycles</li>
+                </ul>
+            </section>
+            <section data-name="Stealing Cards">
+                <h2>Stealing Cards</h2>
+                <p>
+                    We don’t condone stealing another player’s card out of game; however, if you
+                    would consider such a thing, I doubt you care what we think. Despite this, we
+                    are more than happy to encourage stealing in game! Cards will tell you to
+                    steal either from your opponent’s hand, deck or either. You might be able to
+                    steal the cards revealed or unrevealed, depending on the instruction of the
+                    card. Either way, you begin by declaring whether you will steal from your
+                    opponent’s hand or deck. Then your opponent will fan out the cards you have
+                    chosen, either facing them (unrevealed) or you (revealed). Then you pick the
+                    card that you fancy and place it in your hand. If the card allows for stealing
+                    revealed, you CANNOT scan the opponent’s cards to make your decision in
+                    competitive play. For friendly play, handle that as you like. Most
+                    IMPORTANT, you CANNOT gain more than 3 cards in your hand from
+                    stealing. This is completely disbarred in Kipukas.
+                    For stolen cards, it is handy to have static cling stickers to place on the card
+                    sleeve as an identifier of who is in control of the card. These are not
+                    recommended to be put on the card itself as they cannot be guaranteed acid
+                    free. This could damage your card over repeated use, anor overtime. It should
+                    go without saying that stolen cards return to their original owners at the end
+                    of the game. The other options are gambling or actual thievery, in either case
+                    you should consult your local laws on the legality of your behavior
+                </p>
+            </section>
+            <section id="discarding_runout" data-name="Discarding Cards and Deck Runout">
+                <h2>Discarding Cards and Deck Runout</h2>
+                <p>
+                    Once a card becomes wasted, it is discarded into a pile and cannot be played
+                    again. Some card effects may target cards in either discard pile. If you run
+                    out of cards before the end of the game, don’t worry, you have not lost yet.
+                    You may continue using the cards you have in play on the kipuka. If both
+                    players run out of cards, either may still manage to take all the remaining
+                    territory even without cards in hand. Here they would win under standard
+                    conditions. Otherwise, play until no characters or species (including <a href="#rouge">rouge
+                        species</a>
+                    ) are left on the kipuka. At this point, the players stop contention
+                    under a forced peace and hold convention. Here they discuss how to proceed
+                </p>
+                <ol>
+                    <li>
+                        <b>Keep the peace:</b>
+                        Allow the player with
+                        more territories to win. If an equal number of territories is possessed,
+                        the game is a tie. (Good for a shorter game)
+                    </li>
+                    <li>
+                        <b>Call the reserves:</b>
+                        Both players choose whether to reuse the deck they just fought with or change
+                        to another deck. Each player writes either keep or change on their
+                        whiteboard. Next they reveal, at the same time, the decision they made.
+                    </li>
+                </ol>
+                <p>
+                    It is worth while to note that if both parties are in total agreement to keep the peace
+                    this stragety is fully acceptable at compatitions.
+                    If an agreement can’t be reached within a few minutes, just rage-quit, because
+                    the other person must be pretty insufferable. Why were you playing a game
+                    with them in the first place?
+                </p>
+            </section>
+            <section id="placement" data-name="Card Placement">
+                <h2>Card Placement</h2>
+                <p>All cards played throughout the game will dictate how and where they can be placed.</p>
+                <div>
+                    <h3>Placement Option</h3>
+                    <ul>
+                        <li>Player controlled territory</li>
+                        <li>Opponent controlled territory</li>
+                        <li>Territory boarding player controlled territory</li>
+                        <li>Territory boarding opponent controlled territory</li>
+                        <li>Territory without claim</li>
+                        <li>Any territory at random</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Placement Etiquette</h3>
+                    <ul>
+                        <li>Play an unrevealed card vertically face down on the mat</li>
+                        <li>Play a revealed card vertically face up on the mat</li>
+                        <li>Play a revealed landscape card horizontally, but vertically when unrevealed or hidden</li>
+                        <li>Play a hidden card vertically face down under the mat</li>
+                    </ul>
+                </div>
+                <img src="./images/placement_courtesy.jpg" alt="placement convention example picture">
+            </section>
+            <section id="building_decks" data-name="Building Decks">
+                <section>
+                    <h2>Building Decks</h2>
+                    <p class="!text-4xl">
+                        Decks are built gradually in Kipukas. To keep barriers to entry as low as
+                        possible we offer a starter kit that includes a starter map (changes by season),
+                        a starter deck or two of your choice (at first only the founder’s deck is
+                        available, but more archetypal adaptation specific starter decks will be
+                        produced), and two sets of tokens. Growing your deck after you purchase a
+                        starter kit (or if you are ambitious, before ever purchasing one) involves
+                        purchasing other starter decks separately, purchasing individual cards from
+                        kipukas.us, purchasing and waiting out the incubation period for incubation
+                        cards, or trading with people that you trust. Kipukas cards are valuable
+                        pieces of fine art, as such we take their trade and resell seriously. You can
+                        request any sell or trade to be brokered through Kipukas. A brokered trade
+                        will involve both parties sending their cards to Kipukas. Each card in the
+                        trade will be authenticated using our 7 factor authentication process. If all
+                        cards involved in the trade are presumed authentic, we will complete the trade
+                        and send the cards to their new owners. If any cards are found to be
+                        inauthentic the trade will be canceled, the authentic cards will be returned to
+                        their owners and the inauthentic cards will be retained by Kipukas. This
+                        process protects your information as neither party gets to know the other’s
+                        address while protecting you from counterfeit cards. Kipukas will also put
+                        cards that you want to trade, sell, or auction on our website and inform you
+                        of offers as they are made. Keep watch for Kipukas Trade Deals, where we
+                        offer an exceptional trade from time to time (frequency increases as customer
+                        base builds). <br>
+                        As for recipes, you can submit a request for the recipe card with your next
+                        order. Recipes also act as information that players can trade. Standardly, one
+                        recipe is given out with the purchase of three cards or three recipes with the
+                        purchase of one starter pack. If a certain recipe is requested in the order
+                        notes, it will replace one of the random recipes you would have received.
+                    </p>
+                </section>
+                <section>
+                    <h3>Incubation Cards</h3>
+                    These cards can be purchased, traded, won or given away just as all the other
+                    card types; however, these cannot be played. Instead, they represent an
+                    incubation time that allows them to be traded for a soul with an increased
+                    loyalty (See <a href="#affinity">Affinity</a> for more information). The longer the incubation
+                    period, the rarer the card Kipukas will send to you. The prices of these cards
+                    are lower than the equivalent character or species available for purchase. Also,
+                    incubation cards allow access to the rarest card categories, normally reserved
+                    for competition winners and special event giveaways, if you are willing to wait
+                    out a long incubation period. The number of these cards is fixed for each
+                    category, so when they sell out, you will have to wait until one of the
+                    incubation cycles completes in order to incubate a soul of your own. For the
+                    unparalleled and winners circle rarity cards, you will be allowed to request a
+                    soul type. If you wish, you may also submit an artist’s rendition of the card
+                    with a backstory, then request that the card be incubated. It is not a
+                    guarantee that it will be produced; however, it will be heavily considered.
+                </section>
+                <section>
+                    <h2><u>Structure of a Deck</u> <br> Deck Building</h2>
+                    <h3>Decks must have 30 cards; no more, no less.</h3>
+                    <h3>Deck Card Copy limits:</h3>
+                    <dl>
+                        <dt>Character Cards:
+                        <dd>1</dd>
+                        </dt>
+                        <dt>Species Cards:
+                        <dd>2</dd>
+                        </dt>
+                        <dt>Terrain Feature Cards:
+                        <dd>2</dd>
+                        </dt>
+                        <dt>Trap Cards:
+                        <dd>3</dd>
+                        </dt>
+                        <dt>Sabotage Cards:
+                        <dd>3</dd>
+                        </dt>
+                        <dt>Item Cards:
+                        <dd>4</dd>
+                        </dt>
+                        <dt>Personal Effect Cards:
+                        <dd>0 (Players may use one at the start of the
+                            game, but these do not belong in the deck)</dd>
+                        </dt>
+                        <dt>Incubation Cards:
+                        <dd>0</dd>
+                        </dt>
+                    </dl>
+                    <h3>
+                        NOTE: Unless the limit is 0, a crafted version of the card can
+                        increase the copy limit by one
+                    </h3>
+                </section>
+            </section>
+            <section id="maps" data-name="Maps (The Kipukas)">
+                <section>
+                    <h2>Maps (The Kipukas)</h2>
+                    <p>
+                        Maps are 3D representations of territory and control. Each map hosts stands
+                        that represent traveling time and 8 to 12 territories that represent control.
+                        Each territory can host a max of 3 souls, unless otherwise specified. In each
+                        territory there are stands for soul tokens and stands for base camp or capital
+                        tokens. Soul tokens represent the position of a revealed soul, while square
+                        base camps and capitals act as points of entry for new souls, a place for
+                        revealed or unrevealed souls to stay, and represent control of a territory
+                        Capitals act the same as base camps, but are particularly important to game
+                        play because your opponent will not be able to take your capital until they
+                        take all other territories on the board. Territories also represent opportunities
+                        or dangers for souls which typically dwell in or avoid the geography (See
+                        <a href="#habitat">Character and Species (Soul) Cards: KEAL Means: Habitat</a> and
+                        <a href="#geography">Maps (The Kipukas): Geography</a> for more information). For
+                        competition purposes, only Kipukas produced boards are allowed; however, we
+                        encourage you to develop your own maps for personal play. If you enjoy your
+                        design, you should submit it to Kipukas. We might just produce it and pay
+                        you!
+                    </p>
+                </section>
+                <section id="movement">
+                    <h3>Movement</h3>
+                    <p class="!text-4xl">
+                        Each territory contains slots for placing base camp tokens and soul tokens.
+                        When a card enters the map it starts at one of the player controlled base
+                        camps or their capital, either unrevealed or revealed, dependent on the
+                        player’s choice. Cards cannot be moved this diel cycle. As it becomes
+                        strategically advantageous, each player should choose to move their souls in
+                        play. This can be done by following the lower lines which connect between the
+                        circular transit stands and the square base camp stands. Every territory hosts
+                        a max of 3 souls, and each soul has a finite number of spaces which it can
+                        traverse. When a soul moves, the card is placed on the mat slot with the
+                        same number as the territory moved into. In order to move, you must reveal
+                        the soul unless the card says otherwise. If a territory only contains transit
+                        slots, this is a transit territory. This occurs due to the difficulties required
+                        building within the territory, figuratively speaking. A good example is a
+                        territory filled with water (See <a href="#geography">Maps (The Kipukas): Geography</a> for
+                        more information about water movement). These locations are clearly labeled
+                        on the mat as ’transit territory’, so cards moved within should be placed
+                        accordingly. If an enemy is in the same territory that you moved to, you must
+                        engage an attack. Also, you cannot move past an enemy waiting on a
+                        movement slot. See <a href="#ADR">Attack, Defense, and Retreat</a> for more information;
+                        otherwise, read <a href="#claiming_territories">claiming territories</a> below if you just moved
+                        into a base camp
+                        slot. If a revealed soul is in a base camp, then no soul token is used. If the
+                        soul is currently on a movement stand, a soul token is used to represent this.
+                        If more than one soul is on the same movement stand, stack the individual
+                        tokens to represent the group. If you have two souls in the same territory on
+                        different movement stands, flip a soul token over and declare which soul is
+                        represented by that token. If your soul moves back into a base camp, then
+                        keep the card revealed, move its card to the rear of the territory’s cards stack,
+                        and remove its soul token from the board.
+                    </p>
+                </section>
+                <section id="moving_downed_souls">
+                    <h3>Moving Downed Souls</h3>
+                    <img src="./images/moving_downed_souls.png" alt="moving downed souls table">
+                </section>
+                <section id="claiming_territories">
+                    <h3>Claiming Territories</h3>
+                    <p>
+                        In order to win the game, you must first claim territories. To claim territories,
+                        you must move at least one soul into the base camp of the territory you wish
+                        to claim. If it is empty, congrats, you have a new base camp! Place a base
+                        camp token on the square stand, then continue your turn. Otherwise, if the
+                        territory has a claim on it, you must oust your opponent by defeating their
+                        traps, terrain features, and souls before you can replace their claim with your
+                        own. See Contention below. There is no limit to the number of territories that
+                        can be claimed in a single day. If you think you can take all territories,
+                        including the opposing player’s capital, in a single day, go for the win!
+                    </p>
+                </section>
+                <section id="contention">
+                    <h3>Contention</h3>
+                    <p class="!text-4xl">
+                        If a frenemy’s soul enters territory controlled by opposition, the territory
+                        comes into contention. Under contention, players must perform the card
+                        activation sequence (See <a href="#card_activation">Card Activation</a> for more
+                        information). Cards act when you enter an enemy’s territory. You will
+                        need to contend with their traps and terrain features before attacking revealed
+                        souls. In order to claim the territory, you must take the base camp by moving
+                        a soul onto the base camp stand. If your opponent has any revealed souls in
+                        the territory you moved into, you must attack and defeat all enemies or
+                        become defeated yourself to relieve the contention. If your opponent has
+                        multiple enemies in a territory, you can attack one or all (one at a time) of
+                        the enemies in the space, but you must defeat all enemies to progress out of
+                        the space in the same diel cycle. If you decide to stop your attack before all
+                        enemy entities are defeated, your opponent will either choose to attack on
+                        their next turn or retreat and move out of the territory. If they stop their
+                        counterattack before all your souls are defeated, on the following day, you
+                        have the option to continue the fight or retreat and move out of the space.
+                        (See <a href="#retreat">Attack, Defense, and Retreat: Retreat</a> for more information) After
+                        the revealed souls are defeated, you can force your opponent to reveal any
+                        unrevealed souls. The opponent then has the choice to stay in defense of the
+                        territory or retreat out of the territory with the previously unrevealed souls.
+                        If you are not successful in taking the territory, your opponent is not
+                        obligated to reveal entities, traps, or terrain features unused in their defense.
+                        Once your opponent has exhausted all of their defense options, and you move
+                        a soul into the base camp, you should replace their base camp token with
+                        your base camp token. At this point all terrain features and items must be
+                        revealed then control of the cards, while they are in play, is transferred to the
+                        victor. If a set trap exists in the newly controlled territory, it stays unrevealed
+                        and it still works for the player that set it. Each time the player souls into or
+                        within the territory it will attempt to activate against them. (See <a href="#traps">Trap
+                            Cards</a>
+                        for more information)
+                    </p>
+                </section>
+                <section id="geography">
+                    <h3>Geography</h3>
+                    <p>
+                        Each territory has a geography that corresponds to the map’s topography.
+                        This geography interacts with the habitat of the soul cards in the territory.
+                        (See <a href="#habitat">Character and Species (Soul) Cards: KEAL Means: Habitat</a>
+                        for more information)
+                    </p>
+                    <p>
+                        In addition to the boat(s) marking the water habitats, Kipukas maps use
+                        docks to represent the points that souls can enter the water from. If a
+                        movement path leads to water, but no dock is present, you may not enter the
+                        water at that location with a boat. However, if you entered from a different
+                        location with a dock, you may land at that point. Cards may attempt to
+                        swim by rolling 2 D6. If you roll 2 + 2 the card has successfully swum.
+                        Attempting to swim does not cost movement, but can only be attempted once
+                        per soul per day
+                    </p>
+
+                </section>
+                <section>
+                    <h3>Representation of Geography on the Kipuka</h3>
+                    <div class="grid grid-cols-2 grid-rows-3 !text-4xl">
+                        <div>
+                            <img class="w-70" src="./images/A_frame.jpeg" alt="A-Frame token">
+                            <p><b>Mountain Habitat:</b> A-Frame House Geomarker</p>
+                        </div>
+                        <div>
+                            <img class="w-70" src="./images/log_cabin.jpeg" alt="log cabin token">
+                            <p><b>Forest Habitat:</b> Log Cabin Geomarker</p>
+                        </div>
+                        <div>
+                            <img class="w-70" src="./images/plain_house.jpeg" alt="plain home token">
+                            <p><b>Plains Habitat:</b> Ranch House Geomarker</p>
+                        </div>
+                        <div>
+                            <img class="w-70" src="./images/modern_home.jpeg" alt="modern home token">
+                            <p><b>Volcanic Habitat:</b>Modern House Geomarker</p>
+                        </div>
+                        <div>
+                            <img class="w-70" src="./images/boat.jpeg" alt="boat token">
+                            <p><b>Water Habitat:</b> Boat Geomarker</p>
+                        </div>
+                        <div>
+                            <img class="w-70" src="./images/tunnel.jpeg" alt="underground tunnel token">
+                            <p><b>Underground Tunnel:</b>Connect territories and shorten travel for underground dwellers
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <img class="w-70" src="./images/dock.jpeg" alt="dock token">
+                        <p class="!text-4xl"><b>Water Habitat:</b> Dock Geomarker (Point of Entry)</p>
+                    </div>
+                </section>
+            </section>
+            <section id="mats" data-name="Game Mats">
+                <h2>Game Mats</h2>
+                <p>
+                    Mats connect a soul card’s position with the soul token’s position on the map.
+                    This makes game play more comfortable by organizing the game space.
+                    Kipukas will have a set of mats, but will encourage community development
+                    and artist support with regard to producing more engaging and creative mats.
+                    Make them as personal as you wish. The only production guideline, as of now,
+                    is the number of section slots must be equal to the number of territories.
+                    These must include reference numbers. Additionally, transit territory space
+                    must be allocated on the mat. The standard mat size that Kipukas produces
+                    is 17×24in. As always, you can submit your creations to us, and you might
+                    just have something we want to produce and get paid!
+                </p>
+            </section>
+            <section id="challenging_BS" data-name="Challenging BS">
+                <section>
+                    <h3>Story Challenging Your Opponent</h3>
+                    <p class="!text-4xl">
+                        Continuing along with the theme of the previous section, there is a lot going
+                        on in this game. Along the way, we will make mechanics that conflict on a
+                        reasonability level. My personal favorite example is a dragon wielding a stick
+                        to boost its attack. That is all sorts of wrong. If your opponent attempts to
+                        make a move that just simply makes no sense, you have the right to contest
+                        it. You should do it in this way.
+                    </p>
+                    <ol>
+                        <li>Call them out before the effect is used in game play</li>
+                        <li>Pause the contention and hold convention (have a talk)</li>
+                        <li>One player must concede reasonability (either for or against)</li>
+                        <li>if required, enlist a tie breaking third individual to make the final call</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>This Game is Hard!</h3>
+                    <p class="!text-4xl">
+                        Yes, it is definitely a lot to learn at first. Kipukas is a game that rewards
+                        repeated play with ease. The more you can play the game, the better you will
+                        know the card mechanics, the turn structure, and the interactions between the
+                        pieces. The overall plan is to create tools (i.e. phone/web application) to aid
+                        players in keeping track of the game components. This is, of course, if there is
+                        enough interest in the game as a whole. Either way, we try our best to make
+                        this rules set as comprehensive and digestible as possible. When possible, we
+                        will post videos to clarify game play aspects and intent of the mechanics. In
+                        all, don’t worry about capturing every aspect of this game. As I stated, there
+                        is a lot going on. Have fun with it, make house rules, and we are always open
+                        to suggestions. These rules are geared for a future with competitions where
+                        everything will be scrutinized. At this point, don’t get bogged down. You can
+                        do it!
+                    </p>
+                </section>
+            </section>
+            <section data-name="Play Style Options">
+                <section>
+                    <h2>Play Style Options</h2>
+                    <dl>
+                        <dt>Domination:
+                        <dd>
+                            Winner controls all territory in the kipuka. (Standard play
+                            style covered in this guide)
+                        </dd>
+                        </dt>
+                        <dt>
+                            Mass Contention:
+                        <dd>
+                            Domination with up to 4 players on a standard
+                            kipuka. (8 territories = 2 player max, 9–11 territories = 3 player max,
+                            12 territories = 4 players max) At competitions expedition boards will
+                            be available for play and purchase that will accommodate many (read a
+                            lot, gross, giant boards) more players. Same rules as Domination, but
+                            more contention means a tougher fight and more decks than are
+                            available via a starter kit at the moment.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Band together:
+                        <dd>
+                            Players must work together to defeat a third party (i.e.,
+                            ref, celebrity player, autonomous party, etc.), The player with the
+                            largest number of spaces held wins. If the third party dominates the
+                            kipuka then both players lose.
+                        </dd>
+                        </dt>
+                        <dt>
+                            King of the hill:
+                        <dd>
+                            A territory is selected either randomly or by a ref that
+                            must be claimed and held for a certain number of diel cycles to meet the
+                            victory condition. Players start with only a capital in adjacent
+                            territories.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Captive:
+                        <dd>
+                            Each player gives the other a soul card, which they shuffle into
+                            their deck. Once drawn, the player must play the card unrevealed. The
+                            first player to reveal and lead their soul back to their capital wins
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+                <section>
+                    <dl>
+                        <dt>
+                            Highest body count:
+                        <dd>
+                            Territory claims do not matter. Capitals cannot be
+                            taken. The game ends when either player runs out of cards. The victor
+                            is the player that managed to defeat the most soul cards. A number of
+                            soul cards and total card limit should be agreed upon except at
+                            competition where deck building strategy is a sizable component in this
+                            style of play
+                        </dd>
+                        </dt>
+                        <dt>
+                            The ends must justify the means:
+                        <dd>
+                            The player with the most territory
+                            gained to souls lost after a fixed number of diel cycles wins.
+                        </dd>
+                        </dt>
+                        <dt>
+                            The cost is too great:
+                        <dd>
+                            This uses standard Domination rules, but in
+                            addition it imposes a soul defeat limit that if hit removes the player
+                            from the game.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Coastal war:
+                        <dd>
+                            The player to control the most coastline after a fixed
+                            number of diel cycles is the victor.
+                        </dd>
+                        </dt>
+                        <dt>
+                            The hunt:
+                        <dd>
+                            After a fixed number of diel cycles, the player with the most
+                            territories plus the hunt bonus (player with most souls with a certain
+                            type defeated receives a +3 bonus) wins. Both players must have an
+                            agreed number of those types in their decks. The huntable cards must
+                            be played and cannot be discarded. Additionally, an overall deck size
+                            must be agreed upon.
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+                <section>
+                    <dl>
+                        <dt>
+                            Find the treasure (Special at competitions):
+                        <dd>
+                            A ref secretly marks a space
+                            on the board with an item card, the first player to claim that space wins
+                            the match and receives the item card. Players start with only a capital
+                            in adjacent territories.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Explorer (special at competition):
+                        <dd>
+                            A ref secretly marks a space on the
+                            board with a terrain feature, the first player to claim that space and
+                            successfully use the card against their opponent wins the match and
+                            receives the terrain feature card. Players start with only a capital in
+                            adjacent territories.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Trap Springer (special at competition):
+                        <dd>
+                            A ref secretly marks a space on
+                            the board with a trap card, the first player to set off the trap in that
+                            space wins the match and receives the trap card. Players start with only
+                            a capital in adjacent territories.
+                        </dd>
+                        </dt>
+                        <dt>
+                            Off to the rescue (special at competition):
+                        <dd>
+                            A ref secretly marks a space
+                            on the board with a soul card, the first player to claim that space and
+                            usher the survivor back to their capital wins the match and receives the
+                            soul’s card. Players start with only a capital in adjacent territories
+                        </dd>
+                        </dt>
+                        <dt>
+                            Cradle Robber (special at competition):
+                        <dd>
+                            A ref secretly marks a space on
+                            the board with an incubation card drawn from a bag, with scarcity
+                            proportional to the incubation cards in circulation. The first person to
+                            find and take the surrounding sections (thereby protecting the card)
+                            wins the match and receives the incubation card. Players start with only
+                            a capital in adjacent territories.
+                        </dd>
+                        </dt>
+                    </dl>
+                </section>
+            </section>
+        </div>
+
+    </div>
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/zoom/zoom.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/search/search.js"></script>
+    <script src="plugin/simplemenu/simplemenu.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script>
+        function getParameterByName(name) {
+            const url = new URL(window.location.href);
+            const param = url.searchParams.get(name);
+            return param;
+        }
+    
+        const printPdfMode = getParameterByName('print-pdf') !== null;
+    
+        Reveal.initialize({
+            width: 1275,
+            height: 1650,
+            scrollActivationWidth: 0, // Corrected the typo here
+            controls: true,
+            progress: false,
+            center: true,
+            hash: true,
+            controlsTutorial: false,
+            help: false,
+            pause: false,
+            touch: false,
+            faded: false,
+            simplemenu: printPdfMode ? false : { // Toggle simplemenu based on print-pdf mode
+                barhtml: {
+                    header: '<div class="menubar"> <a href="#toc"><img class="h-12 md:h-20 !m-5 place-self-start" src="./images/k.svg" alt="back to links"></a> <a href="https://www.kipukas.cards/" alt="back to binder"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-12 md:h-20 !m-5 stroke-1 fill-slate-100 stroke-slate-400"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /> </svg> </a> </div>'
+                }
+            },
+            plugins: printPdfMode ? 
+                [RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight] : 
+                [RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight, Simplemenu]
+        });
+    </script>
+    <script>
+        if (window.location.search === "?print-pdf" && Reveal.isReady) {
+        // Delay print by 500ms to ensure rendering is complete
+        setTimeout(window.print, 500);
+        } else if (window.location.search === "?print-pdf") {
+        document.addEventListener('reveal.js', function(event) {
+            if (event.namespace === 'ready') {
+            // Delay print by 500ms after Reveal.js is ready
+            setTimeout(window.print, 500);
+            }
+        });
+        }
+    </script>
+    
+</body>
+</html>
