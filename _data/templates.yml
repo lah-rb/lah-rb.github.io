@@ -1,6 +1,6 @@
 btn-center: text-center w-48 p-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded
 btn-center-transparent: text-center ring ring-slate-200/70  w-48 p-4 my-auto bg-slate-800/50 active:bg-slate-800/70 hover:bg-slate-800 active:shadow-inner inline-block shadow-lg font-semibold text-slate-200 rounded
-red-btn: bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded
+red-btn: bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded
 checkbox: text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100
 qr-click: 'showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()'
 anchor-menu: z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
