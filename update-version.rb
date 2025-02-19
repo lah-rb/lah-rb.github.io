@@ -17,7 +17,7 @@ def dir_sha256(directory)
 end
 
 directory = '/home/lah-rb/Repos/lah-rb.github.io/_site'
-new_version = dir_sha256(directory) + Time.now.strftime("%Y-%m-%d_%H-%M-%S")
+new_version = dir_sha256(directory) + Time.now.strftime("_%Y-%m-%d_%H-%M-%S")
 
 # Write the new version to version.txt
 File.open("#{directory}/version.txt", 'w') { |f| f.puts new_version }
