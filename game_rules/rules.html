@@ -60,11 +60,11 @@
                     </p>
                 </section>
                 <section>
-                    <a href="https://www.kipukas.cards/"><img src="./images/k.svg" alt="back to links"></a>
+                    <a href="https://www.kipukas.cards/"><img src="./images/k.svg" alt="back to binder"></a>
                     <p>When you see our logo you can click it to take you to the binder homepage.</p>
                 </section>
                 <section>
-                    <a href="#links">
+                    <a href="#toc">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
                             class="h-96 stroke-1 fill-slate-100 stroke-slate-400">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -510,7 +510,7 @@
                         own section to describe their specific role in the game play. Click the QR codes
                         to see a representative member of each card type.
                     </p>
-                    <div class="grid grid-cols-2 grid-rows-3">
+                    <div class="grid grid-cols-2 grid-rows-3 place-items-center">
                         <div>
                             <a href="#character_species">Character and Species Cards</a>
                             <a href="https://www.kpks.us/HMPU">
@@ -1423,8 +1423,17 @@
                         competition, recipes maybe guessed and confirmed by event refs or
                         competitors. If confirmed, you may use the recipe in the match. Only one
                         recipe can be used in this fashion. Normally, you present the recipe from your
-                        recipe deck to the other player to prove you can play the item combo
+                        recipe deck to the other player to prove you can play the item combo. <br>
+                        
+                        During our founders period, we have released all recipe combinations that are
+                        possible to make with the founder's deck items. Additionally, we have made a page
+                        on kipukas.cards to demonstrate how this mechanic works. You can find it under the
+                        menu in the tool bar. In the future, we plan on making these into recipe cards as well
+                        for players to incorperate into their broader recipe deck. However, these recipes will
+                        always be accepted a competitions as open use and the online demonstration will always
+                        reside on the kipukas binder.
                     </p>
+                    <img src="./images/recipe_lookup.png" alt="recipe lookup">
                 </section>
             </section>
             <section id="personal_effects" data-name="Personal Effect Cards">
@@ -1992,6 +2001,7 @@
         </div>
 
     </div>
+
     <script src="dist/reveal.js"></script>
     <script src="plugin/zoom/zoom.js"></script>
     <script src="plugin/notes/notes.js"></script>
@@ -2024,7 +2034,7 @@
             faded: false,
             simplemenu: printPdfMode ? false : { // Toggle simplemenu based on print-pdf mode
                 barhtml: {
-                    header: '<div class="menubar"> <a href="#toc"><img class="h-12 md:h-20 !m-5 place-self-start" src="./images/k.svg" alt="back to links"></a> <a href="https://www.kipukas.cards/" alt="back to binder"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-12 md:h-20 !m-5 stroke-1 fill-slate-100 stroke-slate-400"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /> </svg> </a> </div>'
+                    header: '<div class="menubar"> <a href="https://www.kipukas.cards/"> <img class="h-12 md:h-20 !m-5 place-self-start" src="./images/k.svg" alt="back to binder"> </a> <a href="#toc" alt="back to TOC"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-12 md:h-20 !m-5 stroke-1 fill-slate-100 stroke-slate-400"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"> </svg> </a> </div>'
                 }
             },
             plugins: printPdfMode ? 
