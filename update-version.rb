@@ -16,7 +16,7 @@ def dir_sha256(directory)
   sha256.hexdigest
 end
 
-directory = '/home/lah-rb/Repos/lah-rb.github.io'
+directory = '/home/lah-rb/Repos/lah-rb.github.io/_site'
 new_version = dir_sha256(directory) + Time.now.strftime("%Y-%m-%d_%H-%M-%S")
 
 # Write the new version to version.txt
