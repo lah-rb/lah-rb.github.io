@@ -1,5 +1,5 @@
 const fs = require('fs');
-const versionHash = fs.readFileSync('./version.txt', 'utf8').trim();
+const versionHash = fs.readFileSync('./_site/version.txt', 'utf8').trim();
 
 module.exports = {
   globDirectory: '_site/',
