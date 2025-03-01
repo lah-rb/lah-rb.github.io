@@ -2,7 +2,7 @@
 layout: default
 ---
 <div x-data="{ showCardInfo: true, landscape: {% if page.landscape == true %}true{% else %}false{% endif %} }">
-  {% include side_header.html
+  {% include toolbar.html
     qr_scanner=true
     type_matchup=true
     damage_tracker=true

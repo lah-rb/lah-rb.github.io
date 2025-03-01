@@ -83,7 +83,8 @@
 
   <body x-data="{ 
                   filter: { all: true }, 
-                  showScanner: false, 
+                  showScanner: false,
+                  showFlash: false, 
                   videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
@@ -100,6 +101,7 @@
         class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh' }}" x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}
+    <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>
     <div>{{ content }}</div>
   </body>
 </html>
