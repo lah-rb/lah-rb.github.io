@@ -36,7 +36,7 @@ bg-terra: "bg-hero-pattern "
 <template x-if="true"> <!-- This fixes the cls issue completely -->
     <div class="flex place-content-center w-screen h-fit" x-data="{ items: { cloth: false, feathers: false, honey: false, sticks: false, string: false }, recipe: []}">
       <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose pb-4 px-10 w-5/6 h-fit min-h-screen scroll-smooth">
-        {% include side_header.html 
+        {% include toolbar.html 
           hamburger=true
           goHome=true
           lastPage=true

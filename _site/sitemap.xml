@@ -243,9 +243,6 @@
 <loc>https://www.kipukas.cards/recipes</loc>
 </url>
 <url>
-<loc>https://www.kipukas.cards/game_rules/rules.html</loc>
-</url>
-<url>
 <loc>https://www.kipukas.cards/game_rules/examples/500-slides.html</loc>
 <lastmod>2025-01-13T19:16:02-07:00</lastmod>
 </url>
@@ -296,5 +293,9 @@
 <url>
 <loc>https://www.kipukas.cards/game_rules/plugin/notes/speaker-view.html</loc>
 <lastmod>2025-01-13T19:16:02-07:00</lastmod>
+</url>
+<url>
+<loc>https://www.kipukas.cards/game_rules/rules.html</loc>
+<lastmod>2025-02-28T20:56:23-07:00</lastmod>
 </url>
 </urlset>

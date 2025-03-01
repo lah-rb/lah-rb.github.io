@@ -9,7 +9,7 @@
   -webkit-transform: translateY(-100%);
       -ms-transform: translateY(-100%);
           transform: translateY(-100%);
-  color: inherit;
+  color: #666;
   z-index: 2;
   position: fixed;
   -webkit-box-sizing: border-box;
@@ -77,39 +77,27 @@ body.hide-menubar .reveal.ready .menubar a {
   -moz-osx-font-smoothing: grayscale;
   padding: 0.4em 0;
 }
+
 .menubar > ul {
-  -webkit-transition: opacity 0.8s cubic-bezier(0.26, 0.86, 0.44, 0.985);
   transition: opacity 0.8s cubic-bezier(0.26, 0.86, 0.44, 0.985);
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -ms-flex-wrap: wrap;
-      flex-wrap: wrap;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-      -ms-flex-direction: row;
-          flex-direction: row;
-  -webkit-box-pack: center;
-      -ms-flex-pack: center;
-          justify-content: center;
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: space-between; /* Ensures items are spaced between */
+  align-items: center;
   list-style-type: none;
   padding: 0;
   margin: 0 auto;
   gap: 1.5em;
+  width: 100%; /* Crucial for full-width spacing */
+  box-sizing: border-box; /* Handles padding if applied */
 }
-.menubar > ul li {
-  -webkit-box-sizing: border-box;
-          box-sizing: border-box;
-  -webkit-box-flex: 1;
-      -ms-flex: 1;
-          flex: 1;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
+
+.menubar > ul > li {
+  flex-shrink: 0; /* Prevents shrinking, ensuring space-between works as expected */
+  display: flex; /* Adjust based on content needs, but this keeps it flexible */
 }
+
 .menubar > ul li:before {
   display: none;
 }
@@ -124,13 +112,13 @@ body.hide-menubar .reveal.ready .menubar a {
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
-  opacity: 0.33;
+  opacity: 0.75;
   padding: 0.5em;
   color: currentColor;
 }
 .menubar > ul a:hover {
   color: currentColor;
-  opacity: 0.75;
+  opacity: 1;
 }
 .menubar > ul li a.active, .menubar > ul li.active a {
   opacity: 1;

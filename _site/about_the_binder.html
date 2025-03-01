@@ -99,7 +99,8 @@
 
   <body x-data="{ 
                   filter: { all: true }, 
-                  showScanner: false, 
+                  showScanner: false,
+                  showFlash: false, 
                   videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
@@ -122,6 +123,7 @@
   </svg>
 </div>
 
+    <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>
     <div><!-- includes available
 hamburger
 qr_scanner

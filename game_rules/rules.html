@@ -1,6 +1,3 @@
----
-redirect_from: /kipukas_2_player_domination.pdf
----
 <!doctype html>
 <html lang="en">
 
@@ -79,7 +76,8 @@ redirect_from: /kipukas_2_player_domination.pdf
             </section>
             <section id="toc">
                 <div class="grid grid-rows-3">
-                    <h2 class="grid-span-2">Table of Contents</h2>
+                    <h2 class="">Table of Contents</h2>
+                    <div class="h-48"></div>
                     <div class="menubar !text-3xl h-3/4 w-3/4 justify-center content-center static">
                         <ul class="menu"></ul>
                     </div>
@@ -112,7 +110,7 @@ redirect_from: /kipukas_2_player_domination.pdf
                         strategies of the land conquering play. While complex and entertaining play is
                         great, I want Kipukas to take on deep meaning and help spread that to many
                         wonderful people in this world. Kipukas will set industry standards for
-                        innovative play, company interaction and support of fan base, and
+                        innovative play, company interaction, support of fan base, and
                         environmental impact. Additionally, I hope many find Kipukas as enjoyable as
                         I have found my competition. Better yet, more so.
                     </p>
@@ -168,7 +166,7 @@ redirect_from: /kipukas_2_player_domination.pdf
                         </dd>
                         </dt>
                         <dt>
-                            Token Sets
+                            Token Sets (Per Player)
                         <dd>
                             Set includes 10 Soul tokens, 11 Base Camp tokens, and a Capital token
                             <div class="grid grid-cols-3">
@@ -192,7 +190,7 @@ redirect_from: /kipukas_2_player_domination.pdf
                 <section>
                     <dl class="!text-4xl">
                         <dt>
-                            Dice Sets
+                            Dice Sets (Per Player)
                         <dd>
                             Set includes 2 six sided dice, a 20 sided die, and a Diel Die
                             <div class="grid grid-cols-3">
@@ -312,10 +310,10 @@ redirect_from: /kipukas_2_player_domination.pdf
                         type of card is on its way. Take advantage!
                         <br><br>
                         Kipukas uses many small game pieces to keep track of play. All pieces should be
-                        treated as <b>choking hazards for children and pets!</b> Do not let children under
-                        3 years of age or pets play with the pieces, especially unsupervised.
-                        When play has concluded, it is the responsibility of the legal guardians to keep
-                        the pieces safely organized in the box and the box out of reach of children and pets.
+                        treated as <b>CHOKING HAZARDS and the game content is for people 14+ years of age.</b>
+                        Do not let children under or pets play with the pieces.
+                        At all times, it is the responsibility of the legal guardians to keep all pieces out
+                        of reach of children and pets.
                         <br><br>
                         By continuing to play with our products, you acknowledge that Kipukas accepts no
                         liability for damages incurred by the misuse of our products.
@@ -2023,8 +2021,8 @@ redirect_from: /kipukas_2_player_domination.pdf
     <script src="dist/reveal.js"></script>
     <script src="plugin/zoom/zoom.js"></script>
     <script src="plugin/notes/notes.js"></script>
-    <script src="plugin/search/search.js"></script>
     <script src="plugin/simplemenu/simplemenu.js"></script>
+    <script src="plugin/search/search-utils.js"></script>
     <script src="plugin/markdown/markdown.js"></script>
     <script src="plugin/highlight/highlight.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -2040,7 +2038,7 @@ redirect_from: /kipukas_2_player_domination.pdf
         Reveal.initialize({
             width: 1275,
             height: 1650,
-            scrollActivationWidth: 0, // Corrected the typo here
+            scrollActivationWidth: 0,
             controls: true,
             progress: false,
             center: true,
@@ -2052,12 +2050,12 @@ redirect_from: /kipukas_2_player_domination.pdf
             faded: false,
             simplemenu: printPdfMode ? false : { // Toggle simplemenu based on print-pdf mode
                 barhtml: {
-                    header: '<div class="menubar"> <a href="https://www.kipukas.cards/"> <img class="h-12 md:h-20 !m-5 place-self-start" src="./images/k.svg" alt="back to binder"> </a> <a href="#toc" alt="back to TOC"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-12 md:h-20 !m-5 stroke-1 fill-slate-100 stroke-slate-400"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"> </svg> </a> </div>'
+                    header: '<div class="menubar"> <a href="https://www.kipukas.cards/"> <img class="h-12 md:h-20 !m-5 place-self-start" src="./images/k.svg" alt="back to binder"> </a> <div id="search-container" class="p-4 w-72"></div> <a href="#toc" alt="back to TOC"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-12 md:h-20 !m-5 stroke-1 fill-slate-100 stroke-slate-400"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"> </svg> </a> </div>'
                 }
             },
             plugins: printPdfMode ? 
-                [RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight] : 
-                [RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight, Simplemenu]
+                [RevealZoom, RevealNotes, RevealMarkdown, RevealHighlight] : 
+                [RevealZoom, RevealNotes, RevealMarkdown, RevealHighlight, Simplemenu]
         });
     </script>
     <script>
@@ -2073,6 +2071,8 @@ redirect_from: /kipukas_2_player_domination.pdf
         });
         }
     </script>
+
+
     
 </body>
 </html>
