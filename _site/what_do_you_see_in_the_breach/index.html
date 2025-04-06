@@ -532,6 +532,22 @@ x-show="showScanner && !noCamera && videoReady">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">What Do You See in the Breach</p>
           <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Sabotage
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
     Success Criteria
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
@@ -572,22 +588,6 @@ x-show="showScanner && !noCamera && videoReady">
     
     
       You fail to take the capital within 3 days. Any souls still in the capital after the time period become imprisoned. After 10 diel cycles, your opponent chooses up to 2 souls to take under their control, they release 1 of the remaining souls to you, then your opponent wastes the rest.
-      
-      
-    
-  </p>
-</div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    card variation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Sabotage
       
       
     

@@ -532,6 +532,22 @@ x-show="showScanner && !noCamera && videoReady">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Hidden Portal of Lower Dreadmont Cave</p>
           <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+    
+    
+      Sabotage
+      
+      
+    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
     Success Criteria
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
@@ -573,22 +589,6 @@ Ante up a strong soul (3+ keal means tolerance) who has lost all but one keal me
     
     
        One or more of the steps were failed or your opponent wasted the anted soul. The soul you anted was not of the right heart. It is wasted and placed at the bottom of your opponents deck. 
-      
-      
-    
-  </p>
-</div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    card variation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Sabotage
       
       
     
