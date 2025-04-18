@@ -13,12 +13,18 @@ module.exports = {
   ],
   runtimeCaching: [{
     urlPattern: /https?:\/\/[^\/]+/,
-    handler: 'StaleWhileRevalidate'
+    handler: 'StaleWhileRevalidate',
+    options: {
+      cacheName: 'my-app-cache-' + versionHash,
+      // Optionally, you can set a maximum age for the cache entries
+      // cacheableResponse: { statuses: [0, 200, 404] }
+    }
   }],
   clientsClaim: true,
   skipWaiting: true,
-  // Use the versionHash in a way that Workbox understands (e.g., as part of the cache names)
   cacheId: 'my-app-cache-' + versionHash,
+  importScripts: ['./custom-sw.js'],
 };
+
 
   

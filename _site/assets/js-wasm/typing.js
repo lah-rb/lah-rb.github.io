@@ -1,5 +1,5 @@
-function typeMatchup(atk, def) {
-
+function typeMatchup(atk, def, motatk, motdef) {
+//array, array, string, string
     const CenozoicDef = [0,3,1,1,-1,2,2,-1,-1,2,-3,-1,-2,1,-3];
     const DecrepitDef = [-3,0,1,2,1,-1,-3,-2,3,1,2,-1,-1,-1,2];
     const AngelicDef = [-1,-1,-3,3,2,-3,-2,1,1,1,-1,2,1,-1,-1];
@@ -66,15 +66,76 @@ function typeMatchup(atk, def) {
     atkMap.set("Algorithmic", AlgorithmicAtk);
     atkMap.set("Energetic", EnergeticAtk);
     atkMap.set("Entropic", EntropicAtk);
+                    //possessor, consciense, spirit, duty, sacrifice, passion, service, satisfaction, survival
+    const SpiritAtk = [10,0,0,0,0,0,0,0,0];
+    const PossessorAtk = [0,10,0,0,0,0,0,0,0];
+    const ConscienceAtk = [0,0,10,0,0,0,0,0,0];
+    const SurvivalAtk = [0,0,0,10,0,0,0,0,0];
+    const DutyAtk = [0,0,0,0,10,0,0,0,0];
+    const SacrificeAtk = [0,0,0,0,0,10,0,0,0];
+    const PassionAtk = [0,0,0,0,0,0,10,0,0];
+    const ServiceAtk = [0,0,0,0,0,0,0,10,0];
+    const SatisfactionAtk = [0,0,0,0,0,0,0,0,10];
+
+
+    const motiveAtkMap = new Map();
+    motiveAtkMap.set("Spirit", SpiritAtk);
+    motiveAtkMap.set("Possessor", PossessorAtk);
+    motiveAtkMap.set("Conscience", ConscienceAtk);
+    motiveAtkMap.set("Survival", SurvivalAtk);
+    motiveAtkMap.set("Duty", DutyAtk);
+    motiveAtkMap.set("Sacrifice", SacrificeAtk);
+    motiveAtkMap.set("Passion", PassionAtk);
+    motiveAtkMap.set("Service", ServiceAtk);
+    motiveAtkMap.set("Satisfaction", SatisfactionAtk);
+
+    const PossessorDef =      0;
+    const ConscienceDef =     1;
+    const SpiritDef  =        2;
+    const DutyDef =           3;
+    const SacrificeDef =      4;
+    const PassionDef =        5;
+    const ServiceDef =        6;
+    const SatisfactionDef =   7;
+    const SurvivalDef =       8;
+
+    const motiveDefMap = new Map();
+    motiveDefMap.set("Possessor", PossessorDef);
+    motiveDefMap.set("Conscience", ConscienceDef);
+    motiveDefMap.set("Spirit", SpiritDef);
+    motiveDefMap.set("Duty", DutyDef);
+    motiveDefMap.set("Sacrifice", SacrificeDef);
+    motiveDefMap.set("Passion", PassionDef);
+    motiveDefMap.set("Service", ServiceDef);
+    motiveDefMap.set("Satisfaction", SatisfactionDef);
+    motiveDefMap.set("Survival", SurvivalDef);
+
+    const SocietalPreservation = ['Spirit', 'Duty', 'Service']
+    const SelfPreservation = ['Possessor','Survival', 'Satisfaction']
+    const SupportPreservation = ['Conscience', 'Sacrifice', 'Passion']
 
     var hits = [];
+    var societalMod = '';
+    var selfMod = '';
+    var supportMod = '';
 
     for (var i = 0; i < atk.length; i++) {
         for (var j = 0; j < def.length; j++) {
             hits.push(defMap.get(def[j])[atkMap.get(atk[i])]);
         }
     }
-
+    if (motatk && motdef && motatk.trim() !== "" && motdef.trim() !== "") {
+        hits.push(motiveAtkMap.get(motatk)[motiveDefMap.get(motdef)]);
+        if (SocietalPreservation.includes(motatk)) {
+            societalMod = '\nDefender must win 2 of 3'
+        } 
+        if (SelfPreservation.includes(motdef)) {
+            selfMod = '\nDefender trys retreat before attack.'
+        }
+        if (SupportPreservation.includes(motdef)) {
+            supportMod = '\nAtacker must win 2 of 3'
+        }
+    }
     var modifier = 0;
 
     for (var i = 0; i < hits.length; i++) {
@@ -82,7 +143,8 @@ function typeMatchup(atk, def) {
     }
     
     try {
-        return modifier;
+        result = modifier + societalMod + selfMod + supportMod;
+        return result;
     } catch (error) {
         return 'N/A';
     }

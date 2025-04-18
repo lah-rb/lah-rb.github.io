@@ -870,6 +870,10 @@ select {
   z-index: auto;
 }
 
+.col-span-2 {
+  grid-column: span 2 / span 2;
+}
+
 .\!m-5 {
   margin: 1.25rem !important;
 }

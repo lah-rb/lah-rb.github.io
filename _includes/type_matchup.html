@@ -1,5 +1,5 @@
 <script src="/assets/js-wasm/typing.js"></script>
-<div x-data="{ showTypeMenu: false, outcome: '', atkClick:[], defClick:[] }" class="relative place-content-center">
+<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, outcome: '', atkClick:[], defClick:[], atkMot:'', defMot:'' }" class="relative place-content-center">
     <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
             {% unless page.landscape %}
@@ -30,22 +30,54 @@
         x-anchor.right-end.offset.10="$refs.typeButton"
         x-transition.duration.350ms
         x-data="{ outcome: '' }"
-        class="{{ include.menuClass }} grid grid-cols-2 h-fit w-72">
-        <div>
-          <span>Attacker:</span>
-          {% for type in site.data.types.Archetypes %}
-            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="atkClick.length == 3 && !checked" name="attacker" id="{{ type | append: 'Atk' }}"    @click="checked = !checked, atkClick.includes('{{ type }}') ? atkClick = atkClick.filter((atk) => atk !== '{{ type }}') : atkClick.push('{{ type }}'), outcome = typeMatchup(atkClick, defClick)"><label for="{{ type | append: 'Atk' }}">{{ type }}</label></div>
-          {% endfor %}
+        class="{{ include.menuClass }} h-fit w-72">
+        <div class="flex place-content-center">
+          <svg xmlns="http://www.w3.org/2000/svg" alt="show keal"
+            @click="showKeal = !showKeal" :class="{ 'rotate-180': !showKeal }" x-transition
+            class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
+          <b>Archetypes</b>
         </div>
-        <div>
-          <span>Defender:</span>
-          {% for type in site.data.types.Archetypes %}
-            <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="defClick.length == 3 && !checked" name="defender" id="{{ type | append: 'Def' }}"    @click="checked = !checked, defClick.includes('{{ type }}') ? defClick = defClick.filter((def) => def !== '{{ type }}') : defClick.push('{{ type }}'), outcome = typeMatchup(atkClick, defClick)"><label for="{{ type | append: 'Def' }}">{{ type }}</label></div>
-          {% endfor %}
+        <div class="grid grid-cols-2">
+          <div x-show="showKeal" >
+            <span><b>Attacker</b></span>
+            {% for type in site.data.types.Archetypes %}
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="atkClick.length == 3 && !checked" name="attacker" id="{{ type | append: 'Atk' }}"    @click="checked = !checked, atkClick.includes('{{ type }}') ? atkClick = atkClick.filter((atk) => atk !== '{{ type }}') : atkClick.push('{{ type }}'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'Atk' }}">{{ type }}</label></div>
+            {% endfor %}
+          </div>
+          <div x-show="showKeal">
+            <span><b>Defender</b></span>
+            {% for type in site.data.types.Archetypes %}
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="defClick.length == 3 && !checked" name="defender" id="{{ type | append: 'Def' }}"    @click="checked = !checked, defClick.includes('{{ type }}') ? defClick = defClick.filter((def) => def !== '{{ type }}') : defClick.push('{{ type }}'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'Def' }}">{{ type }}</label></div>
+            {% endfor %}
+          </div>
         </div>
-        <div>
+        <div class="flex place-content-center">
+          <svg xmlns="http://www.w3.org/2000/svg" alt="show Motivation"
+            @click="showMot = !showMot" :class="{ 'rotate-180': !showMot }" x-transition
+            class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
+          <b>Motivations</b>
+        </div>
+        <div class="grid grid-cols-2">
+          <div x-show="showMot">
+            <span><b>Attacker</b></span>
+            {% for type in site.data.types.Motivations %}
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="attackerMotive" id="{{ type | append: 'AtkMot' }}"    @click="checked = !checked, checked ? atkMot = '{{ type }}' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'AtkMot' }}">{{ type }}</label></div>
+            {% endfor %}
+          </div>
+          <div x-show="showMot">
+            <span><b>Defender</b></span>
+            {% for type in site.data.types.Motivations %}
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="defenderMotive" id="{{ type | append: 'DefMot' }}"    @click="checked = !checked, checked ? defMot = '{{ type }}': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'Def' }}"><label for="{{ type | append: 'DefMot' }}">{{ type }}</label></div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-span-2">
           <span><strong>Attack Die Modifier:</strong></span>
-          <span x-text="outcome" class="place-self-center"></span>
+          <span style="white-space: pre-wrap;" x-text="outcome" class="place-self-center"></span>
         </div>
     </div>
 
