@@ -1,5 +1,5 @@
 const fs = require('fs');
-const versionHash = fs.readFileSync('./_site/version.txt', 'utf8').trim();
+const versionHash = fs.readFileSync('./_site/version.txt', 'utf8').trim();  
 
 module.exports = {
   globDirectory: '_site/',
@@ -13,18 +13,12 @@ module.exports = {
   ],
   runtimeCaching: [{
     urlPattern: /https?:\/\/[^\/]+/,
-    handler: 'StaleWhileRevalidate',
-    options: {
-      cacheName: 'my-app-cache-' + versionHash,
-      // Optionally, you can set a maximum age for the cache entries
-      // cacheableResponse: { statuses: [0, 200, 404] }
-    }
+    handler: 'StaleWhileRevalidate'
   }],
   clientsClaim: true,
   skipWaiting: true,
+  // Use the versionHash in a way that Workbox understands (e.g., as part of the cache names)
   cacheId: 'my-app-cache-' + versionHash,
-  importScripts: ['./custom-sw.js'],
 };
-
 
   
