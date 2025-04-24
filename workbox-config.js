@@ -23,7 +23,7 @@ module.exports = {
   clientsClaim: true,
   skipWaiting: true,
   cacheId: 'my-app-cache-' + versionHash,
-  importScripts: ['./custom-sw.js'],
+  //importScripts: ['./custom-sw.js'],
 };
 
 
