@@ -48,6 +48,7 @@ bg-terra: "bg-hero-pattern "
             filter.all == true"
       x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
       <a href="{{card.url}}"
+          x-cloak
           x-transition.duration.250ms
           x-show="
             (filter.{{card.layout}} == true || 
@@ -60,23 +61,25 @@ bg-terra: "bg-hero-pattern "
           "
         class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
         >
-        <img x-cloak width="160" height="160" class="md:hidden"
-        srcset="
-        /assets/thumbnails/x1/{{card.img_name}} 1x,
-        /assets/thumbnails/x2/{{card.img_name}} 2x,
-        /assets/thumbnails/x3/{{card.img_name}} 3x,
-        /assets/thumbnails/x4/{{card.img_name}} 4x,
-        /assets/thumbnails/x5/{{card.img_name}} 5x,
-        " alt="{{card.img_alt}}"></img>
-        <img x-cloak width="320" height="320" class="hidden md:block"
-        srcset="
-        /assets/thumbnails/x2/{{card.img_name}} 1x,
-        /assets/thumbnails/x4/{{card.img_name}} 2x
-        " alt="{{card.img_alt}}"></img>
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+          
+          <img 
+            :width="$data.screenWidth >= 768 ? '320' : '160'"
+            :height="$data.screenWidth >= 768 ? '320' : '160'"
+            :srcset="$data.screenWidth >= 768 
+                      ? `/assets/thumbnails/x2/{{card.img_name}} 1x, /assets/thumbnails/x4/{{card.img_name}} 2x`
+                      : `/assets/thumbnails/x1/{{card.img_name}} 1x, /assets/thumbnails/x2/{{card.img_name}} 2x, /assets/thumbnails/x3/{{card.img_name}} 3x, /assets/thumbnails/x4/{{card.img_name}} 4x, /assets/thumbnails/x5/{{card.img_name}} 5x`"
+            alt="{{ card.img_alt }}"
+            loading="lazy"
+          >
+        </div>  
         <div class="text-center text-wrap">{{card.title}}</div>
       </a>
     </div>
     {% endfor %}
   </div>
-</template>
+</template> 
 
