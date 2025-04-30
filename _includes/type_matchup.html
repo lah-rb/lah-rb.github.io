@@ -71,7 +71,7 @@
           <div x-show="showMot">
             <span><b>Defender</b></span>
             {% for type in site.data.types.Motivations %}
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="defenderMotive" id="{{ type | append: 'DefMot' }}"    @click="checked = !checked, checked ? defMot = '{{ type }}': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'Def' }}"><label for="{{ type | append: 'DefMot' }}">{{ type }}</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="defenderMotive" id="{{ type | append: 'DefMot' }}"    @click="checked = !checked, checked ? defMot = '{{ type }}': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="{{ type | append: 'DefMot' }}">{{ type }}</label></div>
             {% endfor %}
           </div>
         </div>
