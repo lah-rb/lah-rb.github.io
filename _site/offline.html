@@ -36,8 +36,16 @@
     <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#9b2c2c">
 
-    <script src="https://cdn.jsdelivr.net/npm/ios-pwa-splash@1.0.0/cdn.min.js"></script>
-    <script>iosPWASplash('ios/512.png', '#9b2c2c');</script>
+    <script>
+      const worker = new Worker('ios-pwa-splash-worker.js');
+    
+      worker.postMessage({
+        type: 'generateSplash',
+        icon: 'ios/512.png',
+        color: '#9b2c2c'
+      });
+    </script>
+    
 
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
