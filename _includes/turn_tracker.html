@@ -15,7 +15,7 @@
     x-transition.duration.350ms
     class="{{ include.menuClass }} grid grid-cols-1 h-fit w-40">
         <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 1 }">
-            <input type="range" name="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
+            <input type="range" name="turnsSelector" id="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
             <button aria-label="Submit turn timer" class="{{ site.data.templates.red-btn }} mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
         </div>
     </div>
