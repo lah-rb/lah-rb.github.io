@@ -892,3 +892,13 @@ A transit territory space must be allocated on the mat.
                         everything will be scrutinized. At this point, don't get too bogged down and
                         just find a way to play that is fun for you and your friends.
                      Play Style Options
+
+
+                             /assets/thumbnails/x1/{{card.img_name}} 1x,
+        /assets/thumbnails/x2/{{card.img_name}} 2x,
+        /assets/thumbnails/x3/{{card.img_name}} 3x,
+        /assets/thumbnails/x4/{{card.img_name}} 4x,
+        /assets/thumbnails/x5/{{card.img_name}} 5x,
+
+                /assets/thumbnails/x2/{{card.img_name}} 1x,
+        /assets/thumbnails/x4/{{card.img_name}} 2x
