@@ -1,0 +1,105 @@
+---
+layout: default
+permalink: /mechanics_development
+title: "Game Mechanics Dev"
+description: "Dive into the dynamic mechanics development, including hereditary stages."
+bg-terra: "bg-hero-pattern "
+---
+{% include toolbar.html 
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+<template x-if="true">
+  <!-- This fixes the cls issue completely -->
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        {{ page.title }}
+      </h1>
+
+      <div class="w-5/6 md:w-4/6 place-self-center">
+        <p class="ml-4 text-sm">
+          Game mechanics rest at the core of any game, obviously. Not every game has a clear way to evolve
+          their mechanics over time, though. In classic table top games, such as chess, by the time rules were
+          internationally
+          agreed upon they had already be codified over years of play slowly morphing from its ancestral roots. Others,
+          like tik-tak-toe, present such a simple premise any modification results in the creation of a whole new game.
+          However, for a complex modern game like Kipukas, we live and die based on our ability to produce mechanics
+          which
+          not only add novelty to the gaming world, but also our ability to react to how these play out in the wild. At
+          Kipukas,
+          we store mechanics 100% digitally, despite being a table top game. This gives us the ability to update card
+          and game
+          rules as needed. Additionally, we use the following system to clarify our confidence in their mechanical
+          stability, so to say.
+        </p>
+        <ul class="text-lg">
+          <li>
+            <strong>α mechanics:</strong>
+            <p class="ml-4 text-sm">These mechanics are highly experimental and not considered for use in officially
+              sanctioned events. Their use is encouraged if the user is interested in helping the game develop further;
+              otherwise, they should be ignored.</p>
+          </li>
+          <li>
+            <strong>β mechanics:</strong>
+            <p class="ml-4 text-sm">These mechanics are experimental. They are allowed in officially sanctioned events;
+              however, they are not guaranteed a sustained lifetime in the events. Their behavior is mostly firm, but
+              maybe adjusted as more is learned about them.</p>
+          </li>
+          <li>
+            <strong>γ mechanics:</strong>
+            <p class="ml-4 text-sm">These mechanics are thoroughly vetted and can be considered an integral part of the
+              Kipukas rule book. The behavior is unlikely to change and if it does it will be minor or trivial.</p>
+          </li>
+          <li>
+            <strong>ω mechanics:</strong>
+            <p class="ml-4 text-sm">These mechanics have reached the end of their life cycle and are no longer accepted
+              in officially sanctioned events. However, players are welcome to use these mechanics in their own
+              gameplay. If interest is high enough, the mechanics may be reintroduced as α mechanics.</p>
+          </li>
+        </ul>
+
+        <p class="italic text-sm mt-2">
+          <b>α</b> inherits from <b>ω</b> or original thought | <b>γ</b> inherits from <b>β</b> | <b>ω</b> inherits from
+          <b>α</b> and <b>β</b>
+        </p>
+        <p class="italic text-sm mt-2">
+          At the Kipukas launch, all rules mechanics should be considered <b>β</b> and card mechanics considered
+          <b>α</b>. As
+          a versioning system is implemented on the binder, and as we gather game play feedback, we will report the
+          state of
+          mechanics on each card in the binder.
+        </p>
+
+        <h2 class="z-20 mt-6">Dynamic Play Style:</h2>
+
+        <p class="ml-4 text-sm">
+          The development of mechanics that have different results given similar inputs is encouraged.
+          While this may sound confusing, think about Dungeons and Dragons style gameplay where the dungeon master is
+          employed to decide if a certain action is acceptable to occur.
+          This is intended to reward clever actions and in-the-moment thinking as well as assist in the creation of
+          new, more robust game mechanics. When discovered in official games, these could become α mechanics.
+        </p>
+        <h2 class="z-20 mt-6">Rule Guarantees:</h2>
+        <p class="ml-4 text-sm">
+          <ul>
+            <li>No card will <b>EVER</b> be banned from game play at any officially sanctioned event</li>
+            <li>Synchronicity between cards will never be planned and must be discovered by players</li>
+            <li>Card play is designed to be stable (over the long run, probably not at launch :)</li>
+            <li>We won't produce new card mechanics exclusively to outdate previous releases</li>
+          </ul>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</template>
