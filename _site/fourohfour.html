@@ -39,7 +39,7 @@
 
     <script src="/assets/js-wasm/ios-pwa-splash.js">
       document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('ios/512.png', '#9b2c2c');
+        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
@@ -52,17 +52,19 @@
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
-          });
-        });
-    }
+      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+              });
+            });
+        }
+      }
     </script>
 
   </head>
@@ -84,7 +86,8 @@
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
+        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -618,7 +621,7 @@ x-show="showScanner && !noCamera && videoReady">
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track1"
@@ -633,7 +636,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track2"
@@ -648,7 +651,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track3"
@@ -663,7 +666,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track4"
@@ -678,7 +681,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track5"
@@ -699,7 +702,7 @@ x-show="showScanner && !noCamera && videoReady">
     x-ref="fourohfour_track_wasted"
     :checked="fourohfour_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="fourohfour_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
+    :disabled="fourohfour_damage[0] == false" 
     name="damageTrack" id="fourohfour_wasted"  
     @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']" 
     x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
@@ -929,7 +932,7 @@ x-show="showScanner && !noCamera && videoReady">
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track1"
@@ -944,7 +947,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track2"
@@ -959,7 +962,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track3"
@@ -974,7 +977,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track4"
@@ -989,7 +992,7 @@ x-show="showScanner && !noCamera && videoReady">
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
         x-ref="fourohfour_track5"
@@ -1010,7 +1013,7 @@ x-show="showScanner && !noCamera && videoReady">
     x-ref="fourohfour_track_wasted"
     :checked="fourohfour_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="fourohfour_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
+    :disabled="fourohfour_damage[0] == false" 
     name="damageTrack" id="fourohfour_wasted"  
     @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']" 
     x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false), $watch('clearDamage', value => fourohfour_damage['wasted'] = false)">
@@ -1185,8 +1188,8 @@ x-show="showScanner && !noCamera && videoReady">
 </div>
 
 
-      <p class="font-hairline text-slate-200 text-sm mt-6"></p>
-      <p class="font-hairline text-slate-300 text-xs italic"></p>
+      <p class="font-hairline text-slate-200 text-sm mt-6 place-self-center text-center text-wrap"></p>
+      <p class="font-hairline text-slate-300 text-xs italic place-self-center text-center text-wrap"></p>
     </div>
   </div>
 </template>

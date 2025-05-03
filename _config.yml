@@ -38,6 +38,12 @@ plugins:
   - jekyll-sitemap
   - jekyll-redirect-from
 
+collections:
+  about:
+
+include:
+  - _about
+
 
 # Exclude from processing.
 # The following items will not be processed, by default.

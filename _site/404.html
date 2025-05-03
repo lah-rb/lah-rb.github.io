@@ -39,7 +39,7 @@
 
     <script src="/assets/js-wasm/ios-pwa-splash.js">
       document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('ios/512.png', '#9b2c2c');
+        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
@@ -52,17 +52,19 @@
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
-          });
-        });
-    }
+      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+              });
+            });
+        }
+      }
     </script>
 
   </head>
@@ -84,7 +86,8 @@
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
+        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -614,96 +617,96 @@ x-show="showScanner && !noCamera && videoReady">
 
 
 
-<div class="grid grid-cols-2 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ 404.html_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), 404.html_clear: $persist([]) }">
+<div class="grid grid-cols-2 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ _damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), _clear: $persist([]) }">
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
-        x-ref="404.html_track1"
-        :checked="404.html_damage[1]"
-        :disabled="404.html_damage[0] == false || 404.html_damage[2] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track1"
+        :checked="_damage[1]"
+        :disabled="_damage[0] == false || _damage[2] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_1"  
-        @click="404.html_damage[1] = !404.html_damage[1]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[1] = false), $watch('clearDamage', value => 404.html_damage[1] = false)">
-        <label for="404.html_damage_slot_1" x-anchor.bottom.start="$refs.404.html_track1"> 1 </label>
+        id="_damage_slot_1"  
+        @click="_damage[1] = !_damage[1]" 
+        x-init="clearDamage == _clear || (_damage[1] = false), $watch('clearDamage', value => _damage[1] = false)">
+        <label for="_damage_slot_1" x-anchor.bottom.start="$refs._track1"> 1 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
-        x-ref="404.html_track2"
-        :checked="404.html_damage[2]"
-        :disabled="404.html_damage[1] == false || 404.html_damage[3] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track2"
+        :checked="_damage[2]"
+        :disabled="_damage[1] == false || _damage[3] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_2"  
-        @click="404.html_damage[2] = !404.html_damage[2]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[2] = false), $watch('clearDamage', value => 404.html_damage[2] = false)">
-        <label for="404.html_damage_slot_2" x-anchor.bottom.start="$refs.404.html_track2"> 2 </label>
+        id="_damage_slot_2"  
+        @click="_damage[2] = !_damage[2]" 
+        x-init="clearDamage == _clear || (_damage[2] = false), $watch('clearDamage', value => _damage[2] = false)">
+        <label for="_damage_slot_2" x-anchor.bottom.start="$refs._track2"> 2 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
-        x-ref="404.html_track3"
-        :checked="404.html_damage[3]"
-        :disabled="404.html_damage[2] == false || 404.html_damage[4] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track3"
+        :checked="_damage[3]"
+        :disabled="_damage[2] == false || _damage[4] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_3"  
-        @click="404.html_damage[3] = !404.html_damage[3]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[3] = false), $watch('clearDamage', value => 404.html_damage[3] = false)">
-        <label for="404.html_damage_slot_3" x-anchor.bottom.start="$refs.404.html_track3"> 3 </label>
+        id="_damage_slot_3"  
+        @click="_damage[3] = !_damage[3]" 
+        x-init="clearDamage == _clear || (_damage[3] = false), $watch('clearDamage', value => _damage[3] = false)">
+        <label for="_damage_slot_3" x-anchor.bottom.start="$refs._track3"> 3 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
-        x-ref="404.html_track4"
-        :checked="404.html_damage[4]"
-        :disabled="404.html_damage[3] == false || 404.html_damage[5] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track4"
+        :checked="_damage[4]"
+        :disabled="_damage[3] == false || _damage[5] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_4"  
-        @click="404.html_damage[4] = !404.html_damage[4]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[4] = false), $watch('clearDamage', value => 404.html_damage[4] = false)">
-        <label for="404.html_damage_slot_4" x-anchor.bottom.start="$refs.404.html_track4"> 4 </label>
+        id="_damage_slot_4"  
+        @click="_damage[4] = !_damage[4]" 
+        x-init="clearDamage == _clear || (_damage[4] = false), $watch('clearDamage', value => _damage[4] = false)">
+        <label for="_damage_slot_4" x-anchor.bottom.start="$refs._track4"> 4 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
-        x-ref="404.html_track5"
-        :checked="404.html_damage[5]"
-        :disabled="404.html_damage[4] == false || 404.html_damage[6] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track5"
+        :checked="_damage[5]"
+        :disabled="_damage[4] == false || _damage[6] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_5"  
-        @click="404.html_damage[5] = !404.html_damage[5]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[5] = false), $watch('clearDamage', value => 404.html_damage[5] = false)">
-        <label for="404.html_damage_slot_5" x-anchor.bottom.start="$refs.404.html_track5"> 5 </label>
+        id="_damage_slot_5"  
+        @click="_damage[5] = !_damage[5]" 
+        x-init="clearDamage == _clear || (_damage[5] = false), $watch('clearDamage', value => _damage[5] = false)">
+        <label for="_damage_slot_5" x-anchor.bottom.start="$refs._track5"> 5 </label>
     </div>
   
   
   <div class="mx-2 place-self-center">
     <input 
     type="checkbox" 
-    x-ref="404.html_track_wasted"
-    :checked="404.html_damage['wasted']" 
+    x-ref="_track_wasted"
+    :checked="_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="404.html_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
-    name="damageTrack" id="404.html_wasted"  
-    @click="404.html_damage['wasted'] = !404.html_damage['wasted']" 
-    x-init="clearDamage == 404.html_clear || (404.html_damage['wasted'] = false), $watch('clearDamage', value => 404.html_damage['wasted'] = false)">
-    <label for="404.html_wasted" x-anchor.bottom.start="$refs.404.html_track_wasted"> wasted </label>
+    :disabled="_damage[0] == false" 
+    name="damageTrack" id="_wasted"  
+    @click="_damage['wasted'] = !_damage['wasted']" 
+    x-init="clearDamage == _clear || (_damage['wasted'] = false), $watch('clearDamage', value => _damage['wasted'] = false)">
+    <label for="_wasted" x-anchor.bottom.start="$refs._track_wasted"> wasted </label>
   </div>
 </div>
 
@@ -874,7 +877,7 @@ x-show="showScanner && !noCamera && videoReady">
 </div>
 
 
-          <p class="font-hairline text-slate-200 text-sm mt-6">Psst...sst... If you drop my name in the comments of your next order Kipukas will ship me to you free!</p>
+          <p class="font-hairline text-slate-200 text-sm mt-6">Psst...sst... If you drop my name in the comments of your next order Kipukas will ship me to you free with your next order!</p>
           <p class="font-hairline text-slate-300 text-xs italic">Limit 1 per customer.</p>
         </div>
       </div>
@@ -925,96 +928,96 @@ x-show="showScanner && !noCamera && videoReady">
 
 
 
-<div class="grid grid-cols-2 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ 404.html_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), 404.html_clear: $persist([]) }">
+<div class="grid grid-cols-2 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ _damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), _clear: $persist([]) }">
   <p class="text-left">Card Status:</p>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 1">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 1">
       <input 
         type="checkbox" 
-        x-ref="404.html_track1"
-        :checked="404.html_damage[1]"
-        :disabled="404.html_damage[0] == false || 404.html_damage[2] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track1"
+        :checked="_damage[1]"
+        :disabled="_damage[0] == false || _damage[2] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_1"  
-        @click="404.html_damage[1] = !404.html_damage[1]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[1] = false), $watch('clearDamage', value => 404.html_damage[1] = false)">
-        <label for="404.html_damage_slot_1" x-anchor.bottom.start="$refs.404.html_track1"> 1 </label>
+        id="_damage_slot_1"  
+        @click="_damage[1] = !_damage[1]" 
+        x-init="clearDamage == _clear || (_damage[1] = false), $watch('clearDamage', value => _damage[1] = false)">
+        <label for="_damage_slot_1" x-anchor.bottom.start="$refs._track1"> 1 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 2">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 2">
       <input 
         type="checkbox" 
-        x-ref="404.html_track2"
-        :checked="404.html_damage[2]"
-        :disabled="404.html_damage[1] == false || 404.html_damage[3] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track2"
+        :checked="_damage[2]"
+        :disabled="_damage[1] == false || _damage[3] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_2"  
-        @click="404.html_damage[2] = !404.html_damage[2]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[2] = false), $watch('clearDamage', value => 404.html_damage[2] = false)">
-        <label for="404.html_damage_slot_2" x-anchor.bottom.start="$refs.404.html_track2"> 2 </label>
+        id="_damage_slot_2"  
+        @click="_damage[2] = !_damage[2]" 
+        x-init="clearDamage == _clear || (_damage[2] = false), $watch('clearDamage', value => _damage[2] = false)">
+        <label for="_damage_slot_2" x-anchor.bottom.start="$refs._track2"> 2 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 3">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 3">
       <input 
         type="checkbox" 
-        x-ref="404.html_track3"
-        :checked="404.html_damage[3]"
-        :disabled="404.html_damage[2] == false || 404.html_damage[4] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track3"
+        :checked="_damage[3]"
+        :disabled="_damage[2] == false || _damage[4] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_3"  
-        @click="404.html_damage[3] = !404.html_damage[3]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[3] = false), $watch('clearDamage', value => 404.html_damage[3] = false)">
-        <label for="404.html_damage_slot_3" x-anchor.bottom.start="$refs.404.html_track3"> 3 </label>
+        id="_damage_slot_3"  
+        @click="_damage[3] = !_damage[3]" 
+        x-init="clearDamage == _clear || (_damage[3] = false), $watch('clearDamage', value => _damage[3] = false)">
+        <label for="_damage_slot_3" x-anchor.bottom.start="$refs._track3"> 3 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 4">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 4">
       <input 
         type="checkbox" 
-        x-ref="404.html_track4"
-        :checked="404.html_damage[4]"
-        :disabled="404.html_damage[3] == false || 404.html_damage[5] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track4"
+        :checked="_damage[4]"
+        :disabled="_damage[3] == false || _damage[5] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_4"  
-        @click="404.html_damage[4] = !404.html_damage[4]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[4] = false), $watch('clearDamage', value => 404.html_damage[4] = false)">
-        <label for="404.html_damage_slot_4" x-anchor.bottom.start="$refs.404.html_track4"> 4 </label>
+        id="_damage_slot_4"  
+        @click="_damage[4] = !_damage[4]" 
+        x-init="clearDamage == _clear || (_damage[4] = false), $watch('clearDamage', value => _damage[4] = false)">
+        <label for="_damage_slot_4" x-anchor.bottom.start="$refs._track4"> 4 </label>
     </div>
   
     
-    <div class="mx-2 place-self-center align-items-start" x-show="<br>Can't touch this... Remove with a card capable of removing digital terrains >= 5">
+    <div class="mx-2 place-self-center align-items-start" x-show="0 >= 5">
       <input 
         type="checkbox" 
-        x-ref="404.html_track5"
-        :checked="404.html_damage[5]"
-        :disabled="404.html_damage[4] == false || 404.html_damage[6] == true || 404.html_damage['wasted'] == true" 
+        x-ref="_track5"
+        :checked="_damage[5]"
+        :disabled="_damage[4] == false || _damage[6] == true || _damage['wasted'] == true" 
         class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
         name="damageTrack" 
-        id="404.html_damage_slot_5"  
-        @click="404.html_damage[5] = !404.html_damage[5]" 
-        x-init="clearDamage == 404.html_clear || (404.html_damage[5] = false), $watch('clearDamage', value => 404.html_damage[5] = false)">
-        <label for="404.html_damage_slot_5" x-anchor.bottom.start="$refs.404.html_track5"> 5 </label>
+        id="_damage_slot_5"  
+        @click="_damage[5] = !_damage[5]" 
+        x-init="clearDamage == _clear || (_damage[5] = false), $watch('clearDamage', value => _damage[5] = false)">
+        <label for="_damage_slot_5" x-anchor.bottom.start="$refs._track5"> 5 </label>
     </div>
   
   
   <div class="mx-2 place-self-center">
     <input 
     type="checkbox" 
-    x-ref="404.html_track_wasted"
-    :checked="404.html_damage['wasted']" 
+    x-ref="_track_wasted"
+    :checked="_damage['wasted']" 
     class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="404.html_damage[<br>Can't touch this... Remove with a card capable of removing digital terrains] == false" 
-    name="damageTrack" id="404.html_wasted"  
-    @click="404.html_damage['wasted'] = !404.html_damage['wasted']" 
-    x-init="clearDamage == 404.html_clear || (404.html_damage['wasted'] = false), $watch('clearDamage', value => 404.html_damage['wasted'] = false)">
-    <label for="404.html_wasted" x-anchor.bottom.start="$refs.404.html_track_wasted"> wasted </label>
+    :disabled="_damage[0] == false" 
+    name="damageTrack" id="_wasted"  
+    @click="_damage['wasted'] = !_damage['wasted']" 
+    x-init="clearDamage == _clear || (_damage['wasted'] = false), $watch('clearDamage', value => _damage['wasted'] = false)">
+    <label for="_wasted" x-anchor.bottom.start="$refs._track_wasted"> wasted </label>
   </div>
 </div>
 
@@ -1185,8 +1188,8 @@ x-show="showScanner && !noCamera && videoReady">
 </div>
 
 
-      <p class="font-hairline text-slate-200 text-sm mt-6">Psst...sst... If you drop my name in the comments of your next order Kipukas will ship me to you free!</p>
-      <p class="font-hairline text-slate-300 text-xs italic">Limit 1 per customer.</p>
+      <p class="font-hairline text-slate-200 text-sm mt-6 place-self-center text-center text-wrap">Psst...sst... If you drop my name in the comments of your next order Kipukas will ship me to you free with your next order!</p>
+      <p class="font-hairline text-slate-300 text-xs italic place-self-center text-center text-wrap">Limit 1 per customer.</p>
     </div>
   </div>
 </template>

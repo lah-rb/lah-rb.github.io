@@ -1,0 +1,87 @@
+---
+layout: default
+permalink: /card_production_model
+title: "Card Production Model"
+description: "Detail the production strategy, including rarity, pricing, and release cycles."
+bg-terra: "bg-hero-pattern "
+---
+{% include toolbar.html 
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+<template x-if="true"> <!-- This fixes the cls issue completely -->
+<div class="flex place-content-center w-screen h-fit">
+  <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+
+    <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">{{ page.title }}</h1>
+
+    <p class="z-20 w-5/6 md:4/6 place-self-center">
+        #Card Production!:
+        ##Playing card debute prices
+        Scarcity | Number Produced | Acquisition
+        :---|:---:|:---
+        Unparalleled | 1 | Champion a major official event
+        Extraordinary | 5 | Win official event
+        Exceptional | 10 | cost + $10.00
+        Scarce | 50 | cost + $8.00
+        Rare | 100 | cost + $6.00
+        Special | 350 | cost + $5.00
+        Uncommon | 500 | cost + $4.00
+        Grand Tribe | 2500 | cost + $3.00
+        Untamed | 2500+ | cost + starter pack margin
+        
+        Subscribe for a fate of three on monthly new releases. You never know what you will get, because we have not made it yet!
+        Rework rarity for sanity and less artificial scaricity using seasonal releases and disney vault like rereleases for the cards that did not sell our printings in their season
+        
+        All cards and the processes used to manufacture them, must offer an exceptional lifetime goal 100+ years when treated as a display piece. They also must be able to be repaired by experts if damaged. T-shirts, boards, mats, marketing material may require the reuse of art work used as card content. If so, the artists who own the work will be paid as outlined in the Kipukas Loves Artists contract. Also as outlined in the contract, the art work will never be used to produce more cards than the original run.
+        
+        #Card Production!:
+        ##Playing card information
+        Scarcity | Number Produced | Acquisition | Number Released* | Profit Per Batch(USD)
+        :---|:---:|:---|:---|:--:
+        Unparalleled | 1 | Champion a major event | 1 per major event | negative
+        Extraordinary | 5 | Win official event | 1 ish per event | negative
+        Exceptional | 10 | cost + $20.00 | 1 per release batch | 200
+        Scarce | 50 | cost + $10.00 | 5 per release batch | 500
+        Rare | 100 | cost + $6.00 | 10 per release batch | 600
+        Special | 350 | cost + $5.00 | 15 per release batch | 1750
+        Uncommon | 500 | cost + $4.00 | 20 per release batch | 2000
+        Grand Tribe | 2500 | cost + $3.00 | 25 per release batch | 7500
+        Untamed | 2500+ | cost + starter pack margin |30 per starter deck | positive
+        
+        
+        Untamed are special cards such as those used in starter packs, as promotional items, or as easter egg hunts. The number produced will be posted monthly on the Kipukas website.
+        ####* Cards are released individually, but these are targets to meet relative to each other.
+        
+        ##Incubation card information
+        Scarcity | Number Produced | Incubation Period | Price
+        ---:|:---:|:---|:---
+        Unparalled | 5 | 2 years | $50.00
+        Extraordinary | 10 | 1 year | $40.00
+        Exceptional | 50 | 8 months | $8.00
+        Scarce | 100 | 6 months | $6.00
+        Rare | 350 | 4 months | $5.00
+        Special | 500 | 2 month | $4.00
+        
+        ####*limit to one per catagory per customer
+        
+        Scarcity | Number Produced | Incubation Period | Price | Profit Per Batch(USD/month)*
+        ---:|:---:|:---|:---|:---:
+        Unparalled | 5 | 3 years | $50.00 | 6.94
+        Extraordinary | 10 | 1 year and half | $40.00 | 22.22
+        Exceptional | 50 | 8 months | $15.00 | 93.75
+        Scarce | 100 | 4 months | $6.00 | 150
+        Rare | 350 | 2 months | $5.00 | 875.00
+        
+        ####*Assumes all incubation cards are in circulation and all are reintroduced into circulation at the end of the incubation period.        
+    </p>
+  </div>
+</div>
+</template>

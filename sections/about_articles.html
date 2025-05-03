@@ -1,0 +1,69 @@
+---
+layout: default
+permalink: /about_articles
+title: "About Kipukas"
+description: "Delve into the latest news, achievements, and insights from Kipukas.
+Explore our collection of articles highlighting company milestones, innovation, culture, and more."
+bg-terra: "bg-hero-pattern "
+---
+
+{% include toolbar.html 
+  lastPage=true
+  hamburger=true
+  install_pwa=true
+  logo=true
+  goHome=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+
+<template x-if="true">
+  <div x-data="{
+  {% assign articles = site.about | sort:'title' %}
+  {% for article in articles %}
+  inView{{ article.permalink | remove: '/' }}: true,
+  {% endfor %}
+  }
+  " 
+  class="flex flex-wrap gap-x-5 content-auto place-content-center">
+    {% assign articles = site.about | sort:"title" %}
+    {% for article in articles %}
+      {% assign tag_string = article.tags | join: '' %}
+      {% assign article_title = article.permalink | remove: '/' %}
+      {% assign raw_search = tag_string | append: article_title%}
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60{% if article.image_name %} h-64 md:h-80 {% else %} h-20 {% endif %}  my-2.5"
+      x-intersect="inView{{ article.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ article.permalink | remove: '/' }} = false">
+      <a href="{{article.url}}"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inView{{ article.permalink | remove: '/' }}
+          "
+        class="grid grid-cols-1 w-40 md:w-60 {% if article.image_name %}h-64 md:h-80 {% else %} h-20 {% endif %} pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        {% if article.img_name%}
+          <img 
+            :width="$data.screenWidth >= 768 ? '320' : '160'"
+            :height="$data.screenWidth >= 768 ? '320' : '160'"
+            :srcset="$data.screenWidth >= 768 
+                      ? `/assets/thumbnails/x2/{{article.img_name}} 1x, /assets/thumbnails/x4/{{article.img_name}} 2x`
+                      : `/assets/thumbnails/x1/{{article.img_name}} 1x, /assets/thumbnails/x2/{{article.img_name}} 2x, /assets/thumbnails/x3/{{article.img_name}} 3x, /assets/thumbnails/x4/{{article.img_name}} 4x, /assets/thumbnails/x5/{{article.img_name}} 5x`"
+            alt="{{ article.img_alt }}"
+            loading="lazy"
+          >
+        {% endif %}
+        </div>  
+        <div class="text-center text-wrap">{{article.title}}</div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</template> 
+

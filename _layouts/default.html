@@ -23,7 +23,7 @@
 
     <script src="/assets/js-wasm/ios-pwa-splash.js">
       document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('ios/512.png', '#9b2c2c');
+        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
@@ -36,17 +36,19 @@
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
-          });
-        });
-    }
+      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+              });
+            });
+        }
+      }
     </script>
 
   </head>
@@ -68,7 +70,8 @@
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh' }}" x-init="previousURL = currentURL, currentURL = window.location.href">
+        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh' }}"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}
     <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>

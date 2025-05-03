@@ -39,7 +39,7 @@
 
     <script src="/assets/js-wasm/ios-pwa-splash.js">
       document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('ios/512.png', '#9b2c2c');
+        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
@@ -52,17 +52,19 @@
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
-          });
-        });
-    }
+      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+              });
+            });
+        }
+      }
     </script>
 
   </head>
@@ -84,7 +86,8 @@
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -134,7 +137,7 @@
     <!-- encodeURIComponent should be used later to navigate to the pdf after a ? in the URL once we have more PDFs to link to -->
     <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>
     <div><a href="/privacy_policy" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Privacy Policy</a></div>
-    <div><a href="/about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+    <div><a href="/about_articles" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About Kipukas</a></div>
 </div>
 
 <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">

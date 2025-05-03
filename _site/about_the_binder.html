@@ -39,7 +39,7 @@
 
     <script src="/assets/js-wasm/ios-pwa-splash.js">
       document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('ios/512.png', '#9b2c2c');
+        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
@@ -52,17 +52,19 @@
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
-          });
-        });
-    }
+      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+              });
+            });
+        }
+      }
     </script>
 
   </head>
@@ -84,7 +86,8 @@
                   acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh" x-init="previousURL = currentURL, currentURL = window.location.href">
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -137,7 +140,7 @@ background_color
     <!-- encodeURIComponent should be used later to navigate to the pdf after a ? in the URL once we have more PDFs to link to -->
     <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>
     <div><a href="/privacy_policy" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Privacy Policy</a></div>
-    <div><a href="/about_the_binder" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About the Binder</a></div>
+    <div><a href="/about_articles" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About Kipukas</a></div>
 </div>
 
 <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
@@ -304,38 +307,96 @@ If you have not already installed our pwa, check if your browser (and launcher i
   
   
 </div>
-<template x-if="true"> <!-- This fixes the cls issue completely -->
-<div class="flex place-content-center w-screen h-fit">
-  <div class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+<template x-if="true">
+  <!-- This fixes the cls issue completely -->
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-2 md:px-10 w-5/6 h-fit min-h-screen scroll-smooth text-sm md:text-lg">
 
-    <p class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">About the Binder</p>
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        About the Binder
+      </h1>
 
-    <p class="z-20 w-5/6 md:4/6 place-self-center">
-      Welcome to the Kipukas card binder! Here you will find our fullest collection of
-      cards ready to browse to aid you in planning your next great strategy. Additionally,
-      this space allows players to access their card's data via the qr links on the back of
-      every Kipukas card. This offer's players several advantages over writing play data on
-      the card itself.
-    </p>
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        <b>TLDR:</b> The Kipukas binder is a free, community-driven digital card binder with integrated gameplay tools
+        and rulebook. We prioritize artist collaboration, transparency, and player experience. Our platform is
+        statically hosted ensuring <b>zero data collection</b> and its free (and Ad free) use by Kipukas players.
+      </p>
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        Welcome to the Kipukas card binder! This isn't just a repository for your digital cards; it's a comprehensive
+        tool designed to enhance your gaming experience. Beyond storing card data, our binder now offers gameplay tools
+        and an integrated, online rulebook to streamline play and reduce the hassle of managing complex game assets.
+      </p>
 
-    <ul class="z-20 w-5/6 md:w-3/6 place-self-center py-5">
-      <li class="py-2 italic">Card art presents in full focus: no ugly text boxes to get in the way</li>
-      <li class="py-2 italic">Legibility: no longer are lengthy card mechanics printed in 1pt font</li>
-      <li class="py-2 italic">Updateability: cards will receive mechanics updates as needed, use your favorites forever!</li>
-    </ul>
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        What sets Kipukas apart? Unlike most games, we don't adhere to a single artistic vision. Instead, we empower
+        artists to bring their unique perspective to each piece, fostering a deeper connection with our audience beyond
+        the gaming community. This collaborative ethos extends to game development, where contributions from passionate
+        community members are woven into the fabric of our game.
+      </p>
 
-    <p class="z-20 w-5/6 md:4/6 place-self-center">
-      Some people have stated worry that this setup will be used to enforce a pay to play
-      scenario, but this is the opposite of why the cards are set up in this manner.
-      I too became tired of my favorite games moving towards a pay to play mentality.
-      Instead, we seek to build out a community of independent players, artists, and game devs
-      dedicated to producing the most unique, collaborative board game created to date.
-      So, you have my personal guarantee that kipukas.cards will always be free (as in beer) to access.
-      If there ever comes a time when I personally can't further this project, this site
-      will be made completely open source. - Luke A. Hayes - Kipukas Founder
-    </p>
+      <ul class="z-20 w-5/6 md:w-3/6 place-self-center py-5">
+        <li class="py-2 italic"><b>Card art presents in full focus:</b> no ugly text boxes to get in the way</li>
+        <li class="py-2 italic"><b>Legibility:</b> no longer are lengthy card mechanics printed in 1pt font</li>
+        <li class="py-2 italic"><b>Updateability:</b> cards will receive mechanics updates as needed, with plans for
+          transparent versioning and potential access to previous versions for personalized play experiences.</li>
+        <li class="py-2 italic"><b>Unconstrained by physical space:</b> our online cards can include rich lore (short stories
+          and more) and detailed mechanical explanations, all without compromising the art.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        Some have expressed concerns about this setup leading to a "pay to play" scenario. I want to assure you that's
+        the opposite of our intention. Tired of seeing favorite games adopt such models, we're building a
+        community-driven platform where players, artists, and developers collaborate openly. My personal guarantee:
+        Kipukas.cards will always be free to access. If circumstances change, the site will transition to open source,
+        ensuring its integrity.
+      </p>
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        You might wonder, how do we plan to keep the lights on without charging you a dime? The beauty of our static
+        platform lies in its ultra-low overheads (we're talking less than $100 a year!) Thanks to amazing free services
+        like GitHub Pages and Cloudflare, we can pass these savings directly to you. So, where do we see revenue coming
+        from? Simply put, we'll make a margin on the initial sale of our cards. Additionally, for players who choose to
+        buy, sell, or get their cards authenticated through us, we'll earn a small commission. Looking ahead, we're also
+        planning to set up a trust fund post-launch, ensuring the binder's long-term sustainability and independence. This
+        will ensure Kipukas can thrive now and into the future, for you and the community.
+      </p>
+
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        As we look ahead, our post-launch roadmap is packed with exciting enhancements designed to further enrich your
+        Kipukas experience. Imagine having a trusted companion you can actually talk to in site. Our forthcoming
+        llama-powered chatbot (yes, you read that right!) will be made for guiding you through the game's intricacies
+        and strategies. We're also working on personalized collection hubs, where you can effortlessly organize and
+        filter your digital cards. Additionally, we're automating the nuances of Rogue Soul management, generating
+        dynamic map movements and tracking loyalty rewards, so you can focus on what matters most - gameplay. While
+        these features will debut after our initial launch, rest assured that our team is dedicated to continually
+        evolving and refining Kipukas to meet your evolving needs.
+      </p>
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        Your privacy is paramount to us. Here's the best part: our site is designed to <b>not collect any of your
+          data</b>. We've built Kipukas as a fully static platform, which means all interactions are stored safely on
+        <b>your device, and yours alone</b>. For added peace of mind, we've got Cloudflare watching over us to protect
+        against potential disruptions. Plus, with offline capabilities, you can enjoy the binder even without an
+        internet connection. As we explore new features that might normally require a server, rest assured we're
+        committed to innovative solutions - like using special conflict-resolution technology and optional,
+        user-encrypted backups - to keep your experience both seamless and secure.
+      </p>
+
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        Our approach is simple yet ambitious: empower the community to drive engagement and commerce, with artists
+        employed through various collaborations. For updates and future integrations, we prioritize our standalone
+        experience but remain open to meaningful collaborations that enrich our ecosystem.
+      </p>
+
+      <p class="z-20 w-5/6 md:4/6 place-self-center pb-2">
+        With ❤️, Luke A. Hayes - Kipukas Founder
+      </p>
+    </div>
   </div>
-</div>
 </template></div>
   </body>
 </html>

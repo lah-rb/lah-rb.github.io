@@ -23,8 +23,6 @@ function iosPWASplash(icon, color = 'white') {
     };
 
     iconImage.src = icon;
-    // Load the icon image, make sure it is served from the same domain (ideal size 512pxX512px). If not then set the proper CORS headers on the image and uncomment the next line.
-    //iconImage.crossOrigin="anonymous"
     iconImage.onload = function () {
         // Calculate the icon size based on the device's pixel ratio
         const iconSizew = iconImage.width / (3 / pixelRatio);
