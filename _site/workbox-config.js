@@ -16,14 +16,11 @@ module.exports = {
     handler: 'StaleWhileRevalidate',
     options: {
       cacheName: 'my-app-cache-' + versionHash,
-      // Optionally, you can set a maximum age for the cache entries
-      // cacheableResponse: { statuses: [0, 200, 404] }
     }
   }],
   clientsClaim: true,
   skipWaiting: true,
   cacheId: 'my-app-cache-' + versionHash,
-  //importScripts: ['./custom-sw.js'],
 };
 
 
