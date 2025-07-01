@@ -776,9 +776,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="neural_network_synapse_virus_track1"
                 :checked="neural_network_synapse_virus_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="neural_network_synapse_virus_damage_slot_1"  
-                @click="neural_network_synapse_virus_damage[1] = !neural_network_synapse_virus_damage[1]" 
+                @click="neural_network_synapse_virus_damage[1] = !neural_network_synapse_virus_damage[1]"
                 x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[1] = false),
                         $watch('clearDamage', value => neural_network_synapse_virus_damage[1] = false)"
               >
@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="neural_network_synapse_virus_track2"
                 :checked="neural_network_synapse_virus_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="neural_network_synapse_virus_damage_slot_2"  
-                @click="neural_network_synapse_virus_damage[2] = !neural_network_synapse_virus_damage[2]" 
+                @click="neural_network_synapse_virus_damage[2] = !neural_network_synapse_virus_damage[2]"
                 x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[2] = false),
                         $watch('clearDamage', value => neural_network_synapse_virus_damage[2] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="neural_network_synapse_virus_track_wasted"
                 :checked="neural_network_synapse_virus_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="neural_network_synapse_virus_wasted"
+                name="damageTrack" 
+                id="neural_network_synapse_virus_wasted"
                 @click="neural_network_synapse_virus_damage['wasted'] = !neural_network_synapse_virus_damage['wasted']"
-                x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage['wasted'] = false),
+                x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage['wasted'] = false, neural_network_synapse_virus_clear = clearDamage),
                         $watch('clearDamage', value => neural_network_synapse_virus_damage['wasted'] = false)"
               >
           </div>

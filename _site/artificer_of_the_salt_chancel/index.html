@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="artificer_of_the_salt_chancel_track1"
                 :checked="artificer_of_the_salt_chancel_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="artificer_of_the_salt_chancel_damage_slot_1"  
-                @click="artificer_of_the_salt_chancel_damage[1] = !artificer_of_the_salt_chancel_damage[1]" 
+                @click="artificer_of_the_salt_chancel_damage[1] = !artificer_of_the_salt_chancel_damage[1]"
                 x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage[1] = false),
                         $watch('clearDamage', value => artificer_of_the_salt_chancel_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="artificer_of_the_salt_chancel_track_wasted"
                 :checked="artificer_of_the_salt_chancel_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="artificer_of_the_salt_chancel_wasted"
+                name="damageTrack" 
+                id="artificer_of_the_salt_chancel_wasted"
                 @click="artificer_of_the_salt_chancel_damage['wasted'] = !artificer_of_the_salt_chancel_damage['wasted']"
-                x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage['wasted'] = false),
+                x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage['wasted'] = false, artificer_of_the_salt_chancel_clear = clearDamage),
                         $watch('clearDamage', value => artificer_of_the_salt_chancel_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="artificer_of_the_salt_chancel_track1"
                 :checked="artificer_of_the_salt_chancel_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="artificer_of_the_salt_chancel_damage_slot_1"  
-                @click="artificer_of_the_salt_chancel_damage[1] = !artificer_of_the_salt_chancel_damage[1]" 
+                @click="artificer_of_the_salt_chancel_damage[1] = !artificer_of_the_salt_chancel_damage[1]"
                 x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage[1] = false),
                         $watch('clearDamage', value => artificer_of_the_salt_chancel_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="artificer_of_the_salt_chancel_track_wasted"
                 :checked="artificer_of_the_salt_chancel_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="artificer_of_the_salt_chancel_wasted"
+                name="damageTrack" 
+                id="artificer_of_the_salt_chancel_wasted"
                 @click="artificer_of_the_salt_chancel_damage['wasted'] = !artificer_of_the_salt_chancel_damage['wasted']"
-                x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage['wasted'] = false),
+                x-init="clearDamage == artificer_of_the_salt_chancel_clear || (artificer_of_the_salt_chancel_damage['wasted'] = false, artificer_of_the_salt_chancel_clear = clearDamage),
                         $watch('clearDamage', value => artificer_of_the_salt_chancel_damage['wasted'] = false)"
               >
           </div>

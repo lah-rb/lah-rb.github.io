@@ -790,9 +790,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track1"
                 :checked="sboi_threat_plus_plus_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_1"  
-                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]" 
+                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[1] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[1] = false)"
               >
@@ -822,9 +822,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track2"
                 :checked="sboi_threat_plus_plus_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_2"  
-                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]" 
+                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[2] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[2] = false)"
               >
@@ -854,9 +854,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track3"
                 :checked="sboi_threat_plus_plus_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_3"  
-                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]" 
+                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[3] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[3] = false)"
               >
@@ -889,9 +889,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track_wasted"
                 :checked="sboi_threat_plus_plus_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="sboi_threat_plus_plus_wasted"
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_wasted"
                 @click="sboi_threat_plus_plus_damage['wasted'] = !sboi_threat_plus_plus_damage['wasted']"
-                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false),
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false, sboi_threat_plus_plus_clear = clearDamage),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)"
               >
           </div>
@@ -1218,9 +1219,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track1"
                 :checked="sboi_threat_plus_plus_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_1"  
-                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]" 
+                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[1] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[1] = false)"
               >
@@ -1250,9 +1251,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track2"
                 :checked="sboi_threat_plus_plus_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_2"  
-                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]" 
+                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[2] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[2] = false)"
               >
@@ -1282,9 +1283,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track3"
                 :checked="sboi_threat_plus_plus_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sboi_threat_plus_plus_damage_slot_3"  
-                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]" 
+                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]"
                 x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[3] = false),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage[3] = false)"
               >
@@ -1317,9 +1318,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sboi_threat_plus_plus_track_wasted"
                 :checked="sboi_threat_plus_plus_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="sboi_threat_plus_plus_wasted"
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_wasted"
                 @click="sboi_threat_plus_plus_damage['wasted'] = !sboi_threat_plus_plus_damage['wasted']"
-                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false),
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false, sboi_threat_plus_plus_clear = clearDamage),
                         $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)"
               >
           </div>

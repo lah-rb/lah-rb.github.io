@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track1"
                 :checked="arctechnic_wonderer_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="arctechnic_wonderer_damage_slot_1"  
-                @click="arctechnic_wonderer_damage[1] = !arctechnic_wonderer_damage[1]" 
+                @click="arctechnic_wonderer_damage[1] = !arctechnic_wonderer_damage[1]"
                 x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage[1] = false),
                         $watch('clearDamage', value => arctechnic_wonderer_damage[1] = false)"
               >
@@ -824,9 +824,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track2"
                 :checked="arctechnic_wonderer_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="arctechnic_wonderer_damage_slot_2"  
-                @click="arctechnic_wonderer_damage[2] = !arctechnic_wonderer_damage[2]" 
+                @click="arctechnic_wonderer_damage[2] = !arctechnic_wonderer_damage[2]"
                 x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage[2] = false),
                         $watch('clearDamage', value => arctechnic_wonderer_damage[2] = false)"
               >
@@ -859,9 +859,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track_wasted"
                 :checked="arctechnic_wonderer_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="arctechnic_wonderer_wasted"
+                name="damageTrack" 
+                id="arctechnic_wonderer_wasted"
                 @click="arctechnic_wonderer_damage['wasted'] = !arctechnic_wonderer_damage['wasted']"
-                x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage['wasted'] = false),
+                x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage['wasted'] = false, arctechnic_wonderer_clear = clearDamage),
                         $watch('clearDamage', value => arctechnic_wonderer_damage['wasted'] = false)"
               >
           </div>
@@ -1190,9 +1191,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track1"
                 :checked="arctechnic_wonderer_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="arctechnic_wonderer_damage_slot_1"  
-                @click="arctechnic_wonderer_damage[1] = !arctechnic_wonderer_damage[1]" 
+                @click="arctechnic_wonderer_damage[1] = !arctechnic_wonderer_damage[1]"
                 x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage[1] = false),
                         $watch('clearDamage', value => arctechnic_wonderer_damage[1] = false)"
               >
@@ -1222,9 +1223,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track2"
                 :checked="arctechnic_wonderer_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="arctechnic_wonderer_damage_slot_2"  
-                @click="arctechnic_wonderer_damage[2] = !arctechnic_wonderer_damage[2]" 
+                @click="arctechnic_wonderer_damage[2] = !arctechnic_wonderer_damage[2]"
                 x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage[2] = false),
                         $watch('clearDamage', value => arctechnic_wonderer_damage[2] = false)"
               >
@@ -1257,9 +1258,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="arctechnic_wonderer_track_wasted"
                 :checked="arctechnic_wonderer_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="arctechnic_wonderer_wasted"
+                name="damageTrack" 
+                id="arctechnic_wonderer_wasted"
                 @click="arctechnic_wonderer_damage['wasted'] = !arctechnic_wonderer_damage['wasted']"
-                x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage['wasted'] = false),
+                x-init="clearDamage == arctechnic_wonderer_clear || (arctechnic_wonderer_damage['wasted'] = false, arctechnic_wonderer_clear = clearDamage),
                         $watch('clearDamage', value => arctechnic_wonderer_damage['wasted'] = false)"
               >
           </div>

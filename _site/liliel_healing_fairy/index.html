@@ -777,9 +777,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track1"
                 :checked="liliel_healing_fairy_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="liliel_healing_fairy_damage_slot_1"  
-                @click="liliel_healing_fairy_damage[1] = !liliel_healing_fairy_damage[1]" 
+                @click="liliel_healing_fairy_damage[1] = !liliel_healing_fairy_damage[1]"
                 x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage[1] = false),
                         $watch('clearDamage', value => liliel_healing_fairy_damage[1] = false)"
               >
@@ -809,9 +809,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track2"
                 :checked="liliel_healing_fairy_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="liliel_healing_fairy_damage_slot_2"  
-                @click="liliel_healing_fairy_damage[2] = !liliel_healing_fairy_damage[2]" 
+                @click="liliel_healing_fairy_damage[2] = !liliel_healing_fairy_damage[2]"
                 x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage[2] = false),
                         $watch('clearDamage', value => liliel_healing_fairy_damage[2] = false)"
               >
@@ -844,9 +844,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track_wasted"
                 :checked="liliel_healing_fairy_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="liliel_healing_fairy_wasted"
+                name="damageTrack" 
+                id="liliel_healing_fairy_wasted"
                 @click="liliel_healing_fairy_damage['wasted'] = !liliel_healing_fairy_damage['wasted']"
-                x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage['wasted'] = false),
+                x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage['wasted'] = false, liliel_healing_fairy_clear = clearDamage),
                         $watch('clearDamage', value => liliel_healing_fairy_damage['wasted'] = false)"
               >
           </div>
@@ -1160,9 +1161,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track1"
                 :checked="liliel_healing_fairy_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="liliel_healing_fairy_damage_slot_1"  
-                @click="liliel_healing_fairy_damage[1] = !liliel_healing_fairy_damage[1]" 
+                @click="liliel_healing_fairy_damage[1] = !liliel_healing_fairy_damage[1]"
                 x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage[1] = false),
                         $watch('clearDamage', value => liliel_healing_fairy_damage[1] = false)"
               >
@@ -1192,9 +1193,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track2"
                 :checked="liliel_healing_fairy_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="liliel_healing_fairy_damage_slot_2"  
-                @click="liliel_healing_fairy_damage[2] = !liliel_healing_fairy_damage[2]" 
+                @click="liliel_healing_fairy_damage[2] = !liliel_healing_fairy_damage[2]"
                 x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage[2] = false),
                         $watch('clearDamage', value => liliel_healing_fairy_damage[2] = false)"
               >
@@ -1227,9 +1228,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="liliel_healing_fairy_track_wasted"
                 :checked="liliel_healing_fairy_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="liliel_healing_fairy_wasted"
+                name="damageTrack" 
+                id="liliel_healing_fairy_wasted"
                 @click="liliel_healing_fairy_damage['wasted'] = !liliel_healing_fairy_damage['wasted']"
-                x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage['wasted'] = false),
+                x-init="clearDamage == liliel_healing_fairy_clear || (liliel_healing_fairy_damage['wasted'] = false, liliel_healing_fairy_clear = clearDamage),
                         $watch('clearDamage', value => liliel_healing_fairy_damage['wasted'] = false)"
               >
           </div>

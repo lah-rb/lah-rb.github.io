@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="self_care_track1"
                 :checked="self_care_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="self_care_damage_slot_1"  
-                @click="self_care_damage[1] = !self_care_damage[1]" 
+                @click="self_care_damage[1] = !self_care_damage[1]"
                 x-init="clearDamage == self_care_clear || (self_care_damage[1] = false),
                         $watch('clearDamage', value => self_care_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="self_care_track_wasted"
                 :checked="self_care_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="self_care_wasted"
+                name="damageTrack" 
+                id="self_care_wasted"
                 @click="self_care_damage['wasted'] = !self_care_damage['wasted']"
-                x-init="clearDamage == self_care_clear || (self_care_damage['wasted'] = false),
+                x-init="clearDamage == self_care_clear || (self_care_damage['wasted'] = false, self_care_clear = clearDamage),
                         $watch('clearDamage', value => self_care_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="self_care_track1"
                 :checked="self_care_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="self_care_damage_slot_1"  
-                @click="self_care_damage[1] = !self_care_damage[1]" 
+                @click="self_care_damage[1] = !self_care_damage[1]"
                 x-init="clearDamage == self_care_clear || (self_care_damage[1] = false),
                         $watch('clearDamage', value => self_care_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="self_care_track_wasted"
                 :checked="self_care_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="self_care_wasted"
+                name="damageTrack" 
+                id="self_care_wasted"
                 @click="self_care_damage['wasted'] = !self_care_damage['wasted']"
-                x-init="clearDamage == self_care_clear || (self_care_damage['wasted'] = false),
+                x-init="clearDamage == self_care_clear || (self_care_damage['wasted'] = false, self_care_clear = clearDamage),
                         $watch('clearDamage', value => self_care_damage['wasted'] = false)"
               >
           </div>

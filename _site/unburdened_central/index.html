@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="unburdened_central_track1"
                 :checked="unburdened_central_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="unburdened_central_damage_slot_1"  
-                @click="unburdened_central_damage[1] = !unburdened_central_damage[1]" 
+                @click="unburdened_central_damage[1] = !unburdened_central_damage[1]"
                 x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage[1] = false),
                         $watch('clearDamage', value => unburdened_central_damage[1] = false)"
               >
@@ -814,9 +814,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="unburdened_central_track_wasted"
                 :checked="unburdened_central_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="unburdened_central_wasted"
+                name="damageTrack" 
+                id="unburdened_central_wasted"
                 @click="unburdened_central_damage['wasted'] = !unburdened_central_damage['wasted']"
-                x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage['wasted'] = false),
+                x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage['wasted'] = false, unburdened_central_clear = clearDamage),
                         $watch('clearDamage', value => unburdened_central_damage['wasted'] = false)"
               >
           </div>
@@ -1132,9 +1133,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="unburdened_central_track1"
                 :checked="unburdened_central_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="unburdened_central_damage_slot_1"  
-                @click="unburdened_central_damage[1] = !unburdened_central_damage[1]" 
+                @click="unburdened_central_damage[1] = !unburdened_central_damage[1]"
                 x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage[1] = false),
                         $watch('clearDamage', value => unburdened_central_damage[1] = false)"
               >
@@ -1167,9 +1168,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="unburdened_central_track_wasted"
                 :checked="unburdened_central_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="unburdened_central_wasted"
+                name="damageTrack" 
+                id="unburdened_central_wasted"
                 @click="unburdened_central_damage['wasted'] = !unburdened_central_damage['wasted']"
-                x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage['wasted'] = false),
+                x-init="clearDamage == unburdened_central_clear || (unburdened_central_damage['wasted'] = false, unburdened_central_clear = clearDamage),
                         $watch('clearDamage', value => unburdened_central_damage['wasted'] = false)"
               >
           </div>

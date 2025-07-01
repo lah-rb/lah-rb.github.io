@@ -777,9 +777,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track1"
                 :checked="mihela_cleanser_of_fields_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="mihela_cleanser_of_fields_damage_slot_1"  
-                @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]" 
+                @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]"
                 x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[1] = false),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage[1] = false)"
               >
@@ -809,9 +809,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track2"
                 :checked="mihela_cleanser_of_fields_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="mihela_cleanser_of_fields_damage_slot_2"  
-                @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]" 
+                @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]"
                 x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[2] = false),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage[2] = false)"
               >
@@ -844,9 +844,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track_wasted"
                 :checked="mihela_cleanser_of_fields_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="mihela_cleanser_of_fields_wasted"
+                name="damageTrack" 
+                id="mihela_cleanser_of_fields_wasted"
                 @click="mihela_cleanser_of_fields_damage['wasted'] = !mihela_cleanser_of_fields_damage['wasted']"
-                x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false),
+                x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false, mihela_cleanser_of_fields_clear = clearDamage),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage['wasted'] = false)"
               >
           </div>
@@ -1160,9 +1161,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track1"
                 :checked="mihela_cleanser_of_fields_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="mihela_cleanser_of_fields_damage_slot_1"  
-                @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]" 
+                @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]"
                 x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[1] = false),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage[1] = false)"
               >
@@ -1192,9 +1193,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track2"
                 :checked="mihela_cleanser_of_fields_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="mihela_cleanser_of_fields_damage_slot_2"  
-                @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]" 
+                @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]"
                 x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[2] = false),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage[2] = false)"
               >
@@ -1227,9 +1228,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="mihela_cleanser_of_fields_track_wasted"
                 :checked="mihela_cleanser_of_fields_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="mihela_cleanser_of_fields_wasted"
+                name="damageTrack" 
+                id="mihela_cleanser_of_fields_wasted"
                 @click="mihela_cleanser_of_fields_damage['wasted'] = !mihela_cleanser_of_fields_damage['wasted']"
-                x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false),
+                x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false, mihela_cleanser_of_fields_clear = clearDamage),
                         $watch('clearDamage', value => mihela_cleanser_of_fields_damage['wasted'] = false)"
               >
           </div>

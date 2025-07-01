@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track1"
                 :checked="brox_the_defiant_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_1"  
-                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]" 
+                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[1] = false)"
               >
@@ -811,9 +811,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track2"
                 :checked="brox_the_defiant_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_2"  
-                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]" 
+                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[2] = false)"
               >
@@ -827,9 +827,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track3"
                 :checked="brox_the_defiant_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_3"  
-                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]" 
+                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[3] = false)"
               >
@@ -862,9 +862,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track_wasted"
                 :checked="brox_the_defiant_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="brox_the_defiant_wasted"
+                name="damageTrack" 
+                id="brox_the_defiant_wasted"
                 @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']"
-                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false),
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false, brox_the_defiant_clear = clearDamage),
                         $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)"
               >
           </div>
@@ -1180,9 +1181,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track1"
                 :checked="brox_the_defiant_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_1"  
-                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]" 
+                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[1] = false)"
               >
@@ -1212,9 +1213,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track2"
                 :checked="brox_the_defiant_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_2"  
-                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]" 
+                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[2] = false)"
               >
@@ -1228,9 +1229,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track3"
                 :checked="brox_the_defiant_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="brox_the_defiant_damage_slot_3"  
-                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]" 
+                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]"
                 x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false),
                         $watch('clearDamage', value => brox_the_defiant_damage[3] = false)"
               >
@@ -1263,9 +1264,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="brox_the_defiant_track_wasted"
                 :checked="brox_the_defiant_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="brox_the_defiant_wasted"
+                name="damageTrack" 
+                id="brox_the_defiant_wasted"
                 @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']"
-                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false),
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false, brox_the_defiant_clear = clearDamage),
                         $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)"
               >
           </div>

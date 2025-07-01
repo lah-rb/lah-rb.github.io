@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track1"
                 :checked="oshliath_and_osileth_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="oshliath_and_osileth_damage_slot_1"  
-                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]" 
+                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]"
                 x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[1] = false),
                         $watch('clearDamage', value => oshliath_and_osileth_damage[1] = false)"
               >
@@ -811,9 +811,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track2"
                 :checked="oshliath_and_osileth_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="oshliath_and_osileth_damage_slot_2"  
-                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]" 
+                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]"
                 x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[2] = false),
                         $watch('clearDamage', value => oshliath_and_osileth_damage[2] = false)"
               >
@@ -846,9 +846,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track_wasted"
                 :checked="oshliath_and_osileth_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="oshliath_and_osileth_wasted"
+                name="damageTrack" 
+                id="oshliath_and_osileth_wasted"
                 @click="oshliath_and_osileth_damage['wasted'] = !oshliath_and_osileth_damage['wasted']"
-                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false),
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false, oshliath_and_osileth_clear = clearDamage),
                         $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)"
               >
           </div>
@@ -1164,9 +1165,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track1"
                 :checked="oshliath_and_osileth_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="oshliath_and_osileth_damage_slot_1"  
-                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]" 
+                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]"
                 x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[1] = false),
                         $watch('clearDamage', value => oshliath_and_osileth_damage[1] = false)"
               >
@@ -1196,9 +1197,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track2"
                 :checked="oshliath_and_osileth_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="oshliath_and_osileth_damage_slot_2"  
-                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]" 
+                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]"
                 x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[2] = false),
                         $watch('clearDamage', value => oshliath_and_osileth_damage[2] = false)"
               >
@@ -1231,9 +1232,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="oshliath_and_osileth_track_wasted"
                 :checked="oshliath_and_osileth_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="oshliath_and_osileth_wasted"
+                name="damageTrack" 
+                id="oshliath_and_osileth_wasted"
                 @click="oshliath_and_osileth_damage['wasted'] = !oshliath_and_osileth_damage['wasted']"
-                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false),
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false, oshliath_and_osileth_clear = clearDamage),
                         $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)"
               >
           </div>

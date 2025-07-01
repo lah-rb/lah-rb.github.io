@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="little_charm_track1"
                 :checked="little_charm_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="little_charm_damage_slot_1"  
-                @click="little_charm_damage[1] = !little_charm_damage[1]" 
+                @click="little_charm_damage[1] = !little_charm_damage[1]"
                 x-init="clearDamage == little_charm_clear || (little_charm_damage[1] = false),
                         $watch('clearDamage', value => little_charm_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="little_charm_track_wasted"
                 :checked="little_charm_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="little_charm_wasted"
+                name="damageTrack" 
+                id="little_charm_wasted"
                 @click="little_charm_damage['wasted'] = !little_charm_damage['wasted']"
-                x-init="clearDamage == little_charm_clear || (little_charm_damage['wasted'] = false),
+                x-init="clearDamage == little_charm_clear || (little_charm_damage['wasted'] = false, little_charm_clear = clearDamage),
                         $watch('clearDamage', value => little_charm_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="little_charm_track1"
                 :checked="little_charm_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="little_charm_damage_slot_1"  
-                @click="little_charm_damage[1] = !little_charm_damage[1]" 
+                @click="little_charm_damage[1] = !little_charm_damage[1]"
                 x-init="clearDamage == little_charm_clear || (little_charm_damage[1] = false),
                         $watch('clearDamage', value => little_charm_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="little_charm_track_wasted"
                 :checked="little_charm_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="little_charm_wasted"
+                name="damageTrack" 
+                id="little_charm_wasted"
                 @click="little_charm_damage['wasted'] = !little_charm_damage['wasted']"
-                x-init="clearDamage == little_charm_clear || (little_charm_damage['wasted'] = false),
+                x-init="clearDamage == little_charm_clear || (little_charm_damage['wasted'] = false, little_charm_clear = clearDamage),
                         $watch('clearDamage', value => little_charm_damage['wasted'] = false)"
               >
           </div>

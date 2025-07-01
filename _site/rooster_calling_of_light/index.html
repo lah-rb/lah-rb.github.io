@@ -790,9 +790,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="rooster_calling_of_light_track1"
                 :checked="rooster_calling_of_light_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="rooster_calling_of_light_damage_slot_1"  
-                @click="rooster_calling_of_light_damage[1] = !rooster_calling_of_light_damage[1]" 
+                @click="rooster_calling_of_light_damage[1] = !rooster_calling_of_light_damage[1]"
                 x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage[1] = false),
                         $watch('clearDamage', value => rooster_calling_of_light_damage[1] = false)"
               >
@@ -825,9 +825,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="rooster_calling_of_light_track_wasted"
                 :checked="rooster_calling_of_light_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="rooster_calling_of_light_wasted"
+                name="damageTrack" 
+                id="rooster_calling_of_light_wasted"
                 @click="rooster_calling_of_light_damage['wasted'] = !rooster_calling_of_light_damage['wasted']"
-                x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage['wasted'] = false),
+                x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage['wasted'] = false, rooster_calling_of_light_clear = clearDamage),
                         $watch('clearDamage', value => rooster_calling_of_light_damage['wasted'] = false)"
               >
           </div>
@@ -1154,9 +1155,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="rooster_calling_of_light_track1"
                 :checked="rooster_calling_of_light_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="rooster_calling_of_light_damage_slot_1"  
-                @click="rooster_calling_of_light_damage[1] = !rooster_calling_of_light_damage[1]" 
+                @click="rooster_calling_of_light_damage[1] = !rooster_calling_of_light_damage[1]"
                 x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage[1] = false),
                         $watch('clearDamage', value => rooster_calling_of_light_damage[1] = false)"
               >
@@ -1189,9 +1190,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="rooster_calling_of_light_track_wasted"
                 :checked="rooster_calling_of_light_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="rooster_calling_of_light_wasted"
+                name="damageTrack" 
+                id="rooster_calling_of_light_wasted"
                 @click="rooster_calling_of_light_damage['wasted'] = !rooster_calling_of_light_damage['wasted']"
-                x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage['wasted'] = false),
+                x-init="clearDamage == rooster_calling_of_light_clear || (rooster_calling_of_light_damage['wasted'] = false, rooster_calling_of_light_clear = clearDamage),
                         $watch('clearDamage', value => rooster_calling_of_light_damage['wasted'] = false)"
               >
           </div>

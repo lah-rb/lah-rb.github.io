@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="hilbert_king_of_avian_frogs_track1"
                 :checked="hilbert_king_of_avian_frogs_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="hilbert_king_of_avian_frogs_damage_slot_1"  
-                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]" 
+                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]"
                 x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage[1] = false),
                         $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage[1] = false)"
               >
@@ -814,9 +814,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="hilbert_king_of_avian_frogs_track_wasted"
                 :checked="hilbert_king_of_avian_frogs_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="hilbert_king_of_avian_frogs_wasted"
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_wasted"
                 @click="hilbert_king_of_avian_frogs_damage['wasted'] = !hilbert_king_of_avian_frogs_damage['wasted']"
-                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false),
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false, hilbert_king_of_avian_frogs_clear = clearDamage),
                         $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)"
               >
           </div>
@@ -1132,9 +1133,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="hilbert_king_of_avian_frogs_track1"
                 :checked="hilbert_king_of_avian_frogs_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="hilbert_king_of_avian_frogs_damage_slot_1"  
-                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]" 
+                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]"
                 x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage[1] = false),
                         $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage[1] = false)"
               >
@@ -1167,9 +1168,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="hilbert_king_of_avian_frogs_track_wasted"
                 :checked="hilbert_king_of_avian_frogs_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="hilbert_king_of_avian_frogs_wasted"
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_wasted"
                 @click="hilbert_king_of_avian_frogs_damage['wasted'] = !hilbert_king_of_avian_frogs_damage['wasted']"
-                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false),
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false, hilbert_king_of_avian_frogs_clear = clearDamage),
                         $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)"
               >
           </div>

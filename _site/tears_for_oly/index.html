@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="tears_for_oly_track1"
                 :checked="tears_for_oly_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="tears_for_oly_damage_slot_1"  
-                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]" 
+                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]"
                 x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage[1] = false),
                         $watch('clearDamage', value => tears_for_oly_damage[1] = false)"
               >
@@ -814,9 +814,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="tears_for_oly_track_wasted"
                 :checked="tears_for_oly_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="tears_for_oly_wasted"
+                name="damageTrack" 
+                id="tears_for_oly_wasted"
                 @click="tears_for_oly_damage['wasted'] = !tears_for_oly_damage['wasted']"
-                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false),
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false, tears_for_oly_clear = clearDamage),
                         $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)"
               >
           </div>
@@ -1132,9 +1133,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="tears_for_oly_track1"
                 :checked="tears_for_oly_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="tears_for_oly_damage_slot_1"  
-                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]" 
+                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]"
                 x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage[1] = false),
                         $watch('clearDamage', value => tears_for_oly_damage[1] = false)"
               >
@@ -1167,9 +1168,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="tears_for_oly_track_wasted"
                 :checked="tears_for_oly_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="tears_for_oly_wasted"
+                name="damageTrack" 
+                id="tears_for_oly_wasted"
                 @click="tears_for_oly_damage['wasted'] = !tears_for_oly_damage['wasted']"
-                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false),
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false, tears_for_oly_clear = clearDamage),
                         $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)"
               >
           </div>

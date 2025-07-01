@@ -38,9 +38,9 @@
                 x-ref="{{ trackRef | append: i }}"
                 :checked="{{ damageTrack }}[{{ i }}]"
                 class="{{ site.data.templates.checkbox }}" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="{{ damageSlot }}"  
-                @click="{{ damageTrack }}[{{ i }}] = !{{ damageTrack }}[{{ i }}]" 
+                @click="{{ damageTrack }}[{{ i }}] = !{{ damageTrack }}[{{ i }}]"
                 x-init="clearDamage == {{ clearTrack }} || ({{ damageTrack }}[{{ i }}] = false),
                         $watch('clearDamage', value => {{ damageTrack }}[{{ i }}] = false)"
               >
@@ -75,9 +75,10 @@
                 x-ref="{{ trackRef | append: '_wasted' }}"
                 :checked="{{ damageTrack }}['wasted']"
                 class="{{ site.data.templates.checkbox }}"
-                name="damageTrack" id="{{ wasted }}"
+                name="damageTrack" 
+                id="{{ wasted }}"
                 @click="{{ damageTrack }}['wasted'] = !{{ damageTrack }}['wasted']"
-                x-init="clearDamage == {{ clearTrack }} || ({{ damageTrack }}['wasted'] = false),
+                x-init="clearDamage == {{ clearTrack }} || ({{ damageTrack }}['wasted'] = false, {{ clearTrack }} = clearDamage),
                         $watch('clearDamage', value => {{ damageTrack }}['wasted'] = false)"
               >
           </div>

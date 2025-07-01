@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="orbs_trail_track1"
                 :checked="orbs_trail_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="orbs_trail_damage_slot_1"  
-                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]" 
+                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]"
                 x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage[1] = false),
                         $watch('clearDamage', value => orbs_trail_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="orbs_trail_track_wasted"
                 :checked="orbs_trail_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="orbs_trail_wasted"
+                name="damageTrack" 
+                id="orbs_trail_wasted"
                 @click="orbs_trail_damage['wasted'] = !orbs_trail_damage['wasted']"
-                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false),
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false, orbs_trail_clear = clearDamage),
                         $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="orbs_trail_track1"
                 :checked="orbs_trail_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="orbs_trail_damage_slot_1"  
-                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]" 
+                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]"
                 x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage[1] = false),
                         $watch('clearDamage', value => orbs_trail_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="orbs_trail_track_wasted"
                 :checked="orbs_trail_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="orbs_trail_wasted"
+                name="damageTrack" 
+                id="orbs_trail_wasted"
                 @click="orbs_trail_damage['wasted'] = !orbs_trail_damage['wasted']"
-                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false),
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false, orbs_trail_clear = clearDamage),
                         $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)"
               >
           </div>

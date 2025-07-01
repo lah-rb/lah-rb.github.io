@@ -779,9 +779,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track1"
                 :checked="the_causal_sophist_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_1"  
-                @click="the_causal_sophist_damage[1] = !the_causal_sophist_damage[1]" 
+                @click="the_causal_sophist_damage[1] = !the_causal_sophist_damage[1]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[1] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[1] = false)"
               >
@@ -811,9 +811,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track2"
                 :checked="the_causal_sophist_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_2"  
-                @click="the_causal_sophist_damage[2] = !the_causal_sophist_damage[2]" 
+                @click="the_causal_sophist_damage[2] = !the_causal_sophist_damage[2]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[2] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[2] = false)"
               >
@@ -843,9 +843,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track3"
                 :checked="the_causal_sophist_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_3"  
-                @click="the_causal_sophist_damage[3] = !the_causal_sophist_damage[3]" 
+                @click="the_causal_sophist_damage[3] = !the_causal_sophist_damage[3]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[3] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[3] = false)"
               >
@@ -878,9 +878,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track_wasted"
                 :checked="the_causal_sophist_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="the_causal_sophist_wasted"
+                name="damageTrack" 
+                id="the_causal_sophist_wasted"
                 @click="the_causal_sophist_damage['wasted'] = !the_causal_sophist_damage['wasted']"
-                x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage['wasted'] = false),
+                x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage['wasted'] = false, the_causal_sophist_clear = clearDamage),
                         $watch('clearDamage', value => the_causal_sophist_damage['wasted'] = false)"
               >
           </div>
@@ -1196,9 +1197,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track1"
                 :checked="the_causal_sophist_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_1"  
-                @click="the_causal_sophist_damage[1] = !the_causal_sophist_damage[1]" 
+                @click="the_causal_sophist_damage[1] = !the_causal_sophist_damage[1]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[1] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[1] = false)"
               >
@@ -1228,9 +1229,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track2"
                 :checked="the_causal_sophist_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_2"  
-                @click="the_causal_sophist_damage[2] = !the_causal_sophist_damage[2]" 
+                @click="the_causal_sophist_damage[2] = !the_causal_sophist_damage[2]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[2] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[2] = false)"
               >
@@ -1260,9 +1261,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track3"
                 :checked="the_causal_sophist_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="the_causal_sophist_damage_slot_3"  
-                @click="the_causal_sophist_damage[3] = !the_causal_sophist_damage[3]" 
+                @click="the_causal_sophist_damage[3] = !the_causal_sophist_damage[3]"
                 x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage[3] = false),
                         $watch('clearDamage', value => the_causal_sophist_damage[3] = false)"
               >
@@ -1295,9 +1296,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="the_causal_sophist_track_wasted"
                 :checked="the_causal_sophist_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="the_causal_sophist_wasted"
+                name="damageTrack" 
+                id="the_causal_sophist_wasted"
                 @click="the_causal_sophist_damage['wasted'] = !the_causal_sophist_damage['wasted']"
-                x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage['wasted'] = false),
+                x-init="clearDamage == the_causal_sophist_clear || (the_causal_sophist_damage['wasted'] = false, the_causal_sophist_clear = clearDamage),
                         $watch('clearDamage', value => the_causal_sophist_damage['wasted'] = false)"
               >
           </div>

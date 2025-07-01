@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track1"
                 :checked="sprite_of_wilds_spirit_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sprite_of_wilds_spirit_damage_slot_1"  
-                @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]" 
+                @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]"
                 x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[1] = false),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage[1] = false)"
               >
@@ -824,9 +824,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track2"
                 :checked="sprite_of_wilds_spirit_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sprite_of_wilds_spirit_damage_slot_2"  
-                @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]" 
+                @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]"
                 x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[2] = false),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage[2] = false)"
               >
@@ -859,9 +859,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track_wasted"
                 :checked="sprite_of_wilds_spirit_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="sprite_of_wilds_spirit_wasted"
+                name="damageTrack" 
+                id="sprite_of_wilds_spirit_wasted"
                 @click="sprite_of_wilds_spirit_damage['wasted'] = !sprite_of_wilds_spirit_damage['wasted']"
-                x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false),
+                x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false, sprite_of_wilds_spirit_clear = clearDamage),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage['wasted'] = false)"
               >
           </div>
@@ -1190,9 +1191,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track1"
                 :checked="sprite_of_wilds_spirit_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sprite_of_wilds_spirit_damage_slot_1"  
-                @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]" 
+                @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]"
                 x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[1] = false),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage[1] = false)"
               >
@@ -1222,9 +1223,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track2"
                 :checked="sprite_of_wilds_spirit_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="sprite_of_wilds_spirit_damage_slot_2"  
-                @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]" 
+                @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]"
                 x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[2] = false),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage[2] = false)"
               >
@@ -1257,9 +1258,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="sprite_of_wilds_spirit_track_wasted"
                 :checked="sprite_of_wilds_spirit_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="sprite_of_wilds_spirit_wasted"
+                name="damageTrack" 
+                id="sprite_of_wilds_spirit_wasted"
                 @click="sprite_of_wilds_spirit_damage['wasted'] = !sprite_of_wilds_spirit_damage['wasted']"
-                x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false),
+                x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false, sprite_of_wilds_spirit_clear = clearDamage),
                         $watch('clearDamage', value => sprite_of_wilds_spirit_damage['wasted'] = false)"
               >
           </div>

@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track1"
                 :checked="pyrostegia_dragon_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="pyrostegia_dragon_damage_slot_1"  
-                @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]" 
+                @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]"
                 x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage[1] = false),
                         $watch('clearDamage', value => pyrostegia_dragon_damage[1] = false)"
               >
@@ -824,9 +824,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track2"
                 :checked="pyrostegia_dragon_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="pyrostegia_dragon_damage_slot_2"  
-                @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]" 
+                @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]"
                 x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage[2] = false),
                         $watch('clearDamage', value => pyrostegia_dragon_damage[2] = false)"
               >
@@ -859,9 +859,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track_wasted"
                 :checked="pyrostegia_dragon_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="pyrostegia_dragon_wasted"
+                name="damageTrack" 
+                id="pyrostegia_dragon_wasted"
                 @click="pyrostegia_dragon_damage['wasted'] = !pyrostegia_dragon_damage['wasted']"
-                x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage['wasted'] = false),
+                x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage['wasted'] = false, pyrostegia_dragon_clear = clearDamage),
                         $watch('clearDamage', value => pyrostegia_dragon_damage['wasted'] = false)"
               >
           </div>
@@ -1190,9 +1191,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track1"
                 :checked="pyrostegia_dragon_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="pyrostegia_dragon_damage_slot_1"  
-                @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]" 
+                @click="pyrostegia_dragon_damage[1] = !pyrostegia_dragon_damage[1]"
                 x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage[1] = false),
                         $watch('clearDamage', value => pyrostegia_dragon_damage[1] = false)"
               >
@@ -1222,9 +1223,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track2"
                 :checked="pyrostegia_dragon_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="pyrostegia_dragon_damage_slot_2"  
-                @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]" 
+                @click="pyrostegia_dragon_damage[2] = !pyrostegia_dragon_damage[2]"
                 x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage[2] = false),
                         $watch('clearDamage', value => pyrostegia_dragon_damage[2] = false)"
               >
@@ -1257,9 +1258,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="pyrostegia_dragon_track_wasted"
                 :checked="pyrostegia_dragon_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="pyrostegia_dragon_wasted"
+                name="damageTrack" 
+                id="pyrostegia_dragon_wasted"
                 @click="pyrostegia_dragon_damage['wasted'] = !pyrostegia_dragon_damage['wasted']"
-                x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage['wasted'] = false),
+                x-init="clearDamage == pyrostegia_dragon_clear || (pyrostegia_dragon_damage['wasted'] = false, pyrostegia_dragon_clear = clearDamage),
                         $watch('clearDamage', value => pyrostegia_dragon_damage['wasted'] = false)"
               >
           </div>

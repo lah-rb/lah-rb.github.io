@@ -826,9 +826,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="fourohfour_track_wasted"
                 :checked="fourohfour_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="fourohfour_wasted"
+                name="damageTrack" 
+                id="fourohfour_wasted"
                 @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']"
-                x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false),
+                x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false, fourohfour_clear = clearDamage),
                         $watch('clearDamage', value => fourohfour_damage['wasted'] = false)"
               >
           </div>
@@ -1192,9 +1193,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="fourohfour_track_wasted"
                 :checked="fourohfour_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="fourohfour_wasted"
+                name="damageTrack" 
+                id="fourohfour_wasted"
                 @click="fourohfour_damage['wasted'] = !fourohfour_damage['wasted']"
-                x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false),
+                x-init="clearDamage == fourohfour_clear || (fourohfour_damage['wasted'] = false, fourohfour_clear = clearDamage),
                         $watch('clearDamage', value => fourohfour_damage['wasted'] = false)"
               >
           </div>

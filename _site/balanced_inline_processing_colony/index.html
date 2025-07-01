@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="balanced_inline_processing_colony_track1"
                 :checked="balanced_inline_processing_colony_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="balanced_inline_processing_colony_damage_slot_1"  
-                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]" 
+                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]"
                 x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage[1] = false),
                         $watch('clearDamage', value => balanced_inline_processing_colony_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="balanced_inline_processing_colony_track_wasted"
                 :checked="balanced_inline_processing_colony_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="balanced_inline_processing_colony_wasted"
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_wasted"
                 @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']"
-                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false),
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false, balanced_inline_processing_colony_clear = clearDamage),
                         $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="balanced_inline_processing_colony_track1"
                 :checked="balanced_inline_processing_colony_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="balanced_inline_processing_colony_damage_slot_1"  
-                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]" 
+                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]"
                 x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage[1] = false),
                         $watch('clearDamage', value => balanced_inline_processing_colony_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="balanced_inline_processing_colony_track_wasted"
                 :checked="balanced_inline_processing_colony_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="balanced_inline_processing_colony_wasted"
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_wasted"
                 @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']"
-                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false),
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false, balanced_inline_processing_colony_clear = clearDamage),
                         $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)"
               >
           </div>

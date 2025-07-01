@@ -790,9 +790,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track1"
                 :checked="allele_sect_explorer_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_1"  
-                @click="allele_sect_explorer_damage[1] = !allele_sect_explorer_damage[1]" 
+                @click="allele_sect_explorer_damage[1] = !allele_sect_explorer_damage[1]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[1] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[1] = false)"
               >
@@ -806,9 +806,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track2"
                 :checked="allele_sect_explorer_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_2"  
-                @click="allele_sect_explorer_damage[2] = !allele_sect_explorer_damage[2]" 
+                @click="allele_sect_explorer_damage[2] = !allele_sect_explorer_damage[2]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[2] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[2] = false)"
               >
@@ -838,9 +838,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track3"
                 :checked="allele_sect_explorer_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_3"  
-                @click="allele_sect_explorer_damage[3] = !allele_sect_explorer_damage[3]" 
+                @click="allele_sect_explorer_damage[3] = !allele_sect_explorer_damage[3]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[3] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[3] = false)"
               >
@@ -873,9 +873,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track_wasted"
                 :checked="allele_sect_explorer_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="allele_sect_explorer_wasted"
+                name="damageTrack" 
+                id="allele_sect_explorer_wasted"
                 @click="allele_sect_explorer_damage['wasted'] = !allele_sect_explorer_damage['wasted']"
-                x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage['wasted'] = false),
+                x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage['wasted'] = false, allele_sect_explorer_clear = clearDamage),
                         $watch('clearDamage', value => allele_sect_explorer_damage['wasted'] = false)"
               >
           </div>
@@ -1202,9 +1203,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track1"
                 :checked="allele_sect_explorer_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_1"  
-                @click="allele_sect_explorer_damage[1] = !allele_sect_explorer_damage[1]" 
+                @click="allele_sect_explorer_damage[1] = !allele_sect_explorer_damage[1]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[1] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[1] = false)"
               >
@@ -1218,9 +1219,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track2"
                 :checked="allele_sect_explorer_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_2"  
-                @click="allele_sect_explorer_damage[2] = !allele_sect_explorer_damage[2]" 
+                @click="allele_sect_explorer_damage[2] = !allele_sect_explorer_damage[2]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[2] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[2] = false)"
               >
@@ -1250,9 +1251,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track3"
                 :checked="allele_sect_explorer_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="allele_sect_explorer_damage_slot_3"  
-                @click="allele_sect_explorer_damage[3] = !allele_sect_explorer_damage[3]" 
+                @click="allele_sect_explorer_damage[3] = !allele_sect_explorer_damage[3]"
                 x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage[3] = false),
                         $watch('clearDamage', value => allele_sect_explorer_damage[3] = false)"
               >
@@ -1285,9 +1286,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="allele_sect_explorer_track_wasted"
                 :checked="allele_sect_explorer_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="allele_sect_explorer_wasted"
+                name="damageTrack" 
+                id="allele_sect_explorer_wasted"
                 @click="allele_sect_explorer_damage['wasted'] = !allele_sect_explorer_damage['wasted']"
-                x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage['wasted'] = false),
+                x-init="clearDamage == allele_sect_explorer_clear || (allele_sect_explorer_damage['wasted'] = false, allele_sect_explorer_clear = clearDamage),
                         $watch('clearDamage', value => allele_sect_explorer_damage['wasted'] = false)"
               >
           </div>

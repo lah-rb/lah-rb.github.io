@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="knightsoul_of_binding_time_track1"
                 :checked="knightsoul_of_binding_time_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="knightsoul_of_binding_time_damage_slot_1"  
-                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]" 
+                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]"
                 x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage[1] = false),
                         $watch('clearDamage', value => knightsoul_of_binding_time_damage[1] = false)"
               >
@@ -827,9 +827,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="knightsoul_of_binding_time_track_wasted"
                 :checked="knightsoul_of_binding_time_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="knightsoul_of_binding_time_wasted"
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_wasted"
                 @click="knightsoul_of_binding_time_damage['wasted'] = !knightsoul_of_binding_time_damage['wasted']"
-                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false),
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false, knightsoul_of_binding_time_clear = clearDamage),
                         $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)"
               >
           </div>
@@ -1158,9 +1159,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="knightsoul_of_binding_time_track1"
                 :checked="knightsoul_of_binding_time_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="knightsoul_of_binding_time_damage_slot_1"  
-                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]" 
+                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]"
                 x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage[1] = false),
                         $watch('clearDamage', value => knightsoul_of_binding_time_damage[1] = false)"
               >
@@ -1193,9 +1194,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="knightsoul_of_binding_time_track_wasted"
                 :checked="knightsoul_of_binding_time_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="knightsoul_of_binding_time_wasted"
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_wasted"
                 @click="knightsoul_of_binding_time_damage['wasted'] = !knightsoul_of_binding_time_damage['wasted']"
-                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false),
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false, knightsoul_of_binding_time_clear = clearDamage),
                         $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)"
               >
           </div>

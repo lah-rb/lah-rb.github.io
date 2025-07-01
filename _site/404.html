@@ -826,9 +826,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="_track_wasted"
                 :checked="_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="_wasted"
+                name="damageTrack" 
+                id="_wasted"
                 @click="_damage['wasted'] = !_damage['wasted']"
-                x-init="clearDamage == _clear || (_damage['wasted'] = false),
+                x-init="clearDamage == _clear || (_damage['wasted'] = false, _clear = clearDamage),
                         $watch('clearDamage', value => _damage['wasted'] = false)"
               >
           </div>
@@ -1192,9 +1193,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="_track_wasted"
                 :checked="_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="_wasted"
+                name="damageTrack" 
+                id="_wasted"
                 @click="_damage['wasted'] = !_damage['wasted']"
-                x-init="clearDamage == _clear || (_damage['wasted'] = false),
+                x-init="clearDamage == _clear || (_damage['wasted'] = false, _clear = clearDamage),
                         $watch('clearDamage', value => _damage['wasted'] = false)"
               >
           </div>

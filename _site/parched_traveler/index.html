@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track1"
                 :checked="parched_traveler_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_1"  
-                @click="parched_traveler_damage[1] = !parched_traveler_damage[1]" 
+                @click="parched_traveler_damage[1] = !parched_traveler_damage[1]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[1] = false),
                         $watch('clearDamage', value => parched_traveler_damage[1] = false)"
               >
@@ -824,9 +824,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track2"
                 :checked="parched_traveler_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_2"  
-                @click="parched_traveler_damage[2] = !parched_traveler_damage[2]" 
+                @click="parched_traveler_damage[2] = !parched_traveler_damage[2]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[2] = false),
                         $watch('clearDamage', value => parched_traveler_damage[2] = false)"
               >
@@ -856,9 +856,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track3"
                 :checked="parched_traveler_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_3"  
-                @click="parched_traveler_damage[3] = !parched_traveler_damage[3]" 
+                @click="parched_traveler_damage[3] = !parched_traveler_damage[3]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[3] = false),
                         $watch('clearDamage', value => parched_traveler_damage[3] = false)"
               >
@@ -891,9 +891,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track_wasted"
                 :checked="parched_traveler_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="parched_traveler_wasted"
+                name="damageTrack" 
+                id="parched_traveler_wasted"
                 @click="parched_traveler_damage['wasted'] = !parched_traveler_damage['wasted']"
-                x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage['wasted'] = false),
+                x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage['wasted'] = false, parched_traveler_clear = clearDamage),
                         $watch('clearDamage', value => parched_traveler_damage['wasted'] = false)"
               >
           </div>
@@ -1222,9 +1223,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track1"
                 :checked="parched_traveler_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_1"  
-                @click="parched_traveler_damage[1] = !parched_traveler_damage[1]" 
+                @click="parched_traveler_damage[1] = !parched_traveler_damage[1]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[1] = false),
                         $watch('clearDamage', value => parched_traveler_damage[1] = false)"
               >
@@ -1254,9 +1255,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track2"
                 :checked="parched_traveler_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_2"  
-                @click="parched_traveler_damage[2] = !parched_traveler_damage[2]" 
+                @click="parched_traveler_damage[2] = !parched_traveler_damage[2]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[2] = false),
                         $watch('clearDamage', value => parched_traveler_damage[2] = false)"
               >
@@ -1286,9 +1287,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track3"
                 :checked="parched_traveler_damage[3]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="parched_traveler_damage_slot_3"  
-                @click="parched_traveler_damage[3] = !parched_traveler_damage[3]" 
+                @click="parched_traveler_damage[3] = !parched_traveler_damage[3]"
                 x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage[3] = false),
                         $watch('clearDamage', value => parched_traveler_damage[3] = false)"
               >
@@ -1321,9 +1322,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="parched_traveler_track_wasted"
                 :checked="parched_traveler_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="parched_traveler_wasted"
+                name="damageTrack" 
+                id="parched_traveler_wasted"
                 @click="parched_traveler_damage['wasted'] = !parched_traveler_damage['wasted']"
-                x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage['wasted'] = false),
+                x-init="clearDamage == parched_traveler_clear || (parched_traveler_damage['wasted'] = false, parched_traveler_clear = clearDamage),
                         $watch('clearDamage', value => parched_traveler_damage['wasted'] = false)"
               >
           </div>

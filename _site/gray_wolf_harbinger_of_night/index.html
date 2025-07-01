@@ -776,9 +776,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="gray_wolf_harbinger_of_night_track1"
                 :checked="gray_wolf_harbinger_of_night_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="gray_wolf_harbinger_of_night_damage_slot_1"  
-                @click="gray_wolf_harbinger_of_night_damage[1] = !gray_wolf_harbinger_of_night_damage[1]" 
+                @click="gray_wolf_harbinger_of_night_damage[1] = !gray_wolf_harbinger_of_night_damage[1]"
                 x-init="clearDamage == gray_wolf_harbinger_of_night_clear || (gray_wolf_harbinger_of_night_damage[1] = false),
                         $watch('clearDamage', value => gray_wolf_harbinger_of_night_damage[1] = false)"
               >
@@ -811,9 +811,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="gray_wolf_harbinger_of_night_track_wasted"
                 :checked="gray_wolf_harbinger_of_night_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="gray_wolf_harbinger_of_night_wasted"
+                name="damageTrack" 
+                id="gray_wolf_harbinger_of_night_wasted"
                 @click="gray_wolf_harbinger_of_night_damage['wasted'] = !gray_wolf_harbinger_of_night_damage['wasted']"
-                x-init="clearDamage == gray_wolf_harbinger_of_night_clear || (gray_wolf_harbinger_of_night_damage['wasted'] = false),
+                x-init="clearDamage == gray_wolf_harbinger_of_night_clear || (gray_wolf_harbinger_of_night_damage['wasted'] = false, gray_wolf_harbinger_of_night_clear = clearDamage),
                         $watch('clearDamage', value => gray_wolf_harbinger_of_night_damage['wasted'] = false)"
               >
           </div>

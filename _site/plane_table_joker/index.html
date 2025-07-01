@@ -792,9 +792,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track1"
                 :checked="plane_table_joker_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="plane_table_joker_damage_slot_1"  
-                @click="plane_table_joker_damage[1] = !plane_table_joker_damage[1]" 
+                @click="plane_table_joker_damage[1] = !plane_table_joker_damage[1]"
                 x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage[1] = false),
                         $watch('clearDamage', value => plane_table_joker_damage[1] = false)"
               >
@@ -824,9 +824,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track2"
                 :checked="plane_table_joker_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="plane_table_joker_damage_slot_2"  
-                @click="plane_table_joker_damage[2] = !plane_table_joker_damage[2]" 
+                @click="plane_table_joker_damage[2] = !plane_table_joker_damage[2]"
                 x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage[2] = false),
                         $watch('clearDamage', value => plane_table_joker_damage[2] = false)"
               >
@@ -859,9 +859,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track_wasted"
                 :checked="plane_table_joker_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="plane_table_joker_wasted"
+                name="damageTrack" 
+                id="plane_table_joker_wasted"
                 @click="plane_table_joker_damage['wasted'] = !plane_table_joker_damage['wasted']"
-                x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage['wasted'] = false),
+                x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage['wasted'] = false, plane_table_joker_clear = clearDamage),
                         $watch('clearDamage', value => plane_table_joker_damage['wasted'] = false)"
               >
           </div>
@@ -1190,9 +1191,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track1"
                 :checked="plane_table_joker_damage[1]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="plane_table_joker_damage_slot_1"  
-                @click="plane_table_joker_damage[1] = !plane_table_joker_damage[1]" 
+                @click="plane_table_joker_damage[1] = !plane_table_joker_damage[1]"
                 x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage[1] = false),
                         $watch('clearDamage', value => plane_table_joker_damage[1] = false)"
               >
@@ -1222,9 +1223,9 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track2"
                 :checked="plane_table_joker_damage[2]"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                kealName="damageTrack" 
+                name="damageTrack" 
                 id="plane_table_joker_damage_slot_2"  
-                @click="plane_table_joker_damage[2] = !plane_table_joker_damage[2]" 
+                @click="plane_table_joker_damage[2] = !plane_table_joker_damage[2]"
                 x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage[2] = false),
                         $watch('clearDamage', value => plane_table_joker_damage[2] = false)"
               >
@@ -1257,9 +1258,10 @@ x-show="showScanner && !noCamera && videoReady">
                 x-ref="plane_table_joker_track_wasted"
                 :checked="plane_table_joker_damage['wasted']"
                 class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" id="plane_table_joker_wasted"
+                name="damageTrack" 
+                id="plane_table_joker_wasted"
                 @click="plane_table_joker_damage['wasted'] = !plane_table_joker_damage['wasted']"
-                x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage['wasted'] = false),
+                x-init="clearDamage == plane_table_joker_clear || (plane_table_joker_damage['wasted'] = false, plane_table_joker_clear = clearDamage),
                         $watch('clearDamage', value => plane_table_joker_damage['wasted'] = false)"
               >
           </div>
