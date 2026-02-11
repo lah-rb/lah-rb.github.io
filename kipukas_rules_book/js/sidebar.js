@@ -23,11 +23,8 @@ const KipukasSidebar = (() => {
 
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-                const target = document.getElementById(h.id);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    history.replaceState(null, '', `#${h.id}`);
-                }
+                scrollContentTo(h.id);
+                history.replaceState(null, '', `#${h.id}`);
                 // Close sidebar on mobile
                 if (window.innerWidth < 1024) {
                     closeSidebar();
