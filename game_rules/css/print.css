@@ -1,0 +1,196 @@
+/**
+ * print.css — Clean print/PDF layout for Kipukas rules.
+ * Hides sidebar, header, chat; single-column white layout.
+ */
+
+/* Manual page break marker — invisible on screen */
+.page-break {
+    display: none;
+}
+
+@media print {
+    /* Reset backgrounds and colors */
+    html, body {
+        background: white !important;
+        color: #111 !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    body {
+        display: block !important;
+        height: auto !important;
+    }
+
+    /* Break the flex/overflow chain that prevents page breaks */
+    body > .flex {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+        position: static !important;
+    }
+
+    /* Hide non-content elements */
+    header,
+    #sidebar,
+    #sidebar-overlay,
+    #chat-widget,
+    #search-wrapper,
+    #print-btn,
+    #sidebar-toggle,
+    .header-anchor {
+        display: none !important;
+    }
+
+    /* Content area takes full width — must break out of scroll/flex containers */
+    #content-scroll {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+        flex: none !important;
+    }
+
+    #content {
+        display: block !important;
+        max-width: 100% !important;
+        padding: 0.5in !important;
+        margin: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* Header styles for print */
+    #content h2 {
+        color: #111 !important;
+        border-bottom: 2px solid #666 !important;
+        page-break-after: avoid;
+        page-break-before: always;
+        margin-top: 0 !important;
+        padding-top: 0.25in !important;
+    }
+
+    /* Don't break before first h2 */
+    #content h2:first-of-type {
+        page-break-before: avoid;
+    }
+
+    #content h3 {
+        color: #333 !important;
+        page-break-after: avoid;
+    }
+
+    #content h4 {
+        color: #444 !important;
+        page-break-after: avoid;
+    }
+
+    /* General text */
+    #content p, #content li, #content td, #content dd {
+        color: #222 !important;
+        line-height: 1.5 !important;
+        font-size: 11pt !important;
+    }
+
+    /* Links — show URL */
+    #content a {
+        color: #333 !important;
+        text-decoration: underline !important;
+    }
+
+    #content a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 9pt;
+        color: #666;
+    }
+
+    /* Internal links — don't show URL */
+    #content a[href^="#"]::after {
+        content: none;
+    }
+
+    /* Images — override Tailwind inline classes for clean print */
+    #content img {
+        max-width: 4in !important;
+        width: auto !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border-radius: 0.25rem !important;
+        display: inline-block !important;
+        margin: 0.25in 0 !important;
+        page-break-inside: avoid;
+    }
+
+    /* Multi-image flex rows should wrap naturally in print */
+    #content p.flex {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.25in !important;
+        justify-content: flex-start !important;
+    }
+
+    #content p.flex img {
+        max-width: 2.5in !important;
+    }
+
+    /* Tables */
+    #content table {
+        page-break-inside: avoid;
+        font-size: 10pt !important;
+    }
+
+    #content th {
+        background: #eee !important;
+        color: #111 !important;
+        border-color: #999 !important;
+    }
+
+    #content td {
+        border-color: #ccc !important;
+    }
+
+    #content tr:nth-child(even) {
+        background: #f5f5f5 !important;
+    }
+
+    /* Code blocks */
+    #content pre {
+        background: #f0f0f0 !important;
+        color: #111 !important;
+        border: 1px solid #ccc !important;
+        page-break-inside: avoid;
+    }
+
+    #content code {
+        background: #eee !important;
+        color: #333 !important;
+    }
+
+    /* Blockquotes */
+    #content blockquote {
+        border-left-color: #999 !important;
+        background: transparent !important;
+        color: #444 !important;
+    }
+
+    /* Avoid breaking inside key elements */
+    #content ul, #content ol {
+        page-break-inside: avoid;
+    }
+
+    /* Manual page break marker — force page break in print */
+    .page-break {
+        display: block !important;
+        page-break-before: always;
+        break-before: page;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+
+    /* Page margins */
+    @page {
+        margin: 0.75in;
+        size: letter;
+    }
+}
