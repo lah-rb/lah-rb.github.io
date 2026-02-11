@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kippa Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <style>
+        .message-bubble {
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .streaming-cursor::after {
+            content: '▋';
+            animation: blink 1s infinite;
+            color: #60a5fa;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        .fade-out {
+            animation: fadeOut 0.3s ease-in forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+        /* Markdown styling */
+        .markdown-content h1, .markdown-content h2, .markdown-content h3,
+        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content h1 { font-size: 1.5rem; }
+        .markdown-content h2 { font-size: 1.25rem; }
+        .markdown-content h3 { font-size: 1.125rem; }
+        .markdown-content p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-content ul { list-style-type: disc; }
+        .markdown-content ol { list-style-type: decimal; }
+        .markdown-content li {
+            margin-bottom: 0.25rem;
+        }
+        .markdown-content code {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.875em;
+        }
+        .markdown-content pre {
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            display: block;
+            white-space: pre;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid #4b5563;
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-bottom: 0.75rem;
+            color: #9ca3af;
+        }
+        .markdown-content a {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        .markdown-content a:hover {
+            color: #93c5fd;
+        }
+        .markdown-content hr {
+            border: none;
+            border-top: 1px solid #4b5563;
+            margin: 1rem 0;
+        }
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #4b5563;
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .markdown-content th {
+            background-color: rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+        .user-message .markdown-content code {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .user-message .markdown-content pre {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                </svg>
+            </div>
+            <h1 class="font-semibold text-lg">Kippa</h1>
+        </div>
+    </header>
+
+    <!-- Beta Warning Banner -->
+    <div id="beta-banner" class="bg-amber-900/30 border-b border-amber-700/50 px-4 py-3">
+        <div class="flex items-start gap-3 max-w-4xl mx-auto">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div class="flex-1 text-sm text-amber-100/90">
+                <p class="font-medium text-amber-400 mb-1">Beta Preview — Important Notes</p>
+                <ul class="space-y-1 text-amber-100/80">
+                    <li>• <strong>No conversation memory</strong> — Each message is independent. Previous context is not remembered.</li>
+                    <li>• <strong>Expect delays</strong> — Limited hardware capacity means requests may queue when busy (30s timeout).</li>
+                    <li>• <strong>Check facts</strong> — Local LLMs can hallucinate and produce inaccurate results.</li>
+                    <li>• <strong>Token limits</strong> — Knowledge base + your prompt must fit within ~4K token context window.</li>
+                    <li>• <strong>Interactions may be logged</strong> — Prompts and responses may be saved for debugging/improvement.</li>
+                </ul>
+            </div>
+            <button id="dismiss-banner" class="text-amber-400 hover:text-amber-300 transition-colors flex-shrink-0" title="Dismiss warning">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <main id="messages" class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+        <!-- Welcome bubble will be inserted here when connected -->
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-gray-800 border-t border-gray-700 p-4">
+        <form id="chat-form" class="flex gap-2">
+            <input
+                type="text"
+                id="message-input"
+                placeholder="Type your message..."
+                class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                autocomplete="off"
+            >
+            <button
+                type="submit"
+                id="send-btn"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span>Send</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
+            </button>
+        </form>
+    </footer>
+
+    <script>
+        // Configuration
+        const GRAPHQL_HTTP_URL = 'https://kippa.kipukas.us/graphql';
+        const GRAPHQL_WS_URL = 'wss://kippa.kipukas.us/graphql';
+
+        // State
+        let isStreaming = false;
+        let ws = null;
+        let messageHistory = [];
+        let subscriptionId = 0;
+        let isWsConnected = false;
+        let wsReconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+
+        // DOM Elements
+        const messagesContainer = document.getElementById('messages');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const betaBanner = document.getElementById('beta-banner');
+        const dismissBannerBtn = document.getElementById('dismiss-banner');
+
+        // Welcome message added flag
+        let welcomeMessageAdded = false;
+
+        // Beta banner dismissal with localStorage persistence
+        function initBetaBanner() {
+            // Check if user has previously dismissed the banner
+            const isDismissed = localStorage.getItem('kippa-beta-banner-dismissed');
+            if (isDismissed === 'true') {
+                betaBanner.style.display = 'none';
+            }
+
+            // Handle dismiss button click
+            dismissBannerBtn.addEventListener('click', () => {
+                betaBanner.classList.add('fade-out');
+                setTimeout(() => {
+                    betaBanner.style.display = 'none';
+                    localStorage.setItem('kippa-beta-banner-dismissed', 'true');
+                }, 300);
+            });
+        }
+
+        // Check server health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch(GRAPHQL_HTTP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `
+                            query {
+                                health {
+                                    status
+                                    poolSize
+                                    availableInstances
+                                }
+                            }
+                        `
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data?.health?.status === 'healthy') {
+                        statusDot.className = 'w-2 h-2 rounded-full bg-green-500';
+                        statusText.textContent = 'Connected';
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+            }
+            
+            statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+            statusText.textContent = 'Disconnected';
+            return false;
+        }
+
+        // Parse markdown to HTML safely
+        function parseMarkdown(text) {
+            if (!text) return '';
+            const rawHtml = marked.parse(text, { breaks: true });
+            return DOMPurify.sanitize(rawHtml);
+        }
+
+        // Add message to UI
+        function addMessage(text, isUser = false, isStreaming = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble rounded-2xl px-4 py-3 ${
+                isUser 
+                    ? 'bg-blue-600 text-white rounded-br-md user-message' 
+                    : 'bg-gray-700 text-gray-100 rounded-bl-md'
+            } ${isStreaming ? 'streaming-cursor' : ''}`;
+            
+            // Create content container
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'markdown-content';
+            
+            if (isUser) {
+                // User messages: plain text (escape HTML)
+                contentDiv.textContent = text;
+            } else {
+                // Assistant messages: parse markdown
+                contentDiv.innerHTML = parseMarkdown(text);
+            }
+            
+            bubble.appendChild(contentDiv);
+            messageDiv.appendChild(bubble);
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+            
+            return contentDiv;
+        }
+
+        // Update streaming message
+        function updateStreamingMessage(element, text) {
+            // element is now the contentDiv, not the bubble
+            element.innerHTML = parseMarkdown(text);
+            scrollToBottom();
+        }
+
+        // Scroll to bottom of messages
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send completion request via HTTP (non-streaming)
+        async function sendCompletion(prompt) {
+            const response = await fetch(GRAPHQL_HTTP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                        mutation {
+                            createCompletion(request: {
+                                prompt: ${JSON.stringify(prompt)}
+                            }) {
+                                text
+                                tokensGenerated
+                            }
+                        }
+                    `
+                })
+            });
+            
+            const data = await response.json();
+            return data.data?.createCompletion;
+        }
+
+        // Add welcome message from Kippa
+        function addWelcomeMessage() {
+            if (welcomeMessageAdded) return;
+            welcomeMessageAdded = true;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start fade-in';
+            messageDiv.id = 'welcome-message';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble rounded-2xl px-4 py-3 bg-gray-700 text-gray-100 rounded-bl-md';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'markdown-content';
+            contentDiv.innerHTML = parseMarkdown('Hi there! I\'m Kippa. How can I help you today?');
+            
+            bubble.appendChild(contentDiv);
+            messageDiv.appendChild(bubble);
+            messagesContainer.appendChild(messageDiv);
+        }
+
+        // Remove welcome message
+        function removeWelcomeMessage() {
+            const welcome = document.getElementById('welcome-message');
+            if (welcome) {
+                welcome.classList.remove('fade-in');
+                welcome.classList.add('fade-out');
+                setTimeout(() => {
+                    welcome.remove();
+                    welcomeMessageAdded = false;
+                }, 300);
+            }
+        }
+
+        // Update input placeholder and state
+        function updateInputState(connected) {
+            if (connected) {
+                messageInput.placeholder = 'Talk to Kippa...';
+                messageInput.disabled = false;
+                messageInput.classList.remove('bg-gray-800', 'text-gray-500');
+                messageInput.classList.add('bg-gray-700', 'text-gray-100');
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('bg-gray-600', 'cursor-not-allowed');
+                sendBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                messageInput.placeholder = 'Connecting...';
+                messageInput.disabled = true;
+                messageInput.classList.remove('bg-gray-700', 'text-gray-100');
+                messageInput.classList.add('bg-gray-800', 'text-gray-500');
+                sendBtn.disabled = true;
+                sendBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                sendBtn.classList.add('bg-gray-600', 'cursor-not-allowed');
+            }
+        }
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) {
+                return;
+            }
+
+            ws = new WebSocket(GRAPHQL_WS_URL, 'graphql-transport-ws');
+            
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'connection_init' }));
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'connection_ack') {
+                    isWsConnected = true;
+                    wsReconnectAttempts = 0;
+                    addWelcomeMessage();
+                    updateInputState(true);
+                } else if (message.type === 'connection_error') {
+                    isWsConnected = false;
+                    removeWelcomeMessage();
+                    updateInputState(false);
+                }
+            };
+            
+            ws.onerror = () => {
+                isWsConnected = false;
+                removeWelcomeMessage();
+                updateInputState(false);
+            };
+            
+            ws.onclose = () => {
+                isWsConnected = false;
+                removeWelcomeMessage();
+                updateInputState(false);
+                
+                // Attempt reconnection with exponential backoff
+                if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    wsReconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts - 1), 30000);
+                    setTimeout(initWebSocket, delay);
+                }
+            };
+        }
+
+        // Stream completion via persistent WebSocket
+        function streamCompletion(prompt) {
+            return new Promise((resolve, reject) => {
+                if (!isWsConnected || ws?.readyState !== WebSocket.OPEN) {
+                    reject(new Error('WebSocket not connected'));
+                    return;
+                }
+
+                const currentSubId = (++subscriptionId).toString();
+                let accumulatedText = '';
+                let messageContent = null;
+                let messageBubble = null;
+                let isCompleteReceived = false;
+                
+                const originalOnMessage = ws.onmessage;
+                
+                ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    
+                    // Handle our subscription messages
+                    if (message.id === currentSubId) {
+                        switch (message.type) {
+                            case 'next':
+                                const chunk = message.payload?.data?.streamCompletion;
+                                if (chunk) {
+                                    accumulatedText += chunk.text;
+                                    
+                                    if (!messageContent) {
+                                        messageContent = addMessage(accumulatedText, false, true);
+                                        messageBubble = messageContent.parentElement;
+                                    } else {
+                                        updateStreamingMessage(messageContent, accumulatedText);
+                                    }
+                                    
+                                    if (chunk.isComplete) {
+                                        isCompleteReceived = true;
+                                        if (messageBubble) {
+                                            messageBubble.classList.remove('streaming-cursor');
+                                        }
+                                        // Unsubscribe and restore original handler
+                                        ws.send(JSON.stringify({ id: currentSubId, type: 'complete' }));
+                                        ws.onmessage = originalOnMessage;
+                                        resolve({ text: accumulatedText });
+                                    }
+                                }
+                                break;
+                                
+                            case 'error':
+                                ws.onmessage = originalOnMessage;
+                                reject(new Error(message.payload?.message || 'Subscription error'));
+                                break;
+                        }
+                    } else {
+                        // Pass through to original handler for other messages
+                        originalOnMessage(event);
+                    }
+                };
+                
+                // Send subscription request
+                ws.send(JSON.stringify({
+                    id: currentSubId,
+                    type: 'subscribe',
+                    payload: {
+                        query: `
+                            subscription {
+                                streamCompletion(request: {
+                                    prompt: ${JSON.stringify(prompt)}
+                                }) {
+                                    text
+                                    isComplete
+                                }
+                            }
+                        `
+                    }
+                }));
+                
+                // Timeout fallback
+                setTimeout(() => {
+                    if (!isCompleteReceived) {
+                        ws.onmessage = originalOnMessage;
+                        ws.send(JSON.stringify({ id: currentSubId, type: 'complete' }));
+                        if (messageBubble) {
+                            messageBubble.classList.remove('streaming-cursor');
+                        }
+                        resolve({ text: accumulatedText });
+                    }
+                }, 120000); // 2 minute timeout
+            });
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const prompt = messageInput.value.trim();
+            if (!prompt || isStreaming) return;
+            
+            // Add user message
+            addMessage(prompt, true);
+            messageInput.value = '';
+            messageInput.focus();
+            
+            // Set loading state
+            isStreaming = true;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Thinking...</span>
+            `;
+            
+            try {
+                // Try streaming first, fall back to non-streaming
+                try {
+                    await streamCompletion(prompt);
+                } catch (streamError) {
+                    console.log('Streaming failed, falling back to HTTP:', streamError);
+                    const result = await sendCompletion(prompt);
+                    if (result?.text) {
+                        addMessage(result.text, false);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, something went wrong. Please try again.', false);
+            } finally {
+                isStreaming = false;
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `
+                    <span>Send</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                `;
+            }
+        });
+
+        // Initialize
+        updateInputState(false);
+        initBetaBanner();
+        initWebSocket();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (ws) {
+                ws.close();
+            }
+        });
+    </script>
+</body>
+</html>
