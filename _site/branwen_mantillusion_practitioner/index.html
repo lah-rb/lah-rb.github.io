@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  0
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        0
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage['wasted'] = false), $watch('clearDamage', value => branwen_mantillusion_practitioner_damage['wasted'] = false)">
     <label for="branwen_mantillusion_practitioner_wasted" x-anchor.bottom.start="$refs.branwen_mantillusion_practitioner_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Telekinetic
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Other cards must attack Branwen first then Branwen attacks and the attacker becomes the defender for the first attack between the cards.
       
+        Other cards must attack Branwen first then Branwen attacks and the attacker becomes the defender for the first attack between the cards.
       
-    
   </p>
 </div>
 
@@ -752,72 +731,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ branwen_mantillusion_practitioner_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), branwen_mantillusion_practitioner_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Deceptive Mirror: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="branwen_mantillusion_practitioner_track1"
+                :checked="branwen_mantillusion_practitioner_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_damage_slot_1"  
+                @click="branwen_mantillusion_practitioner_damage[1] = !branwen_mantillusion_practitioner_damage[1]"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage[1] = false),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Magic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ensnaring Branches: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="branwen_mantillusion_practitioner_track2"
+                :checked="branwen_mantillusion_practitioner_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_damage_slot_2"  
+                @click="branwen_mantillusion_practitioner_damage[2] = !branwen_mantillusion_practitioner_damage[2]"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage[2] = false),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Telekinetic-Arboreal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(branwen_mantillusion_practitioner_damage).filter(Boolean).length == 2 || Object.values(branwen_mantillusion_practitioner_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Telekinetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="branwen_mantillusion_practitioner_track_wasted"
+                :checked="branwen_mantillusion_practitioner_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_wasted"
+                @click="branwen_mantillusion_practitioner_damage['wasted'] = !branwen_mantillusion_practitioner_damage['wasted']"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage['wasted'] = false, branwen_mantillusion_practitioner_clear = clearDamage),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Deceptive Mirror:
       
+        {"Deceptive Mirror" => {"genetics" => ["Magic"], "count" => 1}, "Ensnaring Branches" => {"genetics" => ["Telekinetic", "Arboreal"], "count" => 1}}
       
-    
-      Magic
-      
-        <br>
-        
-        
-      Ensnaring Branches:
-      
-      
-    
-      Telekinetic
-      
-        <br>
-        
-        
-      Tough Exoskeleton:
-      
-      
-    
-      Cenozoic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -826,12 +881,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      IR2B
       
+        IR2B
       
-    
   </p>
 </div>
 
@@ -842,12 +894,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Forest
       
+        Forest
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Telekinetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Service
+      
   </p>
 </div>
 
@@ -858,12 +933,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -874,12 +946,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.
       
+        The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.
       
-    
   </p>
 </div>
 
@@ -907,30 +976,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  0
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        0
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1026,23 +1092,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage['wasted'] = false), $watch('clearDamage', value => branwen_mantillusion_practitioner_damage['wasted'] = false)">
     <label for="branwen_mantillusion_practitioner_wasted" x-anchor.bottom.start="$refs.branwen_mantillusion_practitioner_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Telekinetic
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1051,12 +1102,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Other cards must attack Branwen first then Branwen attacks and the attacker becomes the defender for the first attack between the cards.
       
+        Other cards must attack Branwen first then Branwen attacks and the attacker becomes the defender for the first attack between the cards.
       
-    
   </p>
 </div>
 
@@ -1069,72 +1117,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ branwen_mantillusion_practitioner_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), branwen_mantillusion_practitioner_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Deceptive Mirror: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="branwen_mantillusion_practitioner_track1"
+                :checked="branwen_mantillusion_practitioner_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_damage_slot_1"  
+                @click="branwen_mantillusion_practitioner_damage[1] = !branwen_mantillusion_practitioner_damage[1]"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage[1] = false),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Magic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ensnaring Branches: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="branwen_mantillusion_practitioner_track2"
+                :checked="branwen_mantillusion_practitioner_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_damage_slot_2"  
+                @click="branwen_mantillusion_practitioner_damage[2] = !branwen_mantillusion_practitioner_damage[2]"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage[2] = false),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Telekinetic-Arboreal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(branwen_mantillusion_practitioner_damage).filter(Boolean).length == 2 || Object.values(branwen_mantillusion_practitioner_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Telekinetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="branwen_mantillusion_practitioner_track_wasted"
+                :checked="branwen_mantillusion_practitioner_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="branwen_mantillusion_practitioner_wasted"
+                @click="branwen_mantillusion_practitioner_damage['wasted'] = !branwen_mantillusion_practitioner_damage['wasted']"
+                x-init="clearDamage == branwen_mantillusion_practitioner_clear || (branwen_mantillusion_practitioner_damage['wasted'] = false, branwen_mantillusion_practitioner_clear = clearDamage),
+                        $watch('clearDamage', value => branwen_mantillusion_practitioner_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Deceptive Mirror:
       
+        {"Deceptive Mirror" => {"genetics" => ["Magic"], "count" => 1}, "Ensnaring Branches" => {"genetics" => ["Telekinetic", "Arboreal"], "count" => 1}}
       
-    
-      Magic
-      
-        <br>
-        
-        
-      Ensnaring Branches:
-      
-      
-    
-      Telekinetic
-      
-        <br>
-        
-        
-      Tough Exoskeleton:
-      
-      
-    
-      Cenozoic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1143,12 +1267,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      IR2B
       
+        IR2B
       
-    
   </p>
 </div>
 
@@ -1159,12 +1280,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Forest
       
+        Forest
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Telekinetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Service
+      
   </p>
 </div>
 
@@ -1175,12 +1319,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1191,12 +1332,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.
       
+        The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.
       
-    
   </p>
 </div>
 

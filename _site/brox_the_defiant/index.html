@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false), $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)">
     <label for="brox_the_defiant_wasted" x-anchor.bottom.start="$refs.brox_the_defiant_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Brutal
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       No Additional Effects 
       
+         No Additional Effects 
       
-    
   </p>
 </div>
 
@@ -752,81 +731,164 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ brox_the_defiant_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), brox_the_defiant_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Crushing Hope: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track1"
+                :checked="brox_the_defiant_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_1"  
+                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Brutal-Angelic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Chain Raid: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track2"
+                :checked="brox_the_defiant_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_2"  
+                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[2] = false)"
+              >
+                  
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track3"
+                :checked="brox_the_defiant_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_3"  
+                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Brutal-Mechanical</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(brox_the_defiant_damage).filter(Boolean).length == 3 || Object.values(brox_the_defiant_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Brutal</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="brox_the_defiant_track_wasted"
+                :checked="brox_the_defiant_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="brox_the_defiant_wasted"
+                @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false, brox_the_defiant_clear = clearDamage),
+                        $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Crushing Hope:
       
+        {"Crushing Hope" => {"genetics" => ["Brutal", "Angelic"], "count" => 1}, "Chain Raid" => {"genetics" => ["Brutal", "Mechanical"], "count" => 2}}
       
-    
-      Brutal-Angelic
-      
-        <br>
-        
-        
-      Physical Combat:
-      
-      
-    
-      Cenozoic
-      
-        <br>
-        
-        
-      Chain Raid:
-      
-      
-    
-      Brutal-Mechanical
-      
-        <br>
-        
-        
-      End It:
-      
-      
-    
-      Brutal
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -835,12 +897,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      FOFE
       
+        FOFE
       
-    
   </p>
 </div>
 
@@ -851,12 +910,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Plains
       
+        Plains
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Brutal
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Service
+      
   </p>
 </div>
 
@@ -867,12 +949,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -883,12 +962,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own. 
       
+         Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own. 
       
-    
   </p>
 </div>
 
@@ -916,30 +992,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1035,23 +1108,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false), $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)">
     <label for="brox_the_defiant_wasted" x-anchor.bottom.start="$refs.brox_the_defiant_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Brutal
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1060,12 +1118,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       No Additional Effects 
       
+         No Additional Effects 
       
-    
   </p>
 </div>
 
@@ -1078,81 +1133,164 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ brox_the_defiant_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), brox_the_defiant_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Crushing Hope: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track1"
+                :checked="brox_the_defiant_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_1"  
+                @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Brutal-Angelic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Chain Raid: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track2"
+                :checked="brox_the_defiant_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_2"  
+                @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[2] = false)"
+              >
+                  
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="brox_the_defiant_track3"
+                :checked="brox_the_defiant_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="brox_the_defiant_damage_slot_3"  
+                @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false),
+                        $watch('clearDamage', value => brox_the_defiant_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Brutal-Mechanical</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(brox_the_defiant_damage).filter(Boolean).length == 3 || Object.values(brox_the_defiant_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Brutal</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="brox_the_defiant_track_wasted"
+                :checked="brox_the_defiant_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="brox_the_defiant_wasted"
+                @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']"
+                x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false, brox_the_defiant_clear = clearDamage),
+                        $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Crushing Hope:
       
+        {"Crushing Hope" => {"genetics" => ["Brutal", "Angelic"], "count" => 1}, "Chain Raid" => {"genetics" => ["Brutal", "Mechanical"], "count" => 2}}
       
-    
-      Brutal-Angelic
-      
-        <br>
-        
-        
-      Physical Combat:
-      
-      
-    
-      Cenozoic
-      
-        <br>
-        
-        
-      Chain Raid:
-      
-      
-    
-      Brutal-Mechanical
-      
-        <br>
-        
-        
-      End It:
-      
-      
-    
-      Brutal
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1161,12 +1299,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      FOFE
       
+        FOFE
       
-    
   </p>
 </div>
 
@@ -1177,12 +1312,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Plains
       
+        Plains
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Brutal
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Service
+      
   </p>
 </div>
 
@@ -1193,12 +1351,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1209,12 +1364,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own. 
       
+         Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own. 
       
-    
   </p>
 </div>
 

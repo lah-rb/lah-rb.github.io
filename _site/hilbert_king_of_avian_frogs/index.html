@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false), $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)">
     <label for="hilbert_king_of_avian_frogs_wasted" x-anchor.bottom.start="$refs.hilbert_king_of_avian_frogs_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Avian
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      No additional effects
       
+        No additional effects
       
-    
   </p>
 </div>
 
@@ -752,72 +731,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ hilbert_king_of_avian_frogs_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), hilbert_king_of_avian_frogs_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">King's Mojo: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="hilbert_king_of_avian_frogs_track1"
+                :checked="hilbert_king_of_avian_frogs_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_damage_slot_1"  
+                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]"
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage[1] = false),
+                        $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Angelic-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(hilbert_king_of_avian_frogs_damage).filter(Boolean).length == 1 || Object.values(hilbert_king_of_avian_frogs_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Passion</p>
+          <p>Archetypal Adaptation: Avian</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="hilbert_king_of_avian_frogs_track_wasted"
+                :checked="hilbert_king_of_avian_frogs_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_wasted"
+                @click="hilbert_king_of_avian_frogs_damage['wasted'] = !hilbert_king_of_avian_frogs_damage['wasted']"
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false, hilbert_king_of_avian_frogs_clear = clearDamage),
+                        $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Crescent Staff:
       
+        {"King's Mojo" => {"genetics" => ["Energetic", "Angelic", "Avian"], "count" => 1}}
       
-    
-      Telekinetic
-      
-        <br>
-        
-        
-      King's Mojo:
-      
-      
-    
-      Energetic-Angelic
-      
-        <br>
-        
-        
-      Majestic Beak:
-      
-      
-    
-      Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Passion
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -826,12 +849,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      HMPU
       
+        HMPU
       
-    
   </p>
 </div>
 
@@ -842,12 +862,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Forest
       
+        Forest
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Avian
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Passion
+      
   </p>
 </div>
 
@@ -858,12 +901,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -874,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hilbert started life out as any other avian frog; living it up in the tree tops among the bogs of their small remote kipuka. He rose to the position of king not by might in war, clever politics, or birth right. Instead, Hilbert bred with his colony prolifically, earning him the most esteemed position. Under his reign, the avian frogs were ushered into unparalleled prosperity thanks to the establishment of bug farms. The staff he holds has been passed down through countless kings. The most devoted of the frogs believe it harnesses the mystery and power of the moon.
       
+        Hilbert started life out as any other avian frog; living it up in the tree tops among the bogs of their small remote kipuka. He rose to the position of king not by might in war, clever politics, or birth right. Instead, Hilbert bred with his colony prolifically, earning him the most esteemed position. Under his reign, the avian frogs were ushered into unparalleled prosperity thanks to the establishment of bug farms. The staff he holds has been passed down through countless kings. The most devoted of the frogs believe it harnesses the mystery and power of the moon.
       
-    
   </p>
 </div>
 
@@ -907,30 +944,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1026,23 +1060,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false), $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)">
     <label for="hilbert_king_of_avian_frogs_wasted" x-anchor.bottom.start="$refs.hilbert_king_of_avian_frogs_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Avian
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1051,12 +1070,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      No additional effects
       
+        No additional effects
       
-    
   </p>
 </div>
 
@@ -1069,72 +1085,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ hilbert_king_of_avian_frogs_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), hilbert_king_of_avian_frogs_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">King's Mojo: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="hilbert_king_of_avian_frogs_track1"
+                :checked="hilbert_king_of_avian_frogs_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_damage_slot_1"  
+                @click="hilbert_king_of_avian_frogs_damage[1] = !hilbert_king_of_avian_frogs_damage[1]"
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage[1] = false),
+                        $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Angelic-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(hilbert_king_of_avian_frogs_damage).filter(Boolean).length == 1 || Object.values(hilbert_king_of_avian_frogs_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Passion</p>
+          <p>Archetypal Adaptation: Avian</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="hilbert_king_of_avian_frogs_track_wasted"
+                :checked="hilbert_king_of_avian_frogs_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="hilbert_king_of_avian_frogs_wasted"
+                @click="hilbert_king_of_avian_frogs_damage['wasted'] = !hilbert_king_of_avian_frogs_damage['wasted']"
+                x-init="clearDamage == hilbert_king_of_avian_frogs_clear || (hilbert_king_of_avian_frogs_damage['wasted'] = false, hilbert_king_of_avian_frogs_clear = clearDamage),
+                        $watch('clearDamage', value => hilbert_king_of_avian_frogs_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Crescent Staff:
       
+        {"King's Mojo" => {"genetics" => ["Energetic", "Angelic", "Avian"], "count" => 1}}
       
-    
-      Telekinetic
-      
-        <br>
-        
-        
-      King's Mojo:
-      
-      
-    
-      Energetic-Angelic
-      
-        <br>
-        
-        
-      Majestic Beak:
-      
-      
-    
-      Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Passion
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1143,12 +1203,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      HMPU
       
+        HMPU
       
-    
   </p>
 </div>
 
@@ -1159,12 +1216,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Forest
       
+        Forest
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Avian
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Passion
+      
   </p>
 </div>
 
@@ -1175,12 +1255,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1191,12 +1268,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hilbert started life out as any other avian frog; living it up in the tree tops among the bogs of their small remote kipuka. He rose to the position of king not by might in war, clever politics, or birth right. Instead, Hilbert bred with his colony prolifically, earning him the most esteemed position. Under his reign, the avian frogs were ushered into unparalleled prosperity thanks to the establishment of bug farms. The staff he holds has been passed down through countless kings. The most devoted of the frogs believe it harnesses the mystery and power of the moon.
       
+        Hilbert started life out as any other avian frog; living it up in the tree tops among the bogs of their small remote kipuka. He rose to the position of king not by might in war, clever politics, or birth right. Instead, Hilbert bred with his colony prolifically, earning him the most esteemed position. Under his reign, the avian frogs were ushered into unparalleled prosperity thanks to the establishment of bug farms. The staff he holds has been passed down through countless kings. The most devoted of the frogs believe it harnesses the mystery and power of the moon.
       
-    
   </p>
 </div>
 

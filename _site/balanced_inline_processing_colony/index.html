@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  0
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        0
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,8 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false), $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)">
     <label for="balanced_inline_processing_colony_wasted" x-anchor.bottom.start="$refs.balanced_inline_processing_colony_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -718,26 +715,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Algorithmic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -746,12 +729,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
+         Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
-    
   </p>
 </div>
 
@@ -764,54 +744,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: n/a ( D6 in capital )
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ balanced_inline_processing_colony_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), balanced_inline_processing_colony_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">(in capital) Security Hacking: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="balanced_inline_processing_colony_track1"
+                :checked="balanced_inline_processing_colony_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_damage_slot_1"  
+                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]"
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage[1] = false),
+                        $watch('clearDamage', value => balanced_inline_processing_colony_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Algorithimic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(balanced_inline_processing_colony_damage).filter(Boolean).length == 1 || Object.values(balanced_inline_processing_colony_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Algorithmic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="balanced_inline_processing_colony_track_wasted"
+                :checked="balanced_inline_processing_colony_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_wasted"
+                @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']"
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false, balanced_inline_processing_colony_clear = clearDamage),
+                        $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      (in capital) Security Hacking:
       
+        {"(in capital) Security Hacking" => {"genetics" => ["Algorithimic"], "count" => 1}}
       
-    
-      Algorithimic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -820,12 +862,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hh2Y
       
+        Hh2Y
       
-    
   </p>
 </div>
 
@@ -836,12 +875,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      DigitalCloud
       
+        DigitalCloud
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Algorithmic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        service
+      
   </p>
 </div>
 
@@ -852,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -868,12 +927,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Biochemists, tasked by a group of descendants in Indochina, designed a bacterium capable of transmitting electric signals around the cell wall to their colony through the cell's pilus (hair-like appendages). These were then coxed into bacterial arrays capable of enduring higher currents. All of this was with the intent of producing full-fledged micro-processors capable of storing data without the use of any metal in order to smuggle secrets into communist China. The first iteration of the project, though prohibitively expensive, proved successful without the governments determining foul play. The agents responsible for delivering the devices proved to be the weak point of the process. Many got caught, due to repeat travel, while others were incapable maintaining the conditions sufficient for the chip's survival. Due to the touchy nature of the chip's survival, data was never captured and the project lived on. Some wonder if these colonies are capable of self awareness. 
       
+         Biochemists, tasked by a group of descendants in Indochina, designed a bacterium capable of transmitting electric signals around the cell wall to their colony through the cell's pilus (hair-like appendages). These were then coxed into bacterial arrays capable of enduring higher currents. All of this was with the intent of producing full-fledged micro-processors capable of storing data without the use of any metal in order to smuggle secrets into communist China. The first iteration of the project, though prohibitively expensive, proved successful without the governments determining foul play. The agents responsible for delivering the devices proved to be the weak point of the process. Many got caught, due to repeat travel, while others were incapable maintaining the conditions sufficient for the chip's survival. Due to the touchy nature of the chip's survival, data was never captured and the project lived on. Some wonder if these colonies are capable of self awareness. 
       
-    
   </p>
 </div>
 
@@ -901,30 +957,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  0
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        0
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1020,8 +1073,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false), $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)">
     <label for="balanced_inline_processing_colony_wasted" x-anchor.bottom.start="$refs.balanced_inline_processing_colony_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -1029,26 +1082,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Algorithmic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1057,12 +1096,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
+         Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital. 
       
-    
   </p>
 </div>
 
@@ -1075,54 +1111,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: n/a ( D6 in capital )
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ balanced_inline_processing_colony_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), balanced_inline_processing_colony_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">(in capital) Security Hacking: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="balanced_inline_processing_colony_track1"
+                :checked="balanced_inline_processing_colony_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_damage_slot_1"  
+                @click="balanced_inline_processing_colony_damage[1] = !balanced_inline_processing_colony_damage[1]"
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage[1] = false),
+                        $watch('clearDamage', value => balanced_inline_processing_colony_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Algorithimic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(balanced_inline_processing_colony_damage).filter(Boolean).length == 1 || Object.values(balanced_inline_processing_colony_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Service</p>
+          <p>Archetypal Adaptation: Algorithmic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="balanced_inline_processing_colony_track_wasted"
+                :checked="balanced_inline_processing_colony_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="balanced_inline_processing_colony_wasted"
+                @click="balanced_inline_processing_colony_damage['wasted'] = !balanced_inline_processing_colony_damage['wasted']"
+                x-init="clearDamage == balanced_inline_processing_colony_clear || (balanced_inline_processing_colony_damage['wasted'] = false, balanced_inline_processing_colony_clear = clearDamage),
+                        $watch('clearDamage', value => balanced_inline_processing_colony_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      (in capital) Security Hacking:
       
+        {"(in capital) Security Hacking" => {"genetics" => ["Algorithimic"], "count" => 1}}
       
-    
-      Algorithimic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      service
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1131,12 +1229,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hh2Y
       
+        Hh2Y
       
-    
   </p>
 </div>
 
@@ -1147,12 +1242,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      DigitalCloud
       
+        DigitalCloud
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Algorithmic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        service
+      
   </p>
 </div>
 
@@ -1163,12 +1281,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1179,12 +1294,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Biochemists, tasked by a group of descendants in Indochina, designed a bacterium capable of transmitting electric signals around the cell wall to their colony through the cell's pilus (hair-like appendages). These were then coxed into bacterial arrays capable of enduring higher currents. All of this was with the intent of producing full-fledged micro-processors capable of storing data without the use of any metal in order to smuggle secrets into communist China. The first iteration of the project, though prohibitively expensive, proved successful without the governments determining foul play. The agents responsible for delivering the devices proved to be the weak point of the process. Many got caught, due to repeat travel, while others were incapable maintaining the conditions sufficient for the chip's survival. Due to the touchy nature of the chip's survival, data was never captured and the project lived on. Some wonder if these colonies are capable of self awareness. 
       
+         Biochemists, tasked by a group of descendants in Indochina, designed a bacterium capable of transmitting electric signals around the cell wall to their colony through the cell's pilus (hair-like appendages). These were then coxed into bacterial arrays capable of enduring higher currents. All of this was with the intent of producing full-fledged micro-processors capable of storing data without the use of any metal in order to smuggle secrets into communist China. The first iteration of the project, though prohibitively expensive, proved successful without the governments determining foul play. The agents responsible for delivering the devices proved to be the weak point of the process. Many got caught, due to repeat travel, while others were incapable maintaining the conditions sufficient for the chip's survival. Due to the touchy nature of the chip's survival, data was never captured and the project lived on. Some wonder if these colonies are capable of self awareness. 
       
-    
   </p>
 </div>
 

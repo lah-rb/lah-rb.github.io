@@ -574,30 +574,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  Moves instantly to any basecamp or capital in immediate contact with the current territory
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        Moves instantly to any basecamp or capital in immediate contact with the current territory
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -693,8 +690,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage['wasted'] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage['wasted'] = false)">
     <label for="neural_network_synapse_virus_wasted" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -702,26 +699,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Algorithmic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -730,12 +713,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Cannot take base camps or capitals. Only comes into contention when a Mechanical or Algorithmic soul is present. If it enters a keal means bout and rolls 3 less than or more than its opponents roll, its opponent becomes infected. Equip the synapse virus to the opponent. For every roll they make subtract the roll of a D6. Once the opponent is wasted, so is this card. 
       
+         Cannot take base camps or capitals. Only comes into contention when a Mechanical or Algorithmic soul is present. If it enters a keal means bout and rolls 3 less than or more than its opponents roll, its opponent becomes infected. Equip the synapse virus to the opponent. For every roll they make subtract the roll of a D6. Once the opponent is wasted, so is this card. 
       
-    
   </p>
 </div>
 
@@ -748,54 +728,132 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ neural_network_synapse_virus_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), neural_network_synapse_virus_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Quick Inject: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="neural_network_synapse_virus_track1"
+                :checked="neural_network_synapse_virus_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="neural_network_synapse_virus_damage_slot_1"  
+                @click="neural_network_synapse_virus_damage[1] = !neural_network_synapse_virus_damage[1]"
+                x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[1] = false),
+                        $watch('clearDamage', value => neural_network_synapse_virus_damage[1] = false)"
+              >
+                  
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="neural_network_synapse_virus_track2"
+                :checked="neural_network_synapse_virus_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="neural_network_synapse_virus_damage_slot_2"  
+                @click="neural_network_synapse_virus_damage[2] = !neural_network_synapse_virus_damage[2]"
+                x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[2] = false),
+                        $watch('clearDamage', value => neural_network_synapse_virus_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Algorithmic-Decrepit</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(neural_network_synapse_virus_damage).filter(Boolean).length == 2 || Object.values(neural_network_synapse_virus_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Possessor</p>
+          <p>Archetypal Adaptation: Algorithmic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="neural_network_synapse_virus_track_wasted"
+                :checked="neural_network_synapse_virus_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="neural_network_synapse_virus_wasted"
+                @click="neural_network_synapse_virus_damage['wasted'] = !neural_network_synapse_virus_damage['wasted']"
+                x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage['wasted'] = false, neural_network_synapse_virus_clear = clearDamage),
+                        $watch('clearDamage', value => neural_network_synapse_virus_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Quick Inject:
       
+        {"Quick Inject" => {"genetics" => ["Algorithmic", "Decrepit"], "count" => 2}}
       
-    
-      Algorithmic-Decrepit
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Possessor
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -804,12 +862,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      ojod
       
+        ojod
       
-    
   </p>
 </div>
 
@@ -820,12 +875,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      DigitalCloud
       
+        DigitalCloud
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Algorithmic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Possessor
+      
   </p>
 </div>
 
@@ -836,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -852,12 +927,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       One of a class of virus designed to infect and interrupt the neural network. Subtle in design and task, the synapse virus is designed to inject itself from an infected host network into a model in training. By applying slight changes to the matrix, the virus undercuts the sensical responses an AI provides in response to environmental input. This virus has no meaning of existence. 
       
+         One of a class of virus designed to infect and interrupt the neural network. Subtle in design and task, the synapse virus is designed to inject itself from an infected host network into a model in training. By applying slight changes to the matrix, the virus undercuts the sensical responses an AI provides in response to environmental input. This virus has no meaning of existence. 
       
-    
   </p>
 </div>
 

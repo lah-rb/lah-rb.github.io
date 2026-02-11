@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,8 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false), $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)">
     <label for="knightsoul_of_binding_time_wasted" x-anchor.bottom.start="$refs.knightsoul_of_binding_time_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -718,26 +715,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Energetic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -746,12 +729,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Roll a D20 and obtain 10 or above to call to the field. Stays on the field for 2 diel cycles then gets recalled to the hand. If you hand already has three cards Knightsoul of Binding Time becomes wasted. 
       
+         Roll a D20 and obtain 10 or above to call to the field. Stays on the field for 2 diel cycles then gets recalled to the hand. If you hand already has three cards Knightsoul of Binding Time becomes wasted. 
       
-    
   </p>
 </div>
 
@@ -764,54 +744,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20-D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ knightsoul_of_binding_time_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), knightsoul_of_binding_time_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Long Sword's Eternal Vision: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="knightsoul_of_binding_time_track1"
+                :checked="knightsoul_of_binding_time_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_damage_slot_1"  
+                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]"
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage[1] = false),
+                        $watch('clearDamage', value => knightsoul_of_binding_time_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Astral</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(knightsoul_of_binding_time_damage).filter(Boolean).length == 1 || Object.values(knightsoul_of_binding_time_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Duty</p>
+          <p>Archetypal Adaptation: Energetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="knightsoul_of_binding_time_track_wasted"
+                :checked="knightsoul_of_binding_time_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_wasted"
+                @click="knightsoul_of_binding_time_damage['wasted'] = !knightsoul_of_binding_time_damage['wasted']"
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false, knightsoul_of_binding_time_clear = clearDamage),
+                        $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Long Sword's Eternal Vision:
       
+        {"Long Sword's Eternal Vision" => {"genetics" => ["Energetic", "Astral"], "count" => 1}}
       
-    
-      Energetic-Astral
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Duty
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -820,12 +862,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Eppu
       
+        Eppu
       
-    
   </p>
 </div>
 
@@ -836,12 +875,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Energetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Duty
+      
   </p>
 </div>
 
@@ -852,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -868,12 +927,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       In search for the revival of the ways of old, a small group of zealots held fervent meetings in order to connect with spirits holding the lives they desired. Hundreds of years passed with little but enormous ancestral faith to show for their desires, calls, and pleas. None lost hope, ardent and steadfast that one day they would stand rewarded. One frigged night, their leader woke from a transcendental, all consuming dream, claiming to have met the one they sought. 'A knight covered in blue. Bound by all that has past at the foot, one who sees what has never passed, and encompasses all that is now. It came. We have always known of the higher society; now I have seen it.' Many others now claim visits from the Knightsoul, and some say it has passed them edicts. While the existence of the Knightsoul hasn't been confirmed, the people's passionate belief won't be denied. 
       
+         In search for the revival of the ways of old, a small group of zealots held fervent meetings in order to connect with spirits holding the lives they desired. Hundreds of years passed with little but enormous ancestral faith to show for their desires, calls, and pleas. None lost hope, ardent and steadfast that one day they would stand rewarded. One frigged night, their leader woke from a transcendental, all consuming dream, claiming to have met the one they sought. 'A knight covered in blue. Bound by all that has past at the foot, one who sees what has never passed, and encompasses all that is now. It came. We have always known of the higher society; now I have seen it.' Many others now claim visits from the Knightsoul, and some say it has passed them edicts. While the existence of the Knightsoul hasn't been confirmed, the people's passionate belief won't be denied. 
       
-    
   </p>
 </div>
 
@@ -901,30 +957,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1020,8 +1073,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false), $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)">
     <label for="knightsoul_of_binding_time_wasted" x-anchor.bottom.start="$refs.knightsoul_of_binding_time_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -1029,26 +1082,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Energetic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1057,12 +1096,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Roll a D20 and obtain 10 or above to call to the field. Stays on the field for 2 diel cycles then gets recalled to the hand. If you hand already has three cards Knightsoul of Binding Time becomes wasted. 
       
+         Roll a D20 and obtain 10 or above to call to the field. Stays on the field for 2 diel cycles then gets recalled to the hand. If you hand already has three cards Knightsoul of Binding Time becomes wasted. 
       
-    
   </p>
 </div>
 
@@ -1075,54 +1111,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20-D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ knightsoul_of_binding_time_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), knightsoul_of_binding_time_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Long Sword's Eternal Vision: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="knightsoul_of_binding_time_track1"
+                :checked="knightsoul_of_binding_time_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_damage_slot_1"  
+                @click="knightsoul_of_binding_time_damage[1] = !knightsoul_of_binding_time_damage[1]"
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage[1] = false),
+                        $watch('clearDamage', value => knightsoul_of_binding_time_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Astral</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(knightsoul_of_binding_time_damage).filter(Boolean).length == 1 || Object.values(knightsoul_of_binding_time_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Duty</p>
+          <p>Archetypal Adaptation: Energetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="knightsoul_of_binding_time_track_wasted"
+                :checked="knightsoul_of_binding_time_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="knightsoul_of_binding_time_wasted"
+                @click="knightsoul_of_binding_time_damage['wasted'] = !knightsoul_of_binding_time_damage['wasted']"
+                x-init="clearDamage == knightsoul_of_binding_time_clear || (knightsoul_of_binding_time_damage['wasted'] = false, knightsoul_of_binding_time_clear = clearDamage),
+                        $watch('clearDamage', value => knightsoul_of_binding_time_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Long Sword's Eternal Vision:
       
+        {"Long Sword's Eternal Vision" => {"genetics" => ["Energetic", "Astral"], "count" => 1}}
       
-    
-      Energetic-Astral
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Duty
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1131,12 +1229,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Eppu
       
+        Eppu
       
-    
   </p>
 </div>
 
@@ -1147,12 +1242,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Energetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Duty
+      
   </p>
 </div>
 
@@ -1163,12 +1281,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1179,12 +1294,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       In search for the revival of the ways of old, a small group of zealots held fervent meetings in order to connect with spirits holding the lives they desired. Hundreds of years passed with little but enormous ancestral faith to show for their desires, calls, and pleas. None lost hope, ardent and steadfast that one day they would stand rewarded. One frigged night, their leader woke from a transcendental, all consuming dream, claiming to have met the one they sought. 'A knight covered in blue. Bound by all that has past at the foot, one who sees what has never passed, and encompasses all that is now. It came. We have always known of the higher society; now I have seen it.' Many others now claim visits from the Knightsoul, and some say it has passed them edicts. While the existence of the Knightsoul hasn't been confirmed, the people's passionate belief won't be denied. 
       
+         In search for the revival of the ways of old, a small group of zealots held fervent meetings in order to connect with spirits holding the lives they desired. Hundreds of years passed with little but enormous ancestral faith to show for their desires, calls, and pleas. None lost hope, ardent and steadfast that one day they would stand rewarded. One frigged night, their leader woke from a transcendental, all consuming dream, claiming to have met the one they sought. 'A knight covered in blue. Bound by all that has past at the foot, one who sees what has never passed, and encompasses all that is now. It came. We have always known of the higher society; now I have seen it.' Many others now claim visits from the Knightsoul, and some say it has passed them edicts. While the existence of the Knightsoul hasn't been confirmed, the people's passionate belief won't be denied. 
       
-    
   </p>
 </div>
 

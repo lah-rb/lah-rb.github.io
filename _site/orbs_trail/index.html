@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,8 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false), $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)">
     <label for="orbs_trail_wasted" x-anchor.bottom.start="$refs.orbs_trail_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -718,26 +715,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Avian
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -746,12 +729,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       When defeated, guides one wasted soul to the bottom of the deck. 
       
+         When defeated, guides one wasted soul to the bottom of the deck. 
       
-    
   </p>
 </div>
 
@@ -764,52 +744,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Atk: 3 Def: 3
       
+        
+    Always Rolls: Base 3
+  
       
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ orbs_trail_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), orbs_trail_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ghostly Wisdom: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="orbs_trail_track1"
+                :checked="orbs_trail_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="orbs_trail_damage_slot_1"  
+                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]"
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage[1] = false),
+                        $watch('clearDamage', value => orbs_trail_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(orbs_trail_damage).filter(Boolean).length == 1 || Object.values(orbs_trail_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Duty</p>
+          <p>Archetypal Adaptation: Avian</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="orbs_trail_track_wasted"
+                :checked="orbs_trail_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="orbs_trail_wasted"
+                @click="orbs_trail_damage['wasted'] = !orbs_trail_damage['wasted']"
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false, orbs_trail_clear = clearDamage),
+                        $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Ghostly Wisdom:
       
+        {"Ghostly Wisdom" => {"genetics" => ["Energetic", "Avian"], "count" => 1}}
       
-    
-      Energetic-Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Duty
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -818,12 +862,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      brOL
       
+        brOL
       
-    
   </p>
 </div>
 
@@ -834,12 +875,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Avian
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Duty
+      
   </p>
 </div>
 
@@ -850,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -866,12 +927,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Do we dream of a peaceful passing? No, most of us don't. If fact, bring up the thought of parashing and many of use fill with dread and fear. Woe so fills our hearts that we plead with whom ever may be there to spare us just another day. We then fill that day with normal activities, until we settle and forget once again the fragility of our existance. Others embrace the thought of mortality, using the idea to spur on decisions our conscious is not well fond of. You only live once after all. The fact is, no matter if we display our ignorance of death by forgetting its existance or down playing its possibility, we should all long for a peaceful passing. One where our soul can become whole and move beyond our past. Here lies the sad truth, no amout of contemplation, meditation, or foresight will ever guarentee an ideal death. Evil lurks to keep us shackeled, bewildered, and searching in this world. Keeping a ghostly presence here to echo the voice and intention of this evil. Still others seek to guide the lost, to help them find the peace they have become in such dire need of. Their forms and trails may show different light, but to the unease of such orbs they act as their white knight. 
       
+         Do we dream of a peaceful passing? No, most of us don't. If fact, bring up the thought of parashing and many of use fill with dread and fear. Woe so fills our hearts that we plead with whom ever may be there to spare us just another day. We then fill that day with normal activities, until we settle and forget once again the fragility of our existance. Others embrace the thought of mortality, using the idea to spur on decisions our conscious is not well fond of. You only live once after all. The fact is, no matter if we display our ignorance of death by forgetting its existance or down playing its possibility, we should all long for a peaceful passing. One where our soul can become whole and move beyond our past. Here lies the sad truth, no amout of contemplation, meditation, or foresight will ever guarentee an ideal death. Evil lurks to keep us shackeled, bewildered, and searching in this world. Keeping a ghostly presence here to echo the voice and intention of this evil. Still others seek to guide the lost, to help them find the peace they have become in such dire need of. Their forms and trails may show different light, but to the unease of such orbs they act as their white knight. 
       
-    
   </p>
 </div>
 
@@ -899,30 +957,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  2
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        2
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1018,8 +1073,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false), $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)">
     <label for="orbs_trail_wasted" x-anchor.bottom.start="$refs.orbs_trail_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -1027,26 +1082,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Avian
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1055,12 +1096,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       When defeated, guides one wasted soul to the bottom of the deck. 
       
+         When defeated, guides one wasted soul to the bottom of the deck. 
       
-    
   </p>
 </div>
 
@@ -1073,52 +1111,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Atk: 3 Def: 3
       
+        
+    Always Rolls: Base 3
+  
       
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ orbs_trail_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), orbs_trail_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ghostly Wisdom: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="orbs_trail_track1"
+                :checked="orbs_trail_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="orbs_trail_damage_slot_1"  
+                @click="orbs_trail_damage[1] = !orbs_trail_damage[1]"
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage[1] = false),
+                        $watch('clearDamage', value => orbs_trail_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(orbs_trail_damage).filter(Boolean).length == 1 || Object.values(orbs_trail_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Duty</p>
+          <p>Archetypal Adaptation: Avian</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="orbs_trail_track_wasted"
+                :checked="orbs_trail_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="orbs_trail_wasted"
+                @click="orbs_trail_damage['wasted'] = !orbs_trail_damage['wasted']"
+                x-init="clearDamage == orbs_trail_clear || (orbs_trail_damage['wasted'] = false, orbs_trail_clear = clearDamage),
+                        $watch('clearDamage', value => orbs_trail_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Ghostly Wisdom:
       
+        {"Ghostly Wisdom" => {"genetics" => ["Energetic", "Avian"], "count" => 1}}
       
-    
-      Energetic-Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Duty
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1127,12 +1229,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      brOL
       
+        brOL
       
-    
   </p>
 </div>
 
@@ -1143,12 +1242,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Avian
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Duty
+      
   </p>
 </div>
 
@@ -1159,12 +1281,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1175,12 +1294,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Do we dream of a peaceful passing? No, most of us don't. If fact, bring up the thought of parashing and many of use fill with dread and fear. Woe so fills our hearts that we plead with whom ever may be there to spare us just another day. We then fill that day with normal activities, until we settle and forget once again the fragility of our existance. Others embrace the thought of mortality, using the idea to spur on decisions our conscious is not well fond of. You only live once after all. The fact is, no matter if we display our ignorance of death by forgetting its existance or down playing its possibility, we should all long for a peaceful passing. One where our soul can become whole and move beyond our past. Here lies the sad truth, no amout of contemplation, meditation, or foresight will ever guarentee an ideal death. Evil lurks to keep us shackeled, bewildered, and searching in this world. Keeping a ghostly presence here to echo the voice and intention of this evil. Still others seek to guide the lost, to help them find the peace they have become in such dire need of. Their forms and trails may show different light, but to the unease of such orbs they act as their white knight. 
       
+         Do we dream of a peaceful passing? No, most of us don't. If fact, bring up the thought of parashing and many of use fill with dread and fear. Woe so fills our hearts that we plead with whom ever may be there to spare us just another day. We then fill that day with normal activities, until we settle and forget once again the fragility of our existance. Others embrace the thought of mortality, using the idea to spur on decisions our conscious is not well fond of. You only live once after all. The fact is, no matter if we display our ignorance of death by forgetting its existance or down playing its possibility, we should all long for a peaceful passing. One where our soul can become whole and move beyond our past. Here lies the sad truth, no amout of contemplation, meditation, or foresight will ever guarentee an ideal death. Evil lurks to keep us shackeled, bewildered, and searching in this world. Keeping a ghostly presence here to echo the voice and intention of this evil. Still others seek to guide the lost, to help them find the peace they have become in such dire need of. Their forms and trails may show different light, but to the unease of such orbs they act as their white knight. 
       
-    
   </p>
 </div>
 

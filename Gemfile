@@ -24,4 +24,4 @@ end
 gem "webrick", "~> 1.9"
 
 # vulnerability fix
-gem "rexml", "~>3.4"
+gem "rexml", "~>3.4.4"

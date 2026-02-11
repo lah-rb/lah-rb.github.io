@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false), $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)">
     <label for="oshliath_and_osileth_wasted" x-anchor.bottom.start="$refs.oshliath_and_osileth_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Astral
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Must retreat if osileth takes damage. (keal means bout is lost while having chosen Osileth's Scale)
       
+        Must retreat if osileth takes damage. (keal means bout is lost while having chosen Osileth's Scale)
       
-    
   </p>
 </div>
 
@@ -752,63 +731,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ oshliath_and_osileth_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), oshliath_and_osileth_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Osileth's Scale: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="oshliath_and_osileth_track1"
+                :checked="oshliath_and_osileth_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="oshliath_and_osileth_damage_slot_1"  
+                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[1] = false),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Astral</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Oshliath's Flame: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="oshliath_and_osileth_track2"
+                :checked="oshliath_and_osileth_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="oshliath_and_osileth_damage_slot_2"  
+                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[2] = false),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(oshliath_and_osileth_damage).filter(Boolean).length == 2 || Object.values(oshliath_and_osileth_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Survival</p>
+          <p>Archetypal Adaptation: Astral</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="oshliath_and_osileth_track_wasted"
+                :checked="oshliath_and_osileth_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="oshliath_and_osileth_wasted"
+                @click="oshliath_and_osileth_damage['wasted'] = !oshliath_and_osileth_damage['wasted']"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false, oshliath_and_osileth_clear = clearDamage),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Osileth's Scale:
       
+        {"Osileth's Scale" => {"genetics" => ["Astral"], "count" => 1}, "Oshliath's Flame" => {"genetics" => ["Energetic"], "count" => 1}}
       
-    
-      Astral
-      
-        <br>
-        
-        
-      Oshliath's Flame:
-      
-      
-    
-      Energetic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Survival
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -817,12 +881,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      KVph
       
+        KVph
       
-    
   </p>
 </div>
 
@@ -833,12 +894,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Mountain
       
+        Mountain
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Astral
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Survival
+      
   </p>
 </div>
 
@@ -849,12 +933,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -865,12 +946,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon's body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.
       
+        Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon's body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.
       
-    
   </p>
 </div>
 
@@ -898,30 +976,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1017,23 +1092,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false), $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)">
     <label for="oshliath_and_osileth_wasted" x-anchor.bottom.start="$refs.oshliath_and_osileth_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Astral
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1042,12 +1102,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Must retreat if osileth takes damage. (keal means bout is lost while having chosen Osileth's Scale)
       
+        Must retreat if osileth takes damage. (keal means bout is lost while having chosen Osileth's Scale)
       
-    
   </p>
 </div>
 
@@ -1060,63 +1117,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D20-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ oshliath_and_osileth_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), oshliath_and_osileth_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Osileth's Scale: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="oshliath_and_osileth_track1"
+                :checked="oshliath_and_osileth_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="oshliath_and_osileth_damage_slot_1"  
+                @click="oshliath_and_osileth_damage[1] = !oshliath_and_osileth_damage[1]"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[1] = false),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Astral</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Oshliath's Flame: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="oshliath_and_osileth_track2"
+                :checked="oshliath_and_osileth_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="oshliath_and_osileth_damage_slot_2"  
+                @click="oshliath_and_osileth_damage[2] = !oshliath_and_osileth_damage[2]"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage[2] = false),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Energetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(oshliath_and_osileth_damage).filter(Boolean).length == 2 || Object.values(oshliath_and_osileth_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Survival</p>
+          <p>Archetypal Adaptation: Astral</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="oshliath_and_osileth_track_wasted"
+                :checked="oshliath_and_osileth_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="oshliath_and_osileth_wasted"
+                @click="oshliath_and_osileth_damage['wasted'] = !oshliath_and_osileth_damage['wasted']"
+                x-init="clearDamage == oshliath_and_osileth_clear || (oshliath_and_osileth_damage['wasted'] = false, oshliath_and_osileth_clear = clearDamage),
+                        $watch('clearDamage', value => oshliath_and_osileth_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Osileth's Scale:
       
+        {"Osileth's Scale" => {"genetics" => ["Astral"], "count" => 1}, "Oshliath's Flame" => {"genetics" => ["Energetic"], "count" => 1}}
       
-    
-      Astral
-      
-        <br>
-        
-        
-      Oshliath's Flame:
-      
-      
-    
-      Energetic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Survival
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1125,12 +1267,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      KVph
       
+        KVph
       
-    
   </p>
 </div>
 
@@ -1141,12 +1280,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Mountain
       
+        Mountain
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Astral
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Survival
+      
   </p>
 </div>
 
@@ -1157,12 +1319,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1173,12 +1332,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon's body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.
       
+        Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon's body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.
       
-    
   </p>
 </div>
 

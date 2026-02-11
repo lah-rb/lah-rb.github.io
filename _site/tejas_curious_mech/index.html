@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
     <label for="tejas_curious_mech_wasted" x-anchor.bottom.start="$refs.tejas_curious_mech_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Mechanical
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      An expert engineer, Tejas heals one keal means per turn for all Mechanical, Algorithmic, or Entropic archetypal gene souls in the same uncontended territory. If Tejas does not perform any actions this turn he becomes bored and breaks himself. When broken Tajas, must fix himself before moving or fixing other souls. Tajas breaks or fixes himself at the start of the cycle.
       
+        An expert engineer, Tejas heals one keal means per turn for all Mechanical, Algorithmic, or Entropic archetypal gene souls in the same uncontended territory. If Tejas does not perform any actions this turn he becomes bored and breaks himself. When broken Tajas, must fix himself before moving or fixing other souls. Tajas breaks or fixes himself at the start of the cycle.
       
-    
   </p>
 </div>
 
@@ -752,63 +731,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ tejas_curious_mech_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tejas_curious_mech_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Hydraulic Punch: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tejas_curious_mech_track1"
+                :checked="tejas_curious_mech_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tejas_curious_mech_damage_slot_1"  
+                @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false),
+                        $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Mechanical</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Pneumatic Impact Ratchet: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tejas_curious_mech_track2"
+                :checked="tejas_curious_mech_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tejas_curious_mech_damage_slot_2"  
+                @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false),
+                        $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Mechanical-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(tejas_curious_mech_damage).filter(Boolean).length == 2 || Object.values(tejas_curious_mech_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Passion</p>
+          <p>Archetypal Adaptation: Mechanical</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="tejas_curious_mech_track_wasted"
+                :checked="tejas_curious_mech_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="tejas_curious_mech_wasted"
+                @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false, tejas_curious_mech_clear = clearDamage),
+                        $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hydraulic Punch
       
+        {"Hydraulic Punch" => {"genetics" => ["Mechanical"], "count" => 1}, "Pneumatic Impact Ratchet" => {"genetics" => ["Mechanical", "Avian"], "count" => 1}}
       
-    
-      Mechanical
-      
-        <br>
-        
-        
-      Pneumatic Impact Ratchet
-      
-      
-    
-      Mechanical-Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Passion
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -817,12 +881,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      WWpl
       
+        WWpl
       
-    
   </p>
 </div>
 
@@ -833,12 +894,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Mechanical
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Passion
+      
   </p>
 </div>
 
@@ -849,12 +933,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -865,12 +946,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Tejas is one of the many private offshoots from the SIS project. This particular mechanical marvel continuously attempts to improve his own chassis. 'Bigger sprockets here, lighter rod there, auxiliary power in case of failure all around' he says. In spite or because of his categorical engineering knowledge, he often stumps himself and runs around in pieces for days, even sometimes weeks!
       
+        Tejas is one of the many private offshoots from the SIS project. This particular mechanical marvel continuously attempts to improve his own chassis. 'Bigger sprockets here, lighter rod there, auxiliary power in case of failure all around' he says. In spite or because of his categorical engineering knowledge, he often stumps himself and runs around in pieces for days, even sometimes weeks!
       
-    
   </p>
 </div>
 
@@ -898,30 +976,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1017,23 +1092,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false), $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)">
     <label for="tejas_curious_mech_wasted" x-anchor.bottom.start="$refs.tejas_curious_mech_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Mechanical
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1042,12 +1102,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      An expert engineer, Tejas heals one keal means per turn for all Mechanical, Algorithmic, or Entropic archetypal gene souls in the same uncontended territory. If Tejas does not perform any actions this turn he becomes bored and breaks himself. When broken Tajas, must fix himself before moving or fixing other souls. Tajas breaks or fixes himself at the start of the cycle.
       
+        An expert engineer, Tejas heals one keal means per turn for all Mechanical, Algorithmic, or Entropic archetypal gene souls in the same uncontended territory. If Tejas does not perform any actions this turn he becomes bored and breaks himself. When broken Tajas, must fix himself before moving or fixing other souls. Tajas breaks or fixes himself at the start of the cycle.
       
-    
   </p>
 </div>
 
@@ -1060,63 +1117,148 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ tejas_curious_mech_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tejas_curious_mech_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Hydraulic Punch: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tejas_curious_mech_track1"
+                :checked="tejas_curious_mech_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tejas_curious_mech_damage_slot_1"  
+                @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false),
+                        $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Mechanical</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Pneumatic Impact Ratchet: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tejas_curious_mech_track2"
+                :checked="tejas_curious_mech_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tejas_curious_mech_damage_slot_2"  
+                @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false),
+                        $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Mechanical-Avian</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(tejas_curious_mech_damage).filter(Boolean).length == 2 || Object.values(tejas_curious_mech_damage).filter(Boolean).length ==  3 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Passion</p>
+          <p>Archetypal Adaptation: Mechanical</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="tejas_curious_mech_track_wasted"
+                :checked="tejas_curious_mech_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="tejas_curious_mech_wasted"
+                @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']"
+                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false, tejas_curious_mech_clear = clearDamage),
+                        $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Hydraulic Punch
       
+        {"Hydraulic Punch" => {"genetics" => ["Mechanical"], "count" => 1}, "Pneumatic Impact Ratchet" => {"genetics" => ["Mechanical", "Avian"], "count" => 1}}
       
-    
-      Mechanical
-      
-        <br>
-        
-        
-      Pneumatic Impact Ratchet
-      
-      
-    
-      Mechanical-Avian
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Passion
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1125,12 +1267,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      WWpl
       
+        WWpl
       
-    
   </p>
 </div>
 
@@ -1141,12 +1280,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Nomad
       
+        Nomad
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Mechanical
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Passion
+      
   </p>
 </div>
 
@@ -1157,12 +1319,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1173,12 +1332,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Tejas is one of the many private offshoots from the SIS project. This particular mechanical marvel continuously attempts to improve his own chassis. 'Bigger sprockets here, lighter rod there, auxiliary power in case of failure all around' he says. In spite or because of his categorical engineering knowledge, he often stumps himself and runs around in pieces for days, even sometimes weeks!
       
+        Tejas is one of the many private offshoots from the SIS project. This particular mechanical marvel continuously attempts to improve his own chassis. 'Bigger sprockets here, lighter rod there, auxiliary power in case of failure all around' he says. In spite or because of his categorical engineering knowledge, he often stumps himself and runs around in pieces for days, even sometimes weeks!
       
-    
   </p>
 </div>
 

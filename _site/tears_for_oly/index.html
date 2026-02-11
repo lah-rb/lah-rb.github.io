@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  3
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        3
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false), $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)">
     <label for="tears_for_oly_wasted" x-anchor.bottom.start="$refs.tears_for_oly_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Angelic
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       If oly wins a keal means bout, the competing soul drank his potion and becomes overwhelmed by the tragedy of his people, they are immobile and unable to defend next turn. If the territory is captured during this turn, they become imprisoned until the territory is recaptured. 
       
+         If oly wins a keal means bout, the competing soul drank his potion and becomes overwhelmed by the tragedy of his people, they are immobile and unable to defend next turn. If the territory is captured during this turn, they become imprisoned until the territory is recaptured. 
       
-    
   </p>
 </div>
 
@@ -752,54 +731,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ tears_for_oly_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tears_for_oly_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Tear Drop Potion: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tears_for_oly_track1"
+                :checked="tears_for_oly_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tears_for_oly_damage_slot_1"  
+                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]"
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage[1] = false),
+                        $watch('clearDamage', value => tears_for_oly_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Angelic-Brutal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(tears_for_oly_damage).filter(Boolean).length == 1 || Object.values(tears_for_oly_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Sacrifice</p>
+          <p>Archetypal Adaptation: Angelic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="tears_for_oly_track_wasted"
+                :checked="tears_for_oly_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="tears_for_oly_wasted"
+                @click="tears_for_oly_damage['wasted'] = !tears_for_oly_damage['wasted']"
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false, tears_for_oly_clear = clearDamage),
+                        $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Tear Drop Potion:
       
+        {"Tear Drop Potion" => {"genetics" => ["Angelic", "Brutal"], "count" => 1}}
       
-    
-      Angelic-Brutal
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Sacrifice
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -808,12 +849,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      F3GW
       
+        F3GW
       
-    
   </p>
 </div>
 
@@ -824,12 +862,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Heavens
       
+        Heavens
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Angelic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Sacrifice
+      
   </p>
 </div>
 
@@ -840,12 +901,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -856,12 +914,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Many great civilizations have been built. Of these most, if not all, fall from grace in one aspect or another eventually to be torn down, or captured by means of force, coercion, or conviction. Each civilization carries a spirit of its people that becomes severed in the demise of the people. Oly, one such spirit, carries the burden of the memory and tragedies inflected upon his birth place. He dons cloth representing the fluidity of his culture, a golden bracelet and anklet representing the bindings of his ruler, and bares a golden vine symbolically pulling him from the heavens to the place of his creation. <br><br> Oly's power steams directly from the influence of his society, which has largely been forgotten. So, he gives of him self the woe and tear for drink. Slowly draining the essence of himself and the last hope of his people, in a desperate attempt to dredge up their life for the memory of modern peoples. Doing this, he is wholly aware of the possibility of giving into his own demise. 
       
+         Many great civilizations have been built. Of these most, if not all, fall from grace in one aspect or another eventually to be torn down, or captured by means of force, coercion, or conviction. Each civilization carries a spirit of its people that becomes severed in the demise of the people. Oly, one such spirit, carries the burden of the memory and tragedies inflected upon his birth place. He dons cloth representing the fluidity of his culture, a golden bracelet and anklet representing the bindings of his ruler, and bares a golden vine symbolically pulling him from the heavens to the place of his creation. <br><br> Oly's power steams directly from the influence of his society, which has largely been forgotten. So, he gives of him self the woe and tear for drink. Slowly draining the essence of himself and the last hope of his people, in a desperate attempt to dredge up their life for the memory of modern peoples. Doing this, he is wholly aware of the possibility of giving into his own demise. 
       
-    
   </p>
 </div>
 
@@ -889,30 +944,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  3
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        3
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1008,23 +1060,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false), $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)">
     <label for="tears_for_oly_wasted" x-anchor.bottom.start="$refs.tears_for_oly_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Angelic
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1033,12 +1070,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       If oly wins a keal means bout, the competing soul drank his potion and becomes overwhelmed by the tragedy of his people, they are immobile and unable to defend next turn. If the territory is captured during this turn, they become imprisoned until the territory is recaptured. 
       
+         If oly wins a keal means bout, the competing soul drank his potion and becomes overwhelmed by the tragedy of his people, they are immobile and unable to defend next turn. If the territory is captured during this turn, they become imprisoned until the territory is recaptured. 
       
-    
   </p>
 </div>
 
@@ -1051,54 +1085,116 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ tears_for_oly_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tears_for_oly_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Tear Drop Potion: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="tears_for_oly_track1"
+                :checked="tears_for_oly_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="tears_for_oly_damage_slot_1"  
+                @click="tears_for_oly_damage[1] = !tears_for_oly_damage[1]"
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage[1] = false),
+                        $watch('clearDamage', value => tears_for_oly_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Angelic-Brutal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(tears_for_oly_damage).filter(Boolean).length == 1 || Object.values(tears_for_oly_damage).filter(Boolean).length ==  2 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Sacrifice</p>
+          <p>Archetypal Adaptation: Angelic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="tears_for_oly_track_wasted"
+                :checked="tears_for_oly_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="tears_for_oly_wasted"
+                @click="tears_for_oly_damage['wasted'] = !tears_for_oly_damage['wasted']"
+                x-init="clearDamage == tears_for_oly_clear || (tears_for_oly_damage['wasted'] = false, tears_for_oly_clear = clearDamage),
+                        $watch('clearDamage', value => tears_for_oly_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Tear Drop Potion:
       
+        {"Tear Drop Potion" => {"genetics" => ["Angelic", "Brutal"], "count" => 1}}
       
-    
-      Angelic-Brutal
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Sacrifice
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1107,12 +1203,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      F3GW
       
+        F3GW
       
-    
   </p>
 </div>
 
@@ -1123,12 +1216,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Heavens
       
+        Heavens
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Angelic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Sacrifice
+      
   </p>
 </div>
 
@@ -1139,12 +1255,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1155,12 +1268,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Many great civilizations have been built. Of these most, if not all, fall from grace in one aspect or another eventually to be torn down, or captured by means of force, coercion, or conviction. Each civilization carries a spirit of its people that becomes severed in the demise of the people. Oly, one such spirit, carries the burden of the memory and tragedies inflected upon his birth place. He dons cloth representing the fluidity of his culture, a golden bracelet and anklet representing the bindings of his ruler, and bares a golden vine symbolically pulling him from the heavens to the place of his creation. <br><br> Oly's power steams directly from the influence of his society, which has largely been forgotten. So, he gives of him self the woe and tear for drink. Slowly draining the essence of himself and the last hope of his people, in a desperate attempt to dredge up their life for the memory of modern peoples. Doing this, he is wholly aware of the possibility of giving into his own demise. 
       
+         Many great civilizations have been built. Of these most, if not all, fall from grace in one aspect or another eventually to be torn down, or captured by means of force, coercion, or conviction. Each civilization carries a spirit of its people that becomes severed in the demise of the people. Oly, one such spirit, carries the burden of the memory and tragedies inflected upon his birth place. He dons cloth representing the fluidity of his culture, a golden bracelet and anklet representing the bindings of his ruler, and bares a golden vine symbolically pulling him from the heavens to the place of his creation. <br><br> Oly's power steams directly from the influence of his society, which has largely been forgotten. So, he gives of him self the woe and tear for drink. Slowly draining the essence of himself and the last hope of his people, in a desperate attempt to dredge up their life for the memory of modern peoples. Doing this, he is wholly aware of the possibility of giving into his own demise. 
       
-    
   </p>
 </div>
 

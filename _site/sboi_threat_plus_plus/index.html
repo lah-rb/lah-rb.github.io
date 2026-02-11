@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,8 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false), $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)">
     <label for="sboi_threat_plus_plus_wasted" x-anchor.bottom.start="$refs.sboi_threat_plus_plus_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -718,26 +715,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Energetic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -746,12 +729,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal.
       
+        Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal. A failed summon results in Sboi becoming rouge.
       
-    
   </p>
 </div>
 
@@ -764,70 +744,178 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Atk: D20-D6 Def: D6-D6
       
+        Atk: D20-D6 Def: D6-D6
       
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ sboi_threat_plus_plus_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), sboi_threat_plus_plus_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Digi-frying Breath: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track1"
+                :checked="sboi_threat_plus_plus_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_1"  
+                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[1] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Energetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Dragon Core Codebase: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track2"
+                :checked="sboi_threat_plus_plus_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_2"  
+                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[2] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Algorithmic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Core Radiation Leak: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track3"
+                :checked="sboi_threat_plus_plus_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_3"  
+                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[3] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Entropic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(sboi_threat_plus_plus_damage).filter(Boolean).length == 3 || Object.values(sboi_threat_plus_plus_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Possessor</p>
+          <p>Archetypal Adaptation: Energetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="sboi_threat_plus_plus_track_wasted"
+                :checked="sboi_threat_plus_plus_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_wasted"
+                @click="sboi_threat_plus_plus_damage['wasted'] = !sboi_threat_plus_plus_damage['wasted']"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false, sboi_threat_plus_plus_clear = clearDamage),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Digi-frying Breath:
       
+        {"Digi-frying Breath" => {"genetics" => ["Glitch", "Energetic"], "count" => 1}, "Dragon Core Codebase" => {"genetics" => ["Glitch", "Algorithmic"], "count" => 1}, "Core Radiation Leak" => {"genetics" => ["Glitch", "Entropic"], "count" => 1}}
       
-    
-      Glitch-Energetic
-      
-        <br>
-        
-        
-      Dragon Core Codebase:
-      
-      
-    
-      Glitch-Algorithmic
-      
-        <br>
-        
-        
-      Core Radiation Leak:
-      
-      
-    
-      Glitch-Entropic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Possessor
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -836,12 +924,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      J7a0
       
+        J7a0
       
-    
   </p>
 </div>
 
@@ -852,12 +937,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      DigitalCloud
       
+        DigitalCloud
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Energetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Possessor
+      
   </p>
 </div>
 
@@ -868,12 +976,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -884,12 +989,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.
       
+        Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.
       
-    
   </p>
 </div>
 
@@ -917,30 +1019,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Species
       
+        Species
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1036,8 +1135,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false), $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)">
     <label for="sboi_threat_plus_plus_wasted" x-anchor.bottom.start="$refs.sboi_threat_plus_plus_track_wasted"> wasted </label>
   </div>
-</div>
-
+</div> -->
+<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -1045,26 +1144,12 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        
+      
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Energetic
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1073,12 +1158,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal.
       
+        Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal. A failed summon results in Sboi becoming rouge.
       
-    
   </p>
 </div>
 
@@ -1091,70 +1173,178 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Atk: D20-D6 Def: D6-D6
       
+        Atk: D20-D6 Def: D6-D6
       
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ sboi_threat_plus_plus_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), sboi_threat_plus_plus_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Digi-frying Breath: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track1"
+                :checked="sboi_threat_plus_plus_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_1"  
+                @click="sboi_threat_plus_plus_damage[1] = !sboi_threat_plus_plus_damage[1]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[1] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Energetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Dragon Core Codebase: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track2"
+                :checked="sboi_threat_plus_plus_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_2"  
+                @click="sboi_threat_plus_plus_damage[2] = !sboi_threat_plus_plus_damage[2]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[2] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Algorithmic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Core Radiation Leak: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="sboi_threat_plus_plus_track3"
+                :checked="sboi_threat_plus_plus_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_damage_slot_3"  
+                @click="sboi_threat_plus_plus_damage[3] = !sboi_threat_plus_plus_damage[3]"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage[3] = false),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Glitch-Entropic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(sboi_threat_plus_plus_damage).filter(Boolean).length == 3 || Object.values(sboi_threat_plus_plus_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Possessor</p>
+          <p>Archetypal Adaptation: Energetic</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="sboi_threat_plus_plus_track_wasted"
+                :checked="sboi_threat_plus_plus_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="sboi_threat_plus_plus_wasted"
+                @click="sboi_threat_plus_plus_damage['wasted'] = !sboi_threat_plus_plus_damage['wasted']"
+                x-init="clearDamage == sboi_threat_plus_plus_clear || (sboi_threat_plus_plus_damage['wasted'] = false, sboi_threat_plus_plus_clear = clearDamage),
+                        $watch('clearDamage', value => sboi_threat_plus_plus_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Digi-frying Breath:
       
+        {"Digi-frying Breath" => {"genetics" => ["Glitch", "Energetic"], "count" => 1}, "Dragon Core Codebase" => {"genetics" => ["Glitch", "Algorithmic"], "count" => 1}, "Core Radiation Leak" => {"genetics" => ["Glitch", "Entropic"], "count" => 1}}
       
-    
-      Glitch-Energetic
-      
-        <br>
-        
-        
-      Dragon Core Codebase:
-      
-      
-    
-      Glitch-Algorithmic
-      
-        <br>
-        
-        
-      Core Radiation Leak:
-      
-      
-    
-      Glitch-Entropic
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Possessor
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1163,12 +1353,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      J7a0
       
+        J7a0
       
-    
   </p>
 </div>
 
@@ -1179,12 +1366,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      DigitalCloud
       
+        DigitalCloud
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Energetic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Possessor
+      
   </p>
 </div>
 
@@ -1195,12 +1405,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1211,12 +1418,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.
       
+        Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.
       
-    
   </p>
 </div>
 

@@ -590,30 +590,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -709,23 +706,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage['wasted'] = false), $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage['wasted'] = false)">
     <label for="illia_and_dorsay_the_buck_skull_wasted" x-anchor.bottom.start="$refs.illia_and_dorsay_the_buck_skull_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Decrepit
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -734,12 +716,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Can take 3 turns to make a tunnel from the her current territory to any other territory, unless blocked by water. Can be traversed by other underground dwellers. Might be closed by collapse. 
       
+         Can take 3 turns to make a tunnel from the her current territory to any other territory, unless blocked by water. Can be traversed by other underground dwellers. Might be closed by collapse. 
       
-    
   </p>
 </div>
 
@@ -752,72 +731,180 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ illia_and_dorsay_the_buck_skull_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), illia_and_dorsay_the_buck_skull_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ancient Forest Scythe: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track1"
+                :checked="illia_and_dorsay_the_buck_skull_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_1"  
+                @click="illia_and_dorsay_the_buck_skull_damage[1] = !illia_and_dorsay_the_buck_skull_damage[1]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[1] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit-Brutal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Mutter of Dorsay: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track2"
+                :checked="illia_and_dorsay_the_buck_skull_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_2"  
+                @click="illia_and_dorsay_the_buck_skull_damage[2] = !illia_and_dorsay_the_buck_skull_damage[2]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[2] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit-Telekinetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Burial Slumber: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track3"
+                :checked="illia_and_dorsay_the_buck_skull_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_3"  
+                @click="illia_and_dorsay_the_buck_skull_damage[3] = !illia_and_dorsay_the_buck_skull_damage[3]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[3] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(illia_and_dorsay_the_buck_skull_damage).filter(Boolean).length == 3 || Object.values(illia_and_dorsay_the_buck_skull_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Survival</p>
+          <p>Archetypal Adaptation: Decrepit</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="illia_and_dorsay_the_buck_skull_track_wasted"
+                :checked="illia_and_dorsay_the_buck_skull_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_wasted"
+                @click="illia_and_dorsay_the_buck_skull_damage['wasted'] = !illia_and_dorsay_the_buck_skull_damage['wasted']"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage['wasted'] = false, illia_and_dorsay_the_buck_skull_clear = clearDamage),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Ancient Forest Reap:
       
+        {"Ancient Forest Scythe" => {"genetics" => ["Decrepit", "Brutal"], "count" => 1}, "Mutter of Dorsay" => {"genetics" => ["Decrepit", "Telekinetic"], "count" => 1}, "Burial Slumber" => {"genetics" => ["Decrepit"], "count" => 1}}
       
-    
-      Decrepit-Brutal
-      
-        <br>
-        
-        
-      Burial Slumber:
-      
-      
-    
-      Decrepit
-      
-        <br>
-        
-        
-      Mutter of Dorsay:
-      
-      
-    
-      Telekinetic-Decrepit
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Survival
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -826,12 +913,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      WCA9
       
+        WCA9
       
-    
   </p>
 </div>
 
@@ -842,12 +926,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Underground
       
+        Underground
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Decrepit
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Survival
+      
   </p>
 </div>
 
@@ -858,12 +965,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -874,12 +978,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Illia grew up a very sick child, barely surviving from year to year. She was constantly subjected to aggressive treatments, both well known and experimental. The experience left Illia no stranger to pain and misery. Out of desperation, her parents opted to have Illia undergo an experimental gene manipulation. While the procedure went as expected, Illia did not take to the manipulation and soon after passed. She was buried under ceremony and mourned, and ultimately left to her slumber. <br><br> Dorsay grew up a fawn like any other. He learned to graze, listen and watch for predators, traverse rough lands, and how to compete for the affection of does. He did not take to one of those lessons well, and met an early demise. His carcass was left to the scavengers of the forest to devour and clean. <br><br> Dorsay was left in his state, a pile of bones, for a fair number of years. Illia, on the other hand, was not resting as well. Even in her state, she continued to grow, mature, and mutate. Her grave had become a cocoon, containing the spirit to eventually emerge. She awoke in a panicked state, her back mashed against the rotted boards which once made up her coffin and her face smothered in dirt. Only able to make the smallest of movements, she moved the earth bit by bit until a tunnel barely large enough for her teenaged body emerged. Arduously, she moved the tunnel steadily upward until the ground became weak enough that to break through to the surface. She emerged like a creature from a horror scene mucky from her years underground, bloody from and splintered from rubbing against her coffin, and wearing the nearly completely deteriorated and much too small cloths she carried with her from her youth. Laying crumpled on the ground half out of the hole, Illia felt a soreness between her shoulders and reach back to rub the offending spot. She emitted a loud shriek when she realized the spot was no ordinary pain. Illia was now donning a set of skin covered wings. <br><br> Despite her now monstrous appearance, she still carried the heart and soul of the sweet sickly little girl who was declared deceased. She wanted to go home, but knew not where home stood. She didn't know how to get there, she couldn't remember her address, and she wouldn't know who waited in stead. Also, she realized her horrific appearance would not garnish many friends. So, she ran and hid in the nearby woods to become a local myth. The creature lurking in the shadow, stealing food from the mouths of children, and pulling lost souls underground to make them like it. Of course, these stories were imbued with various levels of exaggeration. Lurking in the shadows was pretty true, Illia was too timid to be close to visitors of the woods. She certainly did steal food, but not literally from anyone's mouth. However, pulling souls into the underworld came from one unfortunate instance where a birder walked on top of her lose soil bed and felt an her arm grab his leg. It seems Illia became too comfortable sleeping underground. Still, these events were enough to peak the interest semi-local crypto-zoologists. Given their habit of chasing indefinite creatures, the hunt for what was essentially a little girl did not last long. <br><br> After so long Illia ended up in a familiar and dreaded place, a hospital. This hospital was dedicated to medical research facility looking into her not so fatal experience all the while trying to contain any rumors of walking dead roaming the forest. They treated her as somewhat inhuman, not listening anor believing her memories or explanation. They assumed she was a creature smart enough to pick up human speech patterns, but not actually of our creed. Still, they eventually figured out the mutation sequence induced into her genes and reverse engineered it. Her existence on its owned posed a question for the scientists, how permanent is death. So, they began to further mutate the gene and test it on medically dead creatures with unsustainable success. The animals would animate for a short time then rapidly deteriorate back into abyss. During these studies the measured against several levels of dead, ranging from a few minutes of death to one particularly dry deer skull all the while subjecting Illia to increasing invasive tests. <br><br> Well, Illia was done with her confines. She was done with the prodding. She was done being in a place she loathed. Illia had set her sights on escape. With a well timed bite on an unsuspecting orderly, she made a ferocious dash for the exit. Using every bit of her discharm to frighten any individual willing to stand between her and freedom. While generally effective, some hospital staff sought to prove their masculinity by catching the escaping beast and impeded Illia's progress forcing her to alternate between hiding and influencing terror. Here she meet Dorsay, as well as a larger than normal stash of dead rats. She stole him, putting Dorsay on her head hoping to make the staff think the stress furthered her freakish state. The rats too were stollen, all of which were thrown at a plethora of staff. <br><br> Illia eventually reached a low enough story of the hospital to break a glass window, and find in her the courage to jump. Feeling the breeze pound against her face, she now thinks of the wings she previously despised as the wings she rode to freedom. After this ordeal, Illia and Dorsay disappeared fully from their birth local. Still, people around the planet say they hear whispers from underground and above when they visit the densest forests of the region. Mutters of the conversations between Illia and here friend Dorsay. 
       
+         Illia grew up a very sick child, barely surviving from year to year. She was constantly subjected to aggressive treatments, both well known and experimental. The experience left Illia no stranger to pain and misery. Out of desperation, her parents opted to have Illia undergo an experimental gene manipulation. While the procedure went as expected, Illia did not take to the manipulation and soon after passed. She was buried under ceremony and mourned, and ultimately left to her slumber. <br><br> Dorsay grew up a fawn like any other. He learned to graze, listen and watch for predators, traverse rough lands, and how to compete for the affection of does. He did not take to one of those lessons well, and met an early demise. His carcass was left to the scavengers of the forest to devour and clean. <br><br> Dorsay was left in his state, a pile of bones, for a fair number of years. Illia, on the other hand, was not resting as well. Even in her state, she continued to grow, mature, and mutate. Her grave had become a cocoon, containing the spirit to eventually emerge. She awoke in a panicked state, her back mashed against the rotted boards which once made up her coffin and her face smothered in dirt. Only able to make the smallest of movements, she moved the earth bit by bit until a tunnel barely large enough for her teenaged body emerged. Arduously, she moved the tunnel steadily upward until the ground became weak enough that to break through to the surface. She emerged like a creature from a horror scene mucky from her years underground, bloody from and splintered from rubbing against her coffin, and wearing the nearly completely deteriorated and much too small cloths she carried with her from her youth. Laying crumpled on the ground half out of the hole, Illia felt a soreness between her shoulders and reach back to rub the offending spot. She emitted a loud shriek when she realized the spot was no ordinary pain. Illia was now donning a set of skin covered wings. <br><br> Despite her now monstrous appearance, she still carried the heart and soul of the sweet sickly little girl who was declared deceased. She wanted to go home, but knew not where home stood. She didn't know how to get there, she couldn't remember her address, and she wouldn't know who waited in stead. Also, she realized her horrific appearance would not garnish many friends. So, she ran and hid in the nearby woods to become a local myth. The creature lurking in the shadow, stealing food from the mouths of children, and pulling lost souls underground to make them like it. Of course, these stories were imbued with various levels of exaggeration. Lurking in the shadows was pretty true, Illia was too timid to be close to visitors of the woods. She certainly did steal food, but not literally from anyone's mouth. However, pulling souls into the underworld came from one unfortunate instance where a birder walked on top of her lose soil bed and felt an her arm grab his leg. It seems Illia became too comfortable sleeping underground. Still, these events were enough to peak the interest semi-local crypto-zoologists. Given their habit of chasing indefinite creatures, the hunt for what was essentially a little girl did not last long. <br><br> After so long Illia ended up in a familiar and dreaded place, a hospital. This hospital was dedicated to medical research facility looking into her not so fatal experience all the while trying to contain any rumors of walking dead roaming the forest. They treated her as somewhat inhuman, not listening anor believing her memories or explanation. They assumed she was a creature smart enough to pick up human speech patterns, but not actually of our creed. Still, they eventually figured out the mutation sequence induced into her genes and reverse engineered it. Her existence on its owned posed a question for the scientists, how permanent is death. So, they began to further mutate the gene and test it on medically dead creatures with unsustainable success. The animals would animate for a short time then rapidly deteriorate back into abyss. During these studies the measured against several levels of dead, ranging from a few minutes of death to one particularly dry deer skull all the while subjecting Illia to increasing invasive tests. <br><br> Well, Illia was done with her confines. She was done with the prodding. She was done being in a place she loathed. Illia had set her sights on escape. With a well timed bite on an unsuspecting orderly, she made a ferocious dash for the exit. Using every bit of her discharm to frighten any individual willing to stand between her and freedom. While generally effective, some hospital staff sought to prove their masculinity by catching the escaping beast and impeded Illia's progress forcing her to alternate between hiding and influencing terror. Here she meet Dorsay, as well as a larger than normal stash of dead rats. She stole him, putting Dorsay on her head hoping to make the staff think the stress furthered her freakish state. The rats too were stollen, all of which were thrown at a plethora of staff. <br><br> Illia eventually reached a low enough story of the hospital to break a glass window, and find in her the courage to jump. Feeling the breeze pound against her face, she now thinks of the wings she previously despised as the wings she rode to freedom. After this ordeal, Illia and Dorsay disappeared fully from their birth local. Still, people around the planet say they hear whispers from underground and above when they visit the densest forests of the region. Mutters of the conversations between Illia and here friend Dorsay. 
       
-    
   </p>
 </div>
 
@@ -907,30 +1008,27 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Character
       
+        Character
       
-    
   </p>
 </div>
 
-
-<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
-    Movement Range:  1
+    movement range
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
+      
+        1
+      
   </p>
 </div>
 
 
-
+<!-- 
 
 
 
@@ -1026,23 +1124,8 @@ x-show="showScanner && !noCamera && videoReady">
     x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage['wasted'] = false), $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage['wasted'] = false)">
     <label for="illia_and_dorsay_the_buck_skull_wasted" x-anchor.bottom.start="$refs.illia_and_dorsay_the_buck_skull_track_wasted"> wasted </label>
   </div>
-</div>
+</div> -->
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    archetypal gene
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Decrepit
-      
-      
-    
-  </p>
-</div>
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1051,12 +1134,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Can take 3 turns to make a tunnel from the her current territory to any other territory, unless blocked by water. Can be traversed by other underground dwellers. Might be closed by collapse. 
       
+         Can take 3 turns to make a tunnel from the her current territory to any other territory, unless blocked by water. Can be traversed by other underground dwellers. Might be closed by collapse. 
       
-    
   </p>
 </div>
 
@@ -1069,72 +1149,180 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
       
+        
     Always Rolls: D6-D6
   
       
-      
-    
   </p>
 </div>
 
 
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+
+
+
+
+
+<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
+     x-data="{ illia_and_dorsay_the_buck_skull_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), illia_and_dorsay_the_buck_skull_clear: $persist([]) }"
+     x-cloak>
+  <p class="capitalize" >
+    Combat
+  </p>
+  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <div class="flex w-full my-4">
+    <div class="w-1/2">
+      <p>Keal Means</p>
+      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+    </div>
+  </div>
+  
+  
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Ancient Forest Scythe: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track1"
+                :checked="illia_and_dorsay_the_buck_skull_damage[1]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_1"  
+                @click="illia_and_dorsay_the_buck_skull_damage[1] = !illia_and_dorsay_the_buck_skull_damage[1]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[1] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[1] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit-Brutal</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Mutter of Dorsay: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track2"
+                :checked="illia_and_dorsay_the_buck_skull_damage[2]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_2"  
+                @click="illia_and_dorsay_the_buck_skull_damage[2] = !illia_and_dorsay_the_buck_skull_damage[2]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[2] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[2] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit-Telekinetic</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div class="flex mx-2 w-full place-self-center">
+      
+      <div>
+          <div class="flex">
+            <p class="text-kip-red mr-2">Burial Slumber: </p>
+
+            
+              
+              
+              
+              <input 
+                type="checkbox" 
+                x-ref="illia_and_dorsay_the_buck_skull_track3"
+                :checked="illia_and_dorsay_the_buck_skull_damage[3]"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_damage_slot_3"  
+                @click="illia_and_dorsay_the_buck_skull_damage[3] = !illia_and_dorsay_the_buck_skull_damage[3]"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage[3] = false),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage[3] = false)"
+              >
+                  
+            
+          </div>
+        
+        <p class="ml-4">Archetype: <br> Decrepit</p>
+      </div>
+    </div>
+    <br>
+  
+    
+    
+    <div x-show="Object.values(illia_and_dorsay_the_buck_skull_damage).filter(Boolean).length == 3 || Object.values(illia_and_dorsay_the_buck_skull_damage).filter(Boolean).length ==  4 ">
+      <div class="flex w-full">
+        <div class="w-1/2">
+          <p>Final Blows</p>
+          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+        </div>
+      </div>
+      <div class="flex mx-2 w-full place-self-center">
+        <div>
+          <p>Motive: Survival</p>
+          <p>Archetypal Adaptation: Decrepit</p>
+            <div class="flex">
+              <p class="mr-2">Wasted: </p>
+              <input
+                type="checkbox"
+                x-ref="illia_and_dorsay_the_buck_skull_track_wasted"
+                :checked="illia_and_dorsay_the_buck_skull_damage['wasted']"
+                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
+                name="damageTrack" 
+                id="illia_and_dorsay_the_buck_skull_wasted"
+                @click="illia_and_dorsay_the_buck_skull_damage['wasted'] = !illia_and_dorsay_the_buck_skull_damage['wasted']"
+                x-init="clearDamage == illia_and_dorsay_the_buck_skull_clear || (illia_and_dorsay_the_buck_skull_damage['wasted'] = false, illia_and_dorsay_the_buck_skull_clear = clearDamage),
+                        $watch('clearDamage', value => illia_and_dorsay_the_buck_skull_damage['wasted'] = false)"
+              >
+          </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
   </p>
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Ancient Forest Reap:
       
+        {"Ancient Forest Scythe" => {"genetics" => ["Decrepit", "Brutal"], "count" => 1}, "Mutter of Dorsay" => {"genetics" => ["Decrepit", "Telekinetic"], "count" => 1}, "Burial Slumber" => {"genetics" => ["Decrepit"], "count" => 1}}
       
-    
-      Decrepit-Brutal
-      
-        <br>
-        
-        
-      Burial Slumber:
-      
-      
-    
-      Decrepit
-      
-        <br>
-        
-        
-      Mutter of Dorsay:
-      
-      
-    
-      Telekinetic-Decrepit
-      
-        <br>
-        
-        
   </p>
 </div>
-
-<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
-  <p class="capitalize" >
-    motivation
-  </p>
-  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <p x-show="play_data" class="text-center">
-    
-    
-      Survival
-      
-      
-    
-  </p>
-</div>
+ -->
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1143,12 +1331,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      WCA9
       
+        WCA9
       
-    
   </p>
 </div>
 
@@ -1159,12 +1344,35 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Underground
       
+        Underground
       
-    
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Decrepit
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Survival
+      
   </p>
 </div>
 
@@ -1175,12 +1383,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-      Founder's Deck
       
+        Founder's Deck
       
-    
   </p>
 </div>
 
@@ -1191,12 +1396,9 @@ x-show="showScanner && !noCamera && videoReady">
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    
-    
-       Illia grew up a very sick child, barely surviving from year to year. She was constantly subjected to aggressive treatments, both well known and experimental. The experience left Illia no stranger to pain and misery. Out of desperation, her parents opted to have Illia undergo an experimental gene manipulation. While the procedure went as expected, Illia did not take to the manipulation and soon after passed. She was buried under ceremony and mourned, and ultimately left to her slumber. <br><br> Dorsay grew up a fawn like any other. He learned to graze, listen and watch for predators, traverse rough lands, and how to compete for the affection of does. He did not take to one of those lessons well, and met an early demise. His carcass was left to the scavengers of the forest to devour and clean. <br><br> Dorsay was left in his state, a pile of bones, for a fair number of years. Illia, on the other hand, was not resting as well. Even in her state, she continued to grow, mature, and mutate. Her grave had become a cocoon, containing the spirit to eventually emerge. She awoke in a panicked state, her back mashed against the rotted boards which once made up her coffin and her face smothered in dirt. Only able to make the smallest of movements, she moved the earth bit by bit until a tunnel barely large enough for her teenaged body emerged. Arduously, she moved the tunnel steadily upward until the ground became weak enough that to break through to the surface. She emerged like a creature from a horror scene mucky from her years underground, bloody from and splintered from rubbing against her coffin, and wearing the nearly completely deteriorated and much too small cloths she carried with her from her youth. Laying crumpled on the ground half out of the hole, Illia felt a soreness between her shoulders and reach back to rub the offending spot. She emitted a loud shriek when she realized the spot was no ordinary pain. Illia was now donning a set of skin covered wings. <br><br> Despite her now monstrous appearance, she still carried the heart and soul of the sweet sickly little girl who was declared deceased. She wanted to go home, but knew not where home stood. She didn't know how to get there, she couldn't remember her address, and she wouldn't know who waited in stead. Also, she realized her horrific appearance would not garnish many friends. So, she ran and hid in the nearby woods to become a local myth. The creature lurking in the shadow, stealing food from the mouths of children, and pulling lost souls underground to make them like it. Of course, these stories were imbued with various levels of exaggeration. Lurking in the shadows was pretty true, Illia was too timid to be close to visitors of the woods. She certainly did steal food, but not literally from anyone's mouth. However, pulling souls into the underworld came from one unfortunate instance where a birder walked on top of her lose soil bed and felt an her arm grab his leg. It seems Illia became too comfortable sleeping underground. Still, these events were enough to peak the interest semi-local crypto-zoologists. Given their habit of chasing indefinite creatures, the hunt for what was essentially a little girl did not last long. <br><br> After so long Illia ended up in a familiar and dreaded place, a hospital. This hospital was dedicated to medical research facility looking into her not so fatal experience all the while trying to contain any rumors of walking dead roaming the forest. They treated her as somewhat inhuman, not listening anor believing her memories or explanation. They assumed she was a creature smart enough to pick up human speech patterns, but not actually of our creed. Still, they eventually figured out the mutation sequence induced into her genes and reverse engineered it. Her existence on its owned posed a question for the scientists, how permanent is death. So, they began to further mutate the gene and test it on medically dead creatures with unsustainable success. The animals would animate for a short time then rapidly deteriorate back into abyss. During these studies the measured against several levels of dead, ranging from a few minutes of death to one particularly dry deer skull all the while subjecting Illia to increasing invasive tests. <br><br> Well, Illia was done with her confines. She was done with the prodding. She was done being in a place she loathed. Illia had set her sights on escape. With a well timed bite on an unsuspecting orderly, she made a ferocious dash for the exit. Using every bit of her discharm to frighten any individual willing to stand between her and freedom. While generally effective, some hospital staff sought to prove their masculinity by catching the escaping beast and impeded Illia's progress forcing her to alternate between hiding and influencing terror. Here she meet Dorsay, as well as a larger than normal stash of dead rats. She stole him, putting Dorsay on her head hoping to make the staff think the stress furthered her freakish state. The rats too were stollen, all of which were thrown at a plethora of staff. <br><br> Illia eventually reached a low enough story of the hospital to break a glass window, and find in her the courage to jump. Feeling the breeze pound against her face, she now thinks of the wings she previously despised as the wings she rode to freedom. After this ordeal, Illia and Dorsay disappeared fully from their birth local. Still, people around the planet say they hear whispers from underground and above when they visit the densest forests of the region. Mutters of the conversations between Illia and here friend Dorsay. 
       
+         Illia grew up a very sick child, barely surviving from year to year. She was constantly subjected to aggressive treatments, both well known and experimental. The experience left Illia no stranger to pain and misery. Out of desperation, her parents opted to have Illia undergo an experimental gene manipulation. While the procedure went as expected, Illia did not take to the manipulation and soon after passed. She was buried under ceremony and mourned, and ultimately left to her slumber. <br><br> Dorsay grew up a fawn like any other. He learned to graze, listen and watch for predators, traverse rough lands, and how to compete for the affection of does. He did not take to one of those lessons well, and met an early demise. His carcass was left to the scavengers of the forest to devour and clean. <br><br> Dorsay was left in his state, a pile of bones, for a fair number of years. Illia, on the other hand, was not resting as well. Even in her state, she continued to grow, mature, and mutate. Her grave had become a cocoon, containing the spirit to eventually emerge. She awoke in a panicked state, her back mashed against the rotted boards which once made up her coffin and her face smothered in dirt. Only able to make the smallest of movements, she moved the earth bit by bit until a tunnel barely large enough for her teenaged body emerged. Arduously, she moved the tunnel steadily upward until the ground became weak enough that to break through to the surface. She emerged like a creature from a horror scene mucky from her years underground, bloody from and splintered from rubbing against her coffin, and wearing the nearly completely deteriorated and much too small cloths she carried with her from her youth. Laying crumpled on the ground half out of the hole, Illia felt a soreness between her shoulders and reach back to rub the offending spot. She emitted a loud shriek when she realized the spot was no ordinary pain. Illia was now donning a set of skin covered wings. <br><br> Despite her now monstrous appearance, she still carried the heart and soul of the sweet sickly little girl who was declared deceased. She wanted to go home, but knew not where home stood. She didn't know how to get there, she couldn't remember her address, and she wouldn't know who waited in stead. Also, she realized her horrific appearance would not garnish many friends. So, she ran and hid in the nearby woods to become a local myth. The creature lurking in the shadow, stealing food from the mouths of children, and pulling lost souls underground to make them like it. Of course, these stories were imbued with various levels of exaggeration. Lurking in the shadows was pretty true, Illia was too timid to be close to visitors of the woods. She certainly did steal food, but not literally from anyone's mouth. However, pulling souls into the underworld came from one unfortunate instance where a birder walked on top of her lose soil bed and felt an her arm grab his leg. It seems Illia became too comfortable sleeping underground. Still, these events were enough to peak the interest semi-local crypto-zoologists. Given their habit of chasing indefinite creatures, the hunt for what was essentially a little girl did not last long. <br><br> After so long Illia ended up in a familiar and dreaded place, a hospital. This hospital was dedicated to medical research facility looking into her not so fatal experience all the while trying to contain any rumors of walking dead roaming the forest. They treated her as somewhat inhuman, not listening anor believing her memories or explanation. They assumed she was a creature smart enough to pick up human speech patterns, but not actually of our creed. Still, they eventually figured out the mutation sequence induced into her genes and reverse engineered it. Her existence on its owned posed a question for the scientists, how permanent is death. So, they began to further mutate the gene and test it on medically dead creatures with unsustainable success. The animals would animate for a short time then rapidly deteriorate back into abyss. During these studies the measured against several levels of dead, ranging from a few minutes of death to one particularly dry deer skull all the while subjecting Illia to increasing invasive tests. <br><br> Well, Illia was done with her confines. She was done with the prodding. She was done being in a place she loathed. Illia had set her sights on escape. With a well timed bite on an unsuspecting orderly, she made a ferocious dash for the exit. Using every bit of her discharm to frighten any individual willing to stand between her and freedom. While generally effective, some hospital staff sought to prove their masculinity by catching the escaping beast and impeded Illia's progress forcing her to alternate between hiding and influencing terror. Here she meet Dorsay, as well as a larger than normal stash of dead rats. She stole him, putting Dorsay on her head hoping to make the staff think the stress furthered her freakish state. The rats too were stollen, all of which were thrown at a plethora of staff. <br><br> Illia eventually reached a low enough story of the hospital to break a glass window, and find in her the courage to jump. Feeling the breeze pound against her face, she now thinks of the wings she previously despised as the wings she rode to freedom. After this ordeal, Illia and Dorsay disappeared fully from their birth local. Still, people around the planet say they hear whispers from underground and above when they visit the densest forests of the region. Mutters of the conversations between Illia and here friend Dorsay. 
       
-    
   </p>
 </div>
 
