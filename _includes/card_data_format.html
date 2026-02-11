@@ -5,15 +5,10 @@
   <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
   <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
   <p x-show="play_data" class="text-center">
-    {% assign i = false %}
-    {% for item in include.play_data %}
-      {{ item }}
-      {% if i == true %}
-        <br>
-        {% assign i = false %}
-        {% continue %}
+      {% if include.play_data == "keal_means" %}
+        {% include deal_damage_tracker.html %}
+      {% else %}
+        {{ include.play_data }}
       {% endif %}
-      {% assign i = true %}
-    {% endfor %}
   </p>
 </div>
