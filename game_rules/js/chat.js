@@ -42,7 +42,7 @@ const KipukasChat = (() => {
         if (isUser) {
             contentDiv.textContent = text;
         } else {
-            contentDiv.innerHTML = text;
+            contentDiv.innerHTML = parseMarkdown(text);
         }
 
         bubble.appendChild(contentDiv);
