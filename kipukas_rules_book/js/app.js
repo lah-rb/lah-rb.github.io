@@ -2,6 +2,33 @@
  * app.js — Orchestrates all modules: markdown loading, sidebar, search, chat, print.
  */
 
+/**
+ * Safely scroll to a target element within #content-scroll only,
+ * preventing the outer page / header from being pushed off-screen.
+ */
+function scrollContentTo(targetId) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const scrollContainer = document.getElementById('content-scroll');
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const offset = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+    scrollContainer.scrollTo({ top: offset, behavior: 'smooth' });
+
+    // Brief highlight
+    target.style.background = '#fef3c7';
+    target.style.transition = 'background 0.3s';
+    setTimeout(() => { target.style.background = ''; }, 2000);
+}
+
+// Safety net: if anything accidentally scrolls the outer page, snap it back
+// so the header is always visible.
+window.addEventListener('scroll', () => {
+    if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+    }
+}, { passive: false });
+
 (async function init() {
     // 1. Initialize sidebar toggle behavior immediately
     KipukasSidebar.initToggle();
@@ -54,15 +81,8 @@
         if (link) {
             e.preventDefault();
             const targetId = link.getAttribute('href').slice(1);
-            const target = document.getElementById(targetId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                history.replaceState(null, '', `#${targetId}`);
-                // Brief highlight
-                target.style.background = '#fef3c7';
-                target.style.transition = 'background 0.3s';
-                setTimeout(() => { target.style.background = ''; }, 2000);
-            }
+            scrollContentTo(targetId);
+            history.replaceState(null, '', `#${targetId}`);
         }
     });
 
@@ -70,10 +90,7 @@
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash.slice(1);
         if (hash) {
-            const target = document.getElementById(hash);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            scrollContentTo(hash);
         }
     });
 })();
