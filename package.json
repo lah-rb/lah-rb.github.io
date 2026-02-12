@@ -1,4 +1,14 @@
 {
+  "name": "kipukas-pwa",
+  "version": "1.0.0",
+  "description": "Kipukas PWA with Workbox caching",
+  "scripts": {
+    "workbox:generate": "workbox generateSW workbox-config.js",
+    "workbox:inject": "workbox injectManifest workbox-config.js",
+    "build:sw": "npm run workbox:generate",
+    "version:generate": "node scripts/generate-version.js",
+    "build": "jekyll build && npm run version:generate && npm run build:sw"
+  },
   "dependencies": {
     "workbox-cli": "^7.3.0"
   }
