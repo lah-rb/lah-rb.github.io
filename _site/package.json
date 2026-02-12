@@ -10,6 +10,7 @@
     "build": "jekyll build && npm run version:generate && npm run build:sw"
   },
   "dependencies": {
-    "workbox-cli": "^7.3.0"
+    "workbox-cli": "^7.3.0",
+    "tmp": ">=0.2.4"
   }
 }
