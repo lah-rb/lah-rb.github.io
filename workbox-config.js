@@ -1,113 +1,62 @@
-const fs = require('fs');
-const versionHash = fs.readFileSync('./_site/version.txt', 'utf8').trim();
-
 module.exports = {
+  // ============================================
+  // injectManifest mode: we control the SW source in sw-src.js
+  // and Workbox replaces self.__WB_MANIFEST with the precache list.
+  // ============================================
+  swSrc: './sw-src.js',
+  swDest: './sw.js',
+
   globDirectory: '_site/',
   globPatterns: [
-    '**/*.{html,png,css,webp,js,wasm,svg,yml,ico,pdf,json,webmanifest}'
+    // HTML pages
+    '**/*.html',
+    // Core assets
+    'assets/css/**/*.css',
+    'assets/js/**/*.js',
+    'assets/js-wasm/**/*.{js,wasm}',
+    // SVG utility images (small)
+    'assets/utility_images/**/*.svg',
+    // App icons & favicons
+    'android-chrome-*.png',
+    'apple-touch-icon.png',
+    'favicon*.{ico,png}',
+    'maskable_icon.png',
+    // Manifest
+    'manifest.json',
+    'site.webmanifest',
+    // Offline fallback
+    'offline.html',
   ],
-  swDest: './sw.js',
-  ignoreURLParametersMatching: [
-    /^utm_/,
-    /^fbclid$/
+  globIgnores: [
+    // Build artifacts that should NOT be precached
+    'sw.js',
+    'sw.js.map',
+    'workbox-*.js',
+    'workbox-*.js.map',
+    'workbox-config*.js',
+    'package*.json',
+    'tailwind.config.js',
+    'scripts/**',
+    'PWA_SETUP.md',
+    // Thumbnails are handled by runtime CacheFirst — don't precache all sizes
+    'assets/thumbnails/**',
+    // Full-size images are handled by runtime CacheFirst
+    'assets/images/**',
+    // Duplicate content in kipukas_rules_book source dirs
+    'kipukas_rules_book/src/**',
+    'kipukas_rules_book/old/**',
+    'kipukas_rules_book/css/**',
+    'kipukas_rules_book/images/**',
+    'kipukas_rules_book/js/**',
+    'kipukas_rules_book/package*.json',
+    'kipukas_rules_book/build*.js',
+    'kipukas_rules_book/node_modules/**',
+    // Platform icon sets — runtime CacheFirst will handle these
+    'windows11/**',
+    'ios/**',
+    'android/**',
   ],
-  
-  // Precache configuration
-  cacheId: 'kipukas-pwa-' + versionHash,
-  cleanupOutdatedCaches: true,
-  
-  // Skip waiting and claim clients for immediate activation
-  skipWaiting: true,
-  clientsClaim: true,
-  
-  // Source map for debugging
-  sourcemap: true,
-  
-  // Runtime caching strategies
-  runtimeCaching: [
-    // Strategy 1: HTML Pages - NetworkFirst (fresh content is critical)
-    {
-      urlPattern: /\.(?:html)$/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'kipukas-pages-' + versionHash,
-        plugins: [
-          {
-            cacheWillUpdate: async ({ response }) => {
-              // Only cache valid responses
-              if (response && response.status === 200) {
-                return response;
-              }
-              return null;
-            }
-          }
-        ],
-        networkTimeoutSeconds: 3, // Fall back to cache after 3 seconds
-        matchOptions: {
-          ignoreSearch: true
-        }
-      }
-    },
-    
-    // Strategy 2: Static Assets (CSS, JS, WASM) - StaleWhileRevalidate with expiration
-    {
-      urlPattern: /\.(?:css|js|wasm)$/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'kipukas-assets-' + versionHash,
-        plugins: [
-          {
-            cacheWillUpdate: async ({ response }) => {
-              if (response && response.status === 200) {
-                return response;
-              }
-              return null;
-            }
-          }
-        ],
-        expiration: {
-          maxEntries: 200,
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-          purgeOnQuotaError: true
-        }
-      }
-    },
-    
-    // Strategy 3: Images - CacheFirst (images rarely change)
-    {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'kipukas-images-' + versionHash,
-        plugins: [
-          {
-            cacheWillUpdate: async ({ response }) => {
-              if (response && response.status === 200) {
-                return response;
-              }
-              return null;
-            }
-          }
-        ],
-        expiration: {
-          maxEntries: 500,
-          maxAgeSeconds: 60 * 24 * 60 * 60, // 60 days
-          purgeOnQuotaError: true
-        }
-      }
-    },
-    
-    // Strategy 4: Google Fonts (if used) - CacheFirst with long expiration
-    {
-      urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'kipukas-fonts-' + versionHash,
-        expiration: {
-          maxEntries: 30,
-          maxAgeSeconds: 365 * 24 * 60 * 60 // 1 year
-        }
-      }
-    }
-  ]
+
+  // Maximum file size to precache (2 MB) — skip anything larger
+  maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
 };
