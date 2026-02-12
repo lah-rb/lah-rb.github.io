@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Born from a Russian deep learning algorithm that became trapped in its target’s neural network, Sboi are not to be trifled with." />
 <meta property="og:description" content="Born from a Russian deep learning algorithm that became trapped in its target’s neural network, Sboi are not to be trifled with." />
-<link rel="canonical" href="http://localhost:4000/sboi_threat_plus_plus/" />
-<meta property="og:url" content="http://localhost:4000/sboi_threat_plus_plus/" />
+<link rel="canonical" href="https://www.kipukas.cards/sboi_threat_plus_plus/" />
+<meta property="og:url" content="https://www.kipukas.cards/sboi_threat_plus_plus/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-11-19T00:00:00-07:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Sboi: Threat++" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-11-19T00:00:00-07:00","datePublished":"2021-11-19T00:00:00-07:00","description":"Born from a Russian deep learning algorithm that became trapped in its target’s neural network, Sboi are not to be trifled with.","headline":"Sboi: Threat++","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/sboi_threat_plus_plus/"},"url":"http://localhost:4000/sboi_threat_plus_plus/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-11-19T00:00:00-07:00","datePublished":"2021-11-19T00:00:00-07:00","description":"Born from a Russian deep learning algorithm that became trapped in its target’s neural network, Sboi are not to be trifled with.","headline":"Sboi: Threat++","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/sboi_threat_plus_plus/"},"url":"https://www.kipukas.cards/sboi_threat_plus_plus/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -52,21 +52,8 @@
 
     <script defer src="/assets/js-wasm/zxing_reader.js"></script>
 
-    <script>
-      if (location.hostname !== 'localhost' && navigator.serviceWorker) {
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js')
-              .then(function(registration) {
-                console.log('Service Worker registered with scope:', registration.scope);
-              })
-              .catch(function(error) {
-                console.log('Service Worker registration failed:', error);
-              });
-            });
-        }
-      }
-    </script>
+    <!-- PWA: service worker registration + update-then-refresh flow -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
 
   </head>
 

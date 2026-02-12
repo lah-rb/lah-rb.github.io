@@ -1,146 +1,167 @@
-# PWA Caching Strategy - Setup Guide
+# PWA Caching & Update Strategy — Setup Guide
 
 ## Overview
 
-This project now uses a versioned Workbox caching strategy that ensures users receive fresh content after new releases while maintaining offline functionality.
+This project uses Workbox **injectManifest** mode to give us full control over the service worker lifecycle. The key design goal is a **user-controlled update flow**: when new content is deployed, users see a toast notification and choose when to apply the update — no surprise reloads.
 
-## Key Changes
+## Architecture
 
-### 1. Caching Strategies
+```
+sw-src.js          ← Source SW you edit (imports, message listener, routes)
+workbox-config.js  ← Tells workbox-cli which files to precache
+  ↓  (npm run build:sw)
+sw.js              ← Generated output (self.__WB_MANIFEST replaced with file list)
+sw.js.map          ← Source map
 
-| Content Type | Strategy | Behavior |
-|-------------|----------|----------|
-| **HTML Pages** | `NetworkFirst` | Fetches fresh content first, falls back to cache after 3 seconds offline |
-| **CSS/JS/WASM** | `StaleWhileRevalidate` | Serves cached content immediately, updates in background |
-| **Images** | `CacheFirst` | Serves from cache, fetches only if not cached |
-| **Fonts** | `CacheFirst` | Long-term caching (1 year) for Google Fonts |
+assets/js/pwa-update-handler.js  ← Client-side: registers SW, shows update toast
+_layouts/default.html            ← Includes pwa-update-handler.js via <script defer>
+```
 
-### 2. Versioning
+## How the Update Flow Works
 
-Each build generates a unique version hash that is included in cache names:
-- Cache names: `kipukas-{type}-{versionHash}`
-- Old caches are automatically cleaned up on new deployments
+### First Visit
+1. `pwa-update-handler.js` registers `/sw.js`.
+2. Service worker installs → precaches all files in the manifest.
+3. Runtime caching begins for images, thumbnails, fonts, etc.
 
-### 3. Update Notifications
+### Subsequent Visits (no deploy)
+1. HTML pages are fetched fresh from the network (NetworkFirst, 3s timeout).
+2. CSS/JS/WASM are served from cache while being revalidated in the background.
+3. Images are served from cache (CacheFirst).
 
-Users are notified when new content is available via a UI notification.
+### After a New Deploy
+1. Browser detects that `sw.js` has changed → downloads and installs the new SW.
+2. New SW enters the **waiting** state (it does NOT `skipWaiting` automatically).
+3. `pwa-update-handler.js` detects the waiting SW and shows a toast:
+   > 🎉 New version available! **[Update Now]** [Later]
+4. User clicks **Update Now** → script sends `{ type: 'SKIP_WAITING' }` to the waiting SW.
+5. Waiting SW calls `self.skipWaiting()` → becomes the active SW.
+6. `controllerchange` event fires → page reloads once with fresh content.
+
+If the user clicks **Later**, the toast dismisses. The waiting SW remains. Next navigation or page load will re-show the toast.
+
+## Caching Strategies
+
+| Content Type | Strategy | Cache Name | Behavior |
+|---|---|---|---|
+| **HTML Pages** | `NetworkFirst` | `kipukas-pages` | Fresh from network; falls back to cache after 3s |
+| **CSS/JS/WASM** | `StaleWhileRevalidate` | `kipukas-assets` | Serve cache immediately, update in background |
+| **Images** | `CacheFirst` | `kipukas-images` | Serve from cache; fetch only if not cached |
+| **Google Fonts** | `CacheFirst` | `kipukas-fonts` | Long-term cache (1 year) |
+
+**Runtime cache names are static** (no version hash). This means runtime caches persist across deploys — images and assets that haven't changed are not re-downloaded. Precaching handles versioning via per-file revision hashes in the manifest.
+
+## Precache Scope
+
+The `workbox-config.js` glob patterns precache:
+- All HTML pages
+- Core CSS, JS, and WASM assets
+- SVG utility images
+- App icons & favicons
+- Manifest files
+- Offline fallback page
+
+**Excluded from precache** (handled by runtime caching instead):
+- Thumbnail images (`assets/thumbnails/`)
+- Full-size card images (`assets/images/`)
+- Platform icon sets (`windows11/`, `ios/`, `android/`)
+- Build artifacts (`sw.js`, `workbox-*.js`, `package.json`, etc.)
+- PDF files over 2 MB
 
 ## Build Process
 
-### Step 1: Generate Version
 ```bash
-node scripts/generate-version.js
-```
-This creates a version hash in `_site/version.txt` based on the content of your `_site` directory.
+# Full build: Jekyll site + service worker
+npm run build
 
-### Step 2: Build Service Worker
-```bash
+# Service worker only (after Jekyll has already built _site/)
 npm run build:sw
 ```
-This generates `sw.js` using the Workbox configuration.
 
-### Combined Build
-```bash
-npm run build
-```
-Runs both version generation and service worker build.
+The `build:sw` script runs `workbox injectManifest workbox-config.js`, which:
+1. Reads `sw-src.js`
+2. Scans `_site/` for files matching the glob patterns
+3. Replaces `self.__WB_MANIFEST` with the precache manifest (URL + revision hash pairs)
+4. Writes the bundled output to `sw.js` + `sw.js.map`
 
-## Integration
+## Configuration
 
-### 1. Register the Service Worker
+### Update Handler Options
 
-In your HTML files (typically in `<head>` or before closing `</body>`):
-
-```html
-<script src="/assets/js/pwa-update-handler.js"></script>
-```
-
-This script:
-- Registers the service worker (`/sw.js`)
-- Checks for updates every 30 minutes
-- Shows a notification when updates are available
-- Handles the update process
-
-### 2. Configure Update Behavior
-
-You can customize the update handler by modifying `window.PWAUpdateConfig` before the script loads:
+Override defaults by setting `window.PWAUpdateConfig` **before** the script loads:
 
 ```html
 <script>
   window.PWAUpdateConfig = {
-    debug: true,                    // Enable console logging
-    autoReload: false,              // If true, auto-reloads without showing notification
-    notificationDuration: 10000     // Auto-hide notification after 10 seconds (0 = persistent)
+    debug: true,                    // Log lifecycle events to console
+    autoReload: false,              // true = skip toast, reload immediately
+    notificationDuration: 0,        // ms before auto-dismiss (0 = persistent)
+    updateInterval: 30 * 60 * 1000  // How often to poll for SW updates
   };
 </script>
-<script src="/assets/js/pwa-update-handler.js"></script>
+<script src="/assets/js/pwa-update-handler.js" defer></script>
 ```
 
-## How It Works
+### Workbox Config
 
-### First Visit
-1. Service worker installs and caches all precached assets
-2. Runtime caching begins for dynamic content
+Edit `workbox-config.js` to change:
+- `globPatterns` / `globIgnores` — what gets precached
+- `maximumFileSizeToCacheInBytes` — skip files larger than this (default 2 MB)
 
-### Subsequent Visits
-1. HTML pages are fetched fresh from the network (with 3-second timeout)
-2. Static assets are served from cache while being updated in background
-3. Service worker checks for updates periodically
-
-### New Release
-1. New version hash is generated
-2. `sw.js` is rebuilt with new cache names
-3. When user visits:
-   - New service worker installs in background
-   - Update notification appears
-   - User clicks "Update Now" → page refreshes with new content
+Edit `sw-src.js` to change:
+- Runtime caching strategies and cache names
+- Cache expiration limits (`maxEntries`, `maxAgeSeconds`)
+- The `message` event listener and lifecycle behavior
 
 ## Testing
 
 ### Local Testing
-1. Build: `npm run build`
-2. Serve `_site` with a local server (e.g., `npx serve _site`)
-3. Open DevTools → Application → Service Workers
-4. Check "Update on reload" for easier testing
+```bash
+npm run build
+npx serve _site
+# Open DevTools → Application → Service Workers
+```
 
-### Force Update Check
-In browser console:
-```javascript
+### Force an Update Check
+```js
 navigator.serviceWorker.ready.then(reg => reg.update());
 ```
 
-### Clear Caches
-In browser console:
-```javascript
+### Clear All Caches
+```js
 caches.keys().then(names => names.forEach(name => caches.delete(name)));
+```
+
+### Unregister Service Worker
+```js
+navigator.serviceWorker.getRegistrations().then(regs =>
+  regs.forEach(reg => reg.unregister())
+);
 ```
 
 ## Troubleshooting
 
-### Users see old content
-- Ensure `scripts/generate-version.js` runs before building
-- Check that `npm run build:sw` completes without errors
-- Verify service worker is registered with correct scope
-
-### Updates not showing
-- Check browser console for errors
-- Verify `pwa-update-handler.js` is included in HTML
-- Ensure service worker file is accessible at `/sw.js`
-
-### Cache too large
-- Adjust `maxEntries` in `workbox-config.js`
-- Adjust `maxAgeSeconds` for different content types
-- Consider excluding large files from precaching
+| Symptom | Fix |
+|---|---|
+| Users see old content | Make sure `npm run build:sw` ran after `jekyll build`. Check that `sw.js` contains the updated manifest. |
+| Update toast never appears | Check console for errors. Verify `pwa-update-handler.js` is loaded (Network tab). Ensure there is no duplicate `navigator.serviceWorker.register()` in your HTML. |
+| Page reloads unexpectedly | Ensure `sw-src.js` does NOT call `self.skipWaiting()` unconditionally. The `SKIP_WAITING` should only happen via `postMessage`. |
+| Cache storage keeps growing | Old versioned caches from the previous setup are cleaned up automatically on activate. If it persists, manually clear caches in DevTools. |
+| Precache too large | Tighten `globPatterns` / add to `globIgnores` in `workbox-config.js`. Lower `maximumFileSizeToCacheInBytes`. |
 
 ## Files
 
-- `workbox-config.js` - Workbox configuration
-- `scripts/generate-version.js` - Version hash generator (JavaScript)
-- `assets/js/pwa-update-handler.js` - Client-side update handling
-- `package.json` - Build scripts
-- `sw.js` - Generated service worker (do not edit directly)
+| File | Purpose |
+|---|---|
+| `sw-src.js` | Service worker source — edit this for SW logic |
+| `workbox-config.js` | Workbox CLI config — edit for precache scope |
+| `assets/js/pwa-update-handler.js` | Client-side SW registration + update toast |
+| `_layouts/default.html` | Includes `pwa-update-handler.js` |
+| `package.json` | Build scripts |
+| `sw.js` | **Generated** — do not edit directly |
 
-## Additional Resources
+## Resources
 
-- [Workbox Documentation](https://developer.chrome.com/docs/workbox/)
-- [Service Worker Lifecycle](https://developers.google.com/web/fundamentals/primers/service-workers/lifecycle)
+- [Workbox injectManifest](https://developer.chrome.com/docs/workbox/modules/workbox-build#injectmanifest)
+- [Service Worker Lifecycle](https://web.dev/articles/service-worker-lifecycle)
+- [Workbox Strategies](https://developer.chrome.com/docs/workbox/modules/workbox-strategies)
