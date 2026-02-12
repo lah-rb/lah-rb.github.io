@@ -1,15 +1,10 @@
 /**
- * kippa.js — Kippa rules assistant widget.
+ * chat.js — Kippa rules assistant chat widget.
  * Reuses WebSocket/GraphQL streaming from the original chat.html.
- * Exposes: KipukasKippa
- *
- * NOTE: This file was renamed from chat.js to avoid being caught by
- * built-in content-blocker filter lists (EasyPrivacy, Bromite filters, etc.)
- * that aggressively block scripts matching chat-widget patterns.
- * Affected browsers include Cromite, IronFox, and similar privacy forks.
+ * Exposes: KipukasChat
  */
 
-const KipukasKippa = (() => {
+const KipukasChat = (() => {
     const GRAPHQL_HTTP_URL = 'https://kippa.kipukas.us/graphql';
     const GRAPHQL_WS_URL = 'wss://kippa.kipukas.us/graphql';
 

@@ -28,7 +28,7 @@ bg-terra: "bg-hero-pattern "
   <div x-data="{
   {% assign posts = site.posts | sort:'title' %}
   {% for card in posts %}
-  inView{{ card.permalink | remove: '/' }}: false,
+  inView{{ card.permalink | remove: '/' }}: true,
   {% endfor %}
   }
   " 
@@ -38,75 +38,47 @@ bg-terra: "bg-hero-pattern "
       {% assign tag_string = card.tags | join: '' %}
       {% assign card_title = card.permalink | remove: '/' %}
       {% assign raw_search = tag_string | append: card_title%}
-      {% if forloop.first %}
-      <!-- LCP card: static srcset for preload scanner, fetchpriority=high, no lazy load -->
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5"
-        x-show="
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
             filter.{{card.layout}} == true || 
             {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
             {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
             {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
             (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') ||
             filter.all == true"
-        x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
-        <a href="{{card.url}}"
-          class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+      x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
+      <a href="{{card.url}}"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            (filter.{{card.layout}} == true || 
+            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
+            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
+            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %}
+            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') || 
+            filter.all == true) &&
+            inView{{ card.permalink | remove: '/' }}
+          "
+        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+          
+          <img 
+            :width="$data.screenWidth >= 768 ? '320' : '160'"
+            :height="$data.screenWidth >= 768 ? '320' : '160'"
+            :srcset="$data.screenWidth >= 768 
+                      ? `/assets/thumbnails/x2/{{card.img_name}} 1x, /assets/thumbnails/x4/{{card.img_name}} 2x`
+                      : `/assets/thumbnails/x1/{{card.img_name}} 1x, /assets/thumbnails/x2/{{card.img_name}} 2x, /assets/thumbnails/x3/{{card.img_name}} 3x, /assets/thumbnails/x4/{{card.img_name}} 4x, /assets/thumbnails/x5/{{card.img_name}} 5x`"
+            alt="{{ card.img_alt }}"
+            loading="lazy"
           >
-          <div>
-            <img
-              class="w-full" 
-              src="/assets/thumbnails/x2/{{card.img_name}}"
-              srcset="/assets/thumbnails/x1/{{card.img_name}} 160w,
-                     /assets/thumbnails/x2/{{card.img_name}} 320w,
-                     /assets/thumbnails/x3/{{card.img_name}} 480w,
-                     /assets/thumbnails/x4/{{card.img_name}} 640w,
-                     /assets/thumbnails/x5/{{card.img_name}} 800w"
-              sizes="(min-width: 768px) 320px, 160px"
-              fetchpriority="high"
-              alt="{{ card.img_alt }}"
-            >
-          </div>  
-          <div class="text-center text-wrap">{{card.title}}</div>
-        </a>
-      </div>
-      {% else %}
-      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
-        style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
-        x-show="
-            filter.{{card.layout}} == true || 
-            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
-            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
-            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
-            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') ||
-            filter.all == true"
-        x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
-        <template x-if="inView{{ card.permalink | remove: '/' }}">
-          <a href="{{card.url}}"
-            x-transition.duration.250ms
-            class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
-            >
-            <div x-data="{ 
-              isLargeScreen: window.innerWidth >= 768, 
-              screenWidth: window.innerWidth 
-            }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
-              
-              <img 
-                :width="$data.screenWidth >= 768 ? '320' : '160'"
-                :height="$data.screenWidth >= 768 ? '320' : '160'"
-                :srcset="$data.screenWidth >= 768 
-                          ? `/assets/thumbnails/x2/{{card.img_name}} 1x, /assets/thumbnails/x4/{{card.img_name}} 2x`
-                          : `/assets/thumbnails/x1/{{card.img_name}} 1x, /assets/thumbnails/x2/{{card.img_name}} 2x, /assets/thumbnails/x3/{{card.img_name}} 3x, /assets/thumbnails/x4/{{card.img_name}} 4x, /assets/thumbnails/x5/{{card.img_name}} 5x`"
-                alt="{{ card.img_alt }}"
-                loading="lazy"
-              >
-            </div>  
-            <div class="text-center text-wrap">{{card.title}}</div>
-          </a>
-        </template>
-      </div>
-      {% endif %}
+        </div>  
+        <div class="text-center text-wrap">{{card.title}}</div>
+      </a>
+    </div>
     {% endfor %}
   </div>
 </template> 
-
