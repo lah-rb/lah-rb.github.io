@@ -8,14 +8,14 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
 <meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
-<link rel="canonical" href="https://www.kipukas.cards/" />
-<meta property="og:url" content="https://www.kipukas.cards/" />
+<link rel="canonical" href="http://localhost:4000/" />
+<meta property="og:url" content="http://localhost:4000/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Binder Home" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas","url":"https://www.kipukas.cards/"}</script>
+{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas","url":"http://localhost:4000/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -992,9 +992,9 @@ x-show="showScanner && !noCamera && videoReady">
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
-        style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
+      
+      <!-- LCP card: static srcset for preload scanner, fetchpriority=high, no lazy load -->
+      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5"
         x-show="
             filter.Species == true || 
              filter.Magic == true ||  
@@ -1003,35 +1003,34 @@ x-show="showScanner && !noCamera && videoReady">
             (new RegExp(searchQuery, 'i').test('skeletontravelerdeserttattoosunallele_sect_explorer') && searchQuery != '') ||
             filter.all == true"
         x-intersect="inViewallele_sect_explorer = true" x-intersect:leave="inViewallele_sect_explorer = false">
-        <template x-if="inViewallele_sect_explorer">
-          <a href="/allele_sect_explorer/"
-            x-transition.duration.250ms
-            class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        <a href="/allele_sect_explorer/"
+          class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+          >
+          <div>
+            <img 
+              src="/assets/thumbnails/x2/allele_sect_explorer.webp"
+              srcset="/assets/thumbnails/x1/allele_sect_explorer.webp 160w,
+                     /assets/thumbnails/x2/allele_sect_explorer.webp 320w,
+                     /assets/thumbnails/x3/allele_sect_explorer.webp 480w,
+                     /assets/thumbnails/x4/allele_sect_explorer.webp 640w,
+                     /assets/thumbnails/x5/allele_sect_explorer.webp 800w"
+              sizes="(min-width: 768px) 320px, 160px"
+              width="160"
+              height="160"
+              fetchpriority="high"
+              alt="A man with a long thin beard and blank eyes stares past your soul."
             >
-            <div x-data="{ 
-              isLargeScreen: window.innerWidth >= 768, 
-              screenWidth: window.innerWidth 
-            }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
-              
-              <img 
-                :width="$data.screenWidth >= 768 ? '320' : '160'"
-                :height="$data.screenWidth >= 768 ? '320' : '160'"
-                :srcset="$data.screenWidth >= 768 
-                          ? `/assets/thumbnails/x2/allele_sect_explorer.webp 1x, /assets/thumbnails/x4/allele_sect_explorer.webp 2x`
-                          : `/assets/thumbnails/x1/allele_sect_explorer.webp 1x, /assets/thumbnails/x2/allele_sect_explorer.webp 2x, /assets/thumbnails/x3/allele_sect_explorer.webp 3x, /assets/thumbnails/x4/allele_sect_explorer.webp 4x, /assets/thumbnails/x5/allele_sect_explorer.webp 5x`"
-                alt="A man with a long thin beard and blank eyes stares past your soul."
-                loading="lazy"
-              >
-            </div>  
-            <div class="text-center text-wrap">Allele Sect Explorer</div>
-          </a>
-        </template>
+          </div>  
+          <div class="text-center text-wrap">Allele Sect Explorer</div>
+        </a>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1066,11 +1065,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1105,11 +1106,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1144,11 +1147,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1183,11 +1188,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1222,11 +1229,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1261,11 +1270,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1300,11 +1311,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1339,11 +1352,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1378,11 +1393,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1417,11 +1434,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1456,11 +1475,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1495,11 +1516,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1534,11 +1557,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1573,11 +1598,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1612,11 +1639,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1651,11 +1680,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1690,11 +1721,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1729,11 +1762,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1768,11 +1803,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1807,11 +1844,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1846,11 +1885,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1885,11 +1926,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1924,11 +1967,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -1963,11 +2008,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2002,11 +2049,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2041,11 +2090,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2080,11 +2131,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2119,11 +2172,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2158,11 +2213,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2197,11 +2254,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2236,11 +2295,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2275,11 +2336,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2314,11 +2377,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2353,11 +2418,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2392,11 +2459,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2431,11 +2500,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2470,11 +2541,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2509,11 +2582,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2548,11 +2623,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2587,11 +2664,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2626,11 +2705,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2665,11 +2746,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2704,11 +2787,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2743,11 +2828,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2782,11 +2869,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2821,11 +2910,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2860,11 +2951,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2899,11 +2992,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2938,11 +3033,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -2977,11 +3074,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -3016,11 +3115,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -3055,11 +3156,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -3094,11 +3197,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -3133,11 +3238,13 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
       
       
       
-      <!-- div to trigger transition animation when entering and leaving the screen -->
+      
+      <!-- Regular cards: lazy-loaded, DOM created on scroll via x-if -->
       <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" 
         style="content-visibility: auto; contain-intrinsic-size: auto 10rem 16rem;"
         x-show="
@@ -3172,6 +3279,7 @@ x-show="showScanner && !noCamera && videoReady">
           </a>
         </template>
       </div>
+      
     
   </div>
 </template> 
