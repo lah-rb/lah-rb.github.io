@@ -53,7 +53,8 @@ bg-terra: "bg-hero-pattern "
           class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
           >
           <div>
-            <img 
+            <img
+              class="w-full" 
               src="/assets/thumbnails/x2/{{card.img_name}}"
               srcset="/assets/thumbnails/x1/{{card.img_name}} 160w,
                      /assets/thumbnails/x2/{{card.img_name}} 320w,
@@ -61,8 +62,6 @@ bg-terra: "bg-hero-pattern "
                      /assets/thumbnails/x4/{{card.img_name}} 640w,
                      /assets/thumbnails/x5/{{card.img_name}} 800w"
               sizes="(min-width: 768px) 320px, 160px"
-              width="160"
-              height="160"
               fetchpriority="high"
               alt="{{ card.img_alt }}"
             >
