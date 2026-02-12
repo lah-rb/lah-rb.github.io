@@ -4,7 +4,8 @@
   "description": "Kipukas PWA with Workbox caching",
   "scripts": {
     "build:sw": "workbox injectManifest workbox-config.js",
-    "build": "jekyll build && npm run build:sw"
+    "build": "jekyll build && npm run build:sw",
+    "build:all": "cd kipukas_rules_book && npm run build:all && cd .. && rm -rf game_rules && mv kipukas_rules_book/dist game_rules && npm run build"
   },
   "dependencies": {
     "workbox-cli": "^7.3.0",

@@ -97,7 +97,7 @@ for (const v of vendors) {
 
 console.log('📄  Copying app JS...');
 
-const jsFiles = ['markdown.js', 'sidebar.js', 'search.js', 'chat.js', 'app.js'];
+const jsFiles = ['markdown.js', 'sidebar.js', 'search.js', 'kippa.js', 'app.js'];
 for (const file of jsFiles) {
     copyFileSync(path.join(ROOT, 'js', file), path.join(DIST, 'js', file));
     console.log(`   → dist/js/${file}`);
