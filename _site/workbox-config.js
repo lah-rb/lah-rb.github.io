@@ -17,10 +17,9 @@ module.exports = {
     // SVG utility images (small)
     'assets/utility_images/**/*.svg',
     // App icons & favicons
-    'android-chrome-*.png',
-    'apple-touch-icon.png',
-    'favicon*.{ico,png}',
-    'maskable_icon.png',
+    'assets/ico/**/*.png',
+    'assets/ico/*.ico',
+    'assets/ico/*.svg',
     // Manifest
     'manifest.json',
     'site.webmanifest',
