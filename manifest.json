@@ -10,7 +10,7 @@
   "description": "Holds every card in the Kipukas collection",
   "icons": [
     {
-      "src": "maskable_icon.png",
+      "src": "/assets/ico/maskable_icon.png",
       "purpose": "maskable",
       "type": "image/png",
       "sizes": "384x384"
