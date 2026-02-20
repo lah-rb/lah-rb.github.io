@@ -19,7 +19,7 @@
     "build:css": "deno run -A npm:@tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css --minify",
     "build:alpine": "deno run -A scripts/bundle-alpine.ts",
     "build:htmx": "cp node_modules/.deno/htmx.org@2.0.4/node_modules/htmx.org/dist/htmx.min.js assets/js/htmx.min.js",
-    "build:wasm": "cd kipukas-server && wasm-pack build --target web --out-dir ../assets/js-wasm/kipukas-server-pkg --release",
+    "build:wasm": "cd kipukas-server && wasm-pack build --target web --out-dir ../assets/js-wasm/kipukas-server-pkg --release && rm -f ../assets/js-wasm/kipukas-server-pkg/.gitignore",
     "build:sw": "deno run -A npm:workbox-cli injectManifest workbox-config.cjs",
     "build:rules": "cd kipukas_rules_book && /Users/lah-rb/.deno/bin/deno task build:all",
     "build": "deno task build:wasm && deno task build:htmx && deno task build:css && deno task build:alpine && deno task build:rules && rm -rf game_rules && mv kipukas_rules_book/dist game_rules && jekyll build && deno task build:sw",
