@@ -34,27 +34,25 @@ wasmReady.then(() => {
 let zxing = null;
 let zxingReady = false;
 
-// ZXing is loaded via importScripts (non-module script).
-// In a module worker we use the global import workaround.
-try {
-  importScripts('/assets/js-wasm/zxing_reader.js');
-  if (typeof ZXing === 'function') {
-    ZXing()
-      .then((instance) => {
-        zxing = instance;
-        zxingReady = true;
-        console.log('[kipukas-worker] ZXing WASM initialized');
-      })
-      .catch((err) => {
-        console.error('[kipukas-worker] ZXing init failed:', err);
-      });
+// ZXing is a classic (non-ES-module) script. Module workers don't support
+// importScripts(), so we fetch the script text and use indirect eval to
+// execute it in the worker's global scope, defining the ZXing factory.
+(async () => {
+  try {
+    const resp = await fetch('/assets/js-wasm/zxing_reader.js');
+    const text = await resp.text();
+    (0, eval)(text); // indirect eval — runs in global scope, defines ZXing on globalThis
+    if (typeof ZXing === 'function') {
+      zxing = await ZXing();
+      zxingReady = true;
+      console.log('[kipukas-worker] ZXing WASM initialized');
+    }
+  } catch (err) {
+    // ZXing QR decode will be unavailable; camera scanning won't work
+    // but the rest of the app continues fine.
+    console.warn('[kipukas-worker] Could not load ZXing:', err.message);
   }
-} catch (err) {
-  // importScripts may fail in strict module workers on some browsers.
-  // ZXing QR decode will be unavailable; camera scanning won't work
-  // but the rest of the app continues fine.
-  console.warn('[kipukas-worker] Could not load ZXing:', err.message);
-}
+})();
 
 // ── ZXing decode helper ────────────────────────────────────────────
 
