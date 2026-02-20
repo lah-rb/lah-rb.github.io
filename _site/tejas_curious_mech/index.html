@@ -44,10 +44,11 @@
       });
     </script>
     <script defer src="/assets/js/alpine.bundle.min.js"></script>
-    <script defer src="/assets/js/htmx.min.js"></script>
 
     <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
     <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/htmx.min.js"></script>
 
     <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
     <script src="/assets/js/qr-camera.js" defer></script>
@@ -60,12 +61,10 @@
   <body x-data="{ 
                   filter: { all: true }, 
                   showInstallModal: false,
-                  showKealModal: false,
                   searchQuery: '',
                   top: true,
                   previousURL: $persist(''),
                   currentURL: $persist(''),
-                  clearDamage: $persist('U7G789Rc'),
                   hideInstallButton: $persist(false),
                 }" 
         class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh"
@@ -330,7 +329,10 @@ background_color
     
 
     
-        <div x-data="{ showTurnTracker: false, alarms: $persist([]) }">
+        <!-- Phase 3b: Turn tracker with HTMX + WASM state management.
+     The popover toggle (showTurnTracker) stays Alpine — purely visual.
+     Timer creation form is loaded from WASM. Alarm state lives in WASM memory. -->
+<div x-data="{ showTurnTracker: false }">
     <svg xmlns="http://www.w3.org/2000/svg" 
     @click="showTurnTracker = !showTurnTracker"
     x-ref="turnTracker"
@@ -349,63 +351,54 @@ background_color
     x-transition.duration.350ms
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   grid grid-cols-1 h-fit w-40">
-        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 1 }">
-            <input type="range" name="turnsSelector" id="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
-            <button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
-        </div>
+   grid grid-cols-1 h-fit w-40"
+    hx-get="/api/game/turns"
+    hx-trigger="intersect once"
+    hx-swap="innerHTML">
     </div>
-    <div x-data="{showAlarms: $persist(true)}" class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0">
-        <div x-collapse x-show="showAlarms">
-            <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">Click here on each diel cycle roll</p>
-            <template x-for="alarm in alarms">
-                <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Complete, click above to close</p><p x-show="alarm != 0">Turns to Alarm: <strong x-show="alarm != 0" x-text="alarm"></strong></p></div>
-            </template>
-        </div>
-        <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
-            @click="showAlarms = !showAlarms" :class="{ 'rotate-180': !showAlarms }" x-transition
-            class="fill-none stroke-2 z-50 
-    stroke-slate-200
-   w-6 h-6 mb-2 justify-left  lg:stroke-kip-goldenrod ">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-        </svg>
-    </div>
-
 </div>
-    
+
+<!-- Floating alarm display — loaded from WASM, positioned top-left -->
+<div id="turn-alarms" class="fixed top-0 left-0 m-6 grid grid-cols-1"
+     hx-get="/api/game/turns?display=alarms"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     hx-target="this">
+</div>
 
     
 
     
-      <button @click="showKealModal = !showKealModal" class="flex justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" 
-          viewBox="0 0 24 24"
-          
-            :class="'lg:fill-kip-goldenrod'"
-          
-          class="h-12 w-12 
+
+    
+      
+      <div x-data="{ showKealModal: false }">
+        <button @click="showKealModal = !showKealModal" class="flex justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24"
+            
+              :class="'lg:fill-kip-goldenrod'"
+            
+            class="h-12 w-12 
     fill-slate-200
    hover:fill-kip-red z-auto active:fill-kip-drk-sienna">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-        </svg>    
-      </button>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+          </svg>    
+        </button>
 
-      <script>
-        function makeid(length) {
-            let result = '';
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const charactersLength = characters.length;
-            let counter = 0;
-            while (counter < length) {
-              result += characters.charAt(Math.floor(Math.random() * charactersLength));
-              counter += 1;
-            }
-            return result;
-        }
-      </script>
-
-      <!-- include here instead of damage_tracker.html for formatting consistency -->
-      <div x-show="showKealModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
+        <!-- Phase 3b: Clear damage modal — showKealModal is now local x-data scope.
+             Accept action POSTs to WASM clear_all route, then refreshes current card's tracker.
+             Complex JS extracted to named function because Jekyll include params can't contain {} -->
+        <script>
+          function kipukasClearAllDamage() {
+            htmx.ajax('POST', '/api/game/damage', {
+              values: {action: 'clear_all'},
+              target: '#keal-damage-tejas_curious_mech',
+              swap: 'innerHTML'
+            });
+          }
+        </script>
+        <div x-show="showKealModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
 
     <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
       <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
@@ -418,18 +411,19 @@ background_color
             You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?
         </p>
   
-        <button @click="clearDamage = makeid(9); showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
+        <button @click="kipukasClearAllDamage(); showKealModal = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
           Clear All Damage
         </button>
   
         <button @click="showKealModal = !showKealModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Don't Clear
+          Cancel
         </button>
         
       </div>
     </template>
   </div>
 
+      </div>
     
 
     
@@ -666,124 +660,15 @@ background_color
 
 
 
-
-
-
-
-<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
-     x-data="{ tejas_curious_mech_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tejas_curious_mech_clear: $persist([]) }"
-     x-cloak>
-  <p class="capitalize" >
-    Combat
-  </p>
-  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <div class="flex w-full my-4">
-    <div class="w-1/2">
-      <p>Keal Means</p>
-      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-    </div>
-  </div>
-  
-  
-  
-    
-    
-    <div class="flex mx-2 w-full place-self-center">
-      
-      <div>
-          <div class="flex">
-            <p class="text-kip-red mr-2">Hydraulic Punch: </p>
-
-            
-              
-              
-              
-              <input 
-                type="checkbox" 
-                x-ref="tejas_curious_mech_track1"
-                :checked="tejas_curious_mech_damage[1]"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                name="damageTrack" 
-                id="tejas_curious_mech_damage_slot_1"  
-                @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false),
-                        $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)"
-              >
-                  
-            
-          </div>
-        
-        <p class="ml-4">Archetype: <br> Mechanical</p>
-      </div>
-    </div>
-    <br>
-  
-    
-    
-    <div class="flex mx-2 w-full place-self-center">
-      
-      <div>
-          <div class="flex">
-            <p class="text-kip-red mr-2">Pneumatic Impact Ratchet: </p>
-
-            
-              
-              
-              
-              <input 
-                type="checkbox" 
-                x-ref="tejas_curious_mech_track2"
-                :checked="tejas_curious_mech_damage[2]"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                name="damageTrack" 
-                id="tejas_curious_mech_damage_slot_2"  
-                @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false),
-                        $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)"
-              >
-                  
-            
-          </div>
-        
-        <p class="ml-4">Archetype: <br> Mechanical-Avian</p>
-      </div>
-    </div>
-    <br>
-  
-    
-    
-    <div x-show="Object.values(tejas_curious_mech_damage).filter(Boolean).length == 2 || Object.values(tejas_curious_mech_damage).filter(Boolean).length ==  3 ">
-      <div class="flex w-full">
-        <div class="w-1/2">
-          <p>Final Blows</p>
-          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-        </div>
-      </div>
-      <div class="flex mx-2 w-full place-self-center">
-        <div>
-          <p>Motive: Passion</p>
-          <p>Archetypal Adaptation: Mechanical</p>
-            <div class="flex">
-              <p class="mr-2">Wasted: </p>
-              <input
-                type="checkbox"
-                x-ref="tejas_curious_mech_track_wasted"
-                :checked="tejas_curious_mech_damage['wasted']"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" 
-                id="tejas_curious_mech_wasted"
-                @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false, tejas_curious_mech_clear = clearDamage),
-                        $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)"
-              >
-          </div>
-        </div>
-        </div>
-    </div>
+<!-- Phase 3b: Keal damage tracker loaded from WASM via HTMX.
+     Replaces Alpine $persist pattern with server-driven HTML fragments.
+     State lives in WASM memory, persisted to localStorage via /api/game/persist. -->
+<div id="keal-damage-tejas_curious_mech"
+     class="w-full grid grid-cols-1 place-self-center"
+     hx-get="/api/game/damage?card=tejas_curious_mech"
+     hx-trigger="load"
+     hx-swap="innerHTML">
 </div>
-
-
 
 <!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1052,124 +937,15 @@ background_color
 
 
 
-
-
-
-
-<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center"
-     x-data="{ tejas_curious_mech_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), tejas_curious_mech_clear: $persist([]) }"
-     x-cloak>
-  <p class="capitalize" >
-    Combat
-  </p>
-  <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-  <div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
-  <div class="flex w-full my-4">
-    <div class="w-1/2">
-      <p>Keal Means</p>
-      <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-    </div>
-  </div>
-  
-  
-  
-    
-    
-    <div class="flex mx-2 w-full place-self-center">
-      
-      <div>
-          <div class="flex">
-            <p class="text-kip-red mr-2">Hydraulic Punch: </p>
-
-            
-              
-              
-              
-              <input 
-                type="checkbox" 
-                x-ref="tejas_curious_mech_track1"
-                :checked="tejas_curious_mech_damage[1]"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                name="damageTrack" 
-                id="tejas_curious_mech_damage_slot_1"  
-                @click="tejas_curious_mech_damage[1] = !tejas_curious_mech_damage[1]"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[1] = false),
-                        $watch('clearDamage', value => tejas_curious_mech_damage[1] = false)"
-              >
-                  
-            
-          </div>
-        
-        <p class="ml-4">Archetype: <br> Mechanical</p>
-      </div>
-    </div>
-    <br>
-  
-    
-    
-    <div class="flex mx-2 w-full place-self-center">
-      
-      <div>
-          <div class="flex">
-            <p class="text-kip-red mr-2">Pneumatic Impact Ratchet: </p>
-
-            
-              
-              
-              
-              <input 
-                type="checkbox" 
-                x-ref="tejas_curious_mech_track2"
-                :checked="tejas_curious_mech_damage[2]"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-                name="damageTrack" 
-                id="tejas_curious_mech_damage_slot_2"  
-                @click="tejas_curious_mech_damage[2] = !tejas_curious_mech_damage[2]"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage[2] = false),
-                        $watch('clearDamage', value => tejas_curious_mech_damage[2] = false)"
-              >
-                  
-            
-          </div>
-        
-        <p class="ml-4">Archetype: <br> Mechanical-Avian</p>
-      </div>
-    </div>
-    <br>
-  
-    
-    
-    <div x-show="Object.values(tejas_curious_mech_damage).filter(Boolean).length == 2 || Object.values(tejas_curious_mech_damage).filter(Boolean).length ==  3 ">
-      <div class="flex w-full">
-        <div class="w-1/2">
-          <p>Final Blows</p>
-          <div class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
-        </div>
-      </div>
-      <div class="flex mx-2 w-full place-self-center">
-        <div>
-          <p>Motive: Passion</p>
-          <p>Archetypal Adaptation: Mechanical</p>
-            <div class="flex">
-              <p class="mr-2">Wasted: </p>
-              <input
-                type="checkbox"
-                x-ref="tejas_curious_mech_track_wasted"
-                :checked="tejas_curious_mech_damage['wasted']"
-                class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"
-                name="damageTrack" 
-                id="tejas_curious_mech_wasted"
-                @click="tejas_curious_mech_damage['wasted'] = !tejas_curious_mech_damage['wasted']"
-                x-init="clearDamage == tejas_curious_mech_clear || (tejas_curious_mech_damage['wasted'] = false, tejas_curious_mech_clear = clearDamage),
-                        $watch('clearDamage', value => tejas_curious_mech_damage['wasted'] = false)"
-              >
-          </div>
-        </div>
-        </div>
-    </div>
+<!-- Phase 3b: Keal damage tracker loaded from WASM via HTMX.
+     Replaces Alpine $persist pattern with server-driven HTML fragments.
+     State lives in WASM memory, persisted to localStorage via /api/game/persist. -->
+<div id="keal-damage-tejas_curious_mech"
+     class="w-full grid grid-cols-1 place-self-center"
+     hx-get="/api/game/damage?card=tejas_curious_mech"
+     hx-trigger="load"
+     hx-swap="innerHTML">
 </div>
-
-
 
 <!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >

@@ -2,6 +2,13 @@
 // Do not edit manually. Re-run: deno task build:card-catalog
 
 #[derive(Debug, Clone)]
+pub struct KealMeans {
+    pub name: &'static str,
+    pub genetics: &'static [&'static str],
+    pub count: u8,
+}
+
+#[derive(Debug, Clone)]
 pub struct Card {
     pub slug: &'static str,
     pub title: &'static str,
@@ -13,7 +20,96 @@ pub struct Card {
     pub motivation: Option<&'static str>,
     pub habitat: Option<&'static str>,
     pub url: &'static str,
+    // Phase 3b game data
+    pub injury_tolerance: u8,
+    pub keal_means: &'static [KealMeans],
+    pub movement: u8,
+    pub die: &'static str,
+    pub brawl_sequence: &'static str,
 }
+
+static GENETICS_0: &[&str] = &["Glitch", "Magic"];
+static GENETICS_1: &[&str] = &["Magic", "Entropic"];
+static GENETICS_2: &[&str] = &["Telekinetic", "Endothermic"];
+static GENETICS_3: &[&str] = &["Cenozoic", "Energetic"];
+static GENETICS_4: &[&str] = &["Entropic", "Astral", "Brutal"];
+static GENETICS_5: &[&str] = &["Algorithimic"];
+static GENETICS_6: &[&str] = &["Magic"];
+static GENETICS_7: &[&str] = &["Telekinetic", "Arboreal"];
+static GENETICS_8: &[&str] = &["Brutal", "Angelic"];
+static GENETICS_9: &[&str] = &["Brutal", "Mechanical"];
+static GENETICS_10: &[&str] = &["Endothermic"];
+static GENETICS_11: &[&str] = &["Cenozoic", "Astral"];
+static GENETICS_12: &[&str] = &["Energetic", "Angelic", "Avian"];
+static GENETICS_13: &[&str] = &["Decrepit", "Brutal"];
+static GENETICS_14: &[&str] = &["Decrepit", "Telekinetic"];
+static GENETICS_15: &[&str] = &["Decrepit"];
+static GENETICS_16: &[&str] = &["Energetic", "Astral"];
+static GENETICS_17: &[&str] = &["Cenozoic"];
+static GENETICS_18: &[&str] = &["Angelic", "Avian"];
+static GENETICS_19: &[&str] = &["Brutal", "Entropic", "Telekinetic"];
+static GENETICS_20: &[&str] = &["Cenozoic", "brutal"];
+static GENETICS_21: &[&str] = &["Decrepit", "Avian"];
+static GENETICS_22: &[&str] = &["Avian", "Cenozoic"];
+static GENETICS_23: &[&str] = &["Decrepit", "Arboreal"];
+static GENETICS_24: &[&str] = &["Algorithmic", "Decrepit"];
+static GENETICS_25: &[&str] = &["Energetic", "Avian"];
+static GENETICS_26: &[&str] = &["Astral"];
+static GENETICS_27: &[&str] = &["Energetic"];
+static GENETICS_28: &[&str] = &["Decrepit", "Entropic", "Glitch"];
+static GENETICS_29: &[&str] = &["Cenozoic", "Entropic"];
+static GENETICS_30: &[&str] = &["Decrepit"];
+static GENETICS_31: &[&str] = &["Brutal", "Magic"];
+static GENETICS_32: &[&str] = &["Cenozoic"];
+static GENETICS_33: &[&str] = &["Arboreal", "Angelic"];
+static GENETICS_34: &[&str] = &["Arboreal"];
+static GENETICS_35: &[&str] = &["Arboreal"];
+static GENETICS_36: &[&str] = &["Glitch", "Energetic"];
+static GENETICS_37: &[&str] = &["Glitch", "Algorithmic"];
+static GENETICS_38: &[&str] = &["Glitch", "Entropic"];
+static GENETICS_39: &[&str] = &["Telekinetic", "Arboreal"];
+static GENETICS_40: &[&str] = &["Cenozoic"];
+static GENETICS_41: &[&str] = &["Glitch", "Magic"];
+static GENETICS_42: &[&str] = &["Angelic", "Brutal"];
+static GENETICS_43: &[&str] = &["Mechanical"];
+static GENETICS_44: &[&str] = &["Mechanical", "Avian"];
+static GENETICS_45: &[&str] = &["Magic"];
+static GENETICS_46: &[&str] = &["Astral"];
+static GENETICS_47: &[&str] = &["Telekinetic"];
+static GENETICS_48: &[&str] = &["Angelic", "Mechanical"];
+static GENETICS_49: &[&str] = &["Cenozoic", "Mechanical"];
+static GENETICS_50: &[&str] = &["Glitch"];
+
+static KEAL_0: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_0, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_1, count: 1 }];
+static KEAL_1: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_2, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_3, count: 1 }];
+static KEAL_2: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_4, count: 1 }];
+static KEAL_4: &[KealMeans] = &[KealMeans { name: "(in capital) Security Hacking", genetics: GENETICS_5, count: 1 }];
+static KEAL_5: &[KealMeans] = &[KealMeans { name: "Deceptive Mirror", genetics: GENETICS_6, count: 1 }, KealMeans { name: "Ensnaring Branches", genetics: GENETICS_7, count: 1 }];
+static KEAL_6: &[KealMeans] = &[KealMeans { name: "Crushing Hope", genetics: GENETICS_8, count: 1 }, KealMeans { name: "Chain Raid", genetics: GENETICS_9, count: 2 }];
+static KEAL_13: &[KealMeans] = &[KealMeans { name: "Sharp Waxy Fur", genetics: GENETICS_10, count: 1 }];
+static KEAL_14: &[KealMeans] = &[KealMeans { name: "Haunted Howl Coordination", genetics: GENETICS_11, count: 1 }];
+static KEAL_16: &[KealMeans] = &[KealMeans { name: "King's Mojo", genetics: GENETICS_12, count: 1 }];
+static KEAL_18: &[KealMeans] = &[KealMeans { name: "Ancient Forest Scythe", genetics: GENETICS_13, count: 1 }, KealMeans { name: "Mutter of Dorsay", genetics: GENETICS_14, count: 1 }, KealMeans { name: "Burial Slumber", genetics: GENETICS_15, count: 1 }];
+static KEAL_20: &[KealMeans] = &[KealMeans { name: "Long Sword's Eternal Vision", genetics: GENETICS_16, count: 1 }];
+static KEAL_21: &[KealMeans] = &[KealMeans { name: "Defensive Sword", genetics: GENETICS_17, count: 1 }, KealMeans { name: "Gossamer Wings", genetics: GENETICS_18, count: 1 }];
+static KEAL_22: &[KealMeans] = &[KealMeans { name: "Dark Hope Maw", genetics: GENETICS_19, count: 1 }];
+static KEAL_26: &[KealMeans] = &[KealMeans { name: "Thwarting Dagger", genetics: GENETICS_20, count: 1 }, KealMeans { name: "Grotesk Wings", genetics: GENETICS_21, count: 1 }];
+static KEAL_28: &[KealMeans] = &[KealMeans { name: "Scout's Vision", genetics: GENETICS_22, count: 1 }, KealMeans { name: "Symbiont Barrage", genetics: GENETICS_23, count: 1 }];
+static KEAL_29: &[KealMeans] = &[KealMeans { name: "Quick Inject", genetics: GENETICS_24, count: 2 }];
+static KEAL_31: &[KealMeans] = &[KealMeans { name: "Ghostly Wisdom", genetics: GENETICS_25, count: 1 }];
+static KEAL_32: &[KealMeans] = &[KealMeans { name: "Osileth's Scale", genetics: GENETICS_26, count: 1 }, KealMeans { name: "Oshliath's Flame", genetics: GENETICS_27, count: 1 }];
+static KEAL_34: &[KealMeans] = &[KealMeans { name: "Sick Head", genetics: GENETICS_28, count: 1 }, KealMeans { name: "Rusting Sword", genetics: GENETICS_29, count: 1 }, KealMeans { name: "Dreaded Scratch", genetics: GENETICS_30, count: 1 }];
+static KEAL_36: &[KealMeans] = &[KealMeans { name: "Superficial Deck", genetics: GENETICS_31, count: 1 }, KealMeans { name: "Split Dimension Creeper", genetics: GENETICS_32, count: 1 }];
+static KEAL_37: &[KealMeans] = &[KealMeans { name: "Humming Arboreal Mass", genetics: GENETICS_33, count: 1 }, KealMeans { name: "Thriving Toxic Buds", genetics: GENETICS_34, count: 1 }];
+static KEAL_38: &[KealMeans] = &[KealMeans { name: "Vegan Chicken", genetics: GENETICS_35, count: 1 }];
+static KEAL_39: &[KealMeans] = &[KealMeans { name: "Digi-frying Breath", genetics: GENETICS_36, count: 1 }, KealMeans { name: "Dragon Core Codebase", genetics: GENETICS_37, count: 1 }, KealMeans { name: "Core Radiation Leak", genetics: GENETICS_38, count: 1 }];
+static KEAL_40: &[KealMeans] = &[KealMeans { name: "Mystical Misguidance", genetics: GENETICS_39, count: 1 }];
+static KEAL_43: &[KealMeans] = &[KealMeans { name: "(with bear only) Crushing Bite", genetics: GENETICS_40, count: 1 }, KealMeans { name: "(without bear only) Fairy Gold Curse", genetics: GENETICS_41, count: 1 }];
+static KEAL_47: &[KealMeans] = &[KealMeans { name: "Tear Drop Potion", genetics: GENETICS_42, count: 1 }];
+static KEAL_48: &[KealMeans] = &[KealMeans { name: "Hydraulic Punch", genetics: GENETICS_43, count: 1 }, KealMeans { name: "Pneumatic Impact Ratchet", genetics: GENETICS_44, count: 1 }];
+static KEAL_49: &[KealMeans] = &[KealMeans { name: "Subtle Chant", genetics: GENETICS_45, count: 1 }, KealMeans { name: "Universal Prayer", genetics: GENETICS_46, count: 1 }, KealMeans { name: "Inspired Followers", genetics: GENETICS_47, count: 1 }];
+static KEAL_51: &[KealMeans] = &[KealMeans { name: "Mechanized Swiftness", genetics: GENETICS_48, count: 1 }, KealMeans { name: "Tools at Hand", genetics: GENETICS_49, count: 1 }];
+static KEAL_53: &[KealMeans] = &[KealMeans { name: "Total Techno Conniption", genetics: GENETICS_50, count: 1 }];
 
 pub const CARD_COUNT: usize = 56;
 
@@ -29,18 +125,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Spirit"),
         habitat: Some("Nomad"),
         url: "/allele_sect_explorer/",
+        injury_tolerance: 3,
+        keal_means: KEAL_0,
+        movement: 1,
+        die: "",
+        brawl_sequence: "RrDC",
     },
     Card {
         slug: "arctechnic_wonderer",
         title: "Arctechnic Wonderer",
         layout: "Species",
         img_name: "arctechnic_wonderer.webp",
-        img_alt: "",
+        img_alt: "Mystic wielding a lantern with swirling fish spirits, set against an arctic backdrop with a far very cold city off in the distance. The beast she wears demonstrates her intimidating power, while providing warmth critical for survival.",
         tags: "ice arctic witch seal light aurora lantern city tundra lantern",
         genetic_disposition: Some("Endothermic"),
         motivation: Some("Survival"),
         habitat: Some("Volcanic"),
         url: "/arctechnic_wonderer/",
+        injury_tolerance: 2,
+        keal_means: KEAL_1,
+        movement: 1,
+        die: "D6",
+        brawl_sequence: "AnxM",
     },
     Card {
         slug: "artificer_of_the_salt_chancel",
@@ -53,6 +159,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Sacrifice"),
         habitat: Some("Water"),
         url: "/artificer_of_the_salt_chancel/",
+        injury_tolerance: 1,
+        keal_means: KEAL_2,
+        movement: 1,
+        die: "D20",
+        brawl_sequence: "FuOw",
     },
     Card {
         slug: "avian_keepers_den",
@@ -65,6 +176,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/avian_keepers_den/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "balanced_inline_processing_colony",
@@ -77,6 +193,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("service"),
         habitat: Some("DigitalCloud"),
         url: "/balanced_inline_processing_colony/",
+        injury_tolerance: 0,
+        keal_means: KEAL_4,
+        movement: 0,
+        die: "n/a ( D6 in capital )",
+        brawl_sequence: "Hh2Y",
     },
     Card {
         slug: "branwen_mantillusion_practitioner",
@@ -89,18 +210,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Service"),
         habitat: Some("Forest"),
         url: "/branwen_mantillusion_practitioner/",
+        injury_tolerance: 2,
+        keal_means: KEAL_5,
+        movement: 0,
+        die: "D20",
+        brawl_sequence: "IR2B",
     },
     Card {
         slug: "brox_the_defiant",
         title: "Brox The Defiant",
         layout: "Character",
         img_name: "brox_the_defiant.webp",
-        img_alt: "",
+        img_alt: "A bald over the top buff man with abs on his head encircled by chains weighing thousands of pounds (or kilograms. You know, they are EXTREMELY HEAVY). He stands ferociously atop a bone pile, are they his victims or is he about to become one of them?",
         tags: "slave bald ripped strong chains bone skeletal red ferocious",
         genetic_disposition: Some("Brutal"),
         motivation: Some("Service"),
         habitat: Some("Plains"),
         url: "/brox_the_defiant/",
+        injury_tolerance: 3,
+        keal_means: KEAL_6,
+        movement: 1,
+        die: "D20",
+        brawl_sequence: "FOFE",
     },
     Card {
         slug: "cartesian_sea",
@@ -113,6 +244,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/cartesian_sea/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "cloth",
@@ -125,18 +261,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/cloth/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "enchantress_of_cats",
         title: "Enchantress of Cats",
         layout: "Sabotage",
         img_name: "enchantress_of_cats.webp",
-        img_alt: "",
+        img_alt: "Creepy cat lady now complete with creepy cats. In a creepy cave. With creepy calligraphy among the corridors. Shiver.",
         tags: "cave cats witch old lady fire",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/enchantress_of_cats/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "feathers",
@@ -149,18 +295,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/feathers/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "feeding_the_piffions",
         title: "Feeding the Piffions",
         layout: "Trap",
         img_name: "feeding_the_piffions.webp",
-        img_alt: "Little old man dwarf feeds four legged pigeons. Likely remembering",
+        img_alt: "Little old man dwarf feeds four legged pigeons. Likely remembering when he told his grandpa he was old for doing so.",
         tags: "boat lake swamp marsh trees maples arch",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/feeding_the_piffions/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "freezing_of_the_heart",
@@ -173,6 +329,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/freezing_of_the_heart/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "frost_tipped_arctic_otter",
@@ -185,30 +346,45 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Survival"),
         habitat: Some("Mountain"),
         url: "/frost_tipped_arctic_otter/",
+        injury_tolerance: 1,
+        keal_means: KEAL_13,
+        movement: 1,
+        die: "D6",
+        brawl_sequence: "nqTG",
     },
     Card {
         slug: "gray_wolf_harbinger_of_night",
         title: "Gray Wolf: Harbinger of Night",
         layout: "Species",
         img_name: "gray_wolf_harbinger_of_night.webp",
-        img_alt: "",
+        img_alt: "A charming, cute, soft image styling of a gray wolf howling at the moon while at the edge of a cliff surrounded by forest.",
         tags: "wolf howling forest rock edge cliff moon night",
         genetic_disposition: Some("Astral"),
         motivation: Some("Spirit"),
         habitat: Some("Forest"),
         url: "/gray_wolf_harbinger_of_night/",
+        injury_tolerance: 1,
+        keal_means: KEAL_14,
+        movement: 1,
+        die: "D6",
+        brawl_sequence: "SWyA",
     },
     Card {
         slug: "hidden_portal_of_lower_dreadmont_cave",
         title: "Hidden Portal of Lower Dreadmont Cave",
         layout: "Sabotage",
         img_name: "hidden_portal_of_lower_dreadmont_cave.webp",
-        img_alt: "",
+        img_alt: "A mystical portal shining from the wall of a cave covered in stalactites and stalagmites. This is a skull of a dragon hinting at the great powers at play.",
         tags: "cave mystical skull dragon explorer",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/hidden_portal_of_lower_dreadmont_cave/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "hilbert_king_of_avian_frogs",
@@ -221,6 +397,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Passion"),
         habitat: Some("Forest"),
         url: "/hilbert_king_of_avian_frogs/",
+        injury_tolerance: 1,
+        keal_means: KEAL_16,
+        movement: 2,
+        die: "D6-D6",
+        brawl_sequence: "HMPU",
     },
     Card {
         slug: "honey",
@@ -233,18 +414,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/honey/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "illia_and_dorsay_the_buck_skull",
         title: "Illia and Dorsay the Buck Skull",
         layout: "Character",
         img_name: "illia_and_dorsay_the_buck_skull.webp",
-        img_alt: "",
+        img_alt: "The undead woodsy sprite smiles wickedly while wielding a scythe larger than herself. One wonders what she just did to be so happy...",
         tags: "bat wings deer skull trees jungle creepy scythe marsh",
         genetic_disposition: Some("Decrepit"),
         motivation: Some("Survival"),
         habitat: Some("Underground"),
         url: "/illia_and_dorsay_the_buck_skull/",
+        injury_tolerance: 2,
+        keal_means: KEAL_18,
+        movement: 1,
+        die: "D6-D6",
+        brawl_sequence: "WCA9",
     },
     Card {
         slug: "incubation_egg",
@@ -257,6 +448,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/incubation_egg/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "knightsoul_of_binding_time",
@@ -269,6 +465,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Duty"),
         habitat: Some("Nomad"),
         url: "/knightsoul_of_binding_time/",
+        injury_tolerance: 1,
+        keal_means: KEAL_20,
+        movement: 2,
+        die: "D20-D6-D6",
+        brawl_sequence: "Eppu",
     },
     Card {
         slug: "liliel_healing_fairy",
@@ -281,18 +482,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Duty"),
         habitat: Some("Nomad"),
         url: "/liliel_healing_fairy/",
+        injury_tolerance: 2,
+        keal_means: KEAL_21,
+        movement: 1,
+        die: "",
+        brawl_sequence: "H8wj",
     },
     Card {
         slug: "little_charm",
         title: "Little Charm",
         layout: "Species",
         img_name: "little_charm.webp",
-        img_alt: "",
+        img_alt: "A lost mermaid has ventured too deep. She finds light and grasps at it. Unfortunately, a gigantic anglerfish gapes in the background with sharp teeth poised for her kill.",
         tags: "anglerfish dark light mermaid ocean soul lost suffering",
         genetic_disposition: Some("Entropic"),
         motivation: Some("Possessor"),
         habitat: Some("Water"),
         url: "/little_charm/",
+        injury_tolerance: 1,
+        keal_means: KEAL_22,
+        movement: 0,
+        die: "D6-(+6)",
+        brawl_sequence: "YRkt",
     },
     Card {
         slug: "location_of_the_deep_apothecary_shop",
@@ -305,18 +516,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/location_of_the_deep_apothecary_shop/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "losetany_steppes",
         title: "Losetany Steppes",
         layout: "TerrainFeature",
         img_name: "losetany_steppes.webp",
-        img_alt: "A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer",
+        img_alt: "A sky filled with cloudy jellyfish envelopes a camp of yurts. A wonderer girl look upon with amazement while standing upon the ruins of a lost civilization.",
         tags: "jellyfish landscape camp yurt cloud night wonderer ruins statue mountains",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/losetany_steppes/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "meteor_shower",
@@ -329,6 +550,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/meteor_shower/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "mihela_cleanser_of_fields",
@@ -341,66 +567,96 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Satisfaction"),
         habitat: Some("Plains"),
         url: "/mihela_cleanser_of_fields/",
+        injury_tolerance: 2,
+        keal_means: KEAL_26,
+        movement: 1,
+        die: "",
+        brawl_sequence: "pVLu",
     },
     Card {
         slug: "mutant_hide_and_seek",
         title: "Mutant Hide and Seek",
         layout: "Sabotage",
         img_name: "mutant_hide_and_seek.webp",
-        img_alt: "",
+        img_alt: "A researcher on a foreign planet (probably) is observing a mythical creature turned real (maybe) while patiently waiting (definitely) and not thinking of smoking (not true).",
         tags: "mutant poem stench smell noise mishmash beast mythical moon heroine",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/mutant_hide_and_seek/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "myrthvither_raven",
         title: "Myrthvither Raven",
         layout: "Species",
         img_name: "myrthvither_raven.webp",
-        img_alt: "",
+        img_alt: "wings of palm leaves, body of flowers and thorns, nature's flora compose this raven",
         tags: "raven plant flower thorns crow",
         genetic_disposition: Some("Avian"),
         motivation: Some("Satisfaction"),
         habitat: Some("Nomad"),
         url: "/myrthvither_raven/",
+        injury_tolerance: 0,
+        keal_means: KEAL_28,
+        movement: 2,
+        die: "Base 3",
+        brawl_sequence: "ZrrD",
     },
     Card {
         slug: "neural_network_synapse_virus",
         title: "Neural Network Synapse Virus",
         layout: "Species",
         img_name: "neural_network_synapse_virus.webp",
-        img_alt: "",
+        img_alt: "what does a computer think of itself in abstract. This apparently? Wires, blocks, spheres.",
         tags: "node block brain synapse computer lines web neuron",
         genetic_disposition: Some("Algorithmic"),
         motivation: Some("Possessor"),
         habitat: Some("DigitalCloud"),
         url: "/neural_network_synapse_virus/",
+        injury_tolerance: 2,
+        keal_means: KEAL_29,
+        movement: 0,
+        die: "D6",
+        brawl_sequence: "ojod",
     },
     Card {
         slug: "onironauta",
         title: "Onironauta",
         layout: "Sabotage",
         img_name: "onironauta.webp",
-        img_alt: "",
+        img_alt: "If dreams are made of these pink scapes with twin headed goats and storms, that girl running against the wind can keep them!",
         tags: "pink girl old master psycodelic storm tree mushroom two headed goat horse cloak",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/onironauta/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "orbs_trail",
         title: "Orb's Trail",
         layout: "Species",
         img_name: "orbs_trail.webp",
-        img_alt: "",
+        img_alt: "A shiny white glowing spirit owl in a dark forest whisks away lost orb spirits.",
         tags: "owl ghost trees forest dark lost soul guide wasted",
         genetic_disposition: Some("Avian"),
         motivation: Some("Duty"),
         habitat: Some("Nomad"),
         url: "/orbs_trail/",
+        injury_tolerance: 1,
+        keal_means: KEAL_31,
+        movement: 2,
+        die: "Base 3",
+        brawl_sequence: "brOL",
     },
     Card {
         slug: "oshliath_and_osileth",
@@ -413,18 +669,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Survival"),
         habitat: Some("Mountain"),
         url: "/oshliath_and_osileth/",
+        injury_tolerance: 2,
+        keal_means: KEAL_32,
+        movement: 1,
+        die: "D20-D6",
+        brawl_sequence: "KVph",
     },
     Card {
         slug: "palace_of_the_allele_sect",
         title: "Palace of the Allele Sect",
         layout: "TerrainFeature",
         img_name: "palace_of_the_allele_sect.webp",
-        img_alt: "Explorer gazing upon an almost icicle like palace nestled in a valley",
+        img_alt: "Explorer gazing upon an almost icicle like palace nestled in a valley with a lake.",
         tags: "mountain nomad lake palace",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/palace_of_the_allele_sect/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "parched_traveler",
@@ -437,6 +703,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Conscience"),
         habitat: Some("Volcanic"),
         url: "/parched_traveler/",
+        injury_tolerance: 0,
+        keal_means: KEAL_34,
+        movement: 1,
+        die: "D6-D6",
+        brawl_sequence: "oOnN",
     },
     Card {
         slug: "passage_among_maples",
@@ -449,6 +720,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/passage_among_maples/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "plane_table_joker",
@@ -461,6 +737,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Satisfaction"),
         habitat: Some("Plains"),
         url: "/plane_table_joker/",
+        injury_tolerance: 3,
+        keal_means: KEAL_36,
+        movement: 1,
+        die: "D6",
+        brawl_sequence: "hLwQ",
     },
     Card {
         slug: "pyrostegia_dragon",
@@ -473,6 +754,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Spirit"),
         habitat: Some("Mountain"),
         url: "/pyrostegia_dragon/",
+        injury_tolerance: 2,
+        keal_means: KEAL_37,
+        movement: 0,
+        die: "D20",
+        brawl_sequence: "G8OO",
     },
     Card {
         slug: "rooster_calling_of_light",
@@ -485,6 +771,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Duty"),
         habitat: Some("Mountain"),
         url: "/rooster_calling_of_light/",
+        injury_tolerance: 1,
+        keal_means: KEAL_38,
+        movement: 1,
+        die: "",
+        brawl_sequence: "BB5S",
     },
     Card {
         slug: "sboi_threat_plus_plus",
@@ -497,18 +788,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Possessor"),
         habitat: Some("DigitalCloud"),
         url: "/sboi_threat_plus_plus/",
+        injury_tolerance: 2,
+        keal_means: KEAL_39,
+        movement: 1,
+        die: "",
+        brawl_sequence: "J7a0",
     },
     Card {
         slug: "self_care",
         title: "Self Care",
         layout: "Species",
         img_name: "self_care.webp",
-        img_alt: "",
+        img_alt: "The beautiful spirit of the forest breaks to have tea. I guess this forest is british.",
         tags: "tea coffee forest spirit goddess lovely green",
         genetic_disposition: Some("Telekinetic"),
         motivation: Some("Possessor"),
         habitat: Some("Forest"),
         url: "/self_care/",
+        injury_tolerance: 0,
+        keal_means: KEAL_40,
+        movement: 0,
+        die: "D6",
+        brawl_sequence: "P2IR",
     },
     Card {
         slug: "shards_desert",
@@ -521,18 +822,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/shards_desert/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "spectral_lands_decree_and_hearing",
         title: "Spectral Land's Decree and Hearing",
         layout: "Sabotage",
         img_name: "spectral_lands_decree_and_hearing.webp",
-        img_alt: "black and white abstract which looks different in different orientations",
+        img_alt: "black and white abstract which looks different in different orientations currently it looks as if two figures are present on subjugated to the other",
         tags: "black white abstract cave spirit king subject",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/spectral_lands_decree_and_hearing/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "sprite_of_wilds_spirit",
@@ -545,6 +856,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Sacrifice"),
         habitat: Some("Mountain"),
         url: "/sprite_of_wilds_spirit/",
+        injury_tolerance: 2,
+        keal_means: KEAL_43,
+        movement: 0,
+        die: "(without bear) D6-D6, (with bear) D20",
+        brawl_sequence: "k8on",
     },
     Card {
         slug: "sticks",
@@ -557,6 +873,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/sticks/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "string",
@@ -569,6 +890,11 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/string/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "suspended_animation",
@@ -581,18 +907,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/suspended_animation/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "tears_for_oly",
         title: "Tears for Oly",
         layout: "Character",
         img_name: "tears_for_oly.webp",
-        img_alt: "",
+        img_alt: "A male angel floats in the clouds in front of an public center from an ancient civilization, cringing and crying for what only he knows.",
         tags: "sky city ancient rainbow colorful wing halo flow blonde",
         genetic_disposition: Some("Angelic"),
         motivation: Some("Sacrifice"),
         habitat: Some("Heavens"),
         url: "/tears_for_oly/",
+        injury_tolerance: 1,
+        keal_means: KEAL_47,
+        movement: 3,
+        die: "D6",
+        brawl_sequence: "F3GW",
     },
     Card {
         slug: "tejas_curious_mech",
@@ -605,18 +941,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: Some("Passion"),
         habitat: Some("Nomad"),
         url: "/tejas_curious_mech/",
+        injury_tolerance: 1,
+        keal_means: KEAL_48,
+        movement: 1,
+        die: "D6-D6",
+        brawl_sequence: "WWpl",
     },
     Card {
         slug: "the_causal_sophist",
         title: "The Causal Sophist",
         layout: "Character",
         img_name: "the_causal_sophist.webp",
-        img_alt: "",
+        img_alt: "A lady dressed in lavender rests casually against a swirling force amidst the stars. Her gaze matches the depth of the universe behind her.",
         tags: "philosopher stars universe flow ponder silk power",
         genetic_disposition: Some("Magic"),
         motivation: Some("Passion"),
         habitat: Some("Heavens"),
         url: "/the_causal_sophist/",
+        injury_tolerance: 2,
+        keal_means: KEAL_49,
+        movement: 1,
+        die: "Base 2 + D6",
+        brawl_sequence: "bSGc",
     },
     Card {
         slug: "timebattle",
@@ -629,18 +975,28 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/timebattle/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "tira_marvelous_myriad",
         title: "Tira Marvelous Myriad",
         layout: "Character",
         img_name: "tira_marvelous_myriad.webp",
-        img_alt: "",
+        img_alt: "A vixen traversing scaffolding high in the clouds using four automated climbing arms. Presumably repairing something.",
         tags: "sky hands build machine wand red industrial",
         genetic_disposition: Some("Mechanical"),
         motivation: Some("Service"),
         habitat: Some("Heavens"),
         url: "/tira_marvelous_myriad/",
+        injury_tolerance: 2,
+        keal_means: KEAL_51,
+        movement: 1,
+        die: "D6-D6 (Option to Re-roll)",
+        brawl_sequence: "KCW4",
     },
     Card {
         slug: "to_catch_a_spirit",
@@ -653,41 +1009,61 @@ pub static CARDS: [Card; CARD_COUNT] = [
         motivation: None,
         habitat: None,
         url: "/to_catch_a_spirit/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "unburdened_central",
         title: "Unburdened Central",
         layout: "Character",
         img_name: "unburdened_central.webp",
-        img_alt: "",
+        img_alt: "Crazed cyber punk chick stormed the digital world and pulled out all the wires...",
         tags: "mohawk crazy cyber punk wires cables holographic screen goggles glasses",
         genetic_disposition: Some("Glitch"),
         motivation: Some("Conscience"),
         habitat: Some("DigitalCloud"),
         url: "/unburdened_central/",
+        injury_tolerance: 1,
+        keal_means: KEAL_53,
+        movement: 1,
+        die: "D6",
+        brawl_sequence: "L-E7",
     },
     Card {
         slug: "ushered_through_sabina_emporium",
         title: "Ushered Through Sabina Emporium",
         layout: "Trap",
         img_name: "ushered_through_sabina_emporium.webp",
-        img_alt: "A fantastic bustling emporium with vendors galore. Likely owned by a huntsman",
+        img_alt: "A fantastic bustling emporium with vendors galore. Likely owned by a huntsman as a dragon skeleton hangs high overhead. Then again maybe it is just waiting for the perfect moment to spring to life and get the feast of a lifetime...",
         tags: "crowd dragon skeleton manner shop mall detailed",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/ushered_through_sabina_emporium/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
     Card {
         slug: "what_do_you_see_in_the_breach",
         title: "What Do You See in the Breach",
         layout: "Sabotage",
         img_name: "what_do_you_see_in_the_breach.webp",
-        img_alt: "I could tell you what I see, but that is just my interpretation of this",
+        img_alt: "I could tell you what I see, but that is just my interpretation of this abstract piece. I don't want my interpretation to color your experience as this seems to be the opposite of what the artist intended.",
         tags: "African head light bulb zulu mosaic all seeing eye color",
         genetic_disposition: None,
         motivation: None,
         habitat: None,
         url: "/what_do_you_see_in_the_breach/",
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "",
+        brawl_sequence: "",
     },
 ];

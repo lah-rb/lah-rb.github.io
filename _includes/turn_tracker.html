@@ -1,4 +1,7 @@
-<div x-data="{ showTurnTracker: false, alarms: $persist([]) }">
+<!-- Phase 3b: Turn tracker with HTMX + WASM state management.
+     The popover toggle (showTurnTracker) stays Alpine — purely visual.
+     Timer creation form is loaded from WASM. Alarm state lives in WASM memory. -->
+<div x-data="{ showTurnTracker: false }">
     <svg xmlns="http://www.w3.org/2000/svg" 
     @click="showTurnTracker = !showTurnTracker"
     x-ref="turnTracker"
@@ -13,24 +16,17 @@
     <div x-show="showTurnTracker" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
-    class="{{ include.menuClass }} grid grid-cols-1 h-fit w-40">
-        <div class="grid grid-cols-1" x-data="{ turnsToAlarm: 1 }">
-            <input type="range" name="turnsSelector" id="turnsSelector" min="1" max="10" x-model="turnsToAlarm" class="mr-4"><label for="turnsSelector"><strong x-text="turnsToAlarm"></strong> Diel Cycles</label>
-            <button aria-label="Submit turn timer" class="{{ site.data.templates.red-btn }} mr-4" @click="showTurnTracker = false; alarms.push(turnsToAlarm)">New Timer</button>
-        </div>
+    class="{{ include.menuClass }} grid grid-cols-1 h-fit w-40"
+    hx-get="/api/game/turns"
+    hx-trigger="intersect once"
+    hx-swap="innerHTML">
     </div>
-    <div x-data="{showAlarms: $persist(true)}" class="fixed top-0 left-0 m-6 grid grid-cols-1" x-transition x-show="alarms.length != 0">
-        <div x-collapse x-show="showAlarms">
-            <p class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none" @click="alarms = alarms.map((alarm) => alarm - 1 ), alarms = alarms.filter((alarm) => alarm != -1)">Click here on each diel cycle roll</p>
-            <template x-for="alarm in alarms">
-                <div class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 flex" x-transition><p x-show="alarm == 0">Complete, click above to close</p><p x-show="alarm != 0">Turns to Alarm: <strong x-show="alarm != 0" x-text="alarm"></strong></p></div>
-            </template>
-        </div>
-        <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
-            @click="showAlarms = !showAlarms" :class="{ 'rotate-180': !showAlarms }" x-transition
-            class="fill-none stroke-2 z-50 {{ include.base_stroke }} w-6 h-6 mb-2 justify-left {% unless page.landscape %} lg:stroke-kip-goldenrod {% endunless %}">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-        </svg>
-    </div>
+</div>
 
+<!-- Floating alarm display — loaded from WASM, positioned top-left -->
+<div id="turn-alarms" class="fixed top-0 left-0 m-6 grid grid-cols-1"
+     hx-get="/api/game/turns?display=alarms"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     hx-target="this">
 </div>

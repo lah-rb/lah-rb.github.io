@@ -57,7 +57,7 @@ background_color
 
     {% if include.search %}
       <button class="flex justify-center pt-2" aria-label="Search cards" x-ref="search" @click="showSearchBar = !showSearchBar; filter.all = !filter.all; if (!showSearchBar) { searchQuery = ''; }; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })">
-        <svg class="h-10 w-10 stroke-2 {{ include.base_stroke }} fill-amber-50 hover:stroke-kip-red fill-amber-50" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="h-10 w-10 stroke-2 {{ include.base_stroke }} hover:stroke-kip-red fill-amber-50" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
         </svg>
       </button>
@@ -86,41 +86,41 @@ background_color
     {% endif %}
 
     {% if include.damage_tracker %}
-      <button @click="showKealModal = !showKealModal" class="flex justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" 
-          viewBox="0 0 24 24"
-          {% unless page.landscape %}
-            :class="'lg:fill-kip-goldenrod'"
-          {% endunless %}
-          class="h-12 w-12 {{ base_fill }} hover:fill-kip-red z-auto active:fill-kip-drk-sienna">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-        </svg>    
-      </button>
+      {% capture cardSlug %}{{ page.permalink | remove: '/' }}{% endcapture %}
+      <div x-data="{ showKealModal: false }">
+        <button @click="showKealModal = !showKealModal" class="flex justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24"
+            {% unless page.landscape %}
+              :class="'lg:fill-kip-goldenrod'"
+            {% endunless %}
+            class="h-12 w-12 {{ base_fill }} hover:fill-kip-red z-auto active:fill-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+          </svg>    
+        </button>
 
-      <script>
-        function makeid(length) {
-            let result = '';
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            const charactersLength = characters.length;
-            let counter = 0;
-            while (counter < length) {
-              result += characters.charAt(Math.floor(Math.random() * charactersLength));
-              counter += 1;
-            }
-            return result;
-        }
-      </script>
-
-      <!-- include here instead of damage_tracker.html for formatting consistency -->
-      {% include modal.html 
-        showCriteria='showKealModal' 
-        modalTitle='Clear Notice' 
-        modalMessage='You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?'
-        acceptButtonText='Clear All Damage' 
-        acceptClick='clearDamage = makeid(9); showKealModal = !showKealModal'
-        denyButtonText="Don't Clear"
-        denyClick='showKealModal = !showKealModal'
-      %}
+        <!-- Phase 3b: Clear damage modal — showKealModal is now local x-data scope.
+             Accept action POSTs to WASM clear_all route, then refreshes current card's tracker.
+             Complex JS extracted to named function because Jekyll include params can't contain {} -->
+        <script>
+          function kipukasClearAllDamage() {
+            htmx.ajax('POST', '/api/game/damage', {
+              values: {action: 'clear_all'},
+              target: '#keal-damage-{{ cardSlug }}',
+              swap: 'innerHTML'
+            });
+          }
+        </script>
+        {% include modal.html 
+          showCriteria='showKealModal' 
+          modalTitle='Clear Notice' 
+          modalMessage='You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?'
+          acceptButtonText='Clear All Damage' 
+          acceptClick='kipukasClearAllDamage(); showKealModal = false'
+          denyButtonText='Cancel'
+          denyClick='showKealModal = !showKealModal'
+        %}
+      </div>
     {% endif %}
 
     {% if include.showCardInfo %}

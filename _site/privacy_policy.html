@@ -43,10 +43,11 @@
       });
     </script>
     <script defer src="/assets/js/alpine.bundle.min.js"></script>
-    <script defer src="/assets/js/htmx.min.js"></script>
 
     <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
     <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/htmx.min.js"></script>
 
     <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
     <script src="/assets/js/qr-camera.js" defer></script>
@@ -59,12 +60,10 @@
   <body x-data="{ 
                   filter: { all: true }, 
                   showInstallModal: false,
-                  showKealModal: false,
                   searchQuery: '',
                   top: true,
                   previousURL: $persist(''),
                   currentURL: $persist(''),
-                  clearDamage: $persist('U7G789Rc'),
                   hideInstallButton: $persist(false),
                 }" 
         class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh"
