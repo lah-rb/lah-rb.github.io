@@ -53,6 +53,9 @@
     <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
     <script src="/assets/js/qr-camera.js" defer></script>
 
+    <!-- Phase 4: Multiplayer WebRTC manager -->
+    <script src="/assets/js/kipukas-multiplayer.js" defer></script>
+
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
 
@@ -365,6 +368,55 @@ background_color
      hx-swap="innerHTML"
      hx-target="this">
 </div>
+
+    
+
+    
+      
+      <!-- Phase 4: Multiplayer room connection + fists combat tool -->
+<div x-data="{ showMultiplayer: false }" class="relative place-content-center">
+  <!-- Multiplayer toggle button (placeholder wifi-signal icon) -->
+  <button aria-label="Toggle Multiplayer" x-ref="mpButton" @click="showMultiplayer = !showMultiplayer">
+    <svg xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      
+        :class="'lg:fill-kip-goldenrod'"
+      
+      class="
+    fill-slate-200
+   h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna fill-current">
+      <!-- Placeholder: signal/wifi icon -->
+      <path fill-rule="evenodd" d="M1.371 8.143c5.858-5.857 15.356-5.857 21.213 0a.75.75 0 0 1 0 1.061.75.75 0 0 1-1.06 0c-5.273-5.272-13.821-5.272-19.092 0a.75.75 0 0 1-1.06-1.06Zm3.182 3.182c4.1-4.1 10.749-4.1 14.85 0a.75.75 0 1 1-1.061 1.06 8.25 8.25 0 0 0-12.728 0 .75.75 0 0 1-1.06-1.06Zm3.182 3.182a6 6 0 0 1 8.486 0 .75.75 0 1 1-1.06 1.06 4.5 4.5 0 0 0-6.364 0 .75.75 0 0 1-1.06-1.06ZM12 18a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H12.75A.75.75 0 0 1 12 18Z" clip-rule="evenodd" />
+    </svg>
+  </button>
+
+  <!-- Room status panel (anchored dropdown) -->
+  <div x-show="showMultiplayer" x-cloak
+    x-anchor.right-end.offset.10="$refs.mpButton"
+    x-transition.duration.350ms
+    class="
+    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+   h-fit w-72">
+    <div id="room-status"
+      hx-get="/api/room/status"
+      hx-trigger="load"
+      hx-swap="innerHTML">
+    </div>
+
+    <!-- Fists combat section (only on card pages with keal means) -->
+    
+    <div class="border-t border-slate-300">
+      <div id="fists-container"
+        hx-get="/api/room/fists?card=the_causal_sophist"
+        hx-trigger="load"
+        hx-swap="innerHTML">
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+    
 
     
 
