@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
 <meta property="og:description" content="The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors." />
-<link rel="canonical" href="https://www.kipukas.cards/passage_among_maples/" />
-<meta property="og:url" content="https://www.kipukas.cards/passage_among_maples/" />
+<link rel="canonical" href="http://localhost:4000/passage_among_maples/" />
+<meta property="og:url" content="http://localhost:4000/passage_among_maples/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-19T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Passage Among Maples" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-19T00:00:00-06:00","datePublished":"2021-10-19T00:00:00-06:00","description":"The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.","headline":"Passage Among Maples","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/passage_among_maples/"},"url":"https://www.kipukas.cards/passage_among_maples/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-19T00:00:00-06:00","datePublished":"2021-10-19T00:00:00-06:00","description":"The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.","headline":"Passage Among Maples","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/passage_among_maples/"},"url":"http://localhost:4000/passage_among_maples/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -387,6 +387,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-passage_among_maples',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=passage_among_maples', {
+                target: '#keal-damage-passage_among_maples',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

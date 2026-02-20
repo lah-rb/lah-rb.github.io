@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="‘Like many things, it is a manner of causal findings. The infinite space in the universe facilitates the requirements of the stars. Therefore, the stars are present. If the needs of the start were unmet in this universe, surely our children would not be able to take them in their wondrous gaze each and every night.’ Teachings like these make up the core foundation of the philosophy of the Causal Sophist. Generally, the reach of her pondering is far too great for her meager, human understanding. Still, these musings take many lesser minds to places they could not dare to reach on their own. In every right, she is a genius, so few can spot the subtle flaws present in her propositions. Those who can, however, are left feeling like not much has actually been presented. Still, both her and her most devoted followers are claimed to possess mastery of supernatural powers stemming from her other worldly oneness with the expansive minds flowing through the universe." />
 <meta property="og:description" content="‘Like many things, it is a manner of causal findings. The infinite space in the universe facilitates the requirements of the stars. Therefore, the stars are present. If the needs of the start were unmet in this universe, surely our children would not be able to take them in their wondrous gaze each and every night.’ Teachings like these make up the core foundation of the philosophy of the Causal Sophist. Generally, the reach of her pondering is far too great for her meager, human understanding. Still, these musings take many lesser minds to places they could not dare to reach on their own. In every right, she is a genius, so few can spot the subtle flaws present in her propositions. Those who can, however, are left feeling like not much has actually been presented. Still, both her and her most devoted followers are claimed to possess mastery of supernatural powers stemming from her other worldly oneness with the expansive minds flowing through the universe." />
-<link rel="canonical" href="https://www.kipukas.cards/the_causal_sophist/" />
-<meta property="og:url" content="https://www.kipukas.cards/the_causal_sophist/" />
+<link rel="canonical" href="http://localhost:4000/the_causal_sophist/" />
+<meta property="og:url" content="http://localhost:4000/the_causal_sophist/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-09-20T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="The Causal Sophist" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-09-20T00:00:00-06:00","datePublished":"2024-09-20T00:00:00-06:00","description":"‘Like many things, it is a manner of causal findings. The infinite space in the universe facilitates the requirements of the stars. Therefore, the stars are present. If the needs of the start were unmet in this universe, surely our children would not be able to take them in their wondrous gaze each and every night.’ Teachings like these make up the core foundation of the philosophy of the Causal Sophist. Generally, the reach of her pondering is far too great for her meager, human understanding. Still, these musings take many lesser minds to places they could not dare to reach on their own. In every right, she is a genius, so few can spot the subtle flaws present in her propositions. Those who can, however, are left feeling like not much has actually been presented. Still, both her and her most devoted followers are claimed to possess mastery of supernatural powers stemming from her other worldly oneness with the expansive minds flowing through the universe.","headline":"The Causal Sophist","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/the_causal_sophist/"},"url":"https://www.kipukas.cards/the_causal_sophist/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-09-20T00:00:00-06:00","datePublished":"2024-09-20T00:00:00-06:00","description":"‘Like many things, it is a manner of causal findings. The infinite space in the universe facilitates the requirements of the stars. Therefore, the stars are present. If the needs of the start were unmet in this universe, surely our children would not be able to take them in their wondrous gaze each and every night.’ Teachings like these make up the core foundation of the philosophy of the Causal Sophist. Generally, the reach of her pondering is far too great for her meager, human understanding. Still, these musings take many lesser minds to places they could not dare to reach on their own. In every right, she is a genius, so few can spot the subtle flaws present in her propositions. Those who can, however, are left feeling like not much has actually been presented. Still, both her and her most devoted followers are claimed to possess mastery of supernatural powers stemming from her other worldly oneness with the expansive minds flowing through the universe.","headline":"The Causal Sophist","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/the_causal_sophist/"},"url":"http://localhost:4000/the_causal_sophist/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -395,6 +395,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-the_causal_sophist',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=the_causal_sophist', {
+                target: '#keal-damage-the_causal_sophist',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

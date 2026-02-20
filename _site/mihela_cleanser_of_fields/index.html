@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death." />
 <meta property="og:description" content="Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death." />
-<link rel="canonical" href="https://www.kipukas.cards/mihela_cleanser_of_fields/" />
-<meta property="og:url" content="https://www.kipukas.cards/mihela_cleanser_of_fields/" />
+<link rel="canonical" href="http://localhost:4000/mihela_cleanser_of_fields/" />
+<meta property="og:url" content="http://localhost:4000/mihela_cleanser_of_fields/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-10-11T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Mihela: Cleanser of Fields" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death.","headline":"Mihela: Cleanser of Fields","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/mihela_cleanser_of_fields/"},"url":"https://www.kipukas.cards/mihela_cleanser_of_fields/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-10-11T00:00:00-06:00","datePublished":"2021-10-11T00:00:00-06:00","description":"Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield’s dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death.","headline":"Mihela: Cleanser of Fields","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/mihela_cleanser_of_fields/"},"url":"http://localhost:4000/mihela_cleanser_of_fields/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -395,6 +395,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-mihela_cleanser_of_fields',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=mihela_cleanser_of_fields', {
+                target: '#keal-damage-mihela_cleanser_of_fields',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

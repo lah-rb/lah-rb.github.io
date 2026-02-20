@@ -48,9 +48,8 @@ cleanupOutdatedCaches();
 // This route intercepts them and relays to the page's kipukas-api.js bridge,
 // which forwards to the WASM Web Worker for processing.
 // A MessageChannel provides a direct response path from the worker back to here.
-registerRoute(
-  ({url}) => url.pathname.startsWith('/api/'),
-  async ({request, event}) => {
+const wasmApiMatcher = ({url}) => url.pathname.startsWith('/api/');
+const wasmApiHandler = async ({request, event}) => {
     const client = await self.clients.get(event.clientId);
     if (!client) {
       return new Response(
@@ -95,8 +94,13 @@ registerRoute(
         body: body,
       }, [channel.port2]);
     });
-  }
-);
+  };
+
+// Register for all HTTP methods (Workbox registerRoute defaults to GET only)
+registerRoute(wasmApiMatcher, wasmApiHandler);         // GET
+registerRoute(wasmApiMatcher, wasmApiHandler, 'POST');  // POST
+registerRoute(wasmApiMatcher, wasmApiHandler, 'PUT');   // PUT
+registerRoute(wasmApiMatcher, wasmApiHandler, 'PATCH'); // PATCH
 
 // ============================================
 // RUNTIME CACHING STRATEGIES

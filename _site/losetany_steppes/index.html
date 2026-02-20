@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This kipuka contains many expansive grasslands and wastelands. For the people living here, it is considered a right of passage to survive a journey carrying their village token to the wizened elder. To complete their task they must face a walk through endless miles of grasslands, followed by a guided crossing beyond the regions tallest peak, and finished with a 3 day trek trough the wastes. After setting out with unsure glee, one of the tribe’s young girls, Doran, just completed the first leg of her journey after finding the guide’s camp near calumniator ruinas. Almost as a sign of her inevitable success, a bloom of the Cumulon jellyfish fills the night sky. Their waving lappets give Doran the sense that the creatures want to greet her into the the next chapters of her life. As she looks upon the glowing wisps of vapor, calm and reassurance wash over Doran. Now she can prepare for the next difficult steps of her journey." />
 <meta property="og:description" content="This kipuka contains many expansive grasslands and wastelands. For the people living here, it is considered a right of passage to survive a journey carrying their village token to the wizened elder. To complete their task they must face a walk through endless miles of grasslands, followed by a guided crossing beyond the regions tallest peak, and finished with a 3 day trek trough the wastes. After setting out with unsure glee, one of the tribe’s young girls, Doran, just completed the first leg of her journey after finding the guide’s camp near calumniator ruinas. Almost as a sign of her inevitable success, a bloom of the Cumulon jellyfish fills the night sky. Their waving lappets give Doran the sense that the creatures want to greet her into the the next chapters of her life. As she looks upon the glowing wisps of vapor, calm and reassurance wash over Doran. Now she can prepare for the next difficult steps of her journey." />
-<link rel="canonical" href="https://www.kipukas.cards/losetany_steppes/" />
-<meta property="og:url" content="https://www.kipukas.cards/losetany_steppes/" />
+<link rel="canonical" href="http://localhost:4000/losetany_steppes/" />
+<meta property="og:url" content="http://localhost:4000/losetany_steppes/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2023-12-21T00:00:00-07:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Losetany Steppes" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-12-21T00:00:00-07:00","datePublished":"2023-12-21T00:00:00-07:00","description":"This kipuka contains many expansive grasslands and wastelands. For the people living here, it is considered a right of passage to survive a journey carrying their village token to the wizened elder. To complete their task they must face a walk through endless miles of grasslands, followed by a guided crossing beyond the regions tallest peak, and finished with a 3 day trek trough the wastes. After setting out with unsure glee, one of the tribe’s young girls, Doran, just completed the first leg of her journey after finding the guide’s camp near calumniator ruinas. Almost as a sign of her inevitable success, a bloom of the Cumulon jellyfish fills the night sky. Their waving lappets give Doran the sense that the creatures want to greet her into the the next chapters of her life. As she looks upon the glowing wisps of vapor, calm and reassurance wash over Doran. Now she can prepare for the next difficult steps of her journey.","headline":"Losetany Steppes","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/losetany_steppes/"},"url":"https://www.kipukas.cards/losetany_steppes/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-12-21T00:00:00-07:00","datePublished":"2023-12-21T00:00:00-07:00","description":"This kipuka contains many expansive grasslands and wastelands. For the people living here, it is considered a right of passage to survive a journey carrying their village token to the wizened elder. To complete their task they must face a walk through endless miles of grasslands, followed by a guided crossing beyond the regions tallest peak, and finished with a 3 day trek trough the wastes. After setting out with unsure glee, one of the tribe’s young girls, Doran, just completed the first leg of her journey after finding the guide’s camp near calumniator ruinas. Almost as a sign of her inevitable success, a bloom of the Cumulon jellyfish fills the night sky. Their waving lappets give Doran the sense that the creatures want to greet her into the the next chapters of her life. As she looks upon the glowing wisps of vapor, calm and reassurance wash over Doran. Now she can prepare for the next difficult steps of her journey.","headline":"Losetany Steppes","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/losetany_steppes/"},"url":"http://localhost:4000/losetany_steppes/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -387,6 +387,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-losetany_steppes',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=losetany_steppes', {
+                target: '#keal-damage-losetany_steppes',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

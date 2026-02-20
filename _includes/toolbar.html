@@ -108,6 +108,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-{{ cardSlug }}',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card={{ cardSlug }}', {
+                target: '#keal-damage-{{ cardSlug }}',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

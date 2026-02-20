@@ -122,6 +122,18 @@ wasmWorker.onerror = (err) => {
 };
 
 // ============================================
+// Phase 3b: PERSIST_STATE listener — auto-save after every game mutation
+// ============================================
+// The WASM worker sends { type: 'PERSIST_STATE', json } after every
+// POST to /api/game/*. We write directly to localStorage here on the
+// main thread — no async round-trips, no unreliable beforeunload.
+wasmWorker.addEventListener('message', (event) => {
+  if (event.data?.type === 'PERSIST_STATE') {
+    localStorage.setItem('kipukas_game_state', event.data.json);
+  }
+});
+
+// ============================================
 // Phase 3b: MIGRATE Alpine $persist data to WASM game state
 // ============================================
 // On first load after Phase 3b update, reads existing localStorage keys
@@ -230,47 +242,29 @@ wasmWorker.onerror = (err) => {
 })();
 
 // ============================================
-// Phase 3b: PERSIST game state on page unload
+// Phase 3b: RESTORE game state from localStorage on load
 // ============================================
-// Before the user navigates away, persist the WASM game state to
-// localStorage so it survives page reloads and browser restarts.
-window.addEventListener('beforeunload', () => {
-  // Fire-and-forget: POST to persist route via the worker
-  const channel = new MessageChannel();
-  channel.port1.onmessage = () => {}; // Response handled by the <script> in the response
-  wasmWorker.postMessage(
-    {
-      method: 'POST',
-      pathname: '/api/game/persist',
-      search: '',
-      body: '',
-    },
-    [channel.port2],
-  );
-});
-
-// Also restore state from localStorage on load (if previously persisted)
+// Send the import message immediately — the worker queues messages and
+// gates on `await wasmReady`, so this will be processed before any
+// HTMX `hx-trigger="load"` requests that arrive later.
 (function restorePersistedState() {
   const saved = localStorage.getItem('kipukas_game_state');
   if (!saved) return;
 
-  // Small delay to let WASM worker initialize
-  setTimeout(() => {
-    console.log('[kipukas-api] Restoring persisted game state from localStorage');
-    const channel = new MessageChannel();
-    channel.port1.onmessage = (msg) => {
-      if (msg.data.ok) {
-        console.log('[kipukas-api] Game state restored from localStorage');
-      }
-    };
-    wasmWorker.postMessage(
-      {
-        method: 'POST',
-        pathname: '/api/game/import',
-        search: '',
-        body: saved,
-      },
-      [channel.port2],
-    );
-  }, 100);
+  console.log('[kipukas-api] Restoring persisted game state from localStorage');
+  const channel = new MessageChannel();
+  channel.port1.onmessage = (msg) => {
+    if (msg.data.ok) {
+      console.log('[kipukas-api] Game state restored from localStorage');
+    }
+  };
+  wasmWorker.postMessage(
+    {
+      method: 'POST',
+      pathname: '/api/game/import',
+      search: '',
+      body: saved,
+    },
+    [channel.port2],
+  );
 })();

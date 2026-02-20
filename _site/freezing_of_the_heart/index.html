@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Svetlana is the heiress to a great and ancient fortune from a family who possesses great pride. As such, she was highly encouraged to pursue rigorous formal education in the sciences in order to offer great impact on the world and further her families name. She spent more than twice the average amount of time dedicated to her studies and emerged a prominent biophysicist whose work promoted the capabilities of cryogenics. Still, she often dreams of the life she desired when she was little. The life of free expression, the life of an artist. Svetlana, in her little free time, carves ice sculptures representative of her most recent research as catharsis to her present and past." />
 <meta property="og:description" content="Svetlana is the heiress to a great and ancient fortune from a family who possesses great pride. As such, she was highly encouraged to pursue rigorous formal education in the sciences in order to offer great impact on the world and further her families name. She spent more than twice the average amount of time dedicated to her studies and emerged a prominent biophysicist whose work promoted the capabilities of cryogenics. Still, she often dreams of the life she desired when she was little. The life of free expression, the life of an artist. Svetlana, in her little free time, carves ice sculptures representative of her most recent research as catharsis to her present and past." />
-<link rel="canonical" href="https://www.kipukas.cards/freezing_of_the_heart/" />
-<meta property="og:url" content="https://www.kipukas.cards/freezing_of_the_heart/" />
+<link rel="canonical" href="http://localhost:4000/freezing_of_the_heart/" />
+<meta property="og:url" content="http://localhost:4000/freezing_of_the_heart/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-11-19T00:00:00-07:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Freezing of the Heart" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-11-19T00:00:00-07:00","datePublished":"2021-11-19T00:00:00-07:00","description":"Svetlana is the heiress to a great and ancient fortune from a family who possesses great pride. As such, she was highly encouraged to pursue rigorous formal education in the sciences in order to offer great impact on the world and further her families name. She spent more than twice the average amount of time dedicated to her studies and emerged a prominent biophysicist whose work promoted the capabilities of cryogenics. Still, she often dreams of the life she desired when she was little. The life of free expression, the life of an artist. Svetlana, in her little free time, carves ice sculptures representative of her most recent research as catharsis to her present and past.","headline":"Freezing of the Heart","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/freezing_of_the_heart/"},"url":"https://www.kipukas.cards/freezing_of_the_heart/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2021-11-19T00:00:00-07:00","datePublished":"2021-11-19T00:00:00-07:00","description":"Svetlana is the heiress to a great and ancient fortune from a family who possesses great pride. As such, she was highly encouraged to pursue rigorous formal education in the sciences in order to offer great impact on the world and further her families name. She spent more than twice the average amount of time dedicated to her studies and emerged a prominent biophysicist whose work promoted the capabilities of cryogenics. Still, she often dreams of the life she desired when she was little. The life of free expression, the life of an artist. Svetlana, in her little free time, carves ice sculptures representative of her most recent research as catharsis to her present and past.","headline":"Freezing of the Heart","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/freezing_of_the_heart/"},"url":"http://localhost:4000/freezing_of_the_heart/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -395,6 +395,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-freezing_of_the_heart',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=freezing_of_the_heart', {
+                target: '#keal-damage-freezing_of_the_heart',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>

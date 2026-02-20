@@ -8,15 +8,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="You just never know when you’ll have to take a shower." />
 <meta property="og:description" content="You just never know when you’ll have to take a shower." />
-<link rel="canonical" href="https://www.kipukas.cards/meteor_shower/" />
-<meta property="og:url" content="https://www.kipukas.cards/meteor_shower/" />
+<link rel="canonical" href="http://localhost:4000/meteor_shower/" />
+<meta property="og:url" content="http://localhost:4000/meteor_shower/" />
 <meta property="og:site_name" content="Kipukas" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2020-09-27T00:00:00-06:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Meteor Shower" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2020-09-27T00:00:00-06:00","datePublished":"2020-09-27T00:00:00-06:00","description":"You just never know when you’ll have to take a shower.","headline":"Meteor Shower","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.kipukas.cards/meteor_shower/"},"url":"https://www.kipukas.cards/meteor_shower/"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2020-09-27T00:00:00-06:00","datePublished":"2020-09-27T00:00:00-06:00","description":"You just never know when you’ll have to take a shower.","headline":"Meteor Shower","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/meteor_shower/"},"url":"http://localhost:4000/meteor_shower/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     <link rel="manifest" href="/manifest.json">
     
     <!--favicon code realfavicongenerator.net-->
-    <link rel="preload" href="assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
@@ -395,6 +395,11 @@ background_color
               values: {action: 'clear_all'},
               target: '#keal-damage-meteor_shower',
               swap: 'innerHTML'
+            }).then(function() {
+              htmx.ajax('GET', '/api/game/damage?card=meteor_shower', {
+                target: '#keal-damage-meteor_shower',
+                swap: 'innerHTML'
+              });
             });
           }
         </script>
