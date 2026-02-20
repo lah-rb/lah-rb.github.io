@@ -43,14 +43,14 @@
         iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+    <script defer src="/assets/js/htmx.min.js"></script>
 
-    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
+    <script src="/assets/js/qr-camera.js" defer></script>
 
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
@@ -59,9 +59,6 @@
 
   <body x-data="{ 
                   filter: { all: true }, 
-                  showScanner: false,
-                  showFlash: false, 
-                  videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
                   searchQuery: '',
@@ -69,22 +66,19 @@
                   previousURL: $persist(''),
                   currentURL: $persist(''),
                   clearDamage: $persist('U7G789Rc'),
-                  noCamera: $persist(true), 
-                  showQRModal: $persist(true), 
-                  acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        class="z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh"
         x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
-    <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 </div>
 
-    <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>
     <div><div x-data="{ showCardInfo: true, landscape: true }">
   <!-- includes available
 hamburger
@@ -118,80 +112,20 @@ background_color
     
 
     
-      <!-- Modal for getting camera permission -->
+      <!-- QR Scanner — Phase 2: HTMX + WASM driven
+     UI state managed by /api/qr/status route (Rust WASM).
+     Camera + ZXing decode managed by qr-camera.js + kipukas-worker.js.
+     Alpine state (showScanner, showFlash, videoReady, noCamera, showQRModal)
+     removed from default.html — now server-driven HTML fragments. -->
 
+<!-- Container for HTMX-swapped scanner UI (privacy modal, camera, results) -->
+<div id="qr-container"></div>
 
-<div x-show="showQRModal" class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
-
-    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
-    </template>
-  
-    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
-      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 class="text-xl font-semibold mb-4 text-kip-drk-sienna">Privacy Notice</h2>
-        <p class="mb-4 text-kip-drk-sienna">
-            
-  By allowing camera access to our QR code scanner, you agree to our
-  <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline" @click="showModal = false">privacy policy</a>.
-  Breath easy, we don't collect any data.
-
-        </p>
-  
-        <button @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
-          Accept & Continue
-        </button>
-  
-        <button @click="noCamera = true; showQRModal = false; showScanner = false;" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
-          Don't Need It
-        </button>
-        
-      </div>
-    </template>
-  </div>
-
-<!-- Video for scanning QRs -->
-<div x-cloak class="z-30 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-3/4 lg:top-1/2 left-1/2 rounded-lg transition delay-150" 
-x-show="showScanner && !noCamera && videoReady">
-  <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
-    width="640" height="480">
-  </canvas>
-  <button class="z-40 absolute top-3 left-3 size-fit transition delay-150"
-          @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
-          x-show="showScanner && !noCamera && videoReady">
-          <svg xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-        </svg>
-  </button>
-  <button class="z-40 absolute top-3 right-3 size-fit transition delay-150"
-    @click="showFlash = !showFlash"
-    x-show="showFlash && showScanner && !noCamera && videoReady">
-    <svg xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M8.457 8.457 3 3m5.457 5.457 7.086 7.086m0 0L21 21" />
-  </svg>
-  <button class="z-40 absolute top-3 right-3 size-fit transition delay-150"
-    @click="showFlash = !showFlash"
-    x-show="!showFlash && showScanner && !noCamera && videoReady">
-    <svg xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-    </svg>
-  </button>
-  
-  <video id="video"
-    class="z-30 object-cover size-full scale-x-[-1] rounded-lg transition delay-150"
-    x-show="showScanner && !noCamera && videoReady">
-  </video>
-</div>
-<!-- Button to toggle scanning code and video -->
-<button aria-label="Toggle QR Scanner" class="flex justify-center">
+<!-- Button to toggle QR scanner -->
+<button aria-label="Toggle QR Scanner"
+        class="flex justify-center"
+        onclick="kipukasQR.toggle()">
   <svg xmlns="http://www.w3.org/2000/svg"
-    @click="showScanner = !showScanner, noCamera ? showQRModal = true : showQRModal = false, showScanner ? startScanning() : stopScanning()"
     viewBox="0 0 128 128" alt="QR Scanner Toggle"
     
     class="
@@ -202,17 +136,14 @@ x-show="showScanner && !noCamera && videoReady">
       transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
   </svg>
 </button>
-<!-- Script for scanning QRs in canvas -->
-<script defer src="/assets/js-wasm/qr_scanner.js"></script>
-
 
     
 
     
 
     
-      <script src="/assets/js-wasm/typing.js"></script>
-<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, outcome: '', atkClick:[], defClick:[], atkMot:'', defMot:'' }" class="relative place-content-center">
+      <!-- typing.js replaced by WASM server: /api/type-matchup -->
+<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, atkClick:[], defClick:[], atkMot:'', defMot:'' }" class="relative place-content-center">
     <button aria-label="Toggle Type Comparison" x-ref="typeButton">
         <svg @click="showTypeMenu = !showTypeMenu"
             
@@ -242,7 +173,6 @@ x-show="showScanner && !noCamera && videoReady">
     <div x-show="showTypeMenu" x-cloak
         x-anchor.right-end.offset.10="$refs.typeButton"
         x-transition.duration.350ms
-        x-data="{ outcome: '' }"
         class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
    h-fit w-72">
@@ -258,69 +188,69 @@ x-show="showScanner && !noCamera && videoReady">
           <div x-show="showKeal" >
             <span><b>Attacker</b></span>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="CenozoicAtk"    @click="checked = !checked, atkClick.includes('Cenozoic') ? atkClick = atkClick.filter((atk) => atk !== 'Cenozoic') : atkClick.push('Cenozoic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="CenozoicAtk">Cenozoic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Cenozoic" id="CenozoicAtk" @click="checked = !checked, atkClick.includes('Cenozoic') ? atkClick = atkClick.filter((atk) => atk !== 'Cenozoic') : atkClick.push('Cenozoic'), htmx.trigger('#type-form', 'formChanged')"><label for="CenozoicAtk">Cenozoic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="DecrepitAtk"    @click="checked = !checked, atkClick.includes('Decrepit') ? atkClick = atkClick.filter((atk) => atk !== 'Decrepit') : atkClick.push('Decrepit'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="DecrepitAtk">Decrepit</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Decrepit" id="DecrepitAtk" @click="checked = !checked, atkClick.includes('Decrepit') ? atkClick = atkClick.filter((atk) => atk !== 'Decrepit') : atkClick.push('Decrepit'), htmx.trigger('#type-form', 'formChanged')"><label for="DecrepitAtk">Decrepit</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AngelicAtk"    @click="checked = !checked, atkClick.includes('Angelic') ? atkClick = atkClick.filter((atk) => atk !== 'Angelic') : atkClick.push('Angelic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AngelicAtk">Angelic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Angelic" id="AngelicAtk" @click="checked = !checked, atkClick.includes('Angelic') ? atkClick = atkClick.filter((atk) => atk !== 'Angelic') : atkClick.push('Angelic'), htmx.trigger('#type-form', 'formChanged')"><label for="AngelicAtk">Angelic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="BrutalAtk"    @click="checked = !checked, atkClick.includes('Brutal') ? atkClick = atkClick.filter((atk) => atk !== 'Brutal') : atkClick.push('Brutal'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="BrutalAtk">Brutal</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Brutal" id="BrutalAtk" @click="checked = !checked, atkClick.includes('Brutal') ? atkClick = atkClick.filter((atk) => atk !== 'Brutal') : atkClick.push('Brutal'), htmx.trigger('#type-form', 'formChanged')"><label for="BrutalAtk">Brutal</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="ArborealAtk"    @click="checked = !checked, atkClick.includes('Arboreal') ? atkClick = atkClick.filter((atk) => atk !== 'Arboreal') : atkClick.push('Arboreal'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ArborealAtk">Arboreal</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Arboreal" id="ArborealAtk" @click="checked = !checked, atkClick.includes('Arboreal') ? atkClick = atkClick.filter((atk) => atk !== 'Arboreal') : atkClick.push('Arboreal'), htmx.trigger('#type-form', 'formChanged')"><label for="ArborealAtk">Arboreal</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AstralAtk"    @click="checked = !checked, atkClick.includes('Astral') ? atkClick = atkClick.filter((atk) => atk !== 'Astral') : atkClick.push('Astral'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AstralAtk">Astral</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Astral" id="AstralAtk" @click="checked = !checked, atkClick.includes('Astral') ? atkClick = atkClick.filter((atk) => atk !== 'Astral') : atkClick.push('Astral'), htmx.trigger('#type-form', 'formChanged')"><label for="AstralAtk">Astral</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="TelekineticAtk"    @click="checked = !checked, atkClick.includes('Telekinetic') ? atkClick = atkClick.filter((atk) => atk !== 'Telekinetic') : atkClick.push('Telekinetic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="TelekineticAtk">Telekinetic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Telekinetic" id="TelekineticAtk" @click="checked = !checked, atkClick.includes('Telekinetic') ? atkClick = atkClick.filter((atk) => atk !== 'Telekinetic') : atkClick.push('Telekinetic'), htmx.trigger('#type-form', 'formChanged')"><label for="TelekineticAtk">Telekinetic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="GlitchAtk"    @click="checked = !checked, atkClick.includes('Glitch') ? atkClick = atkClick.filter((atk) => atk !== 'Glitch') : atkClick.push('Glitch'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="GlitchAtk">Glitch</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Glitch" id="GlitchAtk" @click="checked = !checked, atkClick.includes('Glitch') ? atkClick = atkClick.filter((atk) => atk !== 'Glitch') : atkClick.push('Glitch'), htmx.trigger('#type-form', 'formChanged')"><label for="GlitchAtk">Glitch</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="MagicAtk"    @click="checked = !checked, atkClick.includes('Magic') ? atkClick = atkClick.filter((atk) => atk !== 'Magic') : atkClick.push('Magic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="MagicAtk">Magic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Magic" id="MagicAtk" @click="checked = !checked, atkClick.includes('Magic') ? atkClick = atkClick.filter((atk) => atk !== 'Magic') : atkClick.push('Magic'), htmx.trigger('#type-form', 'formChanged')"><label for="MagicAtk">Magic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EndothermicAtk"    @click="checked = !checked, atkClick.includes('Endothermic') ? atkClick = atkClick.filter((atk) => atk !== 'Endothermic') : atkClick.push('Endothermic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EndothermicAtk">Endothermic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Endothermic" id="EndothermicAtk" @click="checked = !checked, atkClick.includes('Endothermic') ? atkClick = atkClick.filter((atk) => atk !== 'Endothermic') : atkClick.push('Endothermic'), htmx.trigger('#type-form', 'formChanged')"><label for="EndothermicAtk">Endothermic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AvianAtk"    @click="checked = !checked, atkClick.includes('Avian') ? atkClick = atkClick.filter((atk) => atk !== 'Avian') : atkClick.push('Avian'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AvianAtk">Avian</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Avian" id="AvianAtk" @click="checked = !checked, atkClick.includes('Avian') ? atkClick = atkClick.filter((atk) => atk !== 'Avian') : atkClick.push('Avian'), htmx.trigger('#type-form', 'formChanged')"><label for="AvianAtk">Avian</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="MechanicalAtk"    @click="checked = !checked, atkClick.includes('Mechanical') ? atkClick = atkClick.filter((atk) => atk !== 'Mechanical') : atkClick.push('Mechanical'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="MechanicalAtk">Mechanical</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Mechanical" id="MechanicalAtk" @click="checked = !checked, atkClick.includes('Mechanical') ? atkClick = atkClick.filter((atk) => atk !== 'Mechanical') : atkClick.push('Mechanical'), htmx.trigger('#type-form', 'formChanged')"><label for="MechanicalAtk">Mechanical</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="AlgorithmicAtk"    @click="checked = !checked, atkClick.includes('Algorithmic') ? atkClick = atkClick.filter((atk) => atk !== 'Algorithmic') : atkClick.push('Algorithmic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AlgorithmicAtk">Algorithmic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Algorithmic" id="AlgorithmicAtk" @click="checked = !checked, atkClick.includes('Algorithmic') ? atkClick = atkClick.filter((atk) => atk !== 'Algorithmic') : atkClick.push('Algorithmic'), htmx.trigger('#type-form', 'formChanged')"><label for="AlgorithmicAtk">Algorithmic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EnergeticAtk"    @click="checked = !checked, atkClick.includes('Energetic') ? atkClick = atkClick.filter((atk) => atk !== 'Energetic') : atkClick.push('Energetic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EnergeticAtk">Energetic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Energetic" id="EnergeticAtk" @click="checked = !checked, atkClick.includes('Energetic') ? atkClick = atkClick.filter((atk) => atk !== 'Energetic') : atkClick.push('Energetic'), htmx.trigger('#type-form', 'formChanged')"><label for="EnergeticAtk">Energetic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="attacker" id="EntropicAtk"    @click="checked = !checked, atkClick.includes('Entropic') ? atkClick = atkClick.filter((atk) => atk !== 'Entropic') : atkClick.push('Entropic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EntropicAtk">Entropic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkClick.length == 3 && !checked" name="atk" value="Entropic" id="EntropicAtk" @click="checked = !checked, atkClick.includes('Entropic') ? atkClick = atkClick.filter((atk) => atk !== 'Entropic') : atkClick.push('Entropic'), htmx.trigger('#type-form', 'formChanged')"><label for="EntropicAtk">Entropic</label></div>
             
           </div>
           <div x-show="showKeal">
             <span><b>Defender</b></span>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="CenozoicDef"    @click="checked = !checked, defClick.includes('Cenozoic') ? defClick = defClick.filter((def) => def !== 'Cenozoic') : defClick.push('Cenozoic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="CenozoicDef">Cenozoic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Cenozoic" id="CenozoicDef" @click="checked = !checked, defClick.includes('Cenozoic') ? defClick = defClick.filter((def) => def !== 'Cenozoic') : defClick.push('Cenozoic'), htmx.trigger('#type-form', 'formChanged')"><label for="CenozoicDef">Cenozoic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="DecrepitDef"    @click="checked = !checked, defClick.includes('Decrepit') ? defClick = defClick.filter((def) => def !== 'Decrepit') : defClick.push('Decrepit'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="DecrepitDef">Decrepit</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Decrepit" id="DecrepitDef" @click="checked = !checked, defClick.includes('Decrepit') ? defClick = defClick.filter((def) => def !== 'Decrepit') : defClick.push('Decrepit'), htmx.trigger('#type-form', 'formChanged')"><label for="DecrepitDef">Decrepit</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AngelicDef"    @click="checked = !checked, defClick.includes('Angelic') ? defClick = defClick.filter((def) => def !== 'Angelic') : defClick.push('Angelic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AngelicDef">Angelic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Angelic" id="AngelicDef" @click="checked = !checked, defClick.includes('Angelic') ? defClick = defClick.filter((def) => def !== 'Angelic') : defClick.push('Angelic'), htmx.trigger('#type-form', 'formChanged')"><label for="AngelicDef">Angelic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="BrutalDef"    @click="checked = !checked, defClick.includes('Brutal') ? defClick = defClick.filter((def) => def !== 'Brutal') : defClick.push('Brutal'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="BrutalDef">Brutal</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Brutal" id="BrutalDef" @click="checked = !checked, defClick.includes('Brutal') ? defClick = defClick.filter((def) => def !== 'Brutal') : defClick.push('Brutal'), htmx.trigger('#type-form', 'formChanged')"><label for="BrutalDef">Brutal</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="ArborealDef"    @click="checked = !checked, defClick.includes('Arboreal') ? defClick = defClick.filter((def) => def !== 'Arboreal') : defClick.push('Arboreal'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ArborealDef">Arboreal</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Arboreal" id="ArborealDef" @click="checked = !checked, defClick.includes('Arboreal') ? defClick = defClick.filter((def) => def !== 'Arboreal') : defClick.push('Arboreal'), htmx.trigger('#type-form', 'formChanged')"><label for="ArborealDef">Arboreal</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AstralDef"    @click="checked = !checked, defClick.includes('Astral') ? defClick = defClick.filter((def) => def !== 'Astral') : defClick.push('Astral'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AstralDef">Astral</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Astral" id="AstralDef" @click="checked = !checked, defClick.includes('Astral') ? defClick = defClick.filter((def) => def !== 'Astral') : defClick.push('Astral'), htmx.trigger('#type-form', 'formChanged')"><label for="AstralDef">Astral</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="TelekineticDef"    @click="checked = !checked, defClick.includes('Telekinetic') ? defClick = defClick.filter((def) => def !== 'Telekinetic') : defClick.push('Telekinetic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="TelekineticDef">Telekinetic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Telekinetic" id="TelekineticDef" @click="checked = !checked, defClick.includes('Telekinetic') ? defClick = defClick.filter((def) => def !== 'Telekinetic') : defClick.push('Telekinetic'), htmx.trigger('#type-form', 'formChanged')"><label for="TelekineticDef">Telekinetic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="GlitchDef"    @click="checked = !checked, defClick.includes('Glitch') ? defClick = defClick.filter((def) => def !== 'Glitch') : defClick.push('Glitch'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="GlitchDef">Glitch</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Glitch" id="GlitchDef" @click="checked = !checked, defClick.includes('Glitch') ? defClick = defClick.filter((def) => def !== 'Glitch') : defClick.push('Glitch'), htmx.trigger('#type-form', 'formChanged')"><label for="GlitchDef">Glitch</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="MagicDef"    @click="checked = !checked, defClick.includes('Magic') ? defClick = defClick.filter((def) => def !== 'Magic') : defClick.push('Magic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="MagicDef">Magic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Magic" id="MagicDef" @click="checked = !checked, defClick.includes('Magic') ? defClick = defClick.filter((def) => def !== 'Magic') : defClick.push('Magic'), htmx.trigger('#type-form', 'formChanged')"><label for="MagicDef">Magic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EndothermicDef"    @click="checked = !checked, defClick.includes('Endothermic') ? defClick = defClick.filter((def) => def !== 'Endothermic') : defClick.push('Endothermic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EndothermicDef">Endothermic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Endothermic" id="EndothermicDef" @click="checked = !checked, defClick.includes('Endothermic') ? defClick = defClick.filter((def) => def !== 'Endothermic') : defClick.push('Endothermic'), htmx.trigger('#type-form', 'formChanged')"><label for="EndothermicDef">Endothermic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AvianDef"    @click="checked = !checked, defClick.includes('Avian') ? defClick = defClick.filter((def) => def !== 'Avian') : defClick.push('Avian'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AvianDef">Avian</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Avian" id="AvianDef" @click="checked = !checked, defClick.includes('Avian') ? defClick = defClick.filter((def) => def !== 'Avian') : defClick.push('Avian'), htmx.trigger('#type-form', 'formChanged')"><label for="AvianDef">Avian</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="MechanicalDef"    @click="checked = !checked, defClick.includes('Mechanical') ? defClick = defClick.filter((def) => def !== 'Mechanical') : defClick.push('Mechanical'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="MechanicalDef">Mechanical</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Mechanical" id="MechanicalDef" @click="checked = !checked, defClick.includes('Mechanical') ? defClick = defClick.filter((def) => def !== 'Mechanical') : defClick.push('Mechanical'), htmx.trigger('#type-form', 'formChanged')"><label for="MechanicalDef">Mechanical</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="AlgorithmicDef"    @click="checked = !checked, defClick.includes('Algorithmic') ? defClick = defClick.filter((def) => def !== 'Algorithmic') : defClick.push('Algorithmic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="AlgorithmicDef">Algorithmic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Algorithmic" id="AlgorithmicDef" @click="checked = !checked, defClick.includes('Algorithmic') ? defClick = defClick.filter((def) => def !== 'Algorithmic') : defClick.push('Algorithmic'), htmx.trigger('#type-form', 'formChanged')"><label for="AlgorithmicDef">Algorithmic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EnergeticDef"    @click="checked = !checked, defClick.includes('Energetic') ? defClick = defClick.filter((def) => def !== 'Energetic') : defClick.push('Energetic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EnergeticDef">Energetic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Energetic" id="EnergeticDef" @click="checked = !checked, defClick.includes('Energetic') ? defClick = defClick.filter((def) => def !== 'Energetic') : defClick.push('Energetic'), htmx.trigger('#type-form', 'formChanged')"><label for="EnergeticDef">Energetic</label></div>
             
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="defender" id="EntropicDef"    @click="checked = !checked, defClick.includes('Entropic') ? defClick = defClick.filter((def) => def !== 'Entropic') : defClick.push('Entropic'), outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="EntropicDef">Entropic</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defClick.length == 3 && !checked" name="def" value="Entropic" id="EntropicDef" @click="checked = !checked, defClick.includes('Entropic') ? defClick = defClick.filter((def) => def !== 'Entropic') : defClick.push('Entropic'), htmx.trigger('#type-form', 'formChanged')"><label for="EntropicDef">Entropic</label></div>
             
           </div>
         </div>
@@ -336,55 +266,63 @@ x-show="showScanner && !noCamera && videoReady">
           <div x-show="showMot">
             <span><b>Attacker</b></span>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="SpiritAtkMot"    @click="checked = !checked, checked ? atkMot = 'Spirit' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SpiritAtkMot">Spirit</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Spirit" id="SpiritAtkMot" @click="checked = !checked, checked ? atkMot = 'Spirit' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SpiritAtkMot">Spirit</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="ServiceAtkMot"    @click="checked = !checked, checked ? atkMot = 'Service' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ServiceAtkMot">Service</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Service" id="ServiceAtkMot" @click="checked = !checked, checked ? atkMot = 'Service' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="ServiceAtkMot">Service</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="SurvivalAtkMot"    @click="checked = !checked, checked ? atkMot = 'Survival' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SurvivalAtkMot">Survival</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Survival" id="SurvivalAtkMot" @click="checked = !checked, checked ? atkMot = 'Survival' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SurvivalAtkMot">Survival</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="PossessorAtkMot"    @click="checked = !checked, checked ? atkMot = 'Possessor' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="PossessorAtkMot">Possessor</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Possessor" id="PossessorAtkMot" @click="checked = !checked, checked ? atkMot = 'Possessor' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="PossessorAtkMot">Possessor</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="SatisfactionAtkMot"    @click="checked = !checked, checked ? atkMot = 'Satisfaction' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SatisfactionAtkMot">Satisfaction</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Satisfaction" id="SatisfactionAtkMot" @click="checked = !checked, checked ? atkMot = 'Satisfaction' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SatisfactionAtkMot">Satisfaction</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="SacrificeAtkMot"    @click="checked = !checked, checked ? atkMot = 'Sacrifice' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SacrificeAtkMot">Sacrifice</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Sacrifice" id="SacrificeAtkMot" @click="checked = !checked, checked ? atkMot = 'Sacrifice' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SacrificeAtkMot">Sacrifice</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="ConscienceAtkMot"    @click="checked = !checked, checked ? atkMot = 'Conscience' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ConscienceAtkMot">Conscience</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Conscience" id="ConscienceAtkMot" @click="checked = !checked, checked ? atkMot = 'Conscience' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="ConscienceAtkMot">Conscience</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="PassionAtkMot"    @click="checked = !checked, checked ? atkMot = 'Passion' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="PassionAtkMot">Passion</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Passion" id="PassionAtkMot" @click="checked = !checked, checked ? atkMot = 'Passion' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="PassionAtkMot">Passion</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="attackerMotive" id="DutyAtkMot"    @click="checked = !checked, checked ? atkMot = 'Duty' : atkMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="DutyAtkMot">Duty</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Duty" id="DutyAtkMot" @click="checked = !checked, checked ? atkMot = 'Duty' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="DutyAtkMot">Duty</label></div>
             
           </div>
           <div x-show="showMot">
             <span><b>Defender</b></span>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="SpiritDefMot"    @click="checked = !checked, checked ? defMot = 'Spirit': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SpiritDefMot">Spirit</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Spirit" id="SpiritDefMot" @click="checked = !checked, checked ? defMot = 'Spirit' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SpiritDefMot">Spirit</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="ServiceDefMot"    @click="checked = !checked, checked ? defMot = 'Service': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ServiceDefMot">Service</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Service" id="ServiceDefMot" @click="checked = !checked, checked ? defMot = 'Service' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="ServiceDefMot">Service</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="SurvivalDefMot"    @click="checked = !checked, checked ? defMot = 'Survival': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SurvivalDefMot">Survival</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Survival" id="SurvivalDefMot" @click="checked = !checked, checked ? defMot = 'Survival' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SurvivalDefMot">Survival</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="PossessorDefMot"    @click="checked = !checked, checked ? defMot = 'Possessor': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="PossessorDefMot">Possessor</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Possessor" id="PossessorDefMot" @click="checked = !checked, checked ? defMot = 'Possessor' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="PossessorDefMot">Possessor</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="SatisfactionDefMot"    @click="checked = !checked, checked ? defMot = 'Satisfaction': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SatisfactionDefMot">Satisfaction</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Satisfaction" id="SatisfactionDefMot" @click="checked = !checked, checked ? defMot = 'Satisfaction' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SatisfactionDefMot">Satisfaction</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="SacrificeDefMot"    @click="checked = !checked, checked ? defMot = 'Sacrifice': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="SacrificeDefMot">Sacrifice</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Sacrifice" id="SacrificeDefMot" @click="checked = !checked, checked ? defMot = 'Sacrifice' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="SacrificeDefMot">Sacrifice</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="ConscienceDefMot"    @click="checked = !checked, checked ? defMot = 'Conscience': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="ConscienceDefMot">Conscience</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Conscience" id="ConscienceDefMot" @click="checked = !checked, checked ? defMot = 'Conscience' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="ConscienceDefMot">Conscience</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="PassionDefMot"    @click="checked = !checked, checked ? defMot = 'Passion': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="PassionDefMot">Passion</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Passion" id="PassionDefMot" @click="checked = !checked, checked ? defMot = 'Passion' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="PassionDefMot">Passion</label></div>
             
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="defenderMotive" id="DutyDefMot"    @click="checked = !checked, checked ? defMot = 'Duty': defMot = '', outcome = typeMatchup(atkClick, defClick, atkMot, defMot)"><label for="DutyDefMot">Duty</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Duty" id="DutyDefMot" @click="checked = !checked, checked ? defMot = 'Duty' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="DutyDefMot">Duty</label></div>
             
           </div>
         </div>
-        <div class="col-span-2">
+        <!-- HTMX-powered result: fetches from WASM server via SW → Web Worker -->
+        <div id="type-form"
+             hx-get="/api/type-matchup"
+             hx-trigger="formChanged"
+             hx-target="#type-result"
+             hx-swap="innerHTML"
+             hx-include="[name='atk'], [name='def'], [name='motAtk'], [name='motDef']">
+        </div>
+        <div id="type-result" class="col-span-2">
           <span><strong>Attack Die Modifier:</strong></span>
-          <span style="white-space: pre-wrap;" x-text="outcome" class="place-self-center"></span>
         </div>
     </div>
 
 </div>
+
     
 
     

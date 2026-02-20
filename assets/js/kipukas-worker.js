@@ -1,0 +1,123 @@
+/**
+ * kipukas-worker.js — Module Web Worker that runs the Kipukas WASM server.
+ *
+ * Loads the Rust/WASM binary and handles request messages from the page.
+ * Each message includes a transferred MessagePort from a MessageChannel
+ * that originated in the Service Worker, enabling the full relay:
+ *
+ *   HTMX fetch → SW intercepts → SW posts to page → page posts to this worker
+ *   → WASM processes → responds on port → SW returns Response to HTMX
+ *
+ * Phase 2 addition: Also loads ZXing WASM for QR code decoding.
+ * QR frame messages (type: 'QR_FRAME') are decoded by ZXing in JS,
+ * then the result is formatted by the Rust WASM server.
+ *
+ * This worker runs as { type: 'module' } so it can use ES imports.
+ */
+
+import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+
+// ── WASM server init ───────────────────────────────────────────────
+
+const wasmReady = init();
+let initialized = false;
+
+wasmReady.then(() => {
+  initialized = true;
+  console.log('[kipukas-worker] WASM server initialized');
+}).catch((err) => {
+  console.error('[kipukas-worker] WASM init failed:', err);
+});
+
+// ── ZXing init (for QR decode) ─────────────────────────────────────
+
+let zxing = null;
+let zxingReady = false;
+
+// ZXing is loaded via importScripts (non-module script).
+// In a module worker we use the global import workaround.
+try {
+  importScripts('/assets/js-wasm/zxing_reader.js');
+  if (typeof ZXing === 'function') {
+    ZXing()
+      .then((instance) => {
+        zxing = instance;
+        zxingReady = true;
+        console.log('[kipukas-worker] ZXing WASM initialized');
+      })
+      .catch((err) => {
+        console.error('[kipukas-worker] ZXing init failed:', err);
+      });
+  }
+} catch (err) {
+  // importScripts may fail in strict module workers on some browsers.
+  // ZXing QR decode will be unavailable; camera scanning won't work
+  // but the rest of the app continues fine.
+  console.warn('[kipukas-worker] Could not load ZXing:', err.message);
+}
+
+// ── ZXing decode helper ────────────────────────────────────────────
+
+/**
+ * Decode a QR code from raw RGBA pixel data using ZXing.
+ * @param {Uint8ClampedArray} pixels - RGBA pixel buffer
+ * @param {number} width
+ * @param {number} height
+ * @returns {string|null} Decoded text or null
+ */
+function decodeQR(pixels, width, height) {
+  if (!zxingReady || !zxing) return null;
+
+  const buffer = zxing._malloc(pixels.byteLength);
+  zxing.HEAPU8.set(pixels, buffer);
+  const result = zxing.readBarcodeFromPixmap(buffer, width, height, false, 'QRCode');
+  zxing._free(buffer);
+
+  return result.text || null;
+}
+
+// ── Message handler ────────────────────────────────────────────────
+
+self.onmessage = async (event) => {
+  // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
+  if (event.data?.type === 'QR_FRAME') {
+    const { pixels, width, height } = event.data;
+    const decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
+    if (decoded) {
+      // Format result via WASM, then post back to main thread
+      if (!initialized) await wasmReady;
+      const html = handle_request(
+        'GET',
+        '/api/qr/found',
+        `?url=${encodeURIComponent(decoded)}`,
+        '',
+      );
+      self.postMessage({ type: 'QR_FOUND', html, url: decoded });
+    }
+    return;
+  }
+
+  // ── Standard WASM request (from SW relay or direct fallback) ─────
+  const { method, pathname, search, body } = event.data;
+  const port = event.ports[0];
+
+  if (!port) {
+    console.error('[kipukas-worker] No MessagePort received');
+    return;
+  }
+
+  try {
+    if (!initialized) {
+      await wasmReady;
+    }
+
+    const html = handle_request(method, pathname, search || '', body || '');
+    port.postMessage({ ok: true, html });
+  } catch (err) {
+    console.error('[kipukas-worker] WASM request error:', err);
+    port.postMessage({
+      ok: false,
+      html: `<span class="text-kip-red">WASM error: ${err.message || err}</span>`,
+    });
+  }
+};

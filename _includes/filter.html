@@ -2,7 +2,7 @@
     <div x-show="showFilter" 
         x-anchor.right-end.offset.10="$refs.filter"
         x-transition.duration.350ms 
-        class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300">
+        class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden transition-opacity duration-300">
         <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :checked="filter.all" @click="filter.all = !filter.all, 
             {% assign posts = site.posts | sort:'title' %}
             {% for card in posts %}

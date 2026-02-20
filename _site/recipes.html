@@ -42,14 +42,14 @@
         iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+    <script defer src="/assets/js/htmx.min.js"></script>
 
-    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
+    <script src="/assets/js/qr-camera.js" defer></script>
 
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
@@ -58,9 +58,6 @@
 
   <body x-data="{ 
                   filter: { all: true }, 
-                  showScanner: false,
-                  showFlash: false, 
-                  videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
                   searchQuery: '',
@@ -68,22 +65,19 @@
                   previousURL: $persist(''),
                   currentURL: $persist(''),
                   clearDamage: $persist('U7G789Rc'),
-                  noCamera: $persist(true), 
-                  showQRModal: $persist(true), 
-                  acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh"
+        class="bg-hero-pattern z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh"
         x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
-    <div id="spinner" x-show="showScanner && !videoReady" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
   <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 </div>
 
-    <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>
     <div><script src="/assets/js-wasm/recipes.js"></script>
 <script>
   function checkDisabled (items) {
@@ -144,7 +138,7 @@ background_color
     x-anchor.right-end.offset.10="$refs.hamburger" 
     x-transition.duration.350ms
     x-cloak
-    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
     <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
     <div><a href="/game_rules/index.html" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
     <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>

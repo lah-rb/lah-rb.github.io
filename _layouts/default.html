@@ -26,14 +26,14 @@
         iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
       });
     </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.14.1/dist/cdn.min.js" data-domain="www.josephuspaye.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.1/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+    <script defer src="/assets/js/htmx.min.js"></script>
 
-    <script defer src="/assets/js-wasm/zxing_reader.js"></script>
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
+    <script src="/assets/js/qr-camera.js" defer></script>
 
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
@@ -42,9 +42,6 @@
 
   <body x-data="{ 
                   filter: { all: true }, 
-                  showScanner: false,
-                  showFlash: false, 
-                  videoReady: false, 
                   showInstallModal: false,
                   showKealModal: false,
                   searchQuery: '',
@@ -52,16 +49,12 @@
                   previousURL: $persist(''),
                   currentURL: $persist(''),
                   clearDamage: $persist('U7G789Rc'),
-                  noCamera: $persist(true), 
-                  showQRModal: $persist(true), 
-                  acceptPrivacy: $persist(false), 
                   hideInstallButton: $persist(false),
                 }" 
-        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvh h-dvh' }}"
+        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh' }}"
         x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}
-    <div class="absolute top-0 left-0 z-20 w-screen h-screen bg-white" x-cloak x-show="showFlash && showScanner && !noCamera && videoReady"></div>
     <div>{{ content }}</div>
   </body>
 </html>

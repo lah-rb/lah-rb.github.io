@@ -1,0 +1,32 @@
+{
+  "imports": {
+    "marked": "npm:marked@17",
+    "dompurify": "npm:dompurify@3",
+    "jsdom": "npm:jsdom@28",
+    "@tailwindcss/cli": "npm:@tailwindcss/cli@4",
+    "tailwindcss": "npm:tailwindcss@4"
+  },
+  "tasks": {
+    "build": "deno run -A scripts/build.ts",
+    "build:pdf": "deno run -A scripts/build-pdf.ts",
+    "build:all": "deno task build && deno task build:pdf -- --output dist",
+    "dev": "deno serve --port 8081 --host 0.0.0.0",
+    "preview": "cd dist && deno serve --port 8082 --host 0.0.0.0",
+    "clean": "rm -rf dist kipukas_rules.pdf"
+  },
+  "fmt": {
+    "include": ["scripts/", "js/"],
+    "exclude": ["dist/", "node_modules/", "old/"],
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true
+  },
+  "lint": {
+    "include": ["scripts/", "js/"],
+    "exclude": ["dist/", "node_modules/", "old/"],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "nodeModulesDir": "auto"
+}

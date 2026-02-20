@@ -45,9 +45,10 @@ bg-terra: "bg-hero-pattern "
 
     <h2 class="{{ para_class }}">Contact</h2>
     <p>Should you have any questions or concerns about our Privacy Policy, please reach out to us at <a href="mailto:kipukas.games@gmail.com" class="text-kip-drk-sienna underline">kipukas.games@gmail.com</a>. Your trust is our top priority, and we're here to address any queries you may have.</p>
-    <a href="/" @click="acceptPrivacy = true; noCamera = false; showQRModal = false; showScanner = false" class="{{ site.data.templates.red-btn }} text-center mt-2" aria-label="accept privacy policy and go home">
-      Accept Privacy Policy
-    </a>
+    <a href="/"
+       onclick="localStorage.setItem('qr-privacy-accepted', 'true')"
+       class="{{ site.data.templates.red-btn }} text-center mt-2"
+       aria-label="accept privacy policy and go home">Accept Privacy Policy</a>
   </div>
 </div>
 </template>
