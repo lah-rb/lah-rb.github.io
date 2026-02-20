@@ -65,12 +65,22 @@ document.addEventListener('htmx:beforeRequest', (evt) => {
   console.log('[kipukas-api] No SW controller, routing directly:', path);
 
   const url = new URL(path, location.origin);
-  // Prefer query params already in the URL (htmx.ajax puts them there).
-  // Fall back to serialized hx-include form parameters for attribute-driven requests.
-  // Note: url.search includes '?' prefix, so strip it — the send line adds it back.
+  const verb = (evt.detail.requestConfig.verb || 'GET').toUpperCase();
   const params = evt.detail.requestConfig.parameters;
   const hasFormParams = params && typeof params === 'object' && Object.keys(params).length > 0;
-  const qs = url.search.slice(1) || (hasFormParams ? new URLSearchParams(params).toString() : '');
+
+  // Phase 3b: For POST requests, serialize params as form body instead of query string.
+  // For GET requests, prefer query params already in the URL (htmx.ajax puts them there),
+  // fall back to serialized hx-include form parameters for attribute-driven requests.
+  let qs = '';
+  let body = '';
+  if (verb === 'POST' || verb === 'PUT' || verb === 'PATCH') {
+    // POST body: serialize params as URL-encoded form data
+    body = hasFormParams ? new URLSearchParams(params).toString() : '';
+    qs = url.search.slice(1);
+  } else {
+    qs = url.search.slice(1) || (hasFormParams ? new URLSearchParams(params).toString() : '');
+  }
 
   const channel = new MessageChannel();
   channel.port1.onmessage = (msg) => {
@@ -97,10 +107,10 @@ document.addEventListener('htmx:beforeRequest', (evt) => {
 
   wasmWorker.postMessage(
     {
-      method: evt.detail.requestConfig.verb?.toUpperCase() || 'GET',
+      method: verb,
       pathname: url.pathname,
       search: qs ? '?' + qs : '',
-      body: '',
+      body: body,
     },
     [channel.port2],
   );
@@ -110,3 +120,157 @@ document.addEventListener('htmx:beforeRequest', (evt) => {
 wasmWorker.onerror = (err) => {
   console.error('[kipukas-api] WASM Worker error:', err);
 };
+
+// ============================================
+// Phase 3b: MIGRATE Alpine $persist data to WASM game state
+// ============================================
+// On first load after Phase 3b update, reads existing localStorage keys
+// from Alpine's $persist plugin ({cardSlug}_damage, alarms, etc.) and
+// imports them into the WASM game state via /api/game/import.
+// After successful import, sets a flag to skip on subsequent loads.
+(function migrateAlpineState() {
+  if (localStorage.getItem('kipukas_state_migrated')) return;
+
+  // Wait a tick for the DOM to settle, then attempt migration
+  setTimeout(() => {
+    const gameState = { cards: {}, alarms: [], show_alarms: true };
+    let foundData = false;
+
+    // Scan for Alpine $persist damage keys: _x_{cardSlug}_damage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+
+      // Match damage keys: _x_{slug}_damage
+      const damageMatch = key.match(/^_x_(.+)_damage$/);
+      if (damageMatch) {
+        const slug = damageMatch[1];
+        // Skip the global clearDamage token
+        if (slug === 'clear') continue;
+
+        try {
+          const val = JSON.parse(localStorage.getItem(key));
+          if (val && typeof val === 'object') {
+            const slots = {};
+            const wasted = !!val.wasted;
+            // Convert numeric keys to slot map
+            for (const [k, v] of Object.entries(val)) {
+              if (k !== 'wasted') {
+                const num = parseInt(k, 10);
+                if (!isNaN(num)) {
+                  slots[num] = !!v;
+                }
+              }
+            }
+            // Only import if there's actual damage state
+            if (Object.values(slots).some((v) => v) || wasted) {
+              gameState.cards[slug] = { slots, wasted };
+              foundData = true;
+            }
+          }
+        } catch (_e) {
+          // Skip unparseable entries
+        }
+      }
+
+      // Match alarm key: _x_alarms
+      if (key === '_x_alarms') {
+        try {
+          const alarms = JSON.parse(localStorage.getItem(key));
+          if (Array.isArray(alarms)) {
+            gameState.alarms = alarms
+              .filter((a) => typeof a === 'number' && a >= 0)
+              .map((remaining) => ({ remaining }));
+            if (gameState.alarms.length > 0) foundData = true;
+          }
+        } catch (_e) {
+          // Skip
+        }
+      }
+
+      // Match show alarms key: _x_showAlarms
+      if (key === '_x_showAlarms') {
+        try {
+          const val = JSON.parse(localStorage.getItem(key));
+          if (typeof val === 'boolean') {
+            gameState.show_alarms = val;
+          }
+        } catch (_e) {
+          // Skip
+        }
+      }
+    }
+
+    if (foundData) {
+      console.log('[kipukas-api] Migrating Alpine $persist state to WASM:', gameState);
+      const json = JSON.stringify(gameState);
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (msg) => {
+        if (msg.data.ok) {
+          console.log('[kipukas-api] State migration complete');
+          localStorage.setItem('kipukas_state_migrated', 'true');
+        } else {
+          console.warn('[kipukas-api] State migration failed:', msg.data.html);
+        }
+      };
+      wasmWorker.postMessage(
+        {
+          method: 'POST',
+          pathname: '/api/game/import',
+          search: '',
+          body: json,
+        },
+        [channel.port2],
+      );
+    } else {
+      // No old data to migrate — mark as done
+      localStorage.setItem('kipukas_state_migrated', 'true');
+    }
+  }, 500); // Small delay to let WASM worker initialize
+})();
+
+// ============================================
+// Phase 3b: PERSIST game state on page unload
+// ============================================
+// Before the user navigates away, persist the WASM game state to
+// localStorage so it survives page reloads and browser restarts.
+window.addEventListener('beforeunload', () => {
+  // Fire-and-forget: POST to persist route via the worker
+  const channel = new MessageChannel();
+  channel.port1.onmessage = () => {}; // Response handled by the <script> in the response
+  wasmWorker.postMessage(
+    {
+      method: 'POST',
+      pathname: '/api/game/persist',
+      search: '',
+      body: '',
+    },
+    [channel.port2],
+  );
+});
+
+// Also restore state from localStorage on load (if previously persisted)
+(function restorePersistedState() {
+  const saved = localStorage.getItem('kipukas_game_state');
+  if (!saved) return;
+
+  // Small delay to let WASM worker initialize
+  setTimeout(() => {
+    console.log('[kipukas-api] Restoring persisted game state from localStorage');
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (msg) => {
+      if (msg.data.ok) {
+        console.log('[kipukas-api] Game state restored from localStorage');
+      }
+    };
+    wasmWorker.postMessage(
+      {
+        method: 'POST',
+        pathname: '/api/game/import',
+        search: '',
+        body: saved,
+      },
+      [channel.port2],
+    );
+  }, 100);
+})();

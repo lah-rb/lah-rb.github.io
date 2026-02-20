@@ -1,6 +1,6 @@
 # Kipukas Multiplayer Roadmap
 
-> **Status:** Phase 3a complete (Card grid infinite scroll migrated to HTMX + WASM)
+> **Status:** Phase 3b complete (Game state — damage/turn tracking migrated to HTMX + WASM)
 > **Started:** February 2026
 > **Architecture:** HTMX + In-Browser WASM Server + WebRTC (future)
 
@@ -305,48 +305,122 @@ x-data with window.innerWidth per card (responsive srcset)
 
 ---
 
-## Phase 3b: Game State Migration
+## Phase 3b: Game State Migration (✅ Complete)
 
 ### Problem
 
-Damage tracking, turn tracking, and game persistence currently use Alpine.js `$persist` plugin (localStorage). This works for single-player but doesn't synchronize across devices or players.
+Damage tracking, turn tracking, and game persistence used Alpine.js `$persist` plugin (localStorage). Each card page had its own `$persist` key for damage state (`{cardName}_damage`), and the turn tracker had `$persist([])` for alarms. A global `clearDamage` token in the body `x-data` triggered all cards to reset via `$watch`. This approach:
+- Could not synchronize across devices or players
+- Required Alpine to evaluate `$watch` expressions on every card page
+- Stored state as scattered localStorage keys with no unified schema
+- Made the clear-all mechanism fragile (random token propagation via `$watch`)
 
-### Plan
+### What was built
 
-1. **Create `/api/game/state` route** (GET/POST)
-   - GET: Returns current game state as HTML fragments (damage counters, turn order, active effects)
-   - POST: Updates state (damage dealt, turn advanced, item used)
-   - State stored in WASM memory (with periodic serialization to localStorage via a dedicated route)
+**Build Script Extension (`scripts/build-card-catalog.ts`)**
+- Switched from simple regex parser to `@std/yaml` for proper YAML parsing
+- Extended to extract game data: `keal_means` (nested name → {genetics, count}), `injury_tolerance`, `movement`, `die`, `brawl_sequence`
+- Generates `KealMeans` struct alongside `Card` struct with static genetics arrays
+- 51 keal means across 30 cards compiled into the WASM binary
 
-2. **Port damage tracker to Rust**
-   - `kipukas-server/src/game/damage.rs` — HP tracking, damage calculation, status effects
-   - Returns styled HTML fragments matching current Tailwind classes
+**Game State Module (`kipukas-server/src/game/`)**
+- `game/state.rs` — `GameState`, `CardDamageState`, `Alarm` structs with `thread_local!` + `RefCell` storage. All structs derive `Serialize`/`Deserialize` for multiplayer prep
+- `game/damage.rs` — Per-card keal damage tracking: toggle slot, toggle wasted, clear card, clear all. Renders full damage tracker HTML with checkbox `onclick` → `htmx.ajax('POST', ...)` pattern
+- `game/turns.rs` — Diel cycle alarm system: add alarm, tick (decrement + expire), remove, toggle visibility. Renders alarm list + timer creation panel HTML
+- Custom `Default` for `GameState` (show_alarms defaults to `true`)
 
-3. **Port turn tracker to Rust**
-   - `kipukas-server/src/game/turns.rs` — Turn order, phase management, timer logic
-   - Returns HTML fragment with current turn state
+**Route Handlers (`kipukas-server/src/routes/game.rs`)**
+- `GET /api/game/damage?card={slug}` — Render keal damage tracker for a card
+- `POST /api/game/damage` — Toggle slot, toggle wasted, clear card, or clear all
+- `GET /api/game/turns` — Render timer creation form or alarm list (`?display=alarms`)
+- `POST /api/game/turns` — Add alarm, tick, remove, or toggle visibility
+- `GET /api/game/state` — Full game state as JSON (multiplayer prep)
+- `POST /api/game/persist` — Serialize to `<script>` that writes localStorage
+- `POST /api/game/import` — Accept JSON body, hydrate WASM state
+- URL-encoded form body parsing for POST parameters
+- 88 total unit tests (up from 66) covering all game logic + route handlers
 
-4. **Create `/api/game/persist` route**
-   - POST: Serialize current game state to JSON
-   - Response includes `<script>` tag that writes to localStorage (or use HTMX `hx-on` to trigger save)
-   - GET: Load saved state, return HTML fragments to restore UI
+**POST Method Support**
+- `lib.rs` router now matches `(*matched.value, method)` tuple for GET/POST dispatch
+- `body` parameter no longer ignored — passed to POST route handlers
+- SW already had POST body reading (added in Phase 2 prep) — no SW changes needed
 
-5. **State diffing for multiplayer prep**
-   - Implement `serde::Serialize` + `serde::Deserialize` on game state structs
-   - Add `/api/game/diff` route that returns a compact state diff (JSON)
-   - This becomes the payload for WebRTC data channels in Phase 4
+**Bridge Updates (`assets/js/kipukas-api.js`)**
+- Dev fallback now handles POST: serializes `parameters` as URL-encoded form body
+- Alpine `$persist` migration: scans localStorage for `_x_*_damage` and `_x_alarms` keys, builds `GameState` JSON, POSTs to `/api/game/import`
+- State persistence: `beforeunload` handler POSTs to `/api/game/persist`
+- State restore: on load, reads `kipukas_game_state` from localStorage and POSTs to `/api/game/import`
 
-### Key dependencies to add
-```toml
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+**HTML Template Updates**
+- `keal_damage_tracker.html` — Replaced ~60 lines of Alpine `$persist` + Jekyll template logic with 5-line HTMX container: `hx-get="/api/game/damage?card={slug}"` + `hx-trigger="load"`
+- `turn_tracker.html` — Replaced Alpine `$persist([])` alarms with HTMX-loaded panel + floating alarm display (`#turn-alarms`). Toggle visibility stays Alpine (purely visual)
+- `toolbar.html` — Moved `showKealModal` to local `x-data` scope. Clear-all button now calls `htmx.ajax('POST', '/api/game/damage', {values: {action: 'clear_all'}, ...})`. Removed `makeid()` script
+- `default.html` — Removed `clearDamage: $persist('U7G789Rc')` and `showKealModal: false` from body `x-data`
+
+### Files created/modified
+
+| File | Action |
+|------|--------|
+| `scripts/build-card-catalog.ts` | Modified (YAML parsing, game data fields) |
+| `kipukas-server/src/cards_generated.rs` | Modified (auto-generated — KealMeans + extended Card) |
+| `kipukas-server/Cargo.toml` | Modified (added serde, serde_json) |
+| `kipukas-server/src/game/mod.rs` | Created |
+| `kipukas-server/src/game/state.rs` | Created |
+| `kipukas-server/src/game/damage.rs` | Created |
+| `kipukas-server/src/game/turns.rs` | Created |
+| `kipukas-server/src/routes/game.rs` | Created |
+| `kipukas-server/src/routes/mod.rs` | Modified (added game module) |
+| `kipukas-server/src/lib.rs` | Modified (game module, /api/game/* routes, POST dispatch) |
+| `assets/js/kipukas-api.js` | Modified (POST body handling, migration, persist/restore) |
+| `_includes/keal_damage_tracker.html` | Modified (replaced Alpine with HTMX) |
+| `_includes/turn_tracker.html` | Modified (replaced Alpine $persist with HTMX) |
+| `_includes/toolbar.html` | Modified (local showKealModal, HTMX clear-all) |
+| `_layouts/default.html` | Modified (removed clearDamage, showKealModal) |
+
+### Alpine state removed from `default.html`
+```
+clearDamage: $persist('U7G789Rc')   — WASM game state clear_all route
+showKealModal: false                — moved to local x-data in toolbar
 ```
 
-### Migration path for `$persist` data
-- Read existing localStorage values on first load
-- POST them to `/api/game/import` to initialize WASM state
-- From then on, WASM owns the state and persists via `/api/game/persist`
+### Alpine state removed from card pages
+```
+{cardName}_damage: $persist({...})  — WASM per-card damage state
+{cardName}_clear: $persist([])      — eliminated (was part of clear mechanism)
+alarms: $persist([])                — WASM turn state
+showAlarms: $persist(true)          — WASM turn state
+```
+
+### Alpine state kept
+```
+showTurnTracker: false    — purely visual toggle (show/hide panel)
+turnsToAlarm: 1           — range slider local state (sent to WASM on submit)
+showKealModal (relocated) — modal open/close (purely visual, local x-data)
+```
+
+### WASM binary size
+
+| Phase | Size | Delta |
+|-------|------|-------|
+| Phase 1 (typing + router) | 69KB | — |
+| Phase 3a (+ cards) | ~72KB | +3KB |
+| Phase 3b (+ serde + game state) | 183KB | +111KB |
+
+The increase is almost entirely from `serde_json` (JSON parsing/serialization). This is a one-time cost that enables state persistence and will power WebRTC state sync in Phase 4.
+
+### Lessons learned
+
+1. **`thread_local!` + `RefCell` gives safe mutable state in WASM** — Since the WASM module runs in a single Web Worker thread, `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it.
+
+2. **Custom `Default` needed for non-zero defaults** — Rust's derived `Default` sets `bool` to `false`, but `show_alarms` should default to `true`. A manual `Default` implementation was required to avoid test failures where `reset_state()` would set `show_alarms: false`.
+
+3. **`build-card-catalog.ts` needed proper YAML parsing** — The Phase 3a simple regex parser couldn't handle nested YAML structures like `keal_means`. Switching to `@std/yaml` (Deno standard library) cleanly parses the nested `name → {genetics: [], count: N}` structure.
+
+4. **POST body handling required changes at three layers** — The dev fallback in `kipukas-api.js` needed to serialize `parameters` as URL-encoded body (not query string) for POST requests. The SW already handled this from Phase 2 prep. The WASM router needed tuple matching `(route, method)` instead of nested `if method ==` checks.
+
+5. **State persistence via `beforeunload` + restore on load** — A simple pattern: serialize WASM state to localStorage on page unload, restore it on page load. This bridges the gap between WASM's in-memory state (lost on page reload) and the persistent storage users expect. The migration script handles the one-time transition from Alpine `$persist` keys to the unified `kipukas_game_state` JSON.
+
+6. **`serde_json` adds ~111KB to WASM but enables multiplayer** — The size increase is significant relative to the base binary but still small in absolute terms (183KB total). This is a strategic investment: the same serialization powers localStorage persistence now AND will power WebRTC state diffs in Phase 4.
 
 ---
 
