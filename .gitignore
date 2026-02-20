@@ -7,10 +7,5 @@ node_modules/
 _site/
 deno.lock
 
-# Generated build outputs
-assets/js/alpine.bundle.min.js
-assets/js/htmx.min.js
-assets/css/output.css
+# Generated build intermediaries (keep build outputs tracked for GitHub Pages)
 scripts/_alpine-entry.ts
-sw.js
-sw.js.map

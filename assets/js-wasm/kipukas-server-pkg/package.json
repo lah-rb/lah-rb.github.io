@@ -1,0 +1,15 @@
+{
+  "name": "kipukas-server",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "kipukas_server_bg.wasm",
+    "kipukas_server.js",
+    "kipukas_server.d.ts"
+  ],
+  "main": "kipukas_server.js",
+  "types": "kipukas_server.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
