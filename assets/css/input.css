@@ -9,6 +9,7 @@
 @source "../../_includes/*.{html,js,yml}";
 @source "../../sections/*.{html,js,yml}";
 @source "../../game_rules/*.{html,js,yml}";
+@source "../../kipukas-server/src/**/*.rs";
 
 /* ── Safelist (classes generated dynamically) ── */
 @source inline("grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7");
@@ -52,6 +53,29 @@
   [x-cloak] {
     display: none !important;
   }
+}
+
+/* ── Custom animations ── */
+@theme {
+  --animate-card-fade-in: card-fade-in 250ms ease-out backwards;
+}
+
+@keyframes card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── HTMX swap transitions ── */
+/* Fade-out old content before HTMX replaces it (filter/search changes) */
+#card-grid.htmx-swapping {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
 }
 
 /* ── Custom utilities ── */

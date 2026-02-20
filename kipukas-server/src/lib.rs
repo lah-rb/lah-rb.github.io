@@ -6,6 +6,7 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod cards_generated;
 pub mod routes;
 pub mod typing;
 
@@ -28,6 +29,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
 
     // Register routes — the value is a &str tag we match on below
     router.insert("/api/type-matchup", "type_matchup").ok();
+    router.insert("/api/cards", "cards").ok();
     router.insert("/api/qr/status", "qr_status").ok();
     router.insert("/api/qr/found", "qr_found").ok();
 
@@ -37,6 +39,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     match router.at(path) {
         Ok(matched) => match *matched.value {
             "type_matchup" if method == "GET" => routes::type_matchup::handle(query),
+            "cards" if method == "GET" => routes::cards::handle(query),
             "qr_status" if method == "GET" => routes::qr::handle_status(query),
             "qr_found" if method == "GET" => routes::qr::handle_found(query),
             _ => method_not_allowed(),
@@ -85,5 +88,13 @@ mod tests {
     fn routes_qr_found() {
         let html = handle_request("GET", "/api/qr/found", "?url=kpks.us%2Ftest", "");
         assert!(html.contains("kipukas.cards/test"));
+    }
+
+    #[test]
+    fn routes_cards() {
+        let html = handle_request("GET", "/api/cards", "?page=0&per=4&all=true", "");
+        assert!(html.contains("<a href="));
+        let card_count = html.matches("<a href=").count();
+        assert_eq!(card_count, 4);
     }
 }

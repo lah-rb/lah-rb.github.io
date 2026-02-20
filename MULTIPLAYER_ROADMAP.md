@@ -1,6 +1,6 @@
 # Kipukas Multiplayer Roadmap
 
-> **Status:** Phase 2 in progress (QR scanner migration)
+> **Status:** Phase 3a complete (Card grid infinite scroll migrated to HTMX + WASM)
 > **Started:** February 2026
 > **Architecture:** HTMX + In-Browser WASM Server + WebRTC (future)
 
@@ -131,46 +131,181 @@ This ensures the type matchup works immediately on first visit and during `jekyl
 
 ---
 
-## Phase 2: QR Scanner Migration
+## Phase 2: QR Scanner Migration (✅ Complete)
 
 ### Problem
 
-The current QR scanner flow uses Alpine.js with complex state management (`showScanner`, `showFlash`, `videoReady`, `noCamera`, `showQRModal`) spread across `_layouts/default.html` and `_includes/qr_scanner.html`. It relies on the third-party ZXing WASM library loaded via a separate script tag. The flow has been historically brittle and recently broke.
+The QR scanner flow used Alpine.js with complex state management (`showScanner`, `showFlash`, `videoReady`, `noCamera`, `showQRModal`) spread across `_layouts/default.html` and `_includes/qr_scanner.html`. It relied on the third-party ZXing WASM library loaded via a separate script tag. The flow was historically brittle and had recently broken.
 
-### Plan
+### What was built
 
-1. **Create `/api/qr/decode` route** in the Rust crate
-   - Accept POST with base64 image data or camera frame
-   - Use existing ZXing binary
-   - Return decoded URL as HTML fragment (with navigation link)
+**Rust WASM Routes (`kipukas-server/src/routes/qr.rs`)**
+- `/api/qr/status` — UI state machine: returns HTML fragments for privacy modal, scanning UI, close, and error states
+- `/api/qr/found` — URL validation: accepts decoded QR URL, validates it as a Kipukas domain (kpks.us, kipukas.cards), returns redirect fragment
+- Percent-decode utility for URL-encoded query parameters
+- 14 unit tests covering URL validation, state transitions, and edge cases
 
-2. **Create `/api/qr/status` route** for camera state
-   - Returns HTML fragments for different states: requesting permission, active, error, no camera
+**Camera Module (`assets/js/qr-camera.js`)**
+- Replaces old Alpine-driven `qr_scanner.js` entirely
+- Manages camera start/stop via browser `getUserMedia` API
+- Frame capture loop at 2 fps: canvas → raw RGBA pixels → Web Worker (zero-copy transfer)
+- Listens for `QR_FOUND` messages from worker, swaps result HTML into DOM
+- Exposed globally as `window.kipukasQR` for use by WASM-returned HTML fragments
+- `toggle()` function checks `localStorage` for privacy acceptance, routes through `htmx.ajax()`
 
-3. **Replace Alpine state machine with HTMX**
-   - Camera feed stays as a `<video>` element (browser API, can't be WASM'd)
-   - Frame capture: periodic `hx-trigger="every 500ms"` POST to `/api/qr/decode`
-   - State transitions driven by server responses (HTMX swaps different UI states)
+**Web Worker Updates (`assets/js/kipukas-worker.js`)**
+- Loads ZXing WASM alongside Rust WASM in the same worker
+- Handles `QR_FRAME` messages: ZXing decodes pixels → Rust formats result via `/api/qr/found`
+- Posts `QR_FOUND` back to main thread with formatted HTML + decoded URL
 
-4. **Future: Explor Remove ZXing dependency**
-   - Replace ~2MB third-party WASM with Rust QR decoder compiled into `kipukas-server`
-   - Net reduction in download size despite adding QR functionality to the crate
-   - Project manager has concerns about rust QR decoder maturity where ZXing is fast and accurate in production
+**Bridge Updates (`assets/js/kipukas-api.js`)**
+- Fixed dev fallback query string handling (empty params, double `?` prefix, target resolution)
+- Inline `<script>` re-execution after `innerHTML` swap
 
-### Key files to modify
-- `_includes/qr_scanner.html` — Replace Alpine with HTMX attributes
-- `kipukas-server/src/routes/qr.rs` — New route module
-- `_layouts/default.html` — Remove ZXing script tag, simplify body `x-data`
+**HTMX-Driven State Machine**
+- All scanner state transitions driven by WASM-returned HTML fragments
+- Privacy modal → scanning UI → QR found → redirect (all server-driven)
+- Buttons use `onclick` + `htmx.ajax()` instead of `hx-get` attributes (see lessons learned)
 
-### Alpine state to remove from `default.html`
+### Files created/modified
+
+| File | Action |
+|------|--------|
+| `kipukas-server/src/routes/qr.rs` | Created |
+| `kipukas-server/src/routes/mod.rs` | Modified (added qr module) |
+| `kipukas-server/src/lib.rs` | Modified (added /api/qr/* routes) |
+| `assets/js/qr-camera.js` | Created |
+| `assets/js/kipukas-worker.js` | Modified (ZXing loading + QR_FRAME handler) |
+| `assets/js/kipukas-api.js` | Modified (dev fallback bugfixes, script execution) |
+| `_includes/qr_scanner.html` | Modified (replaced Alpine with HTMX + #qr-container) |
+| `_layouts/default.html` | Modified (removed ZXing script tag, removed Alpine QR state, added qr-camera.js) |
+| `.gitignore` | Modified (removed build output exclusions for GitHub Pages) |
+| `deno.json` | Modified (build:wasm task deletes wasm-pack .gitignore) |
+
+### Alpine state removed from `default.html`
 ```
 showScanner, showFlash, videoReady, noCamera, showQRModal
 ```
-These all become server-driven HTML fragments.
+These are now server-driven HTML fragments returned by `/api/qr/status`. The `showFlash` toggle remains as a local Alpine `x-data` within the WASM-returned scanning UI (purely visual, appropriate for Alpine).
+
+### Lessons learned
+
+1. **`importScripts()` is blocked in module workers** — The worker runs as `{ type: 'module' }` for ES import of wasm-bindgen glue, but ZXing is a classic script. Fix: `fetch()` the script text and execute with `(0, eval)(text)` (indirect eval runs in global scope, defining the ZXing factory on `globalThis`).
+
+2. **ZXing needs `locateFile` when loaded via eval** — After eval, ZXing resolves `zxing_reader.wasm` relative to the worker URL (`/assets/js/`), not the script's original location (`/assets/js-wasm/`). Fix: pass `locateFile: (file) => '/assets/js-wasm/${file}'` to the ZXing factory.
+
+3. **wasm-pack silently breaks git tracking** — `wasm-pack` auto-generates a `.gitignore` containing `*` in its output directory, preventing the WASM package from being committed. Combined with root `.gitignore` excluding other build outputs, all Phase 1+2 assets were missing from GitHub Pages. Fix: cleaned `.gitignore` and added `rm -f .gitignore` to the `build:wasm` task.
+
+4. **HTMX attributes in WASM-returned HTML bypass the WASM pipeline** — Buttons with `hx-get` in dynamically-inserted HTML fire real network fetches that hit Jekyll's 404 (or the SW relay, which adds latency). Fix: use `onclick` + `htmx.ajax()` calls instead — these go through the same direct JS path regardless of SW state.
+
+5. **`innerHTML` doesn't execute `<script>` tags** — Both the dev fallback in `kipukas-api.js` and the QR_FOUND handler in `qr-camera.js` needed explicit script re-execution: clone each `<script>` with `document.createElement('script')` and replace the inert original.
+
+6. **Dev fallback had three query string bugs** — Empty `{}` params from `htmx.ajax()` were truthy (dropping URL query strings), `url.search` already includes `?` (causing double `??`), and target resolution needed to check `evt.detail.target` before `hx-target` attribute lookup.
+
+### Future: Remove ZXing dependency
+- Replace ~2MB third-party ZXing WASM with Rust QR decoder compiled into `kipukas-server`
+- Net reduction in download size despite adding QR functionality to the crate
+- Concern: Rust QR decoder maturity vs. ZXing's proven production accuracy
+- Decision deferred — ZXing works well for now
 
 ---
 
-## Phase 3: Game State Migration
+## Phase 3a: Card Grid Infinite Scroll (✅ Complete)
+
+### Problem
+
+The index page rendered all ~56 card buttons simultaneously in the DOM using Alpine.js `x-show` + `x-intersect` to simulate virtual DOM behavior. Every card had:
+- An outer `<div>` with `x-intersect`/`x-intersect:leave` toggling an `inView*` state variable
+- An inner `<a>` with a compound `x-show` expression checking filters, search regex, and `inView*` state
+- A nested `x-data` binding with `window.innerWidth` for responsive `srcset` logic
+
+This created ~110+ DOM elements on load, ~56 `IntersectionObserver` instances, and forced Alpine to evaluate every `x-show` expression on every filter/search change. The `loading="lazy"` attribute on images was insufficient because all `<img>` elements were already parsed by the browser. Performance would degrade linearly as cards were added post-launch.
+
+### What was built
+
+**Build Script (`scripts/build-card-catalog.ts`)**
+- Reads all `_posts/*.html` front matter at build time
+- Generates `kipukas-server/src/cards_generated.rs` — a static array of 56 `Card` structs
+- Card metadata: slug, title, layout, img_name, img_alt, tags, genetic_disposition, motivation, habitat, url
+- Cards sorted alphabetically by title (matching existing Jekyll `sort:'title'`)
+- Integrated into build pipeline: `build:card-catalog` runs before `build:wasm`
+
+**Rust WASM Route (`kipukas-server/src/routes/cards.rs`)**
+- `GET /api/cards?page=0&per=12&all=true` — paginated, filtered card catalog
+- Query parameters: `page`, `per`, `filter` (comma-separated), `search`, `all`
+- Filter matching: layout, genetic_disposition, motivation, habitat (OR logic, matching Alpine behavior)
+- Search: case-insensitive substring match on tags + slug + title
+- Returns HTML fragments: card `<a>` elements + trailing sentinel `<div>` for next page
+- Sentinel uses `hx-trigger="revealed"` for HTMX native infinite scroll
+- 9 unit tests covering pagination, filtering, search, edge cases
+
+**HTMX Infinite Scroll (`index.html`)**
+- `#card-grid` div with `hx-get="/api/cards?page=0&per=12&all=true"` and `hx-trigger="load"`
+- Initial load fetches first 12 cards from WASM + sentinel for page 1
+- As user scrolls, each sentinel triggers fetch for next page, replacing itself with more cards + next sentinel
+- Only ~12 cards exist in DOM at a time (plus sentinel), vs. ~110+ previously
+
+**Filter/Search Integration**
+- `window.kipukasRefreshCards()` — reads Alpine reactive state, builds query string, calls `htmx.ajax()`
+- Filter checkboxes call `kipukasRefreshCards()` via `$nextTick()` on click
+- Search input uses `@input.debounce.300ms` to trigger refresh
+- Search toggle clears `searchQuery` on close, restoring "Show All" state
+- Filter logic: `all=true` → show all; `search=X` → search mode; `filter=A,B` → category filter; no params → empty grid
+
+**Responsive Images (Simplified)**
+- Replaced Alpine `x-data` + `:srcset` with native `srcset` + `sizes` attributes
+- `srcset="/assets/thumbnails/x1/{img} 160w, .../x2/{img} 320w, .../x5/{img} 800w"`
+- `sizes="(min-width: 768px) 240px, 160px"` — browser picks optimal resolution natively
+- Eliminates one Alpine reactive binding per card and one `resize` event listener per card
+
+### Files created/modified
+
+| File | Action |
+|------|--------|
+| `scripts/build-card-catalog.ts` | Created |
+| `kipukas-server/src/cards_generated.rs` | Created (auto-generated) |
+| `kipukas-server/src/routes/cards.rs` | Created |
+| `kipukas-server/src/routes/mod.rs` | Modified (added cards module) |
+| `kipukas-server/src/lib.rs` | Modified (added cards_generated module, /api/cards route) |
+| `index.html` | Modified (replaced Alpine card grid with HTMX #card-grid + kipukasRefreshCards) |
+| `_includes/filter.html` | Modified (added kipukasRefreshCards() calls, removed inView* resets) |
+| `_includes/toolbar.html` | Modified (search button clears query on close + refreshes, search input debounced) |
+| `deno.json` | Modified (added build:card-catalog task, integrated into build:wasm) |
+
+### Alpine state removed from `index.html`
+```
+inView* (56 variables) — one per card, toggled by x-intersect
+x-show compound expressions on ~110 elements
+x-data with window.innerWidth per card (responsive srcset)
+<template x-if="true"> wrapper
+```
+
+### Performance impact
+
+| Metric | Before (Alpine) | After (HTMX + WASM) |
+|--------|-----------------|----------------------|
+| DOM elements on load | ~110+ | ~24 (12 cards × 2) |
+| IntersectionObservers | ~56 | 1 (sentinel) |
+| Alpine reactive bindings | ~170+ | 0 on card grid |
+| Images parsed on load | All 56 | 12 (truly lazy) |
+| Filter response | Re-evaluate all x-show | WASM returns only matching cards |
+| Search response | Regex on every card | Rust substring match |
+
+### Lessons learned
+
+1. **Card catalog in WASM avoids runtime data fetching** — By generating a Rust source file from Jekyll front matter at build time, the card metadata lives in the WASM binary (~5KB overhead for 56 cards). No JSON fetch, no localStorage, no IndexedDB — just compiled-in data.
+
+2. **HTMX `revealed` trigger is a native infinite scroll** — No custom JavaScript needed for the scroll detection. HTMX's built-in `revealed` trigger fires when the sentinel div enters the viewport, fetching the next page and replacing itself. The sentinel chain continues until the last page returns no sentinel.
+
+3. **`kipukasRefreshCards()` bridges Alpine UI state to HTMX data fetching** — The function reads Alpine's reactive `filter` and `searchQuery` state, builds a URL, and calls `htmx.ajax()`. This preserves Alpine for UI chrome (checkbox states, search bar visibility) while routing data operations through WASM.
+
+4. **Native `srcset` + `sizes` replaces Alpine responsive logic** — The browser's native image selection algorithm handles responsive thumbnails better than JavaScript `window.innerWidth` checks, without the overhead of Alpine reactive bindings and resize event listeners.
+
+5. **Empty filters = empty grid is intentional UX** — When the user opens search mode (toggling `filter.all` to false), the grid goes blank, signaling "ready to search". Results appear as the user types. Closing search restores "Show All". This matches the previous Alpine behavior where no filter conditions being true resulted in an empty display.
+
+---
+
+## Phase 3b: Game State Migration
 
 ### Problem
 
@@ -319,21 +454,6 @@ A feature should STAY in Alpine when:
 
 ---
 
-## Size Budget
-
-| Component | Current | After Phase 4 (est.) |
-|-----------|---------|---------------------|
-| HTMX | — | ~50 KB |
-| Alpine.js | ~77 KB | ~77 KB (kept for UI) |
-| WASM binary | — | ~150 KB (with QR + game logic) |
-| ZXing WASM | ~2 MB | 0 (possibly removed) |
-| typing.js | ~8 KB | 0 (removed) |
-| **Net change** | | **~-1.7 MB** |
-
-The migration should result in a **smaller** total download despite adding multiplayer capabilities.
-
----
-
 ## Testing Strategy
 
 ### Rust unit tests
@@ -344,8 +464,10 @@ Every route handler and game logic module should have comprehensive unit tests. 
 
 ### Browser integration
 - Open browser DevTools console
-- `[kipukas-worker] WASM server initialized` confirms WASM loaded
-- `[kipukas-api] No SW controller, routing directly:` confirms fallback path
+- `[kipukas-worker] WASM server initialized` confirms Rust WASM loaded
+- `[kipukas-worker] ZXing WASM initialized` confirms QR decode capability
+- `[qr-camera] Camera started, scanning at 2 fps` confirms camera + scan loop
+- `[kipukas-api] No SW controller, routing directly:` confirms fallback path (dev only)
 - Check Network tab for `/api/*` requests (should be intercepted by SW in production, absent in dev)
 
 ### Multiplayer testing (Phase 4)
