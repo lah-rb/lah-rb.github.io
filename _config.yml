@@ -46,12 +46,14 @@ include:
 
 exclude:
   - kipukas-server/
+  - signaling-server/
   - node_modules/
   - deno.json
   - deno.lock
   - Gemfile
   - Gemfile.lock
   - WORKFLOW.md
+  - MULTIPLAYER_ROADMAP.md
   - kipukas_rules_book/
   - scripts/
 

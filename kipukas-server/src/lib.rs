@@ -6,6 +6,8 @@
 //!
 //! Phase 3b: Added `/api/game/*` routes for damage tracking, turn tracking,
 //! and game state persistence. POST method support enabled.
+//! Phase 4: Added `/api/room/*` routes for multiplayer room management
+//! and fists combat. Room state is global (shared via WebRTC).
 
 use wasm_bindgen::prelude::*;
 
@@ -44,6 +46,18 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/game/persist", "game_persist").ok();
     router.insert("/api/game/import", "game_import").ok();
 
+    // Phase 4: Room/multiplayer routes
+    router.insert("/api/room/status", "room_status").ok();
+    router.insert("/api/room/create", "room_create").ok();
+    router.insert("/api/room/join", "room_join").ok();
+    router.insert("/api/room/connected", "room_connected").ok();
+    router.insert("/api/room/disconnect", "room_disconnect").ok();
+    router.insert("/api/room/fists", "room_fists").ok();
+    router.insert("/api/room/fists/sync", "room_fists_sync").ok();
+    router.insert("/api/room/fists/poll", "room_fists_poll").ok();
+    router.insert("/api/room/fists/reset", "room_fists_reset").ok();
+    router.insert("/api/room/state", "room_state").ok();
+
     match router.at(path) {
         Ok(matched) => match (*matched.value, method) {
             // GET routes
@@ -60,6 +74,19 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("game_turns", "POST") => routes::game::handle_turns_post(body),
             ("game_persist", "POST") => routes::game::handle_persist_post(body),
             ("game_import", "POST") => routes::game::handle_import_post(body),
+
+            // Phase 4: Room/multiplayer routes
+            ("room_status", "GET") => routes::room::handle_status_get(query),
+            ("room_fists", "GET") => routes::room::handle_fists_get(query),
+            ("room_fists_poll", "GET") => routes::room::handle_fists_poll_get(query),
+            ("room_state", "GET") => routes::room::handle_room_state_get(query),
+            ("room_create", "POST") => routes::room::handle_create_post(body),
+            ("room_join", "POST") => routes::room::handle_join_post(body),
+            ("room_connected", "POST") => routes::room::handle_connected_post(body),
+            ("room_disconnect", "POST") => routes::room::handle_disconnect_post(body),
+            ("room_fists", "POST") => routes::room::handle_fists_post(body),
+            ("room_fists_sync", "POST") => routes::room::handle_fists_sync_post(body),
+            ("room_fists_reset", "POST") => routes::room::handle_fists_reset_post(body),
 
             _ => method_not_allowed(),
         },

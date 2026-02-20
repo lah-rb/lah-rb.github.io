@@ -1,8 +1,8 @@
 # Kipukas Multiplayer Roadmap
 
-> **Status:** Phase 3b complete (Game state — damage/turn tracking migrated to HTMX + WASM)
+> **Status:** Phase 4 in progress (WebRTC multiplayer + fists combat)
 > **Started:** February 2026
-> **Architecture:** HTMX + In-Browser WASM Server + WebRTC (future)
+> **Architecture:** HTMX + In-Browser WASM Server + WebRTC
 
 ---
 
@@ -71,6 +71,19 @@ The bridge script (`kipukas-api.js`) implements two execution paths:
 - **Development / first load (no SW):** Direct shortcut — HTMX `beforeRequest` event → page bridge → Web Worker → WASM → DOM swap
 
 This ensures the type matchup works immediately on first visit and during `jekyll serve` development without waiting for the SW to install.
+
+### Decision 6: Local User State vs Global (Room) State (Phase 4)
+
+All WASM data is tracked in two distinct scopes:
+
+| Scope | Storage | Synced via WebRTC? | Examples |
+|-------|---------|-------------------|----------|
+| **Local User** | `game::state::GameState` + localStorage | No | Damage tracking, turn alarms, card binder browsing |
+| **Global (Room)** | `game::room::RoomState` + WebRTC data channel | Yes | Fists combat submissions, combat results |
+
+**Why two scopes?** Every player keeps their own binder — damage to their cards, their alarms, their browsing state is private. But multiplayer interactions (fists combat) need both players to see the same data. Existing features (Phases 1–3b) remain **local user** state, preserving current single-player behavior. The fists combat tool is the first **global** feature, where both players submit choices and see a shared result.
+
+**Key principle:** A feature defaults to local user state unless it explicitly requires cross-player visibility. This keeps the single-player experience completely unaffected by multiplayer code.
 
 ---
 
@@ -551,14 +564,142 @@ Every route handler and game logic module should have comprehensive unit tests. 
 
 ---
 
+## Resolved Questions (from Phase 4 planning)
+
+1. **TURN server for NAT traversal** — **Deferred.** Symmetric NAT setups are uncommon in the target audience (casual card game players on home/mobile networks). STUN-only (Google's free `stun:stun.l.google.com:19302`) is sufficient for getting the basics working. A TURN server can be added later if real-world testing reveals connectivity issues.
+
+2. **Game state authority** — **Mutual trust is sufficient** for now. Both players run independent WASM servers and sync fists combat submissions via the data channel. For a card game played between friends, there's no strong incentive to cheat. Authoritative host mode can be revisited if competitive ranked play is added.
+
+3. **Spectator mode** — **Not required** for now. Rooms are limited to 2 peers. Spectator support is architecturally simple (read-only data channel) and can be added in a future phase if needed.
+
+4. **Reconnection** — **Players re-exchange connection info.** The signaling server is stateless — it does not persist room state. If the WebRTC connection drops, players disconnect and rejoin by sharing the room code again. This keeps the signaling server simple and avoids stale room state management.
+
+---
+
+## Phase 4: What Was Built (🚧 In Progress)
+
+### Architectural Decision: Local User State vs Global (Room) State
+
+See **Decision 6** above. All existing features (damage, turns, browsing) remain **local user** state. The new fists combat tool is the first **global** feature — both players' submissions are synced via WebRTC and the result is displayed on both screens.
+
+### What was built
+
+**Signaling Server (`signaling-server/main.ts`)**
+- ~130 lines of Deno WebSocket relay
+- Room creation with 4-character codes (excludes confusable chars 0/O, 1/I)
+- SDP offer/answer relay + ICE candidate relay
+- Peer presence tracking (join, leave notifications)
+- Rooms auto-cleaned when both peers disconnect
+- Deployable to Deno Deploy (free tier) or run locally: `deno task dev`
+
+**Room State Module (`kipukas-server/src/game/room.rs`)**
+- `RoomState` struct: room_code, room_name, connected flag, `FistsCombat` state
+- `FistsCombat` struct: local + remote `FistsSubmission` (role, card slug, keal index)
+- `CombatRole` enum: `Attacking` / `Defending` — derives `Serialize`/`Deserialize`
+- `attacker()` / `defender()` methods: look up by role across local+remote submissions
+- `is_complete()`: true when both local and remote have submitted
+- Separate `thread_local!` + `RefCell` storage from game state (room = global, game = local)
+- JSON export for WebRTC transmission
+- 6 unit tests
+
+**Room Route Handlers (`kipukas-server/src/routes/room.rs`)**
+- `GET /api/room/status` — Connected/disconnected UI with create/join forms
+- `POST /api/room/create` — Store room code + name
+- `POST /api/room/join` — Set connected, store code
+- `POST /api/room/connected` — Mark WebRTC peer as connected
+- `POST /api/room/disconnect` — Reset room state
+- `GET /api/room/fists?card={slug}` — Fists combat form: role selection (attacking/defending) + keal means picker from card data
+- `POST /api/room/fists` — Store local submission, trigger WebRTC send via inline script, show waiting/result
+- `POST /api/room/fists/sync` — Accept remote peer's JSON submission, store and check completeness
+- `GET /api/room/fists/poll` — Polling endpoint for waiting players (HTMX `hx-trigger="every 2s"`)
+- `POST /api/room/fists/reset` — Clear both submissions for next round
+- `GET /api/room/state` — Full room state as JSON
+- Combat result rendering: attacker/defender cards, keal means genetics, archetype matchup via `typing.rs`, die modifier calculation with motivation notes
+- 10 unit tests
+
+**JavaScript Multiplayer Module (`assets/js/kipukas-multiplayer.js`)**
+- WebSocket connection to signaling server (auto-detects production vs. local dev URL)
+- RTCPeerConnection setup: initiator creates data channel + SDP offer, responder waits for data channel
+- ICE candidate exchange via signaling relay
+- Data channel protocol: `fists_submission` (sync combat choices) and `fists_reset` messages
+- `postToWasm()` / `postToWasmWithCallback()` — direct Worker messaging for room state updates
+- `execScripts()` — re-execute inline `<script>` tags after innerHTML swap (same pattern as Phase 2)
+- Public API on `window.kipukasMultiplayer`: `createRoom()`, `joinRoom()`, `disconnect()`, `submitFists()`, `sendFists()`, `isConnected()`
+
+**UI Integration (`_includes/multiplayer.html`)**
+- WiFi-signal icon button in toolbar (local Alpine `showMultiplayer` toggle)
+- Anchored dropdown panel with `#room-status` (HTMX-loaded on open) + `#fists-container` (card-context-aware)
+- Card pages pass `card_slug` to the include — fists form auto-loads that card's keal means
+- Index page gets `multiplayer_home` (no card context — fists shows guidance message)
+
+**Fists Combat Flow**
+```
+1. Both players connect to the same room via signaling server
+2. WebRTC data channel established (peer-to-peer)
+3. Each player navigates to a card page and opens the multiplayer panel
+4. Each player selects Attacking or Defending, then picks a keal means
+5. Player clicks "Lock In Choice" → local submission stored in WASM, sent to peer via data channel
+6. Peer's WASM receives submission via /api/room/fists/sync, stores as remote
+7. When both submitted: combat result rendered showing:
+   - Attacker card name, keal means, archetypes, die
+   - Defender card name, keal means, archetypes, die
+   - Attack die modifier (computed via typing.rs matchup engine)
+   - Motivation modifiers (if applicable)
+8. "New Round" button resets both submissions
+```
+
+### 10 `/api/room/*` routes added to router
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/room/status` | GET | Room connection status panel |
+| `/api/room/create` | POST | Store room code from signaling |
+| `/api/room/join` | POST | Join room, mark connected |
+| `/api/room/connected` | POST | Confirm WebRTC connected |
+| `/api/room/disconnect` | POST | Reset room state |
+| `/api/room/fists` | GET | Fists combat form for card |
+| `/api/room/fists` | POST | Submit local combat choice |
+| `/api/room/fists/sync` | POST | Receive remote peer's choice |
+| `/api/room/fists/poll` | GET | Poll for combat completion |
+| `/api/room/fists/reset` | POST | Reset for next round |
+| `/api/room/state` | GET | Full room state JSON |
+
+### Files created/modified
+
+| File | Action |
+|------|--------|
+| `signaling-server/main.ts` | Created |
+| `signaling-server/deno.json` | Created |
+| `kipukas-server/src/game/room.rs` | Created |
+| `kipukas-server/src/game/mod.rs` | Modified (added room module) |
+| `kipukas-server/src/routes/room.rs` | Created |
+| `kipukas-server/src/routes/mod.rs` | Modified (added room module) |
+| `kipukas-server/src/lib.rs` | Modified (10 new /api/room/* routes) |
+| `assets/js/kipukas-multiplayer.js` | Created |
+| `_includes/multiplayer.html` | Created |
+| `_includes/toolbar.html` | Modified (multiplayer + multiplayer_home includes) |
+| `_layouts/card.html` | Modified (added multiplayer=true to toolbar) |
+| `_layouts/default.html` | Modified (added kipukas-multiplayer.js script) |
+| `index.html` | Modified (added multiplayer_home=true to toolbar) |
+| `_config.yml` | Modified (exclude signaling-server/, MULTIPLAYER_ROADMAP.md) |
+
+### Test count
+
+| Phase | Tests | Delta |
+|-------|-------|-------|
+| Phase 3b | 88 | — |
+| Phase 4 | 106 | +18 (6 room state + 10 room routes + 2 integration) |
+
+### Remaining work
+
+- [ ] Deploy signaling server to Deno Deploy
+- [ ] Browser integration testing (two tabs, two devices)
+- [ ] Handle edge cases: both players pick same role, cards with no keal means on both sides
+- [ ] QR code support for room codes (embed room code in QR for easy sharing)
+- [ ] localStorage persist/restore for room state across page reloads
+
 ## Open Questions
 
-1. **TURN server for NAT traversal** — WebRTC peer connections fail behind symmetric NATs. Do we self-host a TURN server, use a free provider (e.g., Metered.ca free tier), or accept that some networks won't support multiplayer?
+1. **Additional global features** — Fists combat is the first global feature. What other game mechanics should become global? Turn tracking could be shared so both players see the same diel cycle.
 
-2. **Game state authority** — In the current plan, both players run independent WASM servers and sync via diffs. For competitive play, should one player be the "host" (authoritative state)? Or is mutual trust sufficient for a card game?
-
-3. **Spectator mode** — Should room connections support observers who receive state diffs but can't send moves? This is architecturally simple (read-only data channel) but needs UI.
-
-4. **Reconnection** — If a WebRTC connection drops mid-game, can players reconnect and resync? This requires the signaling server to maintain room state briefly, or players to exchange connection info again.
-
-5. **Alpine.js long-term** — Should Alpine eventually be replaced entirely by HTMX + CSS-only interactions? Or is the hybrid approach the permanent architecture?
+2. **Room persistence** — Currently room state is lost on page reload. Should room connection info be persisted to localStorage so players can auto-reconnect? This would require the signaling server to support reconnection to existing rooms.

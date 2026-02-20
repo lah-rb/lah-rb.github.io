@@ -81,6 +81,24 @@ background_color
         %}
     {% endif %}
 
+    {% if include.multiplayer %}
+      {% capture cardSlugMP %}{{ page.permalink | remove: '/' }}{% endcapture %}
+      {% include multiplayer.html
+        svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
+        menuClass=anchor-menu
+        base_fill=base_fill
+        card_slug=cardSlugMP
+      %}
+    {% endif %}
+
+    {% if include.multiplayer_home %}
+      {% include multiplayer.html
+        svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
+        menuClass=anchor-menu
+        base_fill=base_fill
+      %}
+    {% endif %}
+
     {% if include.filter %}
       {% include filter.html %}
     {% endif %}
