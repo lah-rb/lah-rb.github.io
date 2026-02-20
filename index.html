@@ -24,61 +24,49 @@ bg-terra: "bg-hero-pattern "
   background_color='bg-slate-100/80'
 %}
 
-<template x-if="true">
-  <div x-data="{
-  {% assign posts = site.posts | sort:'title' %}
-  {% for card in posts %}
-  inView{{ card.permalink | remove: '/' }}: true,
-  {% endfor %}
-  }
-  " 
-  class="flex flex-wrap gap-x-5 content-auto place-content-center">
-    {% assign posts = site.posts | sort:"title" %}
-    {% for card in posts %}
-      {% assign tag_string = card.tags | join: '' %}
-      {% assign card_title = card.permalink | remove: '/' %}
-      {% assign raw_search = tag_string | append: card_title%}
-      <!-- div to trigger transition animation when entering and leaving the screen -->
-      <div class="w-40 h-64 md:w-60 md:h-80 my-2.5" x-show="
-            filter.{{card.layout}} == true || 
-            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
-            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
-            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %} 
-            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') ||
-            filter.all == true"
-      x-intersect="inView{{ card.permalink | remove: '/' }} = true" x-intersect:leave="inView{{ card.permalink | remove: '/' }} = false">
-      <a href="{{card.url}}"
-          x-cloak
-          x-transition.duration.250ms
-          x-show="
-            (filter.{{card.layout}} == true || 
-            {% if card.genetic_disposition %} filter.{{card.genetic_disposition}} == true || {% endif %} 
-            {% if card.motivation %} filter.{{card.motivation}} == true || {% endif %} 
-            {% if card.habitat %} filter.{{card.habitat}} == true || {% endif %}
-            (new RegExp(searchQuery, 'i').test('{{ raw_search }}') && searchQuery != '') || 
-            filter.all == true) &&
-            inView{{ card.permalink | remove: '/' }}
-          "
-        class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
-        >
-        <div x-data="{ 
-          isLargeScreen: window.innerWidth >= 768, 
-          screenWidth: window.innerWidth 
-        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
-          
-          <img 
-            :width="$data.screenWidth >= 768 ? '320' : '160'"
-            :height="$data.screenWidth >= 768 ? '320' : '160'"
-            :srcset="$data.screenWidth >= 768 
-                      ? `/assets/thumbnails/x2/{{card.img_name}} 1x, /assets/thumbnails/x4/{{card.img_name}} 2x`
-                      : `/assets/thumbnails/x1/{{card.img_name}} 1x, /assets/thumbnails/x2/{{card.img_name}} 2x, /assets/thumbnails/x3/{{card.img_name}} 3x, /assets/thumbnails/x4/{{card.img_name}} 4x, /assets/thumbnails/x5/{{card.img_name}} 5x`"
-            alt="{{ card.img_alt }}"
-            loading="lazy"
-          >
-        </div>  
-        <div class="text-center text-wrap">{{card.title}}</div>
-      </a>
-    </div>
-    {% endfor %}
-  </div>
-</template> 
+<!-- Card grid: HTMX infinite scroll powered by WASM /api/cards -->
+<div id="card-grid"
+  class="flex flex-wrap gap-x-5 content-auto place-content-center"
+  hx-get="/api/cards?page=0&per=12&all=true"
+  hx-trigger="load"
+  hx-swap="innerHTML swap:150ms">
+</div>
+
+<script>
+  // Called by filter checkboxes and search input to refresh the card grid.
+  // Reads Alpine reactive state, builds query string, calls htmx.ajax()
+  // through the same WASM bridge path (Phase 2 lesson #4).
+  window.kipukasRefreshCards = function() {
+    if (typeof Alpine === 'undefined' || typeof htmx === 'undefined') return;
+
+    var data = Alpine.$data(document.body);
+    var filter = data.filter || {};
+    var search = (data.searchQuery || '').trim();
+
+    var params = ['page=0', 'per=12'];
+
+    if (search) {
+      // Search mode: search across all cards regardless of filters
+      params.push('search=' + encodeURIComponent(search));
+    } else if (filter.all) {
+      // Show All mode
+      params.push('all=true');
+    } else {
+      // Filter mode: collect active filter keys
+      var active = [];
+      var keys = Object.keys(filter);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== 'all' && filter[keys[i]] === true) {
+          active.push(keys[i]);
+        }
+      }
+      if (active.length > 0) {
+        params.push('filter=' + encodeURIComponent(active.join(',')));
+      }
+      // If no active filters, params has no filter/all/search → WASM returns empty grid
+    }
+
+    var url = '/api/cards?' + params.join('&');
+    htmx.ajax('GET', url, {target: '#card-grid', swap: 'innerHTML swap:150ms'});
+  };
+</script>

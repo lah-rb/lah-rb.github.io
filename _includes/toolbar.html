@@ -56,12 +56,12 @@ background_color
     {% endif %}
 
     {% if include.search %}
-      <button class="flex justify-center pt-2" aria-label="Search cards" x-ref="search" @click="filter.all = !filter.all; showSearchBar = !showSearchBar">
+      <button class="flex justify-center pt-2" aria-label="Search cards" x-ref="search" @click="showSearchBar = !showSearchBar; filter.all = !filter.all; if (!showSearchBar) { searchQuery = ''; }; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })">
         <svg class="h-10 w-10 stroke-2 {{ include.base_stroke }} fill-amber-50 hover:stroke-kip-red fill-amber-50" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
         </svg>
       </button>
-      <input type="text" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" x-model="searchQuery" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
+      <input type="text" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" x-model="searchQuery" @input.debounce.300ms="if (window.kipukasRefreshCards) window.kipukasRefreshCards()" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
     {% endif %}
 
     {% if include.type_matchup %}
