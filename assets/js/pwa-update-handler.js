@@ -22,12 +22,12 @@
   // ============================================
   const defaults = {
     debug: false,
-    autoReload: false,          // true = skip the toast and reload immediately
-    notificationDuration: 0,    // ms before auto-dismiss (0 = persistent)
+    autoReload: false, // true = skip the toast and reload immediately
+    notificationDuration: 0, // ms before auto-dismiss (0 = persistent)
     updateInterval: 30 * 60 * 1000, // how often to poll for SW updates (30 min)
   };
 
-  const config = Object.assign({}, defaults, window.PWAUpdateConfig || {});
+  const config = Object.assign({}, defaults, globalThis.PWAUpdateConfig || {});
 
   function log(...args) {
     if (config.debug) console.log('[PWA Update]', ...args);
@@ -199,7 +199,7 @@
   // REGISTRATION
   // ============================================
 
-  window.addEventListener('load', () => {
+  self.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
@@ -228,6 +228,6 @@
     if (refreshing) return;
     refreshing = true;
     log('New service worker activated — reloading page');
-    window.location.reload();
+    globalThis.location.reload();
   });
 })();

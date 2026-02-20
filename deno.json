@@ -1,0 +1,67 @@
+{
+  "imports": {
+    "alpinejs": "npm:alpinejs@3.14.9",
+    "@alpinejs/persist": "npm:@alpinejs/persist@3.14.9",
+    "@alpinejs/intersect": "npm:@alpinejs/intersect@3.14.9",
+    "@alpinejs/focus": "npm:@alpinejs/focus@3.14.9",
+    "@alpinejs/anchor": "npm:@alpinejs/anchor@3.14.9",
+    "@alpinejs/collapse": "npm:@alpinejs/collapse@3.14.9",
+    "@tailwindcss/cli": "npm:@tailwindcss/cli@4",
+    "tailwindcss": "npm:tailwindcss@4",
+    "@tailwindcss/typography": "npm:@tailwindcss/typography@0.5",
+    "@tailwindcss/forms": "npm:@tailwindcss/forms@0.5",
+    "workbox-cli": "npm:workbox-cli@7.3.0",
+    "esbuild": "npm:esbuild@0.25",
+    "htmx.org": "npm:htmx.org@2.0.4"
+  },
+  "tasks": {
+    "setup:workbox": "deno run -A npm:workbox-cli copyLibraries assets/js/workbox",
+    "build:css": "deno run -A npm:@tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css --minify",
+    "build:alpine": "deno run -A scripts/bundle-alpine.ts",
+    "build:htmx": "cp node_modules/.deno/htmx.org@2.0.4/node_modules/htmx.org/dist/htmx.min.js assets/js/htmx.min.js",
+    "build:wasm": "cd kipukas-server && wasm-pack build --target web --out-dir ../assets/js-wasm/kipukas-server-pkg --release",
+    "build:sw": "deno run -A npm:workbox-cli injectManifest workbox-config.cjs",
+    "build:rules": "cd kipukas_rules_book && /Users/lah-rb/.deno/bin/deno task build:all",
+    "build": "deno task build:wasm && deno task build:htmx && deno task build:css && deno task build:alpine && deno task build:rules && rm -rf game_rules && mv kipukas_rules_book/dist game_rules && jekyll build && deno task build:sw",
+    "dev:css": "deno run -A npm:@tailwindcss/cli -i ./assets/css/input.css -o ./assets/css/output.css --watch",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "check": "deno fmt --check && deno lint"
+  },
+  "fmt": {
+    "include": [
+      "scripts/",
+      "assets/js/",
+      "deno.json"
+    ],
+    "exclude": [
+      "assets/js/workbox/",
+      "assets/js/alpine.bundle.min.js",
+      "assets/js/htmx.min.js",
+      "_site/",
+      "node_modules/",
+      "game_rules/"
+    ],
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true
+  },
+  "lint": {
+    "include": [
+      "scripts/",
+      "assets/js/"
+    ],
+    "exclude": [
+      "assets/js/workbox/",
+      "assets/js/alpine.bundle.min.js",
+      "assets/js/htmx.min.js",
+      "_site/",
+      "node_modules/",
+      "game_rules/"
+    ],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "nodeModulesDir": "auto"
+}

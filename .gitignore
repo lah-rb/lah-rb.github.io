@@ -1,4 +1,16 @@
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
+kipukas-server/target/
 new_extensions.txt
+node_modules/
+_site/
+deno.lock
+
+# Generated build outputs
+assets/js/alpine.bundle.min.js
+assets/js/htmx.min.js
+assets/css/output.css
+scripts/_alpine-entry.ts
+sw.js
+sw.js.map

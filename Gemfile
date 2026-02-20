@@ -25,3 +25,8 @@ gem "webrick", "~> 1.9"
 
 # vulnerability fix
 gem "rexml", "~>3.4.4"
+
+# Ruby 3.4 removed csv from stdlib; Jekyll needs it
+gem "csv"
+gem "base64"
+gem "bigdecimal"

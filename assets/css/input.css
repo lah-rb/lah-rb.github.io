@@ -1,12 +1,60 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+/* Tailwind v4 CSS-based config */
+@import "tailwindcss";
 
-@layer utilities {
-    [x-cloak] { 
-        display: none !important; 
-    };
-    .content-auto {
-        content-visibility: auto;
-    }
+/* ── Source paths (replaces `content` in tailwind.config.js) ── */
+@source "../../*.{html,js,yml}";
+@source "../../_layouts/*.{html,js,yml}";
+@source "../../_posts/*.{html,js,yml}";
+@source "../../_data/*.{html,js,yml}";
+@source "../../_includes/*.{html,js,yml}";
+@source "../../sections/*.{html,js,yml}";
+@source "../../game_rules/*.{html,js,yml}";
+
+/* ── Safelist (classes generated dynamically) ── */
+@source inline("grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7");
+
+/* ── Plugins ── */
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+
+/* ── Theme extensions (replaces tailwind.config.js theme.extend) ── */
+@theme {
+  --color-kip-red: #9c2828;
+  --color-kip-goldenrod: #b87a19;
+  --color-kip-drk-goldenrod: #7A5015;
+  --color-kip-drk-sienna: #341c17;
+
+  --background-image-hero-pattern: url('/assets/utility_images/topography.svg');
+
+  --breakpoint-xs: 450px;
+  --breakpoint-sm: 450px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* ── v3 compat: default border color & pointer cursor on buttons ── */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+/* ── Custom utilities ── */
+@utility content-auto {
+  content-visibility: auto;
 }

@@ -1,5 +1,18 @@
 {
     "cSpell.words": [
         "keal"
-    ]
+    ],
+    "deno.enable": true,
+    "deno.enablePaths": [
+        "scripts/",
+        "kipukas_rules_book/scripts/"
+    ],
+    "deno.lint": true,
+    "deno.unstable": [],
+    "[typescript]": {
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    }
 }
