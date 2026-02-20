@@ -43,7 +43,7 @@ let zxingReady = false;
     const text = await resp.text();
     (0, eval)(text); // indirect eval — runs in global scope, defines ZXing on globalThis
     if (typeof ZXing === 'function') {
-      zxing = await ZXing();
+      zxing = await ZXing({ locateFile: (file) => `/assets/js-wasm/${file}` });
       zxingReady = true;
       console.log('[kipukas-worker] ZXing WASM initialized');
     }
