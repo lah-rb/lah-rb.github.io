@@ -95,9 +95,9 @@ pub fn handle_damage_post(body: &str) -> String {
     match action {
         "clear_all" => {
             damage::clear_all();
-            // Return a confirmation message — the page will need to
-            // refresh the current card's damage tracker separately
-            r#"<span class="text-emerald-600">All damage cleared</span>"#.to_string()
+            // Return a centered confirmation message as fallback — the toolbar JS
+            // chains a GET to immediately re-render the damage tracker after this.
+            r#"<div class="w-full text-center"><span class="text-emerald-600">All damage cleared. Please reload the page.</span></div>"#.to_string()
         }
         "clear" if !card.is_empty() => {
             damage::clear_card(card);

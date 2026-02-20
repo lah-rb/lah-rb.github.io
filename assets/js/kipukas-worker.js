@@ -111,6 +111,13 @@ self.onmessage = async (event) => {
 
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
+
+    // Auto-persist: after any POST to /api/game/*, export state to main thread
+    // so it can be saved to localStorage immediately (no unreliable beforeunload)
+    if (method === 'POST' && pathname.startsWith('/api/game/')) {
+      const stateJson = handle_request('GET', '/api/game/state', '', '');
+      self.postMessage({ type: 'PERSIST_STATE', json: stateJson });
+    }
   } catch (err) {
     console.error('[kipukas-worker] WASM request error:', err);
     port.postMessage({
