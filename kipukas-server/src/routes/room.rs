@@ -413,37 +413,21 @@ pub fn handle_room_state_get(_query: &str) -> String {
 
 fn render_fists_result() -> String {
     room::with_room(|r| {
-        // Check for same-role conflict
-        if let (Some(local), Some(remote)) = (&r.fists.local, &r.fists.remote) {
-            if local.role == remote.role {
-                let role_name = match local.role {
-                    CombatRole::Attacking => "Attacking",
-                    CombatRole::Defending => "Defending",
-                };
-                let mut h = String::with_capacity(512);
-                h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
-                h.push_str(r#"<p class="text-2xl mb-2">&#x26A0;</p>"#);
-                h.push_str(&format!(
-                    r#"<p class="text-lg font-bold mb-2">Both players chose {}!</p>"#,
-                    role_name
-                ));
-                h.push_str(r#"<p class="text-sm mb-4">One player must be the Attacker and the other the Defender. Coordinate and try again.</p>"#);
-                h.push_str(r#"<button onclick="htmx.ajax('POST','/api/room/fists/reset',{target:'#fists-container',swap:'innerHTML'})" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
-                h.push_str(r#"</div>"#);
-                return h;
-            }
+        // Check for same-role conflict first
+        if r.fists.same_role() {
+            return render_same_role_error(r);
         }
 
         let atk = match r.fists.attacker() {
             Some(a) => a,
             None => {
-                return r#"<div class="p-4 text-kip-red">Error: Could not determine attacker.</div>"#.to_string();
+                return render_same_role_error(r);
             }
         };
         let def = match r.fists.defender() {
             Some(d) => d,
             None => {
-                return r#"<div class="p-4 text-kip-red">Error: Could not determine defender.</div>"#.to_string();
+                return render_same_role_error(r);
             }
         };
 
@@ -499,6 +483,29 @@ fn render_fists_result() -> String {
         // Build result HTML
         build_result_html(atk_card, atk_km, def_card, def_km, &result)
     })
+}
+
+/// Render a friendly error when both players chose the same role.
+fn render_same_role_error(r: &room::RoomState) -> String {
+    let role_name = match (&r.fists.local, &r.fists.remote) {
+        (Some(l), Some(_)) => match l.role {
+            CombatRole::Attacking => "Attacking",
+            CombatRole::Defending => "Defending",
+        },
+        _ => "the same role",
+    };
+
+    let mut h = String::with_capacity(512);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
+    h.push_str(r#"<p class="text-2xl mb-2">&#x26A0;</p>"#);
+    h.push_str(&format!(
+        r#"<p class="text-lg font-bold mb-2">Both players chose {}!</p>"#,
+        role_name
+    ));
+    h.push_str(r#"<p class="text-sm mb-4">One player must be the Attacker and the other the Defender. Coordinate and try again.</p>"#);
+    h.push_str(r#"<button onclick="htmx.ajax('POST','/api/room/fists/reset',{target:'#fists-container',swap:'innerHTML'})" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
+    h.push_str(r#"</div>"#);
+    h
 }
 
 fn build_result_html(
@@ -750,7 +757,7 @@ mod tests {
     }
 
     #[test]
-    fn fists_same_role_shows_conflict() {
+    fn fists_same_role_shows_error() {
         reset();
         room::with_room_mut(|r| {
             r.connected = true;

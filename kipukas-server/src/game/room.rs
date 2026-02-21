@@ -48,6 +48,14 @@ impl FistsCombat {
         self.remote = None;
     }
 
+    /// Check if both players chose the same role.
+    pub fn same_role(&self) -> bool {
+        match (&self.local, &self.remote) {
+            (Some(l), Some(r)) => l.role == r.role,
+            _ => false,
+        }
+    }
+
     /// Get the attacker submission (from whichever player chose Attacking).
     pub fn attacker(&self) -> Option<&FistsSubmission> {
         if let Some(ref local) = self.local {

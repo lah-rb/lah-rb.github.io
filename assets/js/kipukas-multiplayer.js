@@ -25,6 +25,7 @@ let dc = null; // RTCDataChannel
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
+let pendingFists = null; // queued fists data if dc wasn't open yet
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -107,7 +108,8 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Set WASM to "in room, waiting for data channel" (connected=false)
+      // Set WASM to "waiting" state (connected=false but room_code set).
+      // connected=true is only set when WebRTC actually connects (onPeerConnected).
       postToWasm(
         'POST',
         '/api/room/create',
@@ -122,7 +124,6 @@ function handleSignalingMessage(msg) {
       console.log('[multiplayer] Peer joined our room');
       // Creator sets up peer connection, waits for offer
       setupPeerConnection(false);
-      refreshRoomStatus();
       break;
 
     case 'sdp_offer':
@@ -204,13 +205,13 @@ function setupPeerConnection(initiator) {
 function setupDataChannel(channel) {
   channel.onopen = () => {
     console.log('[multiplayer] Data channel open');
-    // NOW we are truly connected — tell WASM and refresh UI
-    postToWasm(
-      'POST',
-      '/api/room/connected',
-      `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
-    );
-    refreshRoomStatus();
+    // Send any queued fists data
+    if (pendingFists) {
+      const data = pendingFists;
+      pendingFists = null;
+      dc.send(JSON.stringify({ type: 'fists_submission', data }));
+      console.log('[multiplayer] Sent queued fists submission to peer');
+    }
   };
 
   channel.onclose = () => {
@@ -250,8 +251,12 @@ async function handleIceCandidate(candidate) {
 /** Called when WebRTC connection is fully established. */
 function onPeerConnected() {
   console.log('[multiplayer] Peer connected via WebRTC!');
-  // Note: connected state is set in data channel onopen, not here,
-  // to ensure the data channel is actually usable before showing fists form.
+  postToWasm(
+    'POST',
+    '/api/room/connected',
+    `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+  );
+  refreshRoomStatus();
 }
 
 /** Clean up peer connection. */
@@ -314,7 +319,9 @@ function sendFists(submissionData) {
     dc.send(JSON.stringify({ type: 'fists_submission', data: submissionData }));
     console.log('[multiplayer] Sent fists submission to peer');
   } else {
-    console.warn('[multiplayer] Data channel not open, cannot send fists');
+    // Queue for when the data channel opens
+    console.log('[multiplayer] Data channel not open yet, queuing fists submission');
+    pendingFists = submissionData;
   }
 }
 
