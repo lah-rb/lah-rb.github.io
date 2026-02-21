@@ -8,10 +8,8 @@
  * HTML onclick handlers.
  */
 
-// Signaling server URL — change for production (Deno Deploy)
+// Signaling server URL (Deno Deploy)
 const SIGNAL_URL = 'wss://signal.kipukas.deno.net/ws';
-// Fallback for local dev
-const SIGNAL_URL_LOCAL = 'ws://localhost:8787/ws';
 
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
@@ -22,26 +20,10 @@ let roomCode = '';
 let roomName = '';
 let isCreator = false;
 
-/** Get the signaling URL — try production first, fall back to local. */
-function getSignalUrl() {
-  // Allow override via localStorage for dev
-  const override = localStorage.getItem('kipukas_signal_url');
-  if (override) return override;
-  // In production (kipukas.cards), use the deployed signaling server
-  if (
-    location.hostname === 'kipukas.cards' ||
-    location.hostname === 'kpks.us' ||
-    location.hostname.endsWith('.github.io')
-  ) {
-    return SIGNAL_URL;
-  }
-  return SIGNAL_URL_LOCAL;
-}
-
 /** Connect to signaling server WebSocket. */
 function connectSignaling() {
   return new Promise((resolve, reject) => {
-    const url = getSignalUrl();
+    const url = SIGNAL_URL;
     console.log('[multiplayer] Connecting to signaling server:', url);
     ws = new WebSocket(url);
 
