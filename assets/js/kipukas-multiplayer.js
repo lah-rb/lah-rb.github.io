@@ -131,20 +131,20 @@ function handleSignalingMessage(msg) {
     case 'sdp_offer':
       console.log('[multiplayer] Received SDP offer from peer');
       handleSdpOffer(msg.data).catch((err) =>
-        console.error('[multiplayer] SDP offer handling failed:', err),
+        console.error('[multiplayer] SDP offer handling failed:', err)
       );
       break;
 
     case 'sdp_answer':
       console.log('[multiplayer] Received SDP answer from peer');
       handleSdpAnswer(msg.data).catch((err) =>
-        console.error('[multiplayer] SDP answer handling failed:', err),
+        console.error('[multiplayer] SDP answer handling failed:', err)
       );
       break;
 
     case 'ice_candidate':
       handleIceCandidate(msg.data).catch((err) =>
-        console.error('[multiplayer] ICE candidate handling failed:', err),
+        console.error('[multiplayer] ICE candidate handling failed:', err)
       );
       break;
 
