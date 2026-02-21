@@ -434,6 +434,8 @@ function handleDataChannelMessage(msg) {
           container.innerHTML = html;
           if (typeof htmx !== 'undefined') htmx.process(container);
         }
+        // Refresh to re-fetch the fists selection form (same as local resetFists)
+        refreshRoomStatus();
       });
       break;
     }

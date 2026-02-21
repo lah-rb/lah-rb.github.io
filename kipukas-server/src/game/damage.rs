@@ -202,9 +202,21 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"</div></div><br>"#);
     }
 
-    // Final Blows section — shown when all keal means are checked
+    // Sentinel div: present when all keal means slots are checked (or wasted).
+    // The parent Alpine component in keal_damage_tracker.html watches for this
+    // class after each HTMX swap and toggles .show-final-blows on the wrapper,
+    // which makes .final-blows-section visible via CSS.
     if all_checked || is_wasted {
-        html.push_str(r#"<div>"#);
+        html.push_str(r#"<div class="keal-all-checked hidden"></div>"#);
+    }
+
+    // Final Blows section — always in the DOM, visibility controlled by Alpine
+    // via the .final-blows-section / .show-final-blows CSS pattern.
+    // This avoids browser reflow/repaint issues with conditional innerHTML swaps.
+    {
+        let wasted_checked = if is_wasted { " checked" } else { "" };
+
+        html.push_str(r#"<div class="final-blows-section">"#);
 
         // Final Blows header
         html.push_str(r#"<div class="flex w-full"><div class="w-1/2">"#);
@@ -224,7 +236,6 @@ pub fn render_damage_tracker(slug: &str) -> String {
         }
 
         // Wasted checkbox
-        let wasted_checked = if is_wasted { " checked" } else { "" };
         html.push_str(r#"<div class="flex">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
         html.push_str(&format!(
@@ -235,13 +246,7 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"</div>"#);
 
         html.push_str(r#"</div></div>"#);
-        html.push_str(r#"</div>"#);
-        // Force browser reflow so Final Blows section paints after innerHTML swap.
-        // Reading offsetHeight triggers synchronous layout calculation.
-        html.push_str(&format!(
-            r#"<script>document.getElementById('keal-damage-{}').offsetHeight;</script>"#,
-            slug
-        ));
+        html.push_str(r#"</div>"#); // close .final-blows-section
     }
 
     html.push_str(r#"</div>"#); // close container
@@ -322,8 +327,10 @@ mod tests {
         assert!(html.contains("Chain Raid"));
         assert!(html.contains("checkbox"));
         assert!(html.contains("Combat"));
-        // Final Blows should NOT show (no slots checked)
-        assert!(!html.contains("Final Blows"));
+        // Final Blows section is always in the DOM (hidden by CSS via Alpine),
+        // but the sentinel div should NOT be present when slots aren't all checked.
+        assert!(html.contains("final-blows-section"));
+        assert!(!html.contains("keal-all-checked"));
         reset_state();
     }
 
@@ -339,6 +346,8 @@ mod tests {
         assert!(html.contains("Wasted"));
         assert!(html.contains("Brutal")); // genetic_disposition
         assert!(html.contains("Service")); // motivation
+        // Sentinel div should be present so Alpine shows the section
+        assert!(html.contains("keal-all-checked"));
         reset_state();
     }
 }

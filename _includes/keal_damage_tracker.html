@@ -2,10 +2,23 @@
 
 <!-- Phase 3b: Keal damage tracker loaded from WASM via HTMX.
      Replaces Alpine $persist pattern with server-driven HTML fragments.
-     State lives in WASM memory, persisted to localStorage via /api/game/persist. -->
-<div id="keal-damage-{{ cardSlug }}"
-     class="w-full grid grid-cols-1 place-self-center"
-     hx-get="/api/game/damage?card={{ cardSlug }}"
-     hx-trigger="load"
-     hx-swap="innerHTML">
+     State lives in WASM memory, persisted to localStorage via /api/game/persist.
+
+     Alpine watches for the `.keal-all-checked` sentinel div injected by WASM
+     when all keal means slots are checked. This drives the visibility of the
+     Final Blows section via CSS, avoiding browser reflow/repaint issues that
+     occur with conditional innerHTML swaps on some browsers. -->
+<div x-data="{ allChecked: false }"
+     :class="{ 'show-final-blows': allChecked }"
+     @htmx:after-swap.camel.window="$nextTick(() => { allChecked = !!document.querySelector('#keal-damage-{{ cardSlug }} .keal-all-checked') })">
+  <style>
+    .final-blows-section { display: none; }
+    .show-final-blows .final-blows-section { display: block; }
+  </style>
+  <div id="keal-damage-{{ cardSlug }}"
+       class="w-full grid grid-cols-1 place-self-center"
+       hx-get="/api/game/damage?card={{ cardSlug }}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+  </div>
 </div>
