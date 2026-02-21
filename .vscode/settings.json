@@ -5,7 +5,8 @@
     "deno.enable": true,
     "deno.enablePaths": [
         "scripts/",
-        "kipukas_rules_book/scripts/"
+        "kipukas_rules_book/scripts/",
+        "signaling-server"
     ],
     "deno.lint": true,
     "deno.unstable": [],

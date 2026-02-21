@@ -88,6 +88,7 @@ function connectSignaling() {
 
 /** Handle messages from the signaling server. */
 function handleSignalingMessage(msg) {
+  console.log('[multiplayer] ← signaling msg:', msg.type, msg);
   switch (msg.type) {
     case 'room_created':
       roomCode = msg.code;
@@ -161,6 +162,7 @@ function handleSignalingMessage(msg) {
 
 /** Set up RTCPeerConnection and data channel. */
 function setupPeerConnection(initiator) {
+  console.log('[multiplayer] setupPeerConnection(initiator=' + initiator + ')');
   // Clean up any existing connection first
   cleanupPeer();
 
@@ -168,8 +170,23 @@ function setupPeerConnection(initiator) {
 
   pc.onicecandidate = (event) => {
     if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+      console.log('[multiplayer] → sending ICE candidate:', event.candidate.candidate?.substring(0, 60));
       ws.send(JSON.stringify({ type: 'ice_candidate', data: event.candidate }));
+    } else if (!event.candidate) {
+      console.log('[multiplayer] ICE gathering complete (null candidate)');
     }
+  };
+
+  pc.onicegatheringstatechange = () => {
+    console.log('[multiplayer] ICE gathering state:', pc.iceGatheringState);
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log('[multiplayer] ICE connection state:', pc.iceConnectionState);
+  };
+
+  pc.onsignalingstatechange = () => {
+    console.log('[multiplayer] Signaling state:', pc.signalingState);
   };
 
   pc.onconnectionstatechange = () => {
@@ -187,9 +204,14 @@ function setupPeerConnection(initiator) {
     // Create data channel and send SDP offer
     dc = pc.createDataChannel('kipukas', { ordered: true });
     setupDataChannel(dc);
-    pc.createOffer().then((offer) => {
-      pc.setLocalDescription(offer);
+    console.log('[multiplayer] Creating SDP offer...');
+    pc.createOffer().then(async (offer) => {
+      console.log('[multiplayer] SDP offer created, setting local description...');
+      await pc.setLocalDescription(offer);
+      console.log('[multiplayer] Local description set, sending offer to signaling server');
       ws.send(JSON.stringify({ type: 'sdp_offer', data: offer }));
+    }).catch((err) => {
+      console.error('[multiplayer] Failed to create/send offer:', err);
     });
   } else {
     // Wait for data channel from the initiator
@@ -220,24 +242,51 @@ function setupDataChannel(channel) {
 
 /** Handle incoming SDP offer from remote peer. */
 async function handleSdpOffer(offer) {
-  if (!pc) return;
-  await pc.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  ws.send(JSON.stringify({ type: 'sdp_answer', data: answer }));
+  console.log('[multiplayer] handleSdpOffer called, pc exists:', !!pc);
+  if (!pc) {
+    console.error('[multiplayer] No peer connection! Cannot handle SDP offer.');
+    return;
+  }
+  try {
+    console.log('[multiplayer] Setting remote description (offer)...');
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    console.log('[multiplayer] Remote description set, creating answer...');
+    const answer = await pc.createAnswer();
+    console.log('[multiplayer] Answer created, setting local description...');
+    await pc.setLocalDescription(answer);
+    console.log('[multiplayer] Local description set, sending answer to signaling server');
+    ws.send(JSON.stringify({ type: 'sdp_answer', data: answer }));
+  } catch (err) {
+    console.error('[multiplayer] Error handling SDP offer:', err);
+  }
 }
 
 /** Handle incoming SDP answer from remote peer. */
 async function handleSdpAnswer(answer) {
-  if (!pc) return;
-  await pc.setRemoteDescription(new RTCSessionDescription(answer));
+  console.log('[multiplayer] handleSdpAnswer called, pc exists:', !!pc);
+  if (!pc) {
+    console.error('[multiplayer] No peer connection! Cannot handle SDP answer.');
+    return;
+  }
+  try {
+    console.log('[multiplayer] Setting remote description (answer)...');
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    console.log('[multiplayer] Remote description (answer) set successfully');
+  } catch (err) {
+    console.error('[multiplayer] Error handling SDP answer:', err);
+  }
 }
 
 /** Handle incoming ICE candidate from remote peer. */
 async function handleIceCandidate(candidate) {
-  if (!pc) return;
+  console.log('[multiplayer] handleIceCandidate called, pc exists:', !!pc, 'signalingState:', pc?.signalingState);
+  if (!pc) {
+    console.error('[multiplayer] No peer connection! Cannot add ICE candidate.');
+    return;
+  }
   try {
     await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    console.log('[multiplayer] ICE candidate added successfully');
   } catch (err) {
     console.warn('[multiplayer] ICE candidate error:', err);
   }
