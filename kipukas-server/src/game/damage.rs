@@ -236,6 +236,12 @@ pub fn render_damage_tracker(slug: &str) -> String {
 
         html.push_str(r#"</div></div>"#);
         html.push_str(r#"</div>"#);
+        // Force browser reflow so Final Blows section paints after innerHTML swap.
+        // Reading offsetHeight triggers synchronous layout calculation.
+        html.push_str(&format!(
+            r#"<script>document.getElementById('keal-damage-{}').offsetHeight;</script>"#,
+            slug
+        ));
     }
 
     html.push_str(r#"</div>"#); // close container

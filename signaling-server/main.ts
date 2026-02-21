@@ -144,6 +144,8 @@ function handleWebSocket(ws: WebSocket) {
           );
           return;
         }
+        // Clean up stale peers (closed connections whose close event hasn't fired yet)
+        room.peers = room.peers.filter((p) => p.readyState === WebSocket.OPEN);
         if (room.peers.length >= 2) {
           ws.send(JSON.stringify({ type: "error", message: "Room is full" }));
           return;
@@ -180,6 +182,8 @@ function handleWebSocket(ws: WebSocket) {
           );
           return;
         }
+        // Clean up stale peers (closed connections whose close event hasn't fired yet)
+        room.peers = room.peers.filter((p) => p.readyState === WebSocket.OPEN);
         if (room.peers.length >= 2) {
           ws.send(JSON.stringify({ type: "error", message: "Room is full" }));
           return;
