@@ -5,6 +5,7 @@
 
 use crate::cards_generated::CARDS;
 use crate::game::room::{self, CombatRole, FistsSubmission};
+use crate::game::state::with_state;
 use crate::typing;
 
 /// Parse URL-encoded form body into key-value pairs.
@@ -278,16 +279,40 @@ fn render_fists_form(slug: &str) -> String {
     h.push_str(r#"<label class="flex-1 text-center"><input type="radio" name="fists-role" value="defending" class="mr-1 text-kip-red focus:ring-kip-red">Defending</label>"#);
     h.push_str(r#"</div>"#);
 
-    // Keal means selector
+    // Keal means selector — disable groups where all damage slots are checked
     h.push_str(r#"<p class="text-sm mb-2 font-bold">Select Keal Means:</p>"#);
 
+    let mut slot_start: u8 = 1;
     let mut idx: u8 = 1;
     for km in card.keal_means {
+        // Check if all slots in this keal means group are checked (exhausted)
+        let all_checked = if km.count > 0 {
+            with_state(|state| {
+                if let Some(card_state) = state.cards.get(slug) {
+                    (slot_start..slot_start + km.count)
+                        .all(|s| card_state.slots.get(&s).copied().unwrap_or(false))
+                } else {
+                    false
+                }
+            })
+        } else {
+            false
+        };
+        slot_start += km.count;
+
         let genetics_str = km.genetics.join("-");
-        h.push_str(&format!(
-            r#"<label class="block mb-1 text-sm"><input type="radio" name="fists-keal" value="{}" class="mr-1 text-kip-red focus:ring-kip-red"><span class="text-kip-red font-bold">{}</span> <span class="text-xs">({})</span></label>"#,
-            idx, km.name, genetics_str
-        ));
+        if all_checked {
+            // Disabled: all checkboxes used up
+            h.push_str(&format!(
+                r#"<label class="block mb-1 text-sm opacity-40 line-through"><input type="radio" name="fists-keal" value="{}" class="mr-1" disabled><span class="font-bold">{}</span> <span class="text-xs">({})</span></label>"#,
+                idx, km.name, genetics_str
+            ));
+        } else {
+            h.push_str(&format!(
+                r#"<label class="block mb-1 text-sm"><input type="radio" name="fists-keal" value="{}" class="mr-1 text-kip-red focus:ring-kip-red"><span class="text-kip-red font-bold">{}</span> <span class="text-xs">({})</span></label>"#,
+                idx, km.name, genetics_str
+            ));
+        }
         idx += 1;
     }
 
@@ -365,13 +390,20 @@ pub fn handle_fists_post(body: &str) -> String {
         });
     });
 
+    // Always send local submission to peer via data channel
+    let fists_json = room::export_fists_json();
+
     // Check if both submitted
     let is_complete = room::with_room(|r| r.fists.is_complete());
     if is_complete {
-        render_fists_result()
+        let mut h = render_fists_result();
+        h.push_str(&format!(
+            r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFists({});</script>"#,
+            fists_json
+        ));
+        h
     } else {
         // Return the local submission as JSON for WebRTC send, plus waiting UI
-        let fists_json = room::export_fists_json();
         let mut h = render_fists_waiting();
         h.push_str(&format!(
             r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFists({});</script>"#,
@@ -581,10 +613,9 @@ fn build_result_html(
 
     h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">"#);
     h.push_str(&format!(
-        r#"<p class="text-sm font-bold">Attack Die Modifier</p><p class="text-3xl font-bold {}">{}{}""#,
+        r#"<p class="text-sm font-bold">Attack Die Modifier</p><p class="text-3xl font-bold {}">{}{}</p>"#,
         mod_color, mod_sign, result.modifier
     ));
-    h.push_str(r#"</p>"#);
 
     // Motivation notes
     if let Some(note) = result.societal_mod {

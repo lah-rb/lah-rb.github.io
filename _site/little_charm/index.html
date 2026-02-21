@@ -392,11 +392,11 @@ background_color
 
   <!-- Room status panel (anchored dropdown) -->
   <div x-show="showMultiplayer" x-cloak
-    x-anchor.right-end.offset.10="$refs.mpButton"
+    x-anchor.bottom-end.offset.10="$refs.mpButton"
     x-transition.duration.350ms
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   h-fit w-72">
+   h-fit w-72 max-h-[80vh] overflow-y-auto">
     <div id="room-status"
       hx-get="/api/room/status"
       hx-trigger="load"
