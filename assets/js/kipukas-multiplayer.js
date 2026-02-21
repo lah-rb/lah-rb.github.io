@@ -12,14 +12,16 @@
  * HTML onclick handlers.
  */
 
-// Signaling server URL (Deno Deploy)
-const SIGNAL_URL = 'wss://signal.kipukas.deno.net/ws';
+// Signaling server base URL (Deno Deploy)
+const SIGNAL_BASE = 'https://signal.kipukas.deno.net';
+const SIGNAL_WS_URL = 'wss://signal.kipukas.deno.net/ws';
 
-const ICE_SERVERS = [
+// Baseline ICE servers (STUN only — Cloudflare primary, Google fallback).
+// TURN servers are fetched dynamically from the signaling server.
+const STUN_SERVERS = [
+  { urls: 'stun:stun.cloudflare.com:3478' },
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
 ];
 
 const SESSION_KEY = 'kipukas_room';
@@ -31,6 +33,7 @@ let roomCode = '';
 let roomName = '';
 let isCreator = false;
 let peerConnectedCalled = false; // Guard against double onPeerConnected calls
+let turnServers = []; // Populated from signaling server
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -61,14 +64,40 @@ function clearSession() {
   } catch (_) { /* ignore */ }
 }
 
+// ── TURN credential fetching ───────────────────────────────────────
+
+/** Fetch TURN credentials from the signaling server (proxies Cloudflare API). */
+async function fetchTurnCredentials() {
+  try {
+    const resp = await fetch(`${SIGNAL_BASE}/turn-credentials`);
+    if (!resp.ok) {
+      console.warn('[multiplayer] TURN credential fetch failed:', resp.status);
+      return;
+    }
+    const data = await resp.json();
+    if (data.iceServers && Array.isArray(data.iceServers)) {
+      turnServers = data.iceServers;
+      console.log('[multiplayer] TURN credentials loaded:', turnServers.length, 'servers');
+    } else {
+      console.log('[multiplayer] No TURN servers available (STUN only)');
+    }
+  } catch (err) {
+    console.warn('[multiplayer] Could not fetch TURN credentials:', err);
+  }
+}
+
+/** Build the full ICE server list (STUN + TURN). */
+function getIceServers() {
+  return [...STUN_SERVERS, ...turnServers];
+}
+
 // ── Signaling ──────────────────────────────────────────────────────
 
 /** Connect to signaling server WebSocket. */
 function connectSignaling() {
   return new Promise((resolve, reject) => {
-    const url = SIGNAL_URL;
-    console.log('[multiplayer] Connecting to signaling server:', url);
-    ws = new WebSocket(url);
+    console.log('[multiplayer] Connecting to signaling server:', SIGNAL_WS_URL);
+    ws = new WebSocket(SIGNAL_WS_URL);
 
     ws.onopen = () => {
       console.log('[multiplayer] Signaling connected');
@@ -171,7 +200,9 @@ function setupPeerConnection(initiator) {
   // Clean up any existing connection first
   cleanupPeer();
 
-  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  const iceServers = getIceServers();
+  console.log('[multiplayer] Using ICE servers:', iceServers.length, '(STUN:', STUN_SERVERS.length, '+ TURN:', turnServers.length, ')');
+  pc = new RTCPeerConnection({ iceServers });
 
   pc.onicecandidate = (event) => {
     if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
@@ -341,16 +372,27 @@ function cleanupPeer() {
 function handleDataChannelMessage(msg) {
   switch (msg.type) {
     case 'fists_submission': {
-      // Remote peer sent their fists combat choice
+      // Remote peer sent their fists combat choice.
+      // Store it in WASM via fire-and-forget, then show a message
+      // WITHOUT wiping the local submission form.
       const json = JSON.stringify(msg.data);
       console.log('[multiplayer] Received fists submission:', json);
-      // POST to WASM to store remote submission
+
+      // Store in WASM
       postToWasmWithCallback('POST', '/api/room/fists/sync', json, (html) => {
-        const container = document.getElementById('fists-container');
-        if (container) {
-          container.innerHTML = html;
-          if (typeof htmx !== 'undefined') htmx.process(container);
-          execScripts(container);
+        // Check if the response contains "Combat Result" — meaning both
+        // sides have submitted and we should show the full result.
+        if (html && html.includes('Combat Result')) {
+          const container = document.getElementById('fists-container');
+          if (container) {
+            container.innerHTML = html;
+            if (typeof htmx !== 'undefined') htmx.process(container);
+            execScripts(container);
+          }
+        } else {
+          // Local hasn't submitted yet — just show a message in the
+          // dedicated message area, leaving the form intact.
+          showFistsMessage('✓ Opponent has locked in their choice!', 'text-emerald-600');
         }
       });
       break;
@@ -380,6 +422,14 @@ function sendFists(submissionData) {
     console.log('[multiplayer] Sent fists submission to peer');
   } else {
     console.warn('[multiplayer] Data channel not open, cannot send fists');
+  }
+}
+
+/** Show a message in the dedicated fists message area. */
+function showFistsMessage(text, colorClass) {
+  const msgEl = document.getElementById('fists-message');
+  if (msgEl) {
+    msgEl.innerHTML = `<p class="text-sm ${colorClass || 'text-kip-drk-sienna'}">${text}</p>`;
   }
 }
 
@@ -466,6 +516,9 @@ async function autoReconnect() {
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
 
+  // Fetch TURN credentials before connecting
+  await fetchTurnCredentials();
+
   try {
     await connectSignaling();
     // Use 'rejoin' — skips name validation, cancels grace timers
@@ -487,6 +540,9 @@ const kipukasMultiplayer = {
     const nameInput = document.getElementById('room-name-input');
     roomName = nameInput ? nameInput.value.trim() : '';
     isCreator = true;
+
+    // Fetch TURN credentials before creating the room
+    await fetchTurnCredentials();
 
     try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -511,6 +567,9 @@ const kipukasMultiplayer = {
     }
     isCreator = false;
     roomName = name;
+
+    // Fetch TURN credentials before joining
+    await fetchTurnCredentials();
 
     try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -543,11 +602,11 @@ const kipukasMultiplayer = {
     const kealEl = document.querySelector('input[name="fists-keal"]:checked');
 
     if (!roleEl) {
-      showError('Please select Attacking or Defending.');
+      showFistsMessage('Please select Attacking or Defending.', 'text-kip-red');
       return;
     }
     if (!kealEl) {
-      showError('Please select a Keal Means.');
+      showFistsMessage('Please select a Keal Means.', 'text-kip-red');
       return;
     }
 

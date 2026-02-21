@@ -229,16 +229,96 @@ function handleWebSocket(ws: WebSocket) {
   });
 }
 
+// ── Cloudflare TURN credential generation ──────────────────────────
+
+const CF_TURN_KEY_ID = Deno.env.get("CF_TURN_KEY_ID") || "";
+const CF_TURN_API_TOKEN = Deno.env.get("CF_TURN_API_TOKEN") || "";
+
+/** Cache TURN credentials to avoid hitting the API on every request. */
+let cachedTurnCreds: { iceServers: unknown; expiry: number } | null = null;
+
+async function getTurnCredentials(): Promise<unknown> {
+  const now = Date.now();
+  // Return cached if still valid (refresh 5 min before expiry)
+  if (cachedTurnCreds && cachedTurnCreds.expiry > now + 300_000) {
+    return cachedTurnCreds.iceServers;
+  }
+
+  if (!CF_TURN_KEY_ID || !CF_TURN_API_TOKEN) {
+    console.warn("[signal] TURN credentials not configured (missing env vars)");
+    return null;
+  }
+
+  try {
+    const ttl = 86400; // 24 hours
+    const resp = await fetch(
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${CF_TURN_KEY_ID}/credentials/generate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${CF_TURN_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ttl }),
+      },
+    );
+
+    if (!resp.ok) {
+      console.error("[signal] Cloudflare TURN API error:", resp.status, await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    cachedTurnCreds = {
+      iceServers: data.iceServers,
+      expiry: now + ttl * 1000,
+    };
+    console.log("[signal] TURN credentials generated, valid for", ttl, "seconds");
+    return data.iceServers;
+  } catch (err) {
+    console.error("[signal] Failed to fetch TURN credentials:", err);
+    return null;
+  }
+}
+
+// ── CORS helper ────────────────────────────────────────────────────
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+};
+
 // ── Server ─────────────────────────────────────────────────────────
 
 const port = parseInt(Deno.env.get("PORT") || "8787");
 
-Deno.serve({ port }, (req) => {
+Deno.serve({ port }, async (req) => {
   const url = new URL(req.url);
+
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
 
   // Health check
   if (url.pathname === "/health") {
     return new Response("ok", { status: 200 });
+  }
+
+  // TURN credentials endpoint
+  if (url.pathname === "/turn-credentials" && req.method === "GET") {
+    const iceServers = await getTurnCredentials();
+    if (!iceServers) {
+      return new Response(JSON.stringify({ iceServers: null }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+    return new Response(JSON.stringify({ iceServers }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
   }
 
   // WebSocket upgrade
@@ -249,18 +329,6 @@ Deno.serve({ port }, (req) => {
     const { socket, response } = Deno.upgradeWebSocket(req);
     handleWebSocket(socket);
     return response;
-  }
-
-  // CORS preflight for browser WebSocket connections
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "*",
-      },
-    });
   }
 
   return new Response("Kipukas Signaling Server", { status: 200 });
