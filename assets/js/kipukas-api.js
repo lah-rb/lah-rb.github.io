@@ -25,7 +25,7 @@
 const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' });
 
 // Expose worker for qr-camera.js and other modules that need direct access
-window.kipukasWorker = wasmWorker;
+globalThis.kipukasWorker = wasmWorker;
 
 // Listen for messages from the controlling Service Worker
 if (navigator.serviceWorker) {
@@ -86,10 +86,10 @@ document.addEventListener('htmx:beforeRequest', (evt) => {
   channel.port1.onmessage = (msg) => {
     // Find the HTMX swap target: check evt.detail.target first (set by htmx.ajax),
     // then fall back to hx-target attribute lookup for attribute-driven requests.
-    const targetEl = evt.detail.target
-      || (() => {
-        const sel = evt.detail.elt?.getAttribute('hx-target')
-          || evt.detail.elt?.closest('[hx-target]')?.getAttribute('hx-target');
+    const targetEl = evt.detail.target ||
+      (() => {
+        const sel = evt.detail.elt?.getAttribute('hx-target') ||
+          evt.detail.elt?.closest('[hx-target]')?.getAttribute('hx-target');
         return sel ? document.querySelector(sel) : null;
       })();
     if (targetEl) {
