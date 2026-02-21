@@ -1,7 +1,7 @@
 //! `/api/room/*` routes — multiplayer room management and fists combat.
 //!
 //! Phase 4: Room state is global (shared between peers via WebRTC).
-//! Local game state (damage, turns) remains per-user.
+//! Local game state (damage, turns) remains per-user. 
 
 use crate::cards_generated::CARDS;
 use crate::game::room::{self, CombatRole, FistsSubmission};
