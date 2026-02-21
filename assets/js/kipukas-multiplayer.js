@@ -107,45 +107,34 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Update WASM state so it knows we're in a room (WebRTC not yet connected)
+      // Set WASM to "in room, waiting for data channel" (connected=false)
       postToWasm(
         'POST',
-        '/api/room/join',
+        '/api/room/create',
         `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
       );
-      refreshRoomStatus();
-      break;
-
-    case 'initiate':
-      // Server tells us to initiate WebRTC (we're the new peer, other peer is waiting)
-      console.log('[multiplayer] Initiating WebRTC connection');
+      // Joiner creates the RTCPeerConnection and sends offer
       setupPeerConnection(true);
+      refreshRoomStatus();
       break;
 
     case 'peer_joined':
       console.log('[multiplayer] Peer joined our room');
-      // Other peer will initiate — we wait for their offer
+      // Creator sets up peer connection, waits for offer
       setupPeerConnection(false);
+      refreshRoomStatus();
       break;
 
     case 'sdp_offer':
-      console.log('[multiplayer] Received SDP offer from peer');
-      handleSdpOffer(msg.data).catch((err) =>
-        console.error('[multiplayer] SDP offer handling failed:', err)
-      );
+      handleSdpOffer(msg.data);
       break;
 
     case 'sdp_answer':
-      console.log('[multiplayer] Received SDP answer from peer');
-      handleSdpAnswer(msg.data).catch((err) =>
-        console.error('[multiplayer] SDP answer handling failed:', err)
-      );
+      handleSdpAnswer(msg.data);
       break;
 
     case 'ice_candidate':
-      handleIceCandidate(msg.data).catch((err) =>
-        console.error('[multiplayer] ICE candidate handling failed:', err)
-      );
+      handleIceCandidate(msg.data);
       break;
 
     case 'peer_left':
@@ -198,13 +187,10 @@ function setupPeerConnection(initiator) {
     // Create data channel and send SDP offer
     dc = pc.createDataChannel('kipukas', { ordered: true });
     setupDataChannel(dc);
-    pc.createOffer()
-      .then((offer) => pc.setLocalDescription(offer).then(() => offer))
-      .then((offer) => {
-        console.log('[multiplayer] SDP offer created and sent');
-        ws.send(JSON.stringify({ type: 'sdp_offer', data: offer }));
-      })
-      .catch((err) => console.error('[multiplayer] createOffer failed:', err));
+    pc.createOffer().then((offer) => {
+      pc.setLocalDescription(offer);
+      ws.send(JSON.stringify({ type: 'sdp_offer', data: offer }));
+    });
   } else {
     // Wait for data channel from the initiator
     pc.ondatachannel = (event) => {
@@ -218,6 +204,13 @@ function setupPeerConnection(initiator) {
 function setupDataChannel(channel) {
   channel.onopen = () => {
     console.log('[multiplayer] Data channel open');
+    // NOW we are truly connected — tell WASM and refresh UI
+    postToWasm(
+      'POST',
+      '/api/room/connected',
+      `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+    );
+    refreshRoomStatus();
   };
 
   channel.onclose = () => {
@@ -231,25 +224,17 @@ function setupDataChannel(channel) {
 
 /** Handle incoming SDP offer from remote peer. */
 async function handleSdpOffer(offer) {
-  if (!pc) {
-    console.warn('[multiplayer] SDP offer arrived but pc is null — ignoring');
-    return;
-  }
+  if (!pc) return;
   await pc.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
-  console.log('[multiplayer] SDP answer created and sent');
   ws.send(JSON.stringify({ type: 'sdp_answer', data: answer }));
 }
 
 /** Handle incoming SDP answer from remote peer. */
 async function handleSdpAnswer(answer) {
-  if (!pc) {
-    console.warn('[multiplayer] SDP answer arrived but pc is null — ignoring');
-    return;
-  }
+  if (!pc) return;
   await pc.setRemoteDescription(new RTCSessionDescription(answer));
-  console.log('[multiplayer] Remote description set from SDP answer');
 }
 
 /** Handle incoming ICE candidate from remote peer. */
@@ -265,12 +250,8 @@ async function handleIceCandidate(candidate) {
 /** Called when WebRTC connection is fully established. */
 function onPeerConnected() {
   console.log('[multiplayer] Peer connected via WebRTC!');
-  postToWasm(
-    'POST',
-    '/api/room/connected',
-    `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
-  );
-  refreshRoomStatus();
+  // Note: connected state is set in data channel onopen, not here,
+  // to ensure the data channel is actually usable before showing fists form.
 }
 
 /** Clean up peer connection. */
