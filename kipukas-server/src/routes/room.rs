@@ -169,11 +169,15 @@ pub fn handle_join_post(body: &str) -> String {
         if !name.is_empty() {
             r.room_name = name.to_string();
         }
-        r.connected = true;
+        // Don't set connected = true here. The signaling server accepted
+        // the join, but WebRTC (and the data channel) isn't established yet.
+        // connected will be set to true by handle_connected_post() once
+        // the RTCPeerConnection reaches the 'connected' state.
+        r.connected = false;
         r.fists.reset();
     });
 
-    room::with_room(|r| render_connected_status(r))
+    room::with_room(|r| render_waiting_status(r))
 }
 
 // ── POST /api/room/connected ──────────────────────────────────────
@@ -313,6 +317,21 @@ fn render_fists_waiting() -> String {
     h
 }
 
+/// Render a friendly error when both players chose the same combat role.
+fn render_role_conflict(role_name: &str) -> String {
+    let mut h = String::with_capacity(512);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
+    h.push_str(r#"<p class="text-2xl mb-2">&#x26A0;</p>"#);
+    h.push_str(&format!(
+        r#"<p class="text-lg font-bold mb-2 text-kip-red">Both players chose {}!</p>"#,
+        role_name
+    ));
+    h.push_str(r#"<p class="text-sm mb-4">One player must be <strong>Attacking</strong> and the other <strong>Defending</strong>. Please try again with different roles.</p>"#);
+    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
+    h.push_str(r#"</div>"#);
+    h
+}
+
 // ── POST /api/room/fists ───────────────────────────────────────────
 
 pub fn handle_fists_post(body: &str) -> String {
@@ -414,20 +433,24 @@ pub fn handle_room_state_get(_query: &str) -> String {
 fn render_fists_result() -> String {
     room::with_room(|r| {
         // Check for same-role conflict first
-        if r.fists.same_role() {
-            return render_same_role_error(r);
+        if let Some(conflict_role) = r.fists.has_role_conflict() {
+            let role_name = match conflict_role {
+                CombatRole::Attacking => "Attacking",
+                CombatRole::Defending => "Defending",
+            };
+            return render_role_conflict(role_name);
         }
 
         let atk = match r.fists.attacker() {
             Some(a) => a,
             None => {
-                return render_same_role_error(r);
+                return render_role_conflict("the same role");
             }
         };
         let def = match r.fists.defender() {
             Some(d) => d,
             None => {
-                return render_same_role_error(r);
+                return render_role_conflict("the same role");
             }
         };
 
@@ -483,29 +506,6 @@ fn render_fists_result() -> String {
         // Build result HTML
         build_result_html(atk_card, atk_km, def_card, def_km, &result)
     })
-}
-
-/// Render a friendly error when both players chose the same role.
-fn render_same_role_error(r: &room::RoomState) -> String {
-    let role_name = match (&r.fists.local, &r.fists.remote) {
-        (Some(l), Some(_)) => match l.role {
-            CombatRole::Attacking => "Attacking",
-            CombatRole::Defending => "Defending",
-        },
-        _ => "the same role",
-    };
-
-    let mut h = String::with_capacity(512);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
-    h.push_str(r#"<p class="text-2xl mb-2">&#x26A0;</p>"#);
-    h.push_str(&format!(
-        r#"<p class="text-lg font-bold mb-2">Both players chose {}!</p>"#,
-        role_name
-    ));
-    h.push_str(r#"<p class="text-sm mb-4">One player must be the Attacker and the other the Defender. Coordinate and try again.</p>"#);
-    h.push_str(r#"<button onclick="htmx.ajax('POST','/api/room/fists/reset',{target:'#fists-container',swap:'innerHTML'})" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
-    h.push_str(r#"</div>"#);
-    h
 }
 
 fn build_result_html(
@@ -642,12 +642,49 @@ mod tests {
     }
 
     #[test]
-    fn join_sets_connected() {
+    fn join_stores_room_but_not_connected() {
         reset();
         let html = handle_join_post("code=WXYZ&name=Fun+Room");
-        assert!(html.contains("Connected"));
+        // Join no longer sets connected=true; that happens after WebRTC connects
+        assert!(html.contains("Waiting for peer"));
         assert!(html.contains("WXYZ"));
+        room::with_room(|r| {
+            assert!(!r.connected);
+            assert_eq!(r.room_code, "WXYZ");
+        });
+        reset();
+    }
+
+    #[test]
+    fn connected_post_sets_connected() {
+        reset();
+        handle_join_post("code=WXYZ&name=Fun+Room");
+        let html = handle_connected_post("code=WXYZ&name=Fun+Room");
+        assert!(html.contains("Connected"));
         room::with_room(|r| assert!(r.connected));
+        reset();
+    }
+
+    #[test]
+    fn fists_role_conflict_shows_try_again() {
+        reset();
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = render_fists_result();
+        assert!(html.contains("Both players chose Attacking"));
+        assert!(html.contains("Try Again"));
+        assert!(html.contains("resetFists"));
         reset();
     }
 
@@ -753,28 +790,6 @@ mod tests {
             assert!(r.fists.local.is_none());
             assert!(r.fists.remote.is_none());
         });
-        reset();
-    }
-
-    #[test]
-    fn fists_same_role_shows_error() {
-        reset();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        let html = render_fists_result();
-        assert!(html.contains("Both players chose Attacking"));
-        assert!(html.contains("Try Again"));
         reset();
     }
 
