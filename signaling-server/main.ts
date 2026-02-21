@@ -12,6 +12,7 @@
  *     Server → (to creator) { type: "peer_joined" }
  *   Client → { type: "rejoin", code: "ABCD" }
  *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
+ *     Server → (to new peer) { type: "initiate" }  (if other peer present)
  *     Server → (to other peer) { type: "peer_joined" }
  *   Client → { type: "sdp_offer"|"sdp_answer"|"ice_candidate", data: ... }
  *     Server → relays to the other peer in the room
@@ -141,6 +142,11 @@ function handleWebSocket(ws: WebSocket) {
         }
         room.peers.push(ws);
         ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
+        // If there's already another peer, tell the new peer to initiate WebRTC
+        const hasOtherJoin = room.peers.some(p => p !== ws && p.readyState === WebSocket.OPEN);
+        if (hasOtherJoin) {
+          ws.send(JSON.stringify({ type: 'initiate' }));
+        }
         // Notify the other peer (if any)
         for (const peer of room.peers) {
           if (peer !== ws && peer.readyState === WebSocket.OPEN) {
@@ -172,6 +178,11 @@ function handleWebSocket(ws: WebSocket) {
         }
         room.peers.push(ws);
         ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
+        // If there's already another peer, tell the new peer to initiate WebRTC
+        const hasOtherRejoin = room.peers.some(p => p !== ws && p.readyState === WebSocket.OPEN);
+        if (hasOtherRejoin) {
+          ws.send(JSON.stringify({ type: 'initiate' }));
+        }
         // Notify the other peer
         for (const peer of room.peers) {
           if (peer !== ws && peer.readyState === WebSocket.OPEN) {
