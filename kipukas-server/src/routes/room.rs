@@ -619,8 +619,11 @@ fn build_result_html(
 
     h.push_str(r#"</div>"#);
 
-    // New round button
-    h.push_str(r#"<button onclick="htmx.ajax('POST','/api/room/fists/reset',{target:'#fists-container',swap:'innerHTML'})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+    // New round button — uses kipukasMultiplayer.resetFists() which:
+    // 1. Resets local WASM fists state
+    // 2. Notifies the remote peer via WebRTC data channel
+    // 3. Refreshes the UI to show the fists selection form
+    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
 
     h.push_str(r#"</div>"#);
     h
