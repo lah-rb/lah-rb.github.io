@@ -9,7 +9,7 @@
  */
 
 // Signaling server URL — change for production (Deno Deploy)
-const SIGNAL_URL = 'wss://kipukas-signal.deno.dev/ws';
+const SIGNAL_URL = 'wss://signal.kipukas.deno.net/ws';
 // Fallback for local dev
 const SIGNAL_URL_LOCAL = 'ws://localhost:8787/ws';
 
@@ -74,7 +74,11 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || '';
       console.log('[multiplayer] Room created:', roomCode);
       // Update WASM state
-      postToWasm('POST', '/api/room/create', `code=${roomCode}&name=${encodeURIComponent(roomName)}`);
+      postToWasm(
+        'POST',
+        '/api/room/create',
+        `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+      );
       refreshRoomStatus();
       break;
 
@@ -269,10 +273,10 @@ function sendFists(submissionData) {
 
 /** POST to WASM route via the worker (fire-and-forget for state updates). */
 function postToWasm(method, path, body) {
-  if (!window.kipukasWorker) return;
+  if (!globalThis.kipukasWorker) return;
   const channel = new MessageChannel();
   channel.port1.onmessage = () => {}; // discard response
-  window.kipukasWorker.postMessage(
+  globalThis.kipukasWorker.postMessage(
     { method, pathname: path, search: '', body },
     [channel.port2],
   );
@@ -280,12 +284,12 @@ function postToWasm(method, path, body) {
 
 /** POST to WASM route and call back with the HTML response. */
 function postToWasmWithCallback(method, path, body, callback) {
-  if (!window.kipukasWorker) return;
+  if (!globalThis.kipukasWorker) return;
   const channel = new MessageChannel();
   channel.port1.onmessage = (msg) => {
     if (callback) callback(msg.data.html);
   };
-  window.kipukasWorker.postMessage(
+  globalThis.kipukasWorker.postMessage(
     { method, pathname: path, search: '', body },
     [channel.port2],
   );
@@ -312,8 +316,8 @@ function refreshRoomStatus() {
 function showError(message) {
   const target = document.getElementById('room-status');
   if (target) {
-    target.innerHTML =
-      '<div class="p-4"><span class="text-kip-red text-sm">' + message + '</span></div>';
+    target.innerHTML = '<div class="p-4"><span class="text-kip-red text-sm">' + message +
+      '</span></div>';
   }
 }
 
@@ -411,5 +415,5 @@ const kipukasMultiplayer = {
   },
 };
 
-window.kipukasMultiplayer = kipukasMultiplayer;
+globalThis.kipukasMultiplayer = kipukasMultiplayer;
 console.log('[multiplayer] Kipukas multiplayer module loaded');

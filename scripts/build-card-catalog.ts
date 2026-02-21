@@ -151,29 +151,29 @@ async function main() {
     '',
     '#[derive(Debug, Clone)]',
     'pub struct KealMeans {',
-    '    pub name: &\'static str,',
-    '    pub genetics: &\'static [&\'static str],',
+    "    pub name: &'static str,",
+    "    pub genetics: &'static [&'static str],",
     '    pub count: u8,',
     '}',
     '',
     '#[derive(Debug, Clone)]',
     'pub struct Card {',
-    '    pub slug: &\'static str,',
-    '    pub title: &\'static str,',
-    '    pub layout: &\'static str,',
-    '    pub img_name: &\'static str,',
-    '    pub img_alt: &\'static str,',
-    '    pub tags: &\'static str,',
-    '    pub genetic_disposition: Option<&\'static str>,',
-    '    pub motivation: Option<&\'static str>,',
-    '    pub habitat: Option<&\'static str>,',
-    '    pub url: &\'static str,',
+    "    pub slug: &'static str,",
+    "    pub title: &'static str,",
+    "    pub layout: &'static str,",
+    "    pub img_name: &'static str,",
+    "    pub img_alt: &'static str,",
+    "    pub tags: &'static str,",
+    "    pub genetic_disposition: Option<&'static str>,",
+    "    pub motivation: Option<&'static str>,",
+    "    pub habitat: Option<&'static str>,",
+    "    pub url: &'static str,",
     '    // Phase 3b game data',
     '    pub injury_tolerance: u8,',
-    '    pub keal_means: &\'static [KealMeans],',
+    "    pub keal_means: &'static [KealMeans],",
     '    pub movement: u8,',
-    '    pub die: &\'static str,',
-    '    pub brawl_sequence: &\'static str,',
+    "    pub die: &'static str,",
+    "    pub brawl_sequence: &'static str,",
     '}',
     '',
   ];
@@ -197,7 +197,9 @@ async function main() {
     const card = cards[i];
     if (card.keal_means.length > 0) {
       const entries = card.keal_means.map((km) => {
-        const entry = `KealMeans { name: "${escapeRust(km.name)}", genetics: GENETICS_${kealIdx}, count: ${km.count} }`;
+        const entry = `KealMeans { name: "${
+          escapeRust(km.name)
+        }", genetics: GENETICS_${kealIdx}, count: ${km.count} }`;
         kealIdx++;
         return entry;
       });
@@ -240,7 +242,9 @@ async function main() {
 
   console.log(`[build-card-catalog] Generated ${cards.length} cards → ${outPath}`);
   console.log(
-    `[build-card-catalog] Game data: ${totalKealMeans} keal means across ${cards.filter((c) => c.keal_means.length > 0).length} cards`,
+    `[build-card-catalog] Game data: ${totalKealMeans} keal means across ${
+      cards.filter((c) => c.keal_means.length > 0).length
+    } cards`,
   );
 }
 

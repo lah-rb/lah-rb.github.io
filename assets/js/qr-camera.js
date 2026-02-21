@@ -60,7 +60,7 @@
 
           // Send raw RGBA pixels to Web Worker for ZXing decode.
           // Transfer the buffer for zero-copy performance.
-          const worker = window.kipukasWorker;
+          const worker = globalThis.kipukasWorker;
           if (worker) {
             worker.postMessage(
               {
@@ -82,7 +82,9 @@
         if (typeof htmx !== 'undefined') {
           htmx.ajax(
             'GET',
-            `/api/qr/status?action=error&msg=${encodeURIComponent(err.message || 'Camera access denied')}`,
+            `/api/qr/status?action=error&msg=${
+              encodeURIComponent(err.message || 'Camera access denied')
+            }`,
             { target: '#qr-container', swap: 'innerHTML' },
           );
         }
@@ -146,7 +148,7 @@
   // ── Listen for QR_FOUND from the Web Worker ────────────────────────
 
   function setupWorkerListener() {
-    const worker = window.kipukasWorker;
+    const worker = globalThis.kipukasWorker;
     if (!worker) {
       // Worker not yet available (kipukas-api.js may not have loaded yet).
       // Retry after a short delay.
@@ -185,5 +187,5 @@
 
   // ── Public API ─────────────────────────────────────────────────────
 
-  window.kipukasQR = { start, stop, toggle };
+  globalThis.kipukasQR = { start, stop, toggle };
 })();
