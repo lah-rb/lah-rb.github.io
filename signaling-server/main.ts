@@ -35,10 +35,10 @@ const GRACE_PERIOD_MS = 15_000;
 
 /** Generate a 4-character alphanumeric room code. */
 function generateCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusable: 0/O, 1/I
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusable: 0/O, 1/I
   let code: string;
   do {
-    code = '';
+    code = "";
     for (let i = 0; i < 4; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
@@ -61,7 +61,7 @@ function removePeer(ws: WebSocket) {
         // Notify remaining peers that the grace period expired
         for (const peer of room.peers) {
           if (peer.readyState === WebSocket.OPEN) {
-            peer.send(JSON.stringify({ type: 'peer_left' }));
+            peer.send(JSON.stringify({ type: "peer_left" }));
           }
         }
         // Clean up empty rooms (no active peers and no grace slots)
@@ -73,7 +73,9 @@ function removePeer(ws: WebSocket) {
 
       room.graceTimers.set(ws, timer);
       room.graceSlots += 1;
-      console.log(`[signal] Peer disconnected from ${code}, grace period started (${GRACE_PERIOD_MS}ms)`);
+      console.log(
+        `[signal] Peer disconnected from ${code}, grace period started (${GRACE_PERIOD_MS}ms)`,
+      );
       return;
     }
   }
@@ -84,7 +86,9 @@ function getOtherPeer(ws: WebSocket): WebSocket | null {
   for (const room of rooms.values()) {
     const idx = room.peers.indexOf(ws);
     if (idx !== -1) {
-      const other = room.peers.find((p, i) => i !== idx && p.readyState === WebSocket.OPEN);
+      const other = room.peers.find((p, i) =>
+        i !== idx && p.readyState === WebSocket.OPEN
+      );
       return other ?? null;
     }
   }
@@ -97,7 +101,7 @@ function namesMatch(a: string, b: string): boolean {
 }
 
 function handleWebSocket(ws: WebSocket) {
-  ws.addEventListener('message', (event) => {
+  ws.addEventListener("message", (event) => {
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(event.data as string);
@@ -106,31 +110,42 @@ function handleWebSocket(ws: WebSocket) {
     }
 
     switch (msg.type) {
-      case 'create': {
+      case "create": {
         const code = generateCode();
-        const name = (msg.name as string) || '';
-        const room: Room = { code, name, peers: [ws], graceTimers: new Map(), graceSlots: 0 };
+        const name = (msg.name as string) || "";
+        const room: Room = {
+          code,
+          name,
+          peers: [ws],
+          graceTimers: new Map(),
+          graceSlots: 0,
+        };
         rooms.set(code, room);
-        ws.send(JSON.stringify({ type: 'room_created', code, name }));
+        ws.send(JSON.stringify({ type: "room_created", code, name }));
         console.log(`[signal] Room created: ${code} "${name}"`);
         break;
       }
 
-      case 'join': {
-        const code = ((msg.code as string) || '').toUpperCase();
-        const name = (msg.name as string) || '';
+      case "join": {
+        const code = ((msg.code as string) || "").toUpperCase();
+        const name = (msg.name as string) || "";
         const room = rooms.get(code);
         if (!room) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+          ws.send(JSON.stringify({ type: "error", message: "Room not found" }));
           return;
         }
         // Co-authenticate: room name must match (if the room has a name set)
         if (room.name && !namesMatch(name, room.name)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Room name does not match' }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Room name does not match",
+            }),
+          );
           return;
         }
         if (room.peers.length >= 2) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
+          ws.send(JSON.stringify({ type: "error", message: "Room is full" }));
           return;
         }
         // Cancel any grace timer (this might be the same user reconnecting)
@@ -140,28 +155,33 @@ function handleWebSocket(ws: WebSocket) {
           room.graceSlots = Math.max(0, room.graceSlots - 1);
         }
         room.peers.push(ws);
-        ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
+        ws.send(JSON.stringify({ type: "room_joined", code, name: room.name }));
         // Notify the other peer (if any)
         for (const peer of room.peers) {
           if (peer !== ws && peer.readyState === WebSocket.OPEN) {
-            peer.send(JSON.stringify({ type: 'peer_joined' }));
+            peer.send(JSON.stringify({ type: "peer_joined" }));
           }
         }
         console.log(`[signal] Peer joined room: ${code}`);
         break;
       }
 
-      case 'rejoin': {
+      case "rejoin": {
         // Rejoin is like join but skips name validation (peer already authenticated).
         // Used for automatic reconnection after page navigation.
-        const code = ((msg.code as string) || '').toUpperCase();
+        const code = ((msg.code as string) || "").toUpperCase();
         const room = rooms.get(code);
         if (!room) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Room not found (expired)' }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Room not found (expired)",
+            }),
+          );
           return;
         }
         if (room.peers.length >= 2) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
+          ws.send(JSON.stringify({ type: "error", message: "Room is full" }));
           return;
         }
         // Cancel any grace timers
@@ -171,20 +191,20 @@ function handleWebSocket(ws: WebSocket) {
           room.graceSlots = Math.max(0, room.graceSlots - 1);
         }
         room.peers.push(ws);
-        ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
+        ws.send(JSON.stringify({ type: "room_joined", code, name: room.name }));
         // Notify the other peer
         for (const peer of room.peers) {
           if (peer !== ws && peer.readyState === WebSocket.OPEN) {
-            peer.send(JSON.stringify({ type: 'peer_joined' }));
+            peer.send(JSON.stringify({ type: "peer_joined" }));
           }
         }
         console.log(`[signal] Peer rejoined room: ${code}`);
         break;
       }
 
-      case 'sdp_offer':
-      case 'sdp_answer':
-      case 'ice_candidate': {
+      case "sdp_offer":
+      case "sdp_answer":
+      case "ice_candidate": {
         const other = getOtherPeer(ws);
         if (other) {
           other.send(JSON.stringify(msg));
@@ -197,31 +217,31 @@ function handleWebSocket(ws: WebSocket) {
     }
   });
 
-  ws.addEventListener('close', () => {
+  ws.addEventListener("close", () => {
     removePeer(ws);
   });
 
-  ws.addEventListener('error', () => {
+  ws.addEventListener("error", () => {
     removePeer(ws);
   });
 }
 
 // ── Server ─────────────────────────────────────────────────────────
 
-const port = parseInt(Deno.env.get('PORT') || '8787');
+const port = parseInt(Deno.env.get("PORT") || "8787");
 
 Deno.serve({ port }, (req) => {
   const url = new URL(req.url);
 
   // Health check
-  if (url.pathname === '/health') {
-    return new Response('ok', { status: 200 });
+  if (url.pathname === "/health") {
+    return new Response("ok", { status: 200 });
   }
 
   // WebSocket upgrade
-  if (url.pathname === '/ws') {
-    if (req.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 400 });
+  if (url.pathname === "/ws") {
+    if (req.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+      return new Response("Expected WebSocket", { status: 400 });
     }
     const { socket, response } = Deno.upgradeWebSocket(req);
     handleWebSocket(socket);
@@ -229,18 +249,18 @@ Deno.serve({ port }, (req) => {
   }
 
   // CORS preflight for browser WebSocket connections
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
       },
     });
   }
 
-  return new Response('Kipukas Signaling Server', { status: 200 });
+  return new Response("Kipukas Signaling Server", { status: 200 });
 });
 
 console.log(`[signal] Kipukas signaling server running on :${port}`);
