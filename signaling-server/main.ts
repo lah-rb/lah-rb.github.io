@@ -199,6 +199,11 @@ function handleWebSocket(ws: WebSocket) {
         const other = getOtherPeer(ws);
         if (other) {
           other.send(JSON.stringify(msg));
+          if (msg.type !== 'ice_candidate') {
+            console.log(`[signal] Relayed ${msg.type} to peer`);
+          }
+        } else {
+          console.warn(`[signal] Cannot relay ${msg.type}: no other peer found`);
         }
         break;
       }
