@@ -25,6 +25,7 @@ let dc = null; // RTCDataChannel
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
+let peerConnectedCalled = false; // Guard against double onPeerConnected calls
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -203,6 +204,9 @@ function setupPeerConnection(initiator) {
 function setupDataChannel(channel) {
   channel.onopen = () => {
     console.log('[multiplayer] Data channel open');
+    // Data channel open is the most reliable signal that we can
+    // exchange messages. Use it as the primary "connected" trigger.
+    onPeerConnected();
   };
 
   channel.onclose = () => {
@@ -239,8 +243,12 @@ async function handleIceCandidate(candidate) {
   }
 }
 
-/** Called when WebRTC connection is fully established. */
+/** Called when WebRTC connection is fully established.
+ *  May be called from both connectionstatechange and data channel onopen;
+ *  the guard ensures we only process it once per connection. */
 function onPeerConnected() {
+  if (peerConnectedCalled) return;
+  peerConnectedCalled = true;
   console.log('[multiplayer] Peer connected via WebRTC!');
   postToWasm(
     'POST',
@@ -252,6 +260,7 @@ function onPeerConnected() {
 
 /** Clean up peer connection. */
 function cleanupPeer() {
+  peerConnectedCalled = false;
   if (dc) {
     try {
       dc.close();
