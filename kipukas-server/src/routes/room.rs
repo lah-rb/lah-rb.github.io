@@ -169,11 +169,13 @@ pub fn handle_join_post(body: &str) -> String {
         if !name.is_empty() {
             r.room_name = name.to_string();
         }
-        r.connected = true;
+        // Don't set connected=true yet — WebRTC hasn't established.
+        // onPeerConnected() will POST to /api/room/connected when ready.
+        r.connected = false;
         r.fists.reset();
     });
 
-    room::with_room(|r| render_connected_status(r))
+    room::with_room(|r| render_waiting_status(r))
 }
 
 // ── POST /api/room/connected ──────────────────────────────────────
@@ -416,13 +418,13 @@ fn render_fists_result() -> String {
         let atk = match r.fists.attacker() {
             Some(a) => a,
             None => {
-                return r#"<div class="p-4 text-kip-red">Error: No attacker found. Both players may have chosen the same role.</div>"#.to_string();
+                return render_same_role_error("Attacking");
             }
         };
         let def = match r.fists.defender() {
             Some(d) => d,
             None => {
-                return r#"<div class="p-4 text-kip-red">Error: No defender found. Both players may have chosen the same role.</div>"#.to_string();
+                return render_same_role_error("Defending");
             }
         };
 
@@ -586,6 +588,20 @@ fn build_result_html(
     h
 }
 
+/// Render error when both players chose the same combat role.
+fn render_same_role_error(duplicate_role: &str) -> String {
+    let mut h = String::with_capacity(512);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
+    h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">&#x26A0; Role Conflict</p>"#);
+    h.push_str(&format!(
+        r#"<p class="text-sm mb-3">Both players chose <strong>{}</strong>. One player must Attack and the other must Defend.</p>"#,
+        duplicate_role
+    ));
+    h.push_str(r#"<button onclick="htmx.ajax('POST','/api/room/fists/reset',{target:'#fists-container',swap:'innerHTML'})" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
+    h.push_str(r#"</div>"#);
+    h
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -614,9 +630,25 @@ mod tests {
     }
 
     #[test]
-    fn join_sets_connected() {
+    fn join_sets_room_waiting() {
         reset();
         let html = handle_join_post("code=WXYZ&name=Fun+Room");
+        // join now sets connected=false (waiting for WebRTC handshake)
+        assert!(html.contains("Waiting for peer"));
+        assert!(html.contains("WXYZ"));
+        room::with_room(|r| {
+            assert!(!r.connected);
+            assert_eq!(r.room_code, "WXYZ");
+            assert_eq!(r.room_name, "Fun Room");
+        });
+        reset();
+    }
+
+    #[test]
+    fn connected_post_sets_connected() {
+        reset();
+        handle_join_post("code=WXYZ&name=Fun+Room");
+        let html = handle_connected_post("code=WXYZ&name=Fun+Room");
         assert!(html.contains("Connected"));
         assert!(html.contains("WXYZ"));
         room::with_room(|r| assert!(r.connected));

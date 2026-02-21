@@ -107,20 +107,24 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Update WASM state so it knows we're in a room (even before WebRTC connects)
+      // Update WASM state so it knows we're in a room (WebRTC not yet connected)
       postToWasm(
         'POST',
         '/api/room/join',
         `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
       );
-      // Joiner creates the RTCPeerConnection and sends offer
-      setupPeerConnection(true);
       refreshRoomStatus();
+      break;
+
+    case 'initiate':
+      // Server tells us to initiate WebRTC (we're the new peer, other peer is waiting)
+      console.log('[multiplayer] Initiating WebRTC connection');
+      setupPeerConnection(true);
       break;
 
     case 'peer_joined':
       console.log('[multiplayer] Peer joined our room');
-      // Creator sets up peer connection, waits for offer
+      // Other peer will initiate — we wait for their offer
       setupPeerConnection(false);
       break;
 
