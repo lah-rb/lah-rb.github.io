@@ -7,21 +7,31 @@
  * Protocol:
  *   Client → { type: "create", name: "My Room" }
  *     Server → { type: "room_created", code: "ABCD", name: "My Room" }
- *   Client → { type: "join", code: "ABCD" }
+ *   Client → { type: "join", code: "ABCD", name: "My Room" }
  *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
  *     Server → (to creator) { type: "peer_joined" }
+ *   Client → { type: "rejoin", code: "ABCD" }
+ *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
+ *     Server → (to other peer) { type: "peer_joined" }
  *   Client → { type: "sdp_offer"|"sdp_answer"|"ice_candidate", data: ... }
  *     Server → relays to the other peer in the room
- *   On disconnect: notify remaining peer { type: "peer_left" }
+ *   On disconnect: grace period (15s), then notify remaining peer { type: "peer_left" }
  */
 
 interface Room {
   code: string;
   name: string;
   peers: WebSocket[];
+  /** Timers for grace-period cleanup when a peer disconnects temporarily. */
+  graceTimers: Map<WebSocket, number>;
+  /** Slots held for peers during grace period (keeps room from being "full"). */
+  graceSlots: number;
 }
 
 const rooms = new Map<string, Room>();
+
+/** Grace period (ms) before removing a disconnected peer from the room. */
+const GRACE_PERIOD_MS = 15_000;
 
 /** Generate a 4-character alphanumeric room code. */
 function generateCode(): string {
@@ -36,22 +46,34 @@ function generateCode(): string {
   return code;
 }
 
-/** Remove a peer from their room and notify the other peer. */
+/** Remove a peer from their room (with grace period). */
 function removePeer(ws: WebSocket) {
   for (const [code, room] of rooms) {
     const idx = room.peers.indexOf(ws);
     if (idx !== -1) {
       room.peers.splice(idx, 1);
-      // Notify remaining peer
-      for (const peer of room.peers) {
-        if (peer.readyState === WebSocket.OPEN) {
-          peer.send(JSON.stringify({ type: 'peer_left' }));
+
+      // Start a grace period instead of immediately notifying/cleaning up
+      const timer = setTimeout(() => {
+        room.graceTimers.delete(ws);
+        room.graceSlots = Math.max(0, room.graceSlots - 1);
+
+        // Notify remaining peers that the grace period expired
+        for (const peer of room.peers) {
+          if (peer.readyState === WebSocket.OPEN) {
+            peer.send(JSON.stringify({ type: 'peer_left' }));
+          }
         }
-      }
-      // Clean up empty rooms
-      if (room.peers.length === 0) {
-        rooms.delete(code);
-      }
+        // Clean up empty rooms (no active peers and no grace slots)
+        if (room.peers.length === 0 && room.graceSlots === 0) {
+          rooms.delete(code);
+          console.log(`[signal] Room ${code} cleaned up (empty after grace)`);
+        }
+      }, GRACE_PERIOD_MS);
+
+      room.graceTimers.set(ws, timer);
+      room.graceSlots += 1;
+      console.log(`[signal] Peer disconnected from ${code}, grace period started (${GRACE_PERIOD_MS}ms)`);
       return;
     }
   }
@@ -69,6 +91,11 @@ function getOtherPeer(ws: WebSocket): WebSocket | null {
   return null;
 }
 
+/** Case-insensitive room name comparison for co-authentication. */
+function namesMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 function handleWebSocket(ws: WebSocket) {
   ws.addEventListener('message', (event) => {
     let msg: Record<string, unknown>;
@@ -82,7 +109,7 @@ function handleWebSocket(ws: WebSocket) {
       case 'create': {
         const code = generateCode();
         const name = (msg.name as string) || '';
-        const room: Room = { code, name, peers: [ws] };
+        const room: Room = { code, name, peers: [ws], graceTimers: new Map(), graceSlots: 0 };
         rooms.set(code, room);
         ws.send(JSON.stringify({ type: 'room_created', code, name }));
         console.log(`[signal] Room created: ${code} "${name}"`);
@@ -91,23 +118,67 @@ function handleWebSocket(ws: WebSocket) {
 
       case 'join': {
         const code = ((msg.code as string) || '').toUpperCase();
+        const name = (msg.name as string) || '';
         const room = rooms.get(code);
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+          return;
+        }
+        // Co-authenticate: room name must match (if the room has a name set)
+        if (room.name && !namesMatch(name, room.name)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Room name does not match' }));
           return;
         }
         if (room.peers.length >= 2) {
           ws.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
           return;
         }
+        // Cancel any grace timer (this might be the same user reconnecting)
+        for (const [oldWs, timer] of room.graceTimers) {
+          clearTimeout(timer);
+          room.graceTimers.delete(oldWs);
+          room.graceSlots = Math.max(0, room.graceSlots - 1);
+        }
         room.peers.push(ws);
         ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
-        // Notify the creator
-        const creator = room.peers[0];
-        if (creator && creator.readyState === WebSocket.OPEN) {
-          creator.send(JSON.stringify({ type: 'peer_joined' }));
+        // Notify the other peer (if any)
+        for (const peer of room.peers) {
+          if (peer !== ws && peer.readyState === WebSocket.OPEN) {
+            peer.send(JSON.stringify({ type: 'peer_joined' }));
+          }
         }
         console.log(`[signal] Peer joined room: ${code}`);
+        break;
+      }
+
+      case 'rejoin': {
+        // Rejoin is like join but skips name validation (peer already authenticated).
+        // Used for automatic reconnection after page navigation.
+        const code = ((msg.code as string) || '').toUpperCase();
+        const room = rooms.get(code);
+        if (!room) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Room not found (expired)' }));
+          return;
+        }
+        if (room.peers.length >= 2) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
+          return;
+        }
+        // Cancel any grace timers
+        for (const [oldWs, timer] of room.graceTimers) {
+          clearTimeout(timer);
+          room.graceTimers.delete(oldWs);
+          room.graceSlots = Math.max(0, room.graceSlots - 1);
+        }
+        room.peers.push(ws);
+        ws.send(JSON.stringify({ type: 'room_joined', code, name: room.name }));
+        // Notify the other peer
+        for (const peer of room.peers) {
+          if (peer !== ws && peer.readyState === WebSocket.OPEN) {
+            peer.send(JSON.stringify({ type: 'peer_joined' }));
+          }
+        }
+        console.log(`[signal] Peer rejoined room: ${code}`);
         break;
       }
 

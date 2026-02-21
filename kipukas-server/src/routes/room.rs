@@ -67,6 +67,8 @@ pub fn handle_status_get(_query: &str) -> String {
     room::with_room(|r| {
         if r.connected {
             render_connected_status(r)
+        } else if !r.room_code.is_empty() {
+            render_waiting_status(r)
         } else {
             render_disconnected_status()
         }
@@ -77,15 +79,40 @@ fn render_disconnected_status() -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(r#"<p class="text-lg font-bold mb-3">Multiplayer</p>"#);
+    // ── Create section ──
     h.push_str(r#"<div class="mb-3">"#);
     h.push_str(r#"<label class="block text-sm mb-1">Room Name</label>"#);
     h.push_str(r#"<input type="text" id="room-name-input" placeholder="My Room" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">"#);
     h.push_str(r#"</div>"#);
     h.push_str(r#"<button onclick="kipukasMultiplayer.createRoom()" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mb-2 text-sm">Create Room</button>"#);
+    // ── Join section ──
     h.push_str(r#"<div class="border-t border-slate-300 my-3"></div>"#);
     h.push_str(r#"<label class="block text-sm mb-1">Room Code</label>"#);
-    h.push_str(r#"<input type="text" id="room-code-input" placeholder="ABCD" maxlength="4" class="w-full border rounded px-2 py-1 text-sm uppercase text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">"#);
+    h.push_str(r#"<input type="text" id="room-code-input" placeholder="ABCD" maxlength="4" class="w-full border rounded px-2 py-1 text-sm uppercase text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red mb-2">"#);
+    h.push_str(r#"<label class="block text-sm mb-1">Room Name</label>"#);
+    h.push_str(r#"<input type="text" id="room-name-join-input" placeholder="My Room" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">"#);
     h.push_str(r#"<button onclick="kipukasMultiplayer.joinRoom()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded mt-2 text-sm">Join Room</button>"#);
+    h.push_str(r#"</div>"#);
+    h
+}
+
+/// Render the "waiting for peer" status — room created, code visible, not yet connected.
+fn render_waiting_status(r: &room::RoomState) -> String {
+    let mut h = String::with_capacity(512);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
+    h.push_str(r#"<p class="text-lg font-bold mb-1">Multiplayer</p>"#);
+    h.push_str(r#"<p class="text-sm text-amber-600 mb-1">&#x23F3; Waiting for peer…</p>"#);
+    if !r.room_name.is_empty() {
+        h.push_str(&format!(
+            r#"<p class="text-sm mb-1">Room: <strong>{}</strong></p>"#,
+            r.room_name
+        ));
+    }
+    h.push_str(&format!(
+        r#"<p class="text-sm mb-3 font-mono tracking-wider">Code: <strong>{}</strong></p>"#,
+        r.room_code
+    ));
+    h.push_str(r#"<button onclick="kipukasMultiplayer.disconnect()" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Cancel</button>"#);
     h.push_str(r#"</div>"#);
     h
 }
@@ -153,10 +180,14 @@ pub fn handle_join_post(body: &str) -> String {
 
 pub fn handle_connected_post(body: &str) -> String {
     let params = parse_form_body(body);
+    let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
 
     room::with_room_mut(|r| {
         r.connected = true;
+        if !code.is_empty() {
+            r.room_code = code.to_uppercase();
+        }
         if !name.is_empty() {
             r.room_name = name.to_string();
         }
@@ -172,15 +203,30 @@ pub fn handle_disconnect_post(_body: &str) -> String {
     render_disconnected_status()
 }
 
+// ── POST /api/room/peer_left ───────────────────────────────────────
+
+/// Peer disconnected (e.g. navigated away). Keep room data so we can reconnect.
+pub fn handle_peer_left_post(_body: &str) -> String {
+    room::with_room_mut(|r| {
+        r.connected = false;
+        // Keep room_code and room_name so auto-reconnect works
+    });
+
+    room::with_room(|r| render_waiting_status(r))
+}
+
 // ── GET /api/room/fists ────────────────────────────────────────────
 
 pub fn handle_fists_get(query: &str) -> String {
     let params = parse_query(query);
     let slug = get_param(&params, "card").unwrap_or("");
 
-    let connected = room::with_room(|r| r.connected);
+    let (connected, in_room) = room::with_room(|r| (r.connected, !r.room_code.is_empty()));
     if !connected {
-        return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm text-kip-red">Not connected to a room. Open the multiplayer panel to connect first.</p></div>"#.to_string();
+        if in_room {
+            return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm text-amber-600">Waiting for peer to connect…</p></div>"#.to_string();
+        }
+        return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm text-kip-red">Not connected to a room. Use the fields above to create or join one.</p></div>"#.to_string();
     }
 
     // Check if we already have a result

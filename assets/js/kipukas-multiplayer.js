@@ -4,6 +4,10 @@
  * Phase 4: Handles signaling server connection, WebRTC peer setup,
  * data channel messaging, and room state synchronization with WASM.
  *
+ * Persists room session in sessionStorage so connections survive page
+ * navigation (multi-page Jekyll site). On each page load the module
+ * automatically rejoins the signaling server room if a session exists.
+ *
  * Exposed globally as window.kipukasMultiplayer for use by WASM-returned
  * HTML onclick handlers.
  */
@@ -13,12 +17,45 @@ const SIGNAL_URL = 'wss://signal.kipukas.deno.net/ws';
 
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
 
+const SESSION_KEY = 'kipukas_room';
+
 let ws = null; // WebSocket to signaling server
 let pc = null; // RTCPeerConnection
 let dc = null; // RTCDataChannel
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
+
+// ── Session persistence ────────────────────────────────────────────
+
+/** Save current room session to sessionStorage. */
+function saveSession() {
+  if (!roomCode) return;
+  const data = { code: roomCode, name: roomName, creator: isCreator };
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch (_) { /* ignore */ }
+}
+
+/** Load room session from sessionStorage (returns null if none). */
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Clear saved room session. */
+function clearSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch (_) { /* ignore */ }
+}
+
+// ── Signaling ──────────────────────────────────────────────────────
 
 /** Connect to signaling server WebSocket. */
 function connectSignaling() {
@@ -55,6 +92,7 @@ function handleSignalingMessage(msg) {
       roomCode = msg.code;
       roomName = msg.name || '';
       console.log('[multiplayer] Room created:', roomCode);
+      saveSession();
       // Update WASM state
       postToWasm(
         'POST',
@@ -68,8 +106,16 @@ function handleSignalingMessage(msg) {
       roomCode = msg.code;
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
+      saveSession();
+      // Update WASM state so it knows we're in a room (even before WebRTC connects)
+      postToWasm(
+        'POST',
+        '/api/room/join',
+        `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+      );
       // Joiner creates the RTCPeerConnection and sends offer
       setupPeerConnection(true);
+      refreshRoomStatus();
       break;
 
     case 'peer_joined':
@@ -93,12 +139,18 @@ function handleSignalingMessage(msg) {
     case 'peer_left':
       console.log('[multiplayer] Peer disconnected');
       cleanupPeer();
-      postToWasm('POST', '/api/room/disconnect', '');
+      // Don't clear session — peer may come back (grace period on server)
+      postToWasm('POST', '/api/room/peer_left', '');
       refreshRoomStatus();
       break;
 
     case 'error':
       console.error('[multiplayer] Server error:', msg.message);
+      // If room expired, clear session
+      if (msg.message && msg.message.includes('not found')) {
+        clearSession();
+        postToWasm('POST', '/api/room/disconnect', '');
+      }
       showError(msg.message);
       break;
   }
@@ -108,6 +160,9 @@ function handleSignalingMessage(msg) {
 
 /** Set up RTCPeerConnection and data channel. */
 function setupPeerConnection(initiator) {
+  // Clean up any existing connection first
+  cleanupPeer();
+
   pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
   pc.onicecandidate = (event) => {
@@ -122,7 +177,7 @@ function setupPeerConnection(initiator) {
       onPeerConnected();
     } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
       cleanupPeer();
-      postToWasm('POST', '/api/room/disconnect', '');
+      postToWasm('POST', '/api/room/peer_left', '');
       refreshRoomStatus();
     }
   };
@@ -187,18 +242,26 @@ async function handleIceCandidate(candidate) {
 /** Called when WebRTC connection is fully established. */
 function onPeerConnected() {
   console.log('[multiplayer] Peer connected via WebRTC!');
-  postToWasm('POST', '/api/room/connected', `name=${encodeURIComponent(roomName)}`);
+  postToWasm(
+    'POST',
+    '/api/room/connected',
+    `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+  );
   refreshRoomStatus();
 }
 
 /** Clean up peer connection. */
 function cleanupPeer() {
   if (dc) {
-    dc.close();
+    try {
+      dc.close();
+    } catch (_) { /* ignore */ }
     dc = null;
   }
   if (pc) {
-    pc.close();
+    try {
+      pc.close();
+    } catch (_) { /* ignore */ }
     pc = null;
   }
 }
@@ -303,6 +366,38 @@ function showError(message) {
   }
 }
 
+// ── Auto-reconnect on page load ────────────────────────────────────
+
+/** Attempt to rejoin a room from a saved session (after page navigation). */
+async function autoReconnect() {
+  const session = loadSession();
+  if (!session || !session.code) return;
+
+  console.log('[multiplayer] Found saved session, auto-rejoining room:', session.code);
+  roomCode = session.code;
+  roomName = session.name || '';
+  isCreator = session.creator || false;
+
+  // Tell WASM we're in a room (waiting for peer)
+  postToWasm(
+    'POST',
+    '/api/room/create',
+    `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+  );
+
+  try {
+    await connectSignaling();
+    // Use 'rejoin' — skips name validation, cancels grace timers
+    ws.send(JSON.stringify({ type: 'rejoin', code: roomCode }));
+  } catch (err) {
+    console.warn('[multiplayer] Auto-reconnect failed:', err);
+    // Don't clear session — user can try manually
+  }
+}
+
+// Kick off auto-reconnect when the script loads (deferred, so DOM is ready)
+autoReconnect();
+
 // ── Public API (exposed on window.kipukasMultiplayer) ───────────────
 
 const kipukasMultiplayer = {
@@ -323,21 +418,24 @@ const kipukasMultiplayer = {
     }
   },
 
-  /** Join an existing room. Reads code from #room-code-input. */
+  /** Join an existing room. Reads code and name from inputs. */
   async joinRoom() {
     const codeInput = document.getElementById('room-code-input');
+    const nameInput = document.getElementById('room-name-join-input');
     const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
+    const name = nameInput ? nameInput.value.trim() : '';
     if (code.length !== 4) {
       showError('Please enter a 4-character room code.');
       return;
     }
     isCreator = false;
+    roomName = name;
 
     try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         await connectSignaling();
       }
-      ws.send(JSON.stringify({ type: 'join', code }));
+      ws.send(JSON.stringify({ type: 'join', code, name }));
     } catch (err) {
       showError('Could not connect to signaling server. Try again.');
       console.error('[multiplayer] Join room failed:', err);
@@ -347,6 +445,7 @@ const kipukasMultiplayer = {
   /** Disconnect from room and clean up. */
   disconnect() {
     cleanupPeer();
+    clearSession();
     if (ws) {
       ws.close();
       ws = null;
