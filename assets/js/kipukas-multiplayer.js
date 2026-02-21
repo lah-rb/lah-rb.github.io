@@ -15,7 +15,12 @@
 // Signaling server URL (Deno Deploy)
 const SIGNAL_URL = 'wss://signal.kipukas.deno.net/ws';
 
-const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+];
 
 const SESSION_KEY = 'kipukas_room';
 
@@ -209,7 +214,10 @@ function setupPeerConnection(initiator) {
       console.log('[multiplayer] SDP offer created, setting local description...');
       await pc.setLocalDescription(offer);
       console.log('[multiplayer] Local description set, sending offer to signaling server');
-      ws.send(JSON.stringify({ type: 'sdp_offer', data: offer }));
+      // Log whether candidates are embedded in the SDP
+      const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter(l => l.startsWith('a=candidate'));
+      console.log('[multiplayer] Candidates embedded in offer SDP:', candidateLines.length, candidateLines);
+      ws.send(JSON.stringify({ type: 'sdp_offer', data: pc.localDescription }));
     }).catch((err) => {
       console.error('[multiplayer] Failed to create/send offer:', err);
     });
@@ -255,7 +263,10 @@ async function handleSdpOffer(offer) {
     console.log('[multiplayer] Answer created, setting local description...');
     await pc.setLocalDescription(answer);
     console.log('[multiplayer] Local description set, sending answer to signaling server');
-    ws.send(JSON.stringify({ type: 'sdp_answer', data: answer }));
+    // Log whether candidates are embedded in the SDP
+    const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter(l => l.startsWith('a=candidate'));
+    console.log('[multiplayer] Candidates embedded in answer SDP:', candidateLines.length, candidateLines);
+    ws.send(JSON.stringify({ type: 'sdp_answer', data: pc.localDescription }));
   } catch (err) {
     console.error('[multiplayer] Error handling SDP offer:', err);
   }
