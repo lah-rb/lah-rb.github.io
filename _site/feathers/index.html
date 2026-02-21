@@ -557,7 +557,7 @@ background_color
   <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" :style='`background-image: url( "/assets/images/feathers.webp" )`'>
     <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
-        <div class="z-20 grid grid-cols-1 bg-transparent/[0.5] text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
+        <div class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Feathers</p>
           <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -624,8 +624,8 @@ background_color
 
 <template x-if="true"> <!-- This fixes the cls issue completely -->
   <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
-    <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-screen-md" src="/assets/images/feathers.webp" alt="floating bird lift, minus bird"></div>
-    <img class="fixed top-0 h-screen max-w-screen-md" src="/assets/images/feathers.webp" alt="floating bird lift, minus bird">
+    <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-3xl" src="/assets/images/feathers.webp" alt="floating bird lift, minus bird"></div>
+    <img class="fixed top-0 h-screen max-w-3xl" src="/assets/images/feathers.webp" alt="floating bird lift, minus bird">
     <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
       <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center text-wrap">Feathers</p>
       <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
