@@ -25,7 +25,6 @@ let dc = null; // RTCDataChannel
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
-let pendingFists = null; // queued fists data if dc wasn't open yet
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -108,11 +107,10 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Set WASM to "waiting" state (connected=false but room_code set).
-      // connected=true is only set when WebRTC actually connects (onPeerConnected).
+      // Update WASM state so it knows we're in a room (even before WebRTC connects)
       postToWasm(
         'POST',
-        '/api/room/create',
+        '/api/room/join',
         `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
       );
       // Joiner creates the RTCPeerConnection and sends offer
@@ -205,13 +203,6 @@ function setupPeerConnection(initiator) {
 function setupDataChannel(channel) {
   channel.onopen = () => {
     console.log('[multiplayer] Data channel open');
-    // Send any queued fists data
-    if (pendingFists) {
-      const data = pendingFists;
-      pendingFists = null;
-      dc.send(JSON.stringify({ type: 'fists_submission', data }));
-      console.log('[multiplayer] Sent queued fists submission to peer');
-    }
   };
 
   channel.onclose = () => {
@@ -319,9 +310,7 @@ function sendFists(submissionData) {
     dc.send(JSON.stringify({ type: 'fists_submission', data: submissionData }));
     console.log('[multiplayer] Sent fists submission to peer');
   } else {
-    // Queue for when the data channel opens
-    console.log('[multiplayer] Data channel not open yet, queuing fists submission');
-    pendingFists = submissionData;
+    console.warn('[multiplayer] Data channel not open, cannot send fists');
   }
 }
 
@@ -511,6 +500,26 @@ const kipukasMultiplayer = {
   /** Send fists data to peer. Called by inline script from WASM response. */
   sendFists(submissionData) {
     sendFists(submissionData);
+  },
+
+  /** Reset fists on both local and remote sides. Called from "Try Again" button. */
+  resetFists() {
+    // Reset local WASM state and refresh UI
+    postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
+      const container = document.getElementById('fists-container');
+      if (container) {
+        container.innerHTML = html;
+        if (typeof htmx !== 'undefined') htmx.process(container);
+      }
+      // After local reset, refresh the fists section to show the form again
+      refreshRoomStatus();
+    });
+
+    // Notify remote peer to reset as well
+    if (dc && dc.readyState === 'open') {
+      dc.send(JSON.stringify({ type: 'fists_reset' }));
+      console.log('[multiplayer] Sent fists reset to peer');
+    }
   },
 
   /** Check if currently connected to a peer. */
