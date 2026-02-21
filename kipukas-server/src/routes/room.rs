@@ -617,28 +617,6 @@ fn build_result_html(
         mod_color, mod_sign, result.modifier
     ));
 
-    // Motivation notes
-    if let Some(note) = result.societal_mod {
-        let clean = note.trim_start_matches('\n');
-        h.push_str(&format!(
-            r#"<p class="text-xs mt-1 text-kip-drk-sienna">{}</p>"#,
-            clean
-        ));
-    }
-    if let Some(note) = result.self_mod {
-        let clean = note.trim_start_matches('\n');
-        h.push_str(&format!(
-            r#"<p class="text-xs mt-1 text-kip-drk-sienna">{}</p>"#,
-            clean
-        ));
-    }
-    if let Some(note) = result.support_mod {
-        let clean = note.trim_start_matches('\n');
-        h.push_str(&format!(
-            r#"<p class="text-xs mt-1 text-kip-drk-sienna">{}</p>"#,
-            clean
-        ));
-    }
     h.push_str(r#"</div>"#);
 
     // New round button

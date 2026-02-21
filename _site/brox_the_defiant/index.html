@@ -375,8 +375,8 @@ background_color
       
       <!-- Phase 4: Multiplayer room connection + fists combat tool -->
 <div x-data="{ showMultiplayer: false }" class="relative place-content-center">
-  <!-- Multiplayer toggle button (placeholder wifi-signal icon) -->
-  <button aria-label="Toggle Multiplayer" x-ref="mpButton" @click="showMultiplayer = !showMultiplayer">
+  <!-- Multiplayer toggle button -->
+  <button aria-label="Toggle Multiplayer" @click="showMultiplayer = !showMultiplayer">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       
@@ -385,37 +385,47 @@ background_color
       class="
     fill-slate-200
    h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna fill-current">
-      <!-- Placeholder: signal/wifi icon -->
       <path fill-rule="evenodd" d="M1.371 8.143c5.858-5.857 15.356-5.857 21.213 0a.75.75 0 0 1 0 1.061.75.75 0 0 1-1.06 0c-5.273-5.272-13.821-5.272-19.092 0a.75.75 0 0 1-1.06-1.06Zm3.182 3.182c4.1-4.1 10.749-4.1 14.85 0a.75.75 0 1 1-1.061 1.06 8.25 8.25 0 0 0-12.728 0 .75.75 0 0 1-1.06-1.06Zm3.182 3.182a6 6 0 0 1 8.486 0 .75.75 0 1 1-1.06 1.06 4.5 4.5 0 0 0-6.364 0 .75.75 0 0 1-1.06-1.06ZM12 18a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H12.75A.75.75 0 0 1 12 18Z" clip-rule="evenodd" />
     </svg>
   </button>
 
-  <!-- Room status panel (anchored dropdown) -->
+  <!-- Full-screen modal overlay (matches QR modal pattern) -->
   <div x-show="showMultiplayer" x-cloak
-    x-anchor.bottom-end.offset.10="$refs.mpButton"
-    x-transition.duration.350ms
-    class="
-    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   h-fit w-72 max-h-[80vh] overflow-y-auto">
-    <div id="room-status"
-      hx-get="/api/room/status"
-      hx-trigger="load"
-      hx-swap="innerHTML">
-    </div>
+    class="fixed inset-0 flex items-center justify-center z-50"
+    x-transition.duration.350ms>
 
-    <!-- Fists combat section (only on card pages with keal means) -->
-    
-    <div class="border-t border-slate-300">
-      <div id="fists-container"
-        hx-get="/api/room/fists?card=brox_the_defiant"
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
+
+    <!-- Modal content -->
+    <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+      <div id="room-status"
+        hx-get="/api/room/status"
         hx-trigger="load"
         hx-swap="innerHTML">
       </div>
+
+      <!-- Fists combat section (only on card pages with keal means) -->
+      
+      <div class="border-t border-slate-300">
+        <div id="fists-container"
+          hx-get="/api/room/fists?card=brox_the_defiant"
+          hx-trigger="load"
+          hx-swap="innerHTML">
+        </div>
+      </div>
+      
+
+      <!-- Close button -->
+      <div class="border-t border-slate-300 p-3">
+        <button @click="showMultiplayer = false"
+          class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+          Close
+        </button>
+      </div>
     </div>
-    
   </div>
 </div>
-
     
 
     

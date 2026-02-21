@@ -201,12 +201,23 @@ function setupPeerConnection(initiator) {
   cleanupPeer();
 
   const iceServers = getIceServers();
-  console.log('[multiplayer] Using ICE servers:', iceServers.length, '(STUN:', STUN_SERVERS.length, '+ TURN:', turnServers.length, ')');
+  console.log(
+    '[multiplayer] Using ICE servers:',
+    iceServers.length,
+    '(STUN:',
+    STUN_SERVERS.length,
+    '+ TURN:',
+    turnServers.length,
+    ')',
+  );
   pc = new RTCPeerConnection({ iceServers });
 
   pc.onicecandidate = (event) => {
     if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-      console.log('[multiplayer] → sending ICE candidate:', event.candidate.candidate?.substring(0, 60));
+      console.log(
+        '[multiplayer] → sending ICE candidate:',
+        event.candidate.candidate?.substring(0, 60),
+      );
       ws.send(JSON.stringify({ type: 'ice_candidate', data: event.candidate }));
     } else if (!event.candidate) {
       console.log('[multiplayer] ICE gathering complete (null candidate)');
@@ -246,8 +257,14 @@ function setupPeerConnection(initiator) {
       await pc.setLocalDescription(offer);
       console.log('[multiplayer] Local description set, sending offer to signaling server');
       // Log whether candidates are embedded in the SDP
-      const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter(l => l.startsWith('a=candidate'));
-      console.log('[multiplayer] Candidates embedded in offer SDP:', candidateLines.length, candidateLines);
+      const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter((l) =>
+        l.startsWith('a=candidate')
+      );
+      console.log(
+        '[multiplayer] Candidates embedded in offer SDP:',
+        candidateLines.length,
+        candidateLines,
+      );
       ws.send(JSON.stringify({ type: 'sdp_offer', data: pc.localDescription }));
     }).catch((err) => {
       console.error('[multiplayer] Failed to create/send offer:', err);
@@ -295,8 +312,14 @@ async function handleSdpOffer(offer) {
     await pc.setLocalDescription(answer);
     console.log('[multiplayer] Local description set, sending answer to signaling server');
     // Log whether candidates are embedded in the SDP
-    const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter(l => l.startsWith('a=candidate'));
-    console.log('[multiplayer] Candidates embedded in answer SDP:', candidateLines.length, candidateLines);
+    const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter((l) =>
+      l.startsWith('a=candidate')
+    );
+    console.log(
+      '[multiplayer] Candidates embedded in answer SDP:',
+      candidateLines.length,
+      candidateLines,
+    );
     ws.send(JSON.stringify({ type: 'sdp_answer', data: pc.localDescription }));
   } catch (err) {
     console.error('[multiplayer] Error handling SDP offer:', err);
@@ -321,7 +344,12 @@ async function handleSdpAnswer(answer) {
 
 /** Handle incoming ICE candidate from remote peer. */
 async function handleIceCandidate(candidate) {
-  console.log('[multiplayer] handleIceCandidate called, pc exists:', !!pc, 'signalingState:', pc?.signalingState);
+  console.log(
+    '[multiplayer] handleIceCandidate called, pc exists:',
+    !!pc,
+    'signalingState:',
+    pc?.signalingState,
+  );
   if (!pc) {
     console.error('[multiplayer] No peer connection! Cannot add ICE candidate.');
     return;
