@@ -297,6 +297,9 @@ fn render_fists_form(slug: &str) -> String {
         slug
     ));
 
+    // Dedicated message area at the bottom (used by JS for status messages)
+    h.push_str(r#"<div id="fists-message" class="mt-2 text-center"></div>"#);
+
     h.push_str(r#"</div>"#);
     h
 }
