@@ -122,7 +122,20 @@ pub fn render_damage_tracker(slug: &str) -> String {
             .unwrap_or(false)
     });
 
+    // Debug: emit slot states as HTML comment for production diagnosis
+    let slot_debug = with_state(|state| {
+        if let Some(card_state) = state.cards.get(slug) {
+            let pairs: Vec<String> = (1..=total)
+                .map(|i| format!("{}:{}", i, card_state.slots.get(&i).copied().unwrap_or(false)))
+                .collect();
+            format!("slots=[{}] all_checked={} wasted={}", pairs.join(","), all_checked, is_wasted)
+        } else {
+            format!("no_card_state total={}", total)
+        }
+    });
+
     let mut html = String::with_capacity(2048);
+    html.push_str(&format!("<!-- [kipukas-debug] {} {} -->", slug, slot_debug));
 
     // Container
     html.push_str(r#"<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center">"#);
