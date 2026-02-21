@@ -349,12 +349,24 @@ function execScripts(el) {
   });
 }
 
-/** Refresh the room status panel in the UI. */
+/** Refresh the room status panel and fists section in the UI.
+ *  Small delay ensures WASM state updates (via postToWasm) are
+ *  processed before the HTMX GET requests arrive at the worker. */
 function refreshRoomStatus() {
-  const target = document.getElementById('room-status');
-  if (target && typeof htmx !== 'undefined') {
-    htmx.ajax('GET', '/api/room/status', { target: '#room-status', swap: 'innerHTML' });
-  }
+  if (typeof htmx === 'undefined') return;
+  setTimeout(() => {
+    const status = document.getElementById('room-status');
+    if (status) {
+      htmx.ajax('GET', '/api/room/status', { target: '#room-status', swap: 'innerHTML' });
+    }
+    // Also refresh the fists section so it reflects the new connection state.
+    // Re-use the hx-get URL already on the element (includes card slug if any).
+    const fists = document.getElementById('fists-container');
+    if (fists) {
+      const url = fists.getAttribute('hx-get') || '/api/room/fists';
+      htmx.ajax('GET', url, { target: '#fists-container', swap: 'innerHTML' });
+    }
+  }, 100);
 }
 
 /** Show an error message in the room status panel. */
