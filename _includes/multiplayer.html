@@ -15,9 +15,9 @@
 
   <!-- Room status panel (anchored dropdown) -->
   <div x-show="showMultiplayer" x-cloak
-    x-anchor.right-end.offset.10="$refs.mpButton"
+    x-anchor.bottom-end.offset.10="$refs.mpButton"
     x-transition.duration.350ms
-    class="{{ include.menuClass }} h-fit w-72">
+    class="{{ include.menuClass }} h-fit w-72 max-h-[80vh] overflow-y-auto">
     <div id="room-status"
       hx-get="/api/room/status"
       hx-trigger="load"
