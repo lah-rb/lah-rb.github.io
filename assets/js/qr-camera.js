@@ -58,21 +58,22 @@
 
     // Enumerate devices first, then start camera
     enumerateDevices().then(() => {
+      // Build constraints - use deviceId only if we have a valid non-empty ID
+      const deviceId = videoDevices[currentDeviceIndex]?.deviceId;
+      const hasValidDeviceId = deviceId && deviceId.trim() !== '';
+
       const constraints = {
         video: {
-          facingMode: currentFacingMode,
+          facingMode: hasValidDeviceId ? undefined : currentFacingMode,
+          deviceId: hasValidDeviceId ? { ideal: deviceId } : undefined,
           focusMode: 'continuous',
         },
         audio: false,
       };
 
-      // If we have enumerated devices and a valid index, use deviceId
-      if (videoDevices.length > 0 && currentDeviceIndex < videoDevices.length) {
-        constraints.video = {
-          deviceId: { exact: videoDevices[currentDeviceIndex].deviceId },
-          focusMode: 'continuous',
-        };
-      }
+      // Clean up undefined values to avoid constraint issues
+      if (!constraints.video.facingMode) delete constraints.video.facingMode;
+      if (!constraints.video.deviceId) delete constraints.video.deviceId;
 
       navigator.mediaDevices
         .getUserMedia(constraints)
@@ -83,6 +84,11 @@
           video.play();
           scanning = true;
           scannerOpen = true;
+
+          // Re-enumerate devices now that we have permission to get real device IDs
+          enumerateDevices().then(() => {
+            console.log('[qr-camera] Re-enumerated devices after permission grant');
+          });
 
           // Start periodic frame capture → worker decode loop
           scanInterval = setInterval(() => {
