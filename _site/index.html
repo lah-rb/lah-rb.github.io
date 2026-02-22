@@ -22,6 +22,25 @@
     <meta charset="utf-8">
     <title>Binder Home</title>
     <link rel="stylesheet" href="/assets/css/output.css">
+    <style>
+      /* Skeleton loading animation for card images */
+      @keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      .skeleton-pulse {
+        animation: skeleton-pulse 1.5s ease-in-out infinite;
+        background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+      }
+      /* Smooth image fade-in transition */
+      .card-image {
+        transition: opacity 0.3s ease-out;
+      }
+      .card-image.opacity-0 {
+        opacity: 0;
+      }
+    </style>
     <link rel="preload" href="/manifest.json" as="fetch" crossorigin="anonymous">
     <link rel="manifest" href="/manifest.json">
     
@@ -100,7 +119,7 @@ background_color
 
 <div class="w-screen h-fit z-0 justify-center flex place-items-center mb-2">
   <a href="./" class="w-64" title="Binder Home">
-    <img class="h-32 w-64 transition hover:scale-95 active:transform-none" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection"></img>
+    <img class="h-32 w-64 transition hover:scale-95 active:transform-none" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection" fetchpriority="high"></img>
   </a>
 </div>
 
@@ -748,6 +767,9 @@ If you have not already installed our pwa, check if your browser (and launcher i
   hx-swap="innerHTML swap:150ms">
 </div>
 
+<!-- Idiomorph extension for smooth DOM morphing on filter/search -->
+<script src="https://unpkg.com/idiomorph@0.7.4/dist/idiomorph-ext.min.js" defer></script>
+
 <script>
   // Called by filter checkboxes and search input to refresh the card grid.
   // Reads Alpine reactive state, builds query string, calls htmx.ajax()
@@ -783,8 +805,38 @@ If you have not already installed our pwa, check if your browser (and launcher i
     }
 
     var url = '/api/cards?' + params.join('&');
-    htmx.ajax('GET', url, {target: '#card-grid', swap: 'innerHTML swap:150ms'});
+    // Use morph swap for filter/search to preserve DOM state where possible
+    htmx.ajax('GET', url, {target: '#card-grid', swap: 'morph:innerHTML'});
   };
+
+  // Image preloading for smoother infinite scroll experience
+  // Preloads images from the next batch when cards are rendered
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    // Only process card grid updates
+    if (!evt.detail.target || evt.detail.target.id !== 'card-grid') return;
+
+    // Find all image srcset URLs in the newly added content and preload them
+    var images = evt.detail.target.querySelectorAll('img[srcset]');
+    images.forEach(function(img) {
+      // Preload the image
+      var preloadImg = new Image();
+      preloadImg.src = img.src;
+    });
+
+    // Look for sentinel and preload next batch images (if any are embedded in response)
+    var sentinel = evt.detail.target.querySelector('[data-scroll-load="true"]');
+    if (sentinel && sentinel.dataset.nextImages) {
+      try {
+        var nextImages = JSON.parse(sentinel.dataset.nextImages);
+        nextImages.forEach(function(src) {
+          var img = new Image();
+          img.src = src;
+        });
+      } catch (e) {
+        // Silently fail if parsing fails
+      }
+    }
+  });
 </script>
 </div>
   </body>

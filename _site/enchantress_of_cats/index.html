@@ -23,6 +23,25 @@
     <meta charset="utf-8">
     <title>Enchantress of Cats</title>
     <link rel="stylesheet" href="/assets/css/output.css">
+    <style>
+      /* Skeleton loading animation for card images */
+      @keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      .skeleton-pulse {
+        animation: skeleton-pulse 1.5s ease-in-out infinite;
+        background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+      }
+      /* Smooth image fade-in transition */
+      .card-image {
+        transition: opacity 0.3s ease-out;
+      }
+      .card-image.opacity-0 {
+        opacity: 0;
+      }
+    </style>
     <link rel="preload" href="/manifest.json" as="fetch" crossorigin="anonymous">
     <link rel="manifest" href="/manifest.json">
     

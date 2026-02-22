@@ -23,8 +23,6 @@ module.exports = {
     // Manifest
     'manifest.json',
     'site.webmanifest',
-    // Offline fallback
-    'offline.html',
   ],
   globIgnores: [
     // Build artifacts that should NOT be precached

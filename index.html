@@ -33,6 +33,9 @@ bg-terra: "bg-hero-pattern "
   hx-swap="innerHTML swap:150ms">
 </div>
 
+<!-- Idiomorph extension for smooth DOM morphing on filter/search -->
+<script src="https://unpkg.com/idiomorph@0.7.4/dist/idiomorph-ext.min.js" defer></script>
+
 <script>
   // Called by filter checkboxes and search input to refresh the card grid.
   // Reads Alpine reactive state, builds query string, calls htmx.ajax()
@@ -68,6 +71,36 @@ bg-terra: "bg-hero-pattern "
     }
 
     var url = '/api/cards?' + params.join('&');
-    htmx.ajax('GET', url, {target: '#card-grid', swap: 'innerHTML swap:150ms'});
+    // Use morph swap for filter/search to preserve DOM state where possible
+    htmx.ajax('GET', url, {target: '#card-grid', swap: 'morph:innerHTML'});
   };
+
+  // Image preloading for smoother infinite scroll experience
+  // Preloads images from the next batch when cards are rendered
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    // Only process card grid updates
+    if (!evt.detail.target || evt.detail.target.id !== 'card-grid') return;
+
+    // Find all image srcset URLs in the newly added content and preload them
+    var images = evt.detail.target.querySelectorAll('img[srcset]');
+    images.forEach(function(img) {
+      // Preload the image
+      var preloadImg = new Image();
+      preloadImg.src = img.src;
+    });
+
+    // Look for sentinel and preload next batch images (if any are embedded in response)
+    var sentinel = evt.detail.target.querySelector('[data-scroll-load="true"]');
+    if (sentinel && sentinel.dataset.nextImages) {
+      try {
+        var nextImages = JSON.parse(sentinel.dataset.nextImages);
+        nextImages.forEach(function(src) {
+          var img = new Image();
+          img.src = src;
+        });
+      } catch (e) {
+        // Silently fail if parsing fails
+      }
+    }
+  });
 </script>
