@@ -103,11 +103,11 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     };
 
     format!(
-        r#"<div class="w-40 h-64 md:w-60 md:h-80 my-2.5 animate-card-fade-in relative" style="animation-delay:{}ms">
+        r#"<div class="animate-card-fade-in relative" style="animation-delay:{}ms">
   <a href="{url}"
-    class="grid grid-cols-1 w-full h-full pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
+    class="block w-full h-full pt-4 bg-amber-50 active:shadow-inner active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
   >
-    <picture class="skeleton-pulse relative">
+    <picture class="skeleton-pulse relative block">
       <source media="(min-width: 768px)"
         srcset="/assets/thumbnails/x2/{img} 1x, /assets/thumbnails/x4/{img} 2x">
       <img
@@ -120,7 +120,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('skeleton-pulse');"
       >
     </picture>
-    <div class="text-center text-wrap">{title}</div>
+    <div class="text-center text-wrap px-2 py-2">{title}</div>
   </a>
 </div>"#,
         stagger_delay,
@@ -150,11 +150,12 @@ fn render_sentinel(page: usize, per: usize, filter_param: &str, search_param: &s
     let query = query_parts.join("&");
 
     // Add data attribute to indicate this is not initial load (for animation timing)
+    // Sentinel uses min-h to preserve grid row height without fixed dimensions
     format!(
         r#"<div hx-get="/api/cards?{query}" 
              hx-trigger="intersect once threshold:0.3" 
              hx-swap="outerHTML" 
-             class="w-40 h-64 md:w-60 md:h-80 my-2.5"
+             class="min-h-[16rem] md:min-h-[20rem]"
              data-scroll-load="true"></div>"#,
         query = query,
     )
