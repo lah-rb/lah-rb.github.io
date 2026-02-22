@@ -26,8 +26,10 @@ bg-terra: "bg-hero-pattern "
 %}
 
 <!-- Card grid: HTMX infinite scroll powered by WASM /api/cards -->
+<!-- Uses CSS Grid with dynamic batch sizing based on viewport -->
 <div id="card-grid"
-  class="flex flex-wrap gap-x-5 content-auto place-content-center"
+  class="grid gap-5 justify-items-center px-4"
+  style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"
   hx-get="/api/cards?page=0&per=12&all=true"
   hx-trigger="load"
   hx-swap="innerHTML swap:150ms">
@@ -37,6 +39,45 @@ bg-terra: "bg-hero-pattern "
 <script src="https://unpkg.com/idiomorph@0.7.4/dist/idiomorph-ext.min.js" defer></script>
 
 <script>
+  // Dynamic batch sizing based on viewport
+  // Calculates optimal number of cards to load based on visible grid columns
+  window.kipukasBatchSize = (function() {
+    var cardMinWidth = 160; // minmax(160px, 1fr)
+    var gap = 20; // gap-5 = 1.25rem = 20px
+    var padding = 32; // px-4 = 1rem = 16px each side = 32px total
+    var desiredRows = 3; // Load 3 rows at a time for smooth scrolling
+
+    function calculateBatchSize() {
+      var viewportWidth = window.innerWidth;
+      var availableWidth = viewportWidth - padding;
+      var cardsPerRow = Math.floor((availableWidth + gap) / (cardMinWidth + gap));
+      // Ensure at least 2 cards per row on very small screens
+      cardsPerRow = Math.max(cardsPerRow, 2);
+      return cardsPerRow * desiredRows;
+    }
+
+    return {
+      get: calculateBatchSize,
+      getColumns: function() {
+        var viewportWidth = window.innerWidth;
+        var availableWidth = viewportWidth - padding;
+        return Math.max(Math.floor((availableWidth + gap) / (cardMinWidth + gap)), 2);
+      }
+    };
+  })();
+
+  // Update initial load with dynamic batch size
+  document.addEventListener('DOMContentLoaded', function() {
+    var cardGrid = document.getElementById('card-grid');
+    if (cardGrid) {
+      var optimalBatch = window.kipukasBatchSize.get();
+      // Update the hx-get attribute with optimal batch size
+      var currentUrl = cardGrid.getAttribute('hx-get');
+      var newUrl = currentUrl.replace(/per=\d+/, 'per=' + optimalBatch);
+      cardGrid.setAttribute('hx-get', newUrl);
+    }
+  });
+
   // Called by filter checkboxes and search input to refresh the card grid.
   // Reads Alpine reactive state, builds query string, calls htmx.ajax()
   // through the same WASM bridge path (Phase 2 lesson #4).
@@ -46,8 +87,10 @@ bg-terra: "bg-hero-pattern "
     var data = Alpine.$data(document.body);
     var filter = data.filter || {};
     var search = (data.searchQuery || '').trim();
-
-    var params = ['page=0', 'per=12'];
+    
+    // Use dynamic batch size based on viewport
+    var optimalBatch = window.kipukasBatchSize ? window.kipukasBatchSize.get() : 12;
+    var params = ['page=0', 'per=' + optimalBatch];
 
     if (search) {
       // Search mode: search across all cards regardless of filters
