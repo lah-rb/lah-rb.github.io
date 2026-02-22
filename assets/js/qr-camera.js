@@ -21,6 +21,24 @@
   let scannerOpen = false;
   let scanInterval = null;
   let stream = null;
+  let videoDevices = [];
+  let currentDeviceIndex = 0;
+  let currentFacingMode = 'user';
+
+  /**
+   * Enumerate available video input devices.
+   * Called on startup to populate videoDevices list.
+   */
+  async function enumerateDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      videoDevices = devices.filter((device) => device.kind === 'videoinput');
+      console.log(`[qr-camera] Found ${videoDevices.length} video devices`);
+    } catch (err) {
+      console.error('[qr-camera] Failed to enumerate devices:', err);
+      videoDevices = [];
+    }
+  }
 
   /**
    * Start the camera and begin the QR scanning loop.
@@ -38,58 +56,105 @@
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
 
-    navigator.mediaDevices
-      .getUserMedia({
-        video: { facingMode: 'user', focusMode: 'continuous' },
+    // Enumerate devices first, then start camera
+    enumerateDevices().then(() => {
+      const constraints = {
+        video: {
+          facingMode: currentFacingMode,
+          focusMode: 'continuous',
+        },
         audio: false,
-      })
-      .then((mediaStream) => {
-        stream = mediaStream;
-        video.srcObject = stream;
-        video.setAttribute('playsinline', 'true');
-        video.play();
-        scanning = true;
-        scannerOpen = true;
+      };
 
-        // Start periodic frame capture → worker decode loop
-        scanInterval = setInterval(() => {
-          if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      // If we have enumerated devices and a valid index, use deviceId
+      if (videoDevices.length > 0 && currentDeviceIndex < videoDevices.length) {
+        constraints.video = {
+          deviceId: { exact: videoDevices[currentDeviceIndex].deviceId },
+          focusMode: 'continuous',
+        };
+      }
 
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((mediaStream) => {
+          stream = mediaStream;
+          video.srcObject = stream;
+          video.setAttribute('playsinline', 'true');
+          video.play();
+          scanning = true;
+          scannerOpen = true;
 
-          // Send raw RGBA pixels to Web Worker for ZXing decode.
-          // Transfer the buffer for zero-copy performance.
-          const worker = globalThis.kipukasWorker;
-          if (worker) {
-            worker.postMessage(
-              {
-                type: 'QR_FRAME',
-                pixels: imageData.data.buffer,
-                width: canvas.width,
-                height: canvas.height,
-              },
-              [imageData.data.buffer], // Transfer ownership (zero-copy)
+          // Start periodic frame capture → worker decode loop
+          scanInterval = setInterval(() => {
+            if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Send raw RGBA pixels to Web Worker for ZXing decode.
+            // Transfer the buffer for zero-copy performance.
+            const worker = globalThis.kipukasWorker;
+            if (worker) {
+              worker.postMessage(
+                {
+                  type: 'QR_FRAME',
+                  pixels: imageData.data.buffer,
+                  width: canvas.width,
+                  height: canvas.height,
+                },
+                [imageData.data.buffer], // Transfer ownership (zero-copy)
+              );
+            }
+          }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+
+          console.log('[qr-camera] Camera started, scanning at 2 fps');
+        })
+        .catch((err) => {
+          console.error('[qr-camera] Camera access error:', err);
+          // Show error via HTMX → WASM route
+          if (typeof htmx !== 'undefined') {
+            htmx.ajax(
+              'GET',
+              `/api/qr/status?action=error&msg=${
+                encodeURIComponent(err.message || 'Camera access denied')
+              }`,
+              { target: '#qr-container', swap: 'innerHTML' },
             );
           }
-        }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+          scannerOpen = false;
+        });
+    });
+  }
 
-        console.log('[qr-camera] Camera started, scanning at 2 fps');
-      })
-      .catch((err) => {
-        console.error('[qr-camera] Camera access error:', err);
-        // Show error via HTMX → WASM route
-        if (typeof htmx !== 'undefined') {
-          htmx.ajax(
-            'GET',
-            `/api/qr/status?action=error&msg=${
-              encodeURIComponent(err.message || 'Camera access denied')
-            }`,
-            { target: '#qr-container', swap: 'innerHTML' },
-          );
-        }
-        scannerOpen = false;
-      });
+  /**
+   * Switch to the next available camera.
+   * Cycles through enumerated video devices.
+   */
+  function switchCamera() {
+    if (videoDevices.length <= 1) {
+      console.log('[qr-camera] No alternative cameras available');
+      // Toggle between front/back facing mode as fallback
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      console.log(`[qr-camera] Switching to ${currentFacingMode} camera`);
+    } else {
+      // Move to next device in list
+      currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+      console.log(`[qr-camera] Switching to device ${currentDeviceIndex}: ${videoDevices[currentDeviceIndex].label || 'Unknown'}`);
+    }
+
+    // Stop current stream and restart with new constraints
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      stream = null;
+    }
+    scanning = false;
+    if (scanInterval) {
+      clearInterval(scanInterval);
+      scanInterval = null;
+    }
+
+    // Restart camera with new device
+    start();
   }
 
   /**
@@ -187,5 +252,5 @@
 
   // ── Public API ─────────────────────────────────────────────────────
 
-  globalThis.kipukasQR = { start, stop, toggle };
+  globalThis.kipukasQR = { start, stop, toggle, switchCamera };
 })();
