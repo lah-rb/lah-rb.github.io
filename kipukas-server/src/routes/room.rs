@@ -515,15 +515,12 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
 
-            // Auto-mark the next unchecked slot
+            // Auto-mark the next unchecked slot.
+            // The JS caller (reportOutcome / fists_outcome handler) will refresh
+            // the keal damage tracker on the card page after this response.
             let marked = auto_mark_damage(&local_card, local_keal_idx);
             if marked {
                 h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
-                // Trigger a refresh of the keal damage tracker on the card page
-                h.push_str(&format!(
-                    r#"<script>if(typeof htmx!=='undefined')htmx.ajax('GET','/api/game/damage?card={}',{{target:'#keal-damage-{}',swap:'innerHTML'}});</script>"#,
-                    local_card, local_card
-                ));
             } else {
                 h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
             }
@@ -545,7 +542,8 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             h.push_str(r#"</div>"#);
         }
     } else {
-        // Defender won
+        // Defender won — show message only, no action buttons.
+        // The attack is stopped; player uses the modal's Close button.
         if local_role == CombatRole::Defending {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
@@ -553,9 +551,6 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F614;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">Too bad, try next turn!</p>"#);
         }
-        // Auto-close after 3 seconds
-        h.push_str(r#"<p class="text-xs text-slate-500 mb-2">Closing in a moment…</p>"#);
-        h.push_str(r#"<script>setTimeout(function(){document.dispatchEvent(new CustomEvent('close-multiplayer'))},3000);</script>"#);
     }
 
     h.push_str(r#"</div>"#);
@@ -989,7 +984,8 @@ mod tests {
         });
         let html = handle_fists_outcome_post("won=no"); // attacker says no → defender won
         assert!(html.contains("Too bad"));
-        assert!(html.contains("close-multiplayer"));
+        // No buttons or auto-close — player uses modal Close button
+        assert!(!html.contains("New Round"));
         reset();
     }
 

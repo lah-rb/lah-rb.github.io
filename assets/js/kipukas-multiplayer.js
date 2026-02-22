@@ -453,6 +453,8 @@ function handleDataChannelMessage(msg) {
           if (typeof htmx !== 'undefined') htmx.process(container);
           execScripts(container);
         }
+        // Refresh the keal damage tracker so checkboxes reflect auto-marked damage
+        setTimeout(refreshKealTracker, 150);
       });
       break;
     }
@@ -504,6 +506,21 @@ function postToWasmWithCallback(method, path, body, callback) {
     { method, pathname: path, search: '', body },
     [channel.port2],
   );
+}
+
+/** Refresh the keal damage tracker on the card page behind the modal.
+ *  After auto-mark damage changes WASM state, the checkboxes on the
+ *  card page are stale. This finds the tracker element and re-fetches. */
+function refreshKealTracker() {
+  if (typeof htmx === 'undefined') return;
+  // The keal damage tracker has id="keal-damage-{slug}"
+  const tracker = document.querySelector('[id^="keal-damage-"]');
+  if (tracker) {
+    const slug = tracker.id.replace('keal-damage-', '');
+    console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
+    htmx.ajax('GET', '/api/game/damage?card=' + slug,
+      { target: '#' + tracker.id, swap: 'innerHTML' });
+  }
 }
 
 /** Re-execute inline scripts after innerHTML swap. */
@@ -707,6 +724,8 @@ const kipukasMultiplayer = {
         if (typeof htmx !== 'undefined') htmx.process(container);
         execScripts(container);
       }
+      // Refresh the keal damage tracker so checkboxes reflect auto-marked damage
+      setTimeout(refreshKealTracker, 150);
     });
 
     // Derive attacker_won for the peer: we need to know our local role
