@@ -2,7 +2,7 @@
 <div x-data="{ showMultiplayer: false }" class="relative place-content-center"
      @close-multiplayer.window="showMultiplayer = false">
   <!-- Multiplayer toggle button -->
-  <button aria-label="Toggle Multiplayer" @click="showMultiplayer = !showMultiplayer">
+  <button aria-label="Toggle Multiplayer" @click="window.kipukasLoadMultiplayer().then(function() { showMultiplayer = !showMultiplayer })">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       {% unless page.landscape %}
