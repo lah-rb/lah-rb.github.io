@@ -94,16 +94,7 @@ fn card_matches_search(card: &Card, search: &str) -> bool {
 }
 
 /// Render a single card as an HTML fragment.
-/// First 6 cards load eagerly to prevent LCP/CLS issues; rest are lazy loaded.
-fn render_card(card: &Card, index: usize) -> String {
-    // First 6 cards: eager loading for immediate display, no alt text flash
-    // Rest: lazy loading for performance
-    let (loading, decoding) = if index < 6 {
-        ("eager", "sync")
-    } else {
-        ("lazy", "async")
-    };
-
+fn render_card(card: &Card) -> String {
     format!(
         r#"<a href="{url}"
   class="grid grid-cols-1 w-40 h-64 md:w-60 md:h-80 pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded"
@@ -115,10 +106,8 @@ fn render_card(card: &Card, index: usize) -> String {
       src="/assets/thumbnails/x1/{img}"
       srcset="/assets/thumbnails/x1/{img} 1x, /assets/thumbnails/x2/{img} 2x, /assets/thumbnails/x3/{img} 3x"
       alt="{alt}"
-      loading="{loading}"
-      decoding="{decoding}"
-      class="w-full h-auto bg-amber-200/50"
-      onload="this.classList.remove('bg-amber-200/50')"
+      loading="lazy"
+      class="w-full h-auto"
     >
   </picture>
   <div class="text-center text-wrap">{title}</div>
@@ -127,8 +116,6 @@ fn render_card(card: &Card, index: usize) -> String {
         img = card.img_name,
         alt = card.img_alt,
         title = card.title,
-        loading = loading,
-        decoding = decoding,
     )
 }
 
@@ -235,7 +222,7 @@ pub fn handle(query: &str) -> String {
             "<div class=\"w-40 h-64 md:w-60 md:h-80 my-2.5 animate-card-fade-in\" style=\"animation-delay:{}ms\">\n",
             delay_ms
         ));
-        html.push_str(&render_card(card, i));
+        html.push_str(&render_card(card));
         html.push_str("\n</div>\n");
     }
 
