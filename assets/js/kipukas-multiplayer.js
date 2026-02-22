@@ -374,6 +374,8 @@ function onPeerConnected() {
     '/api/room/connected',
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
+  // Notify UI that room is connected
+  document.dispatchEvent(new CustomEvent('room-connected'));
   refreshRoomStatus();
 }
 
@@ -657,6 +659,8 @@ const kipukasMultiplayer = {
     roomCode = '';
     roomName = '';
     postToWasm('POST', '/api/room/disconnect', '');
+    // Notify UI that room is disconnected
+    document.dispatchEvent(new CustomEvent('room-disconnected'));
     refreshRoomStatus();
   },
 

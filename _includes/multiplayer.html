@@ -1,10 +1,8 @@
-<!-- multiplayer.html — Room management modal (Phase 4, refactored)
-     Room creation/join/disconnect only. Fists combat moved to local_fists_tool.html.
--->
+<!-- Phase 4: Multiplayer room management (wifi icon) — room connection only, no fists combat -->
 <div x-data="{ showMultiplayer: false }" class="relative place-content-center"
      @close-multiplayer.window="showMultiplayer = false">
-  <!-- Multiplayer toggle button (WiFi icon) -->
-  <button aria-label="Toggle Multiplayer Room" @click="window.kipukasLoadMultiplayer().then(function() { showMultiplayer = !showMultiplayer })">
+  <!-- Multiplayer toggle button (wifi icon) -->
+  <button aria-label="Toggle Multiplayer" @click="window.kipukasLoadMultiplayer().then(function() { showMultiplayer = !showMultiplayer })">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       {% unless page.landscape %}
@@ -19,7 +17,11 @@
   <div x-show="showMultiplayer" x-cloak
     class="fixed inset-0 flex items-center justify-center z-50"
     x-transition.duration.350ms
-    x-effect="if (showMultiplayer) $nextTick(() => { if (typeof htmx !== 'undefined') { htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'}); } })">
+    x-effect="if (showMultiplayer) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
+      }
+    })">
 
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
