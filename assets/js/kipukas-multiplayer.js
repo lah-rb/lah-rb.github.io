@@ -440,6 +440,23 @@ function handleDataChannelMessage(msg) {
       break;
     }
 
+    case 'fists_outcome': {
+      // Remote peer reported the combat outcome.
+      // attacker_won is already resolved by the sender.
+      const attackerWon = msg.attacker_won;
+      console.log('[multiplayer] Received fists outcome: attacker_won=' + attackerWon);
+      postToWasmWithCallback('POST', '/api/room/fists/outcome',
+        'attacker_won=' + (attackerWon ? 'true' : 'false'), (html) => {
+        const container = document.getElementById('fists-container');
+        if (container) {
+          container.innerHTML = html;
+          if (typeof htmx !== 'undefined') htmx.process(container);
+          execScripts(container);
+        }
+      });
+      break;
+    }
+
     default:
       console.log('[multiplayer] Unknown data channel message:', msg);
   }
@@ -678,6 +695,44 @@ const kipukasMultiplayer = {
       dc.send(JSON.stringify({ type: 'fists_reset' }));
       console.log('[multiplayer] Sent fists reset to peer');
     }
+  },
+
+  /** Report combat outcome ("Did you win?" answer). Called from WASM-rendered buttons. */
+  reportOutcome(won) {
+    // Determine attacker_won from local role + answer
+    postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, (html) => {
+      const container = document.getElementById('fists-container');
+      if (container) {
+        container.innerHTML = html;
+        if (typeof htmx !== 'undefined') htmx.process(container);
+        execScripts(container);
+      }
+    });
+
+    // Derive attacker_won for the peer: we need to know our local role
+    // We can infer from the `won` param and the checked role radio
+    // But simpler: let WASM tell us. We'll compute it ourselves:
+    // We need local role from the fists state. Ask WASM for it.
+    postToWasmWithCallback('GET', '/api/room/state', '', (json) => {
+      try {
+        const state = JSON.parse(json);
+        if (!state || !state.fists || !state.fists.local) return;
+        const localRole = state.fists.local.role;
+        let attackerWon;
+        if (localRole === 'Attacking') {
+          attackerWon = won === 'yes';
+        } else {
+          attackerWon = won === 'no';
+        }
+        // Send to peer
+        if (dc && dc.readyState === 'open') {
+          dc.send(JSON.stringify({ type: 'fists_outcome', attacker_won: attackerWon }));
+          console.log('[multiplayer] Sent fists outcome to peer: attacker_won=' + attackerWon);
+        }
+      } catch (e) {
+        console.warn('[multiplayer] Could not parse room state for outcome sync:', e);
+      }
+    });
   },
 
   /** Check if currently connected to a peer. */

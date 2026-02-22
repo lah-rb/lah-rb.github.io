@@ -57,6 +57,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/fists/sync", "room_fists_sync").ok();
     router.insert("/api/room/fists/poll", "room_fists_poll").ok();
     router.insert("/api/room/fists/reset", "room_fists_reset").ok();
+    router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
     router.insert("/api/room/state", "room_state").ok();
 
     match router.at(path) {
@@ -89,6 +90,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists", "POST") => routes::room::handle_fists_post(body),
             ("room_fists_sync", "POST") => routes::room::handle_fists_sync_post(body),
             ("room_fists_reset", "POST") => routes::room::handle_fists_reset_post(body),
+            ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
 
             _ => method_not_allowed(),
         },

@@ -16,7 +16,7 @@ fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
 
 /// Get or initialize damage state for a card.
 /// Ensures all expected slots exist in the HashMap.
-fn ensure_card_state(slug: &str, total_slots: u8) {
+pub fn ensure_card_state(slug: &str, total_slots: u8) {
     with_state_mut(|state| {
         let entry = state
             .cards
