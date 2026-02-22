@@ -65,8 +65,16 @@ background_color
     {% endif %}
 
     {% if include.local_fists_tool %}
-      {% capture cardSlugFists %}{{ page.permalink | remove: '/' }}{% endcapture %}
       {% include local_fists_tool.html
+          svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
+          menuClass=anchor-menu
+          base_fill=base_fill
+      %}
+    {% endif %}
+
+    {% if include.multiplayer_fists_tool %}
+      {% capture cardSlugFists %}{{ page.permalink | remove: '/' }}{% endcapture %}
+      {% include multiplayer_fists_tool.html
           svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
           menuClass=anchor-menu
           base_fill=base_fill
@@ -74,8 +82,8 @@ background_color
       %}
     {% endif %}
 
-    {% if include.local_fists_tool_home %}
-      {% include local_fists_tool.html
+    {% if include.multiplayer_fists_tool_home %}
+      {% include multiplayer_fists_tool.html
           svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
           menuClass=anchor-menu
           base_fill=base_fill
@@ -92,6 +100,16 @@ background_color
     {% endif %}
 
     {% if include.multiplayer %}
+      {% capture cardSlugMP %}{{ page.permalink | remove: '/' }}{% endcapture %}
+      {% include multiplayer.html
+        svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
+        menuClass=anchor-menu
+        base_fill=base_fill
+        card_slug=cardSlugMP
+      %}
+    {% endif %}
+
+    {% if include.multiplayer_home %}
       {% include multiplayer.html
         svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
         menuClass=anchor-menu
