@@ -34,61 +34,7 @@ bg-terra: "bg-hero-pattern "
 </div>
 
 <script>
-  // ── Card grid: IntersectionObserver for bulk-loaded cards ─────────
-  // Cards loaded in bulk mode start with opacity-0. The observer fades
-  // them in when they enter the viewport and fades them out when they leave.
-  // Combined with content-visibility:auto on each card wrapper, the browser
-  // skips layout/paint for off-screen cards — eliminating scroll jank.
-  var _cardObserver;
-  function observeCards() {
-    if (!_cardObserver) {
-      _cardObserver = new IntersectionObserver(function(entries) {
-        for (var i = 0; i < entries.length; i++) {
-          if (entries[i].isIntersecting) {
-            entries[i].target.classList.remove('opacity-0');
-          } else {
-            entries[i].target.classList.add('opacity-0');
-          }
-        }
-      }, { rootMargin: '200px' });
-    }
-    var els = document.querySelectorAll('[data-card-observe]:not([data-observed])');
-    for (var i = 0; i < els.length; i++) {
-      els[i].setAttribute('data-observed', '');
-      _cardObserver.observe(els[i]);
-    }
-  }
-
-  // ── Bulk load remaining cards 1s after initial paint ─────────────
-  // The first 12 cards load via hx-get="load" for fast LCP.
-  // After 1 second we fetch ALL remaining cards in one request (bulk mode)
-  // and append them. No more sentinel chain = no scroll jank from
-  // overlapping HTMX requests.
-  var _bulkLoaded = false;
-  setTimeout(function() {
-    if (!globalThis.kipukasWorker || _bulkLoaded) return;
-    _bulkLoaded = true;
-    var grid = document.getElementById('card-grid');
-    if (!grid) return;
-    // Remove any sentinel that the initial 12-card load may have added
-    var sentinel = grid.querySelector('[hx-trigger="revealed"]');
-    if (sentinel) sentinel.remove();
-
-    var channel = new MessageChannel();
-    channel.port1.onmessage = function(e) {
-      var html = e.data.html;
-      if (html) {
-        grid.insertAdjacentHTML('beforeend', html);
-        observeCards();
-      }
-    };
-    globalThis.kipukasWorker.postMessage(
-      { method: 'GET', pathname: '/api/cards', search: '?page=1&per=100&all=true&bulk=true', body: '' },
-      [channel.port2]
-    );
-  }, 1000);
-
-  // ── kipukasRefreshCards — called by filter / search UI ───────────
+  // Called by filter checkboxes and search input to refresh the card grid.
   // Reads Alpine reactive state, builds query string, calls htmx.ajax()
   // through the same WASM bridge path (Phase 2 lesson #4).
   window.kipukasRefreshCards = function() {
@@ -120,10 +66,6 @@ bg-terra: "bg-hero-pattern "
       }
       // If no active filters, params has no filter/all/search → WASM returns empty grid
     }
-
-    // Disconnect observer for old cards (grid will be replaced)
-    if (_cardObserver) { _cardObserver.disconnect(); _cardObserver = null; }
-    _bulkLoaded = false;
 
     var url = '/api/cards?' + params.join('&');
     htmx.ajax('GET', url, {target: '#card-grid', swap: 'innerHTML swap:150ms'});
