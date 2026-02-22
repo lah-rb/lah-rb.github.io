@@ -21,6 +21,8 @@ const SVG_FLASH_OFF: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="
 
 const SVG_FLASH_ON: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" /></svg>"#;
 
+const SVG_CAMERA_SWITCH: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>"#;
+
 // ── Query string helpers ───────────────────────────────────────────
 
 /// Extract a single query param value.
@@ -154,35 +156,52 @@ fn privacy_modal() -> String {
 
 fn scanning_ui() -> String {
     format!(
-        r##"<div x-data="{{ showFlash: false }}"
-     class="z-30 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-3/4 lg:top-1/2 left-1/2 rounded-lg transition delay-150">
-  <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
-          width="640" height="480"></canvas>
-  <button class="z-40 absolute top-3 left-3 size-fit transition delay-150"
-          onclick="kipukasQR.stop(); htmx.ajax('GET', '/api/qr/status?action=close', {{target:'#qr-container', swap:'innerHTML'}})">
-    {eye_off}
-  </button>
-  <button class="z-40 absolute top-3 right-3 size-fit transition delay-150"
-          @click="showFlash = !showFlash"
-          x-show="showFlash">
-    {flash_off}
-  </button>
-  <button class="z-40 absolute top-3 right-3 size-fit transition delay-150"
-          @click="showFlash = !showFlash"
-          x-show="!showFlash">
-    {flash_on}
-  </button>
-  <video id="video"
-         class="z-30 object-cover size-full scale-x-[-1] rounded-lg transition delay-150"
-         autoplay playsinline></video>
+        r##"<div x-data="{{ showFlash: false }}">
+  <!-- Flash overlay - outside transformed container to cover full screen -->
   <div x-show="showFlash"
-       class="fixed top-0 left-0 z-20 w-screen h-screen bg-white"></div>
-  <div id="qr-result"></div>
+       class="fixed inset-0 z-40 bg-white"
+       @click="showFlash = false"></div>
+  
+  <!-- Video container - higher z-index to stay above flash -->
+  <div class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-3/4 lg:top-1/2 left-1/2 rounded-lg transition delay-150">
+    <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
+            width="640" height="480"></canvas>
+    
+    <!-- Close button (left) -->
+    <button class="z-50 absolute top-3 left-3 size-fit transition delay-150"
+            onclick="kipukasQR.stop(); htmx.ajax('GET', '/api/qr/status?action=close', {{target:'#qr-container', swap:'innerHTML'}})">
+      {eye_off}
+    </button>
+    
+    <!-- Switch camera button (center) -->
+    <button class="z-50 absolute top-3 left-1/2 -translate-x-1/2 size-fit transition delay-150"
+            onclick="kipukasQR.switchCamera()">
+      {camera_switch}
+    </button>
+    
+    <!-- Flash button (right) -->
+    <button class="z-50 absolute top-3 right-3 size-fit transition delay-150"
+            @click="showFlash = !showFlash"
+            x-show="showFlash">
+      {flash_off}
+    </button>
+    <button class="z-50 absolute top-3 right-3 size-fit transition delay-150"
+            @click="showFlash = !showFlash"
+            x-show="!showFlash">
+      {flash_on}
+    </button>
+    
+    <video id="video"
+           class="z-50 object-cover size-full scale-x-[-1] rounded-lg transition delay-150"
+           autoplay playsinline></video>
+    <div id="qr-result"></div>
+  </div>
 </div>
 <script>kipukasQR.start();</script>"##,
         eye_off = SVG_EYE_OFF,
         flash_off = SVG_FLASH_OFF,
         flash_on = SVG_FLASH_ON,
+        camera_switch = SVG_CAMERA_SWITCH,
     )
 }
 
