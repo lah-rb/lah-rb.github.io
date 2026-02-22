@@ -64,8 +64,18 @@ background_color
       <input type="text" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" x-model="searchQuery" @input.debounce.300ms="if (window.kipukasRefreshCards) window.kipukasRefreshCards()" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
     {% endif %}
 
-    {% if include.type_matchup %}
-      {% include type_matchup.html
+    {% if include.local_fists_tool %}
+      {% capture cardSlugFists %}{{ page.permalink | remove: '/' }}{% endcapture %}
+      {% include local_fists_tool.html
+          svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
+          menuClass=anchor-menu
+          base_fill=base_fill
+          card_slug=cardSlugFists
+      %}
+    {% endif %}
+
+    {% if include.local_fists_tool_home %}
+      {% include local_fists_tool.html
           svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
           menuClass=anchor-menu
           base_fill=base_fill
@@ -82,16 +92,6 @@ background_color
     {% endif %}
 
     {% if include.multiplayer %}
-      {% capture cardSlugMP %}{{ page.permalink | remove: '/' }}{% endcapture %}
-      {% include multiplayer.html
-        svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
-        menuClass=anchor-menu
-        base_fill=base_fill
-        card_slug=cardSlugMP
-      %}
-    {% endif %}
-
-    {% if include.multiplayer_home %}
       {% include multiplayer.html
         svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
         menuClass=anchor-menu
