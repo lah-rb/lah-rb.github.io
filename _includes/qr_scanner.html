@@ -10,7 +10,7 @@
 <!-- Button to toggle QR scanner -->
 <button aria-label="Toggle QR Scanner"
         class="{{ include.buttonClass }}"
-        onclick="kipukasQR.toggle()">
+        onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
   <svg xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 128 128" alt="QR Scanner Toggle"
     {% unless page.landscape %}

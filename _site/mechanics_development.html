@@ -41,6 +41,10 @@
         opacity: 0;
       }
     </style>
+    <!-- Preload critical scripts to reduce parse/evaluation time -->
+    <link rel="preload" href="/assets/js/htmx.min.js" as="script">
+    <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
+    <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
     <link rel="preload" href="/manifest.json" as="fetch" crossorigin="anonymous">
     <link rel="manifest" href="/manifest.json">
     
@@ -69,14 +73,35 @@
 
     <script defer src="/assets/js/htmx.min.js"></script>
 
-    <!-- QR camera + scan loop (uses kipukasWorker from kipukas-api.js) -->
-    <script src="/assets/js/qr-camera.js" defer></script>
-
-    <!-- Phase 4: Multiplayer WebRTC manager -->
-    <script src="/assets/js/kipukas-multiplayer.js" defer></script>
-
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
+
+    <!-- Lazy loading helpers for feature-specific scripts -->
+    <script>
+      // Lazy load QR camera only when needed
+      window.kipukasLoadQR = function() {
+        if (window.kipukasQRLoaded) return Promise.resolve();
+        return import('/assets/js/qr-camera.js')
+          .then(function() {
+            window.kipukasQRLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+      };
+
+      // Lazy load Multiplayer only when needed
+      window.kipukasLoadMultiplayer = function() {
+        if (window.kipukasMultiplayerLoaded) return Promise.resolve();
+        return import('/assets/js/kipukas-multiplayer.js')
+          .then(function() {
+            window.kipukasMultiplayerLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load multiplayer:', err);
+          });
+      };
+    </script>
 
   </head>
 
