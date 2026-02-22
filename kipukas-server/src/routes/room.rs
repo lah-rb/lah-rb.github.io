@@ -4,6 +4,7 @@
 //! Local game state (damage, turns) remains per-user.
 
 use crate::cards_generated::CARDS;
+use crate::game::damage;
 use crate::game::room::{self, CombatRole, FistsSubmission};
 use crate::game::state::with_state;
 use crate::typing;
@@ -457,6 +458,153 @@ pub fn handle_fists_reset_post(_body: &str) -> String {
     r#"<div class="p-4 text-center text-emerald-600 text-sm">Combat reset. Ready for next round.</div>"#.to_string()
 }
 
+// ── POST /api/room/fists/outcome ───────────────────────────────────
+
+/// Handle the "Did you win?" answer.
+///
+/// Accepts either:
+///   - `won=yes|no` — from the local player clicking a button
+///   - `attacker_won=true|false` — from a peer sync via data channel
+///
+/// Logic:
+///   1. Derive `attacker_won` from the local role and the `won` param (or use directly).
+///   2. If attacker won AND the local player is the defender → auto-mark damage on the
+///      next unchecked slot of the local card's keal means group that was used in combat.
+///   3. Return role-aware HTML message with appropriate buttons.
+pub fn handle_fists_outcome_post(body: &str) -> String {
+    let params = parse_form_body(body);
+
+    // Determine if attacker won
+    let attacker_won = if let Some(aw) = get_param(&params, "attacker_won") {
+        // Peer sync path — attacker_won is already resolved
+        aw == "true"
+    } else if let Some(won) = get_param(&params, "won") {
+        // Local click path — derive from role
+        let local_role = room::with_room(|r| r.fists.local.as_ref().map(|s| s.role));
+        match (local_role, won) {
+            (Some(CombatRole::Attacking), "yes") => true,
+            (Some(CombatRole::Attacking), "no") => false,
+            (Some(CombatRole::Defending), "yes") => false,
+            (Some(CombatRole::Defending), "no") => true,
+            _ => {
+                return r#"<div class="p-4 text-kip-red text-sm">Error: No combat data.</div>"#
+                    .to_string();
+            }
+        }
+    } else {
+        return r#"<div class="p-4 text-kip-red text-sm">Error: Missing outcome param.</div>"#
+            .to_string();
+    };
+
+    // Get local role and submission info
+    let (local_role, local_card, local_keal_idx) = room::with_room(|r| {
+        r.fists
+            .local
+            .as_ref()
+            .map(|s| (s.role, s.card.clone(), s.keal_idx))
+            .unwrap_or((CombatRole::Attacking, String::new(), 0))
+    });
+
+    let mut h = String::with_capacity(1024);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
+
+    if attacker_won {
+        // Attacker won
+        if local_role == CombatRole::Defending {
+            // I'm the defender and I lost — auto-mark damage on my card
+            h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
+            h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
+
+            // Auto-mark the next unchecked slot
+            let marked = auto_mark_damage(&local_card, local_keal_idx);
+            if marked {
+                h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
+                // Trigger a refresh of the keal damage tracker on the card page
+                h.push_str(&format!(
+                    r#"<script>if(typeof htmx!=='undefined')htmx.ajax('GET','/api/game/damage?card={}',{{target:'#keal-damage-{}',swap:'innerHTML'}});</script>"#,
+                    local_card, local_card
+                ));
+            } else {
+                h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
+            }
+
+            // Show buttons
+            h.push_str(r#"<div class="flex gap-2">"#);
+            h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+            h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+            h.push_str(r#"</div>"#);
+        } else {
+            // I'm the attacker and I won
+            h.push_str(r#"<p class="text-2xl mb-2">&#x2694;</p>"#);
+            h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Nice Play! Damage is now reflected on the opponent.</p>"#);
+
+            // Show buttons
+            h.push_str(r#"<div class="flex gap-2">"#);
+            h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+            h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+            h.push_str(r#"</div>"#);
+        }
+    } else {
+        // Defender won
+        if local_role == CombatRole::Defending {
+            h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
+            h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
+        } else {
+            h.push_str(r#"<p class="text-2xl mb-2">&#x1F614;</p>"#);
+            h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">Too bad, try next turn!</p>"#);
+        }
+        // Auto-close after 3 seconds
+        h.push_str(r#"<p class="text-xs text-slate-500 mb-2">Closing in a moment…</p>"#);
+        h.push_str(r#"<script>setTimeout(function(){document.dispatchEvent(new CustomEvent('close-multiplayer'))},3000);</script>"#);
+    }
+
+    h.push_str(r#"</div>"#);
+    h
+}
+
+/// Find the next unchecked damage slot in a specific keal means group and toggle it.
+/// Returns true if a slot was marked, false if all slots are already checked.
+fn auto_mark_damage(card_slug: &str, keal_idx: u8) -> bool {
+    let card = match find_card(card_slug) {
+        Some(c) => c,
+        None => return false,
+    };
+
+    if card.keal_means.is_empty() || keal_idx == 0 {
+        return false;
+    }
+
+    // Compute the slot range for this keal means group
+    let km_index = (keal_idx as usize).saturating_sub(1);
+    let mut slot_start: u8 = 1;
+    for (i, km) in card.keal_means.iter().enumerate() {
+        if i == km_index {
+            // Found the target group — find the first unchecked slot in range
+            let slot_end = slot_start + km.count;
+            let total: u8 = card.keal_means.iter().map(|k| k.count).sum();
+            damage::ensure_card_state(card_slug, total);
+
+            for slot in slot_start..slot_end {
+                let is_checked = with_state(|state| {
+                    state
+                        .cards
+                        .get(card_slug)
+                        .and_then(|c| c.slots.get(&slot).copied())
+                        .unwrap_or(false)
+                });
+                if !is_checked {
+                    damage::toggle_slot(card_slug, slot);
+                    return true;
+                }
+            }
+            return false; // All slots in this group are already checked
+        }
+        slot_start += km.count;
+    }
+
+    false
+}
+
 // ── GET /api/room/state ────────────────────────────────────────────
 
 pub fn handle_room_state_get(_query: &str) -> String {
@@ -619,11 +767,14 @@ fn build_result_html(
 
     h.push_str(r#"</div>"#);
 
-    // New round button — uses kipukasMultiplayer.resetFists() which:
-    // 1. Resets local WASM fists state
-    // 2. Notifies the remote peer via WebRTC data channel
-    // 3. Refreshes the UI to show the fists selection form
-    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+    // "Did you win?" outcome buttons
+    h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
+    h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Did you win?</p>"#);
+    h.push_str(r#"<div class="flex gap-2">"#);
+    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('yes')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">Yes!</button>"#);
+    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('no')" class="flex-1 bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">No</button>"#);
+    h.push_str(r#"</div>"#);
+    h.push_str(r#"</div>"#);
 
     h.push_str(r#"</div>"#);
     h
@@ -785,6 +936,81 @@ mod tests {
         assert!(html.contains("Brox The Defiant"));
         assert!(html.contains("Liliel: Healing Fairy"));
         assert!(html.contains("Attack Die Modifier"));
+        assert!(html.contains("Did you win"));
+        assert!(html.contains("reportOutcome"));
+        reset();
+    }
+
+    #[test]
+    fn fists_outcome_attacker_wins_marks_defender_damage() {
+        reset();
+        crate::game::state::replace_state(crate::game::state::GameState::default());
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = handle_fists_outcome_post("won=no"); // defender says no → attacker won
+        assert!(html.contains("Ouch"));
+        assert!(html.contains("Damage has been recorded"));
+        assert!(html.contains("New Round"));
+        // Verify slot 1 of brox was toggled
+        with_state(|s| {
+            let card = s.cards.get("brox_the_defiant").unwrap();
+            assert!(card.slots.get(&1).copied().unwrap_or(false));
+        });
+        crate::game::state::replace_state(crate::game::state::GameState::default());
+        reset();
+    }
+
+    #[test]
+    fn fists_outcome_defender_wins_shows_message() {
+        reset();
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = handle_fists_outcome_post("won=no"); // attacker says no → defender won
+        assert!(html.contains("Too bad"));
+        assert!(html.contains("close-multiplayer"));
+        reset();
+    }
+
+    #[test]
+    fn fists_outcome_peer_sync_attacker_won() {
+        reset();
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = handle_fists_outcome_post("attacker_won=true");
+        assert!(html.contains("Nice Play"));
         assert!(html.contains("New Round"));
         reset();
     }

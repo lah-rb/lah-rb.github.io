@@ -373,7 +373,8 @@ background_color
     
       
       <!-- Phase 4: Multiplayer room connection + fists combat tool -->
-<div x-data="{ showMultiplayer: false }" class="relative place-content-center">
+<div x-data="{ showMultiplayer: false }" class="relative place-content-center"
+     @close-multiplayer.window="showMultiplayer = false">
   <!-- Multiplayer toggle button -->
   <button aria-label="Toggle Multiplayer" @click="showMultiplayer = !showMultiplayer">
     <svg xmlns="http://www.w3.org/2000/svg"
@@ -391,7 +392,14 @@ background_color
   <!-- Full-screen modal overlay (matches QR modal pattern) -->
   <div x-show="showMultiplayer" x-cloak
     class="fixed inset-0 flex items-center justify-center z-50"
-    x-transition.duration.350ms>
+    x-transition.duration.350ms
+    x-effect="if (showMultiplayer) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
+        var fc = document.getElementById('fists-container');
+        if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists', {target:'#fists-container', swap:'innerHTML'});
+      }
+    })">
 
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
