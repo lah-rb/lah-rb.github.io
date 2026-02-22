@@ -53,7 +53,6 @@ exclude:
   - Gemfile
   - Gemfile.lock
   - WORKFLOW.md
-  - MULTIPLAYER_ROADMAP.md
   - kipukas_rules_book/
   - scripts/
 
