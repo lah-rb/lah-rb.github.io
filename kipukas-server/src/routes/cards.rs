@@ -116,6 +116,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         alt="{alt}"
         loading="lazy"
         decoding="async"
+        fetchpriority="low"
         class="w-full h-auto card-image opacity-0 transition-opacity duration-300"
         onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('skeleton-pulse');"
       >

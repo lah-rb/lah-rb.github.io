@@ -27,16 +27,17 @@ bg-terra: "bg-hero-pattern "
 
 <!-- Card grid: HTMX infinite scroll powered by WASM /api/cards -->
 <!-- Uses CSS Grid with dynamic batch sizing based on viewport -->
-<div id="card-grid"
-  class="grid gap-5 justify-items-center px-4"
-  style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"
-  hx-get="/api/cards?page=0&per=12&all=true"
-  hx-trigger="load"
-  hx-swap="innerHTML swap:150ms">
-</div>
-
-<!-- Idiomorph extension for smooth DOM morphing on filter/search -->
-<script src="https://unpkg.com/idiomorph@0.7.4/dist/idiomorph-ext.min.js" defer></script>
+ <template x-if="true">
+  <!-- Mobile: 160px min, Desktop (md+): 200px min for better desktop experience -->
+  <div id="card-grid"
+    class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
+    hx-get="/api/cards?page=0&per=12&all=true"
+    hx-trigger="load"
+    hx-swap="innerHTML swap:150ms"></div>
+  </div>
+</template>
+<!-- Idiomorph extension for smooth DOM morphing on filter/search (bundled locally) -->
+<script src="/assets/js/idiomorph-ext.min.js" defer></script>
 
 <script>
   // Dynamic batch sizing based on viewport
