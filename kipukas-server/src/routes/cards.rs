@@ -151,7 +151,6 @@ pub fn handle(query: &str) -> String {
     let mut filter_raw = String::new();
     let mut search_raw = String::new();
     let mut all = false;
-    let mut bulk = false;
 
     for (key, val) in &params {
         match *key {
@@ -160,7 +159,6 @@ pub fn handle(query: &str) -> String {
             "filter" => filter_raw = percent_decode(val),
             "search" => search_raw = percent_decode(val),
             "all" => all = *val == "true",
-            "bulk" => bulk = *val == "true",
             _ => {}
         }
     }
@@ -219,27 +217,17 @@ pub fn handle(query: &str) -> String {
     let mut html = String::with_capacity(page_cards.len() * 512);
 
     for (i, card) in page_cards.iter().enumerate() {
-        if bulk {
-            // Bulk mode: cards start invisible, IntersectionObserver handles fade.
-            // content-auto tells the browser to skip layout/paint for off-screen cards.
-            html.push_str(
-                "<div class=\"w-40 h-64 md:w-60 md:h-80 my-2.5 opacity-0 transition-opacity duration-500 content-auto\" data-card-observe>\n"
-            );
-        } else {
-            // Normal mode: staggered fade-in animation
-            let delay_ms = i * 60;
-            html.push_str(&format!(
-                "<div class=\"w-40 h-64 md:w-60 md:h-80 my-2.5 animate-card-fade-in\" style=\"animation-delay:{}ms\">\n",
-                delay_ms
-            ));
-        }
+        let delay_ms = i * 60;
+        html.push_str(&format!(
+            "<div class=\"w-40 h-64 md:w-60 md:h-80 my-2.5 animate-card-fade-in\" style=\"animation-delay:{}ms\">\n",
+            delay_ms
+        ));
         html.push_str(&render_card(card));
         html.push_str("\n</div>\n");
     }
 
-    // In bulk mode, never add a sentinel — all cards are returned at once.
     // Add sentinel for next page if there are more cards
-    if has_more && !bulk {
+    if has_more {
         // Pass through the original filter/search params for the sentinel
         let filter_param = if filters.is_empty() {
             String::new()
@@ -322,34 +310,5 @@ mod tests {
             assert!(html.contains("search=test"));
             assert!(html.contains("all=true"));
         }
-    }
-
-    #[test]
-    fn bulk_mode_no_sentinel() {
-        let html = handle("?page=0&per=4&all=true&bulk=true");
-        let card_count = html.matches("<a href=").count();
-        assert_eq!(card_count, 4);
-        // Bulk mode should NOT include a sentinel
-        assert!(!html.contains("hx-trigger=\"revealed\""));
-    }
-
-    #[test]
-    fn bulk_mode_has_observer_attrs() {
-        let html = handle("?page=0&per=4&all=true&bulk=true");
-        // Cards should have data-card-observe and opacity-0
-        assert!(html.contains("data-card-observe"));
-        assert!(html.contains("opacity-0"));
-        assert!(html.contains("content-auto"));
-        // Should NOT have animate-card-fade-in
-        assert!(!html.contains("animate-card-fade-in"));
-    }
-
-    #[test]
-    fn normal_mode_has_animation() {
-        let html = handle("?page=0&per=4&all=true");
-        assert!(html.contains("animate-card-fade-in"));
-        assert!(html.contains("animation-delay"));
-        // Should NOT have bulk attrs
-        assert!(!html.contains("data-card-observe"));
     }
 }
