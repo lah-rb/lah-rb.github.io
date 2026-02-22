@@ -60,6 +60,9 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
     router.insert("/api/room/state", "room_state").ok();
 
+    // Fists tool route (context-aware: local vs multiplayer)
+    router.insert("/api/fists/tool", "fists_tool").ok();
+
     match router.at(path) {
         Ok(matched) => match (*matched.value, method) {
             // GET routes
@@ -80,6 +83,9 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             // Phase 4: Room/multiplayer routes
             ("room_status", "GET") => routes::room::handle_status_get(query),
             ("room_fists", "GET") => routes::room::handle_fists_get(query),
+
+            // Fists tool route (context-aware)
+            ("fists_tool", "GET") => routes::fists_tool::handle_get(query),
             ("room_fists_poll", "GET") => routes::room::handle_fists_poll_get(query),
             ("room_state", "GET") => routes::room::handle_room_state_get(query),
             ("room_create", "POST") => routes::room::handle_create_post(body),
