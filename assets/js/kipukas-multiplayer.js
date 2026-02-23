@@ -410,9 +410,9 @@ function handleDataChannelMessage(msg) {
 
       // Store in WASM
       postToWasmWithCallback('POST', '/api/room/fists/sync', json, (html) => {
-        // Check if the response contains "Combat Result" — meaning both
-        // sides have submitted and we should show the full result.
-        if (html && html.includes('Combat Result')) {
+        // Check if the response contains a result page (regular or Final Blows)
+        // by looking for the reportOutcome function which only appears in results.
+        if (html && html.includes('reportOutcome')) {
           const container = document.getElementById('fists-container');
           if (container) {
             container.innerHTML = html;
@@ -468,9 +468,9 @@ function handleDataChannelMessage(msg) {
 
       // Store in WASM
       postToWasmWithCallback('POST', '/api/room/fists/final/sync', json, (html) => {
-        // Check if the response contains "Final Blows" result — meaning both
-        // sides have submitted and we should show the full result.
-        if (html && html.includes('Final Blows')) {
+        // Check if the response contains a result page by looking for the
+        // reportOutcome function which only appears in actual results.
+        if (html && html.includes('reportOutcome')) {
           const container = document.getElementById('fists-container');
           if (container) {
             container.innerHTML = html;

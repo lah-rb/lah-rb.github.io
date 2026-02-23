@@ -247,6 +247,12 @@ pub fn handle_fists_get(query: &str) -> String {
         return render_fists_waiting();
     }
 
+    // Check if local submitted Final Blows (waiting for remote)
+    let local_final_submitted = room::with_room(|r| r.fists.local_final_blows.is_some());
+    if local_final_submitted {
+        return render_final_blows_waiting();
+    }
+
     render_fists_form(slug)
 }
 
@@ -541,7 +547,12 @@ pub fn handle_fists_poll_get(_query: &str) -> String {
     if is_complete {
         render_fists_result()
     } else {
-        render_fists_waiting()
+        let is_final = room::with_room(|r| r.fists.local_final_blows.is_some());
+        if is_final {
+            render_final_blows_waiting()
+        } else {
+            render_fists_waiting()
+        }
     }
 }
 
@@ -599,7 +610,7 @@ pub fn handle_final_blows_sync_post(body: &str) -> String {
             if is_complete {
                 render_fists_result()
             } else {
-                r#"<span class="text-emerald-600 text-sm">Opponent stated Final Blows. Waiting for your submission.</span>"#.to_string()
+                r#"<span class="text-emerald-600 text-sm">Opponent has submitted. Waiting for your submission.</span>"#.to_string()
             }
         }
         Err(e) => {
