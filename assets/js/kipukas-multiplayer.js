@@ -698,6 +698,21 @@ const kipukasMultiplayer = {
     sendFists(submissionData);
   },
 
+  /** Submit Final Blows combat choice (auto-defending, keal_idx=0).
+   * Called when a player with exhausted keal means declares Final Blows. */
+  submitFistsFinalBlows(cardSlug) {
+    // POST to WASM with defending role and keal=0 (signals final blows)
+    const body = `role=defending&card=${cardSlug}&keal=0`;
+    postToWasmWithCallback('POST', '/api/room/fists', body, (html) => {
+      const container = document.getElementById('fists-container');
+      if (container) {
+        container.innerHTML = html;
+        if (typeof htmx !== 'undefined') htmx.process(container);
+        execScripts(container);
+      }
+    });
+  },
+
   /** Reset fists on both local and remote sides. Called from "Try Again" button. */
   resetFists() {
     // Reset local WASM state and refresh UI
