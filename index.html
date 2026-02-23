@@ -31,7 +31,7 @@ bg-terra: "bg-hero-pattern "
  <template x-if="true">
   <!-- Mobile: 160px min, Desktop (md+): 200px min for better desktop experience -->
   <div id="card-grid"
-    class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
+    class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
     hx-get="/api/cards?page=0&per=12&all=true"
     hx-trigger="load"
     hx-swap="innerHTML swap:150ms"></div>
