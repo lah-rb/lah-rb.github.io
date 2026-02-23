@@ -428,11 +428,15 @@ function handleDataChannelMessage(msg) {
       break;
     }
 
-    case 'fists_final_blows': {
-      console.log('[multiplayer] Received final blows declaration:', msg.card);
-      const body = `card=${encodeURIComponent(msg.card || '')}`;
-      postToWasmWithCallback('POST', '/api/room/fists/final/sync', body, (html) => {
-        if (html && (html.includes('Combat Result') || html.includes('Final Blows'))) {
+    case 'final_blows_submission': {
+      // Remote peer sent their final blows submission (when card is exhausted).
+      const json = JSON.stringify(msg.data);
+      console.log('[multiplayer] Received final blows submission:', json);
+
+      // Store in WASM
+      postToWasmWithCallback('POST', '/api/room/fists/final-blows/sync', json, (html) => {
+        // Check if the response contains "Final Blows" result
+        if (html && html.includes('Final Blows')) {
           const container = document.getElementById('fists-container');
           if (container) {
             container.innerHTML = html;
@@ -440,7 +444,8 @@ function handleDataChannelMessage(msg) {
             execScripts(container);
           }
         } else {
-          showFistsMessage('✓ Opponent declared Final Blows.', 'text-emerald-600');
+          // Local hasn't submitted yet
+          showFistsMessage('✓ Opponent has sent their Final Blows!', 'text-emerald-600');
         }
       });
       break;
@@ -711,29 +716,6 @@ const kipukasMultiplayer = {
     });
   },
 
-  /** Declare Final Blows and sync to opponent. */
-  submitFistsFinalBlows(cardSlug) {
-    if (!cardSlug) {
-      showFistsMessage('Missing card for Final Blows.', 'text-kip-red');
-      return;
-    }
-
-    const body = `card=${encodeURIComponent(cardSlug)}`;
-    postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-        execScripts(container);
-      }
-    });
-
-    if (dc && dc.readyState === 'open') {
-      dc.send(JSON.stringify({ type: 'fists_final_blows', card: cardSlug }));
-      console.log('[multiplayer] Sent final blows declaration to peer');
-    }
-  },
-
   /** Send fists data to peer. Called by inline script from WASM response. */
   sendFists(submissionData) {
     sendFists(submissionData);
@@ -802,6 +784,20 @@ const kipukasMultiplayer = {
   /** Check if currently connected to a peer. */
   isConnected() {
     return dc && dc.readyState === 'open';
+  },
+
+  /** Submit final blows (when player's card is exhausted). Called from WASM button. */
+  submitFinalBlows(cardSlug) {
+    // POST to WASM to store final blows submission
+    const body = `card=${cardSlug}`;
+    postToWasmWithCallback('POST', '/api/room/fists/final-blows', body, (html) => {
+      const container = document.getElementById('fists-container');
+      if (container) {
+        container.innerHTML = html;
+        if (typeof htmx !== 'undefined') htmx.process(container);
+        execScripts(container);
+      }
+    });
   },
 };
 
