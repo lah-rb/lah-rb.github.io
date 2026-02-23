@@ -34,6 +34,10 @@ pub struct FistsCombat {
     pub local: Option<FistsSubmission>,
     /// Remote player's submission (set via POST /api/room/fists/sync)
     pub remote: Option<FistsSubmission>,
+    /// Local player's final-blows state (card slug when fully exhausted)
+    pub final_blows_local: Option<String>,
+    /// Remote player's final-blows state (card slug when fully exhausted)
+    pub final_blows_remote: Option<String>,
 }
 
 impl FistsCombat {
@@ -46,6 +50,8 @@ impl FistsCombat {
     pub fn reset(&mut self) {
         self.local = None;
         self.remote = None;
+        self.final_blows_local = None;
+        self.final_blows_remote = None;
     }
 
     /// Get the attacker submission (from whichever player chose Attacking).
@@ -202,6 +208,8 @@ mod tests {
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
             }),
+            final_blows_local: None,
+            final_blows_remote: None,
         };
 
         let atk = combat.attacker().unwrap();
@@ -226,6 +234,8 @@ mod tests {
                 card: "test2".to_string(),
                 keal_idx: 1,
             }),
+            final_blows_local: None,
+            final_blows_remote: None,
         };
         combat.reset();
         assert!(combat.local.is_none());

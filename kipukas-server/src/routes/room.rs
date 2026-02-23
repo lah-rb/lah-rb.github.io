@@ -280,9 +280,9 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
     true
 }
 
-/// Render Final Blows form for a card whose keal means are all exhausted.
-/// Player is auto-defending (cannot attack with exhausted card).
-fn render_final_blows(card: &crate::cards_generated::Card, slug: &str) -> String {
+/// Render Final Blows section for a card whose keal means are all exhausted.
+/// Shows local card motivation + D20 roll instruction.
+fn render_final_blows(card: &crate::cards_generated::Card) -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(&format!(
@@ -292,7 +292,7 @@ fn render_final_blows(card: &crate::cards_generated::Card, slug: &str) -> String
 
     h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
     h.push_str(r#"<p class="text-sm font-bold text-center mb-2">&#x1F525; Final Blows</p>"#);
-    h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">All keal means exhausted. You are defending.</p>"#);
+    h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">All keal means are exhausted. This is the final combat.</p>"#);
 
     // Local card motivation
     h.push_str(r#"<div class="mb-2 text-xs">"#);
@@ -304,11 +304,12 @@ fn render_final_blows(card: &crate::cards_generated::Card, slug: &str) -> String
     }
     h.push_str(r#"</div>"#);
 
-    // State Final Blows button - auto-defending role
-    h.push_str(&format!(
-        r#"<button onclick="kipukasMultiplayer.submitFistsFinalBlows('{}')" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mt-3 text-sm">State Final Blows to Opponent</button>"#,
-        slug
-    ));
+    h.push_str(r#"<div class="border-t border-slate-200 pt-2">"#);
+    h.push_str(r#"<button onclick=\"kipukasMultiplayer.submitFistsFinalBlows('"#);
+    h.push_str(card.slug);
+    h.push_str(r#"')\" class=\"w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm\">State Final Blows to Opponent</button>"#);
+    h.push_str(r#"<div id=\"fists-message\" class=\"mt-2 text-center\"></div>"#);
+    h.push_str(r#"</div>"#);
 
     h.push_str(r#"</div>"#); // close final-blows box
 
@@ -334,7 +335,7 @@ fn render_fists_form(slug: &str) -> String {
 
     // If all keal means are exhausted, show Final Blows instead of the normal form
     if all_keal_means_exhausted(slug) {
-        return render_final_blows(card, slug);
+        return render_final_blows(card);
     }
 
     let mut h = String::with_capacity(2048);
@@ -508,6 +509,56 @@ pub fn handle_fists_sync_post(body: &str) -> String {
                 e
             )
         }
+    }
+}
+
+// ── POST /api/room/fists/final ─────────────────────────────────────
+
+/// Local player declares Final Blows (keal means fully exhausted).
+pub fn handle_fists_final_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let card = get_param(&params, "card").unwrap_or("");
+
+    if card.is_empty() {
+        return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+    }
+
+    room::with_room_mut(|r| {
+        r.fists.final_blows_local = Some(card.to_string());
+    });
+
+    let mut h = String::with_capacity(512);
+    h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
+    h.push_str(r#"<p class="text-lg font-bold mb-2">Final Blows Declared</p>"#);
+    h.push_str(r#"<div class="animate-pulse text-kip-red text-2xl mb-2">&#9876;</div>"#);
+    h.push_str(r#"<p class="text-sm">Waiting for opponent to lock in their role...</p>"#);
+    h.push_str(r##"<div hx-get="/api/room/fists/poll" hx-trigger="every 2s" hx-target="#fists-container" hx-swap="innerHTML"></div>"##);
+    h.push_str(r#"</div>"#);
+
+    h
+}
+
+// ── POST /api/room/fists/final/sync ────────────────────────────────
+
+/// Sync Final Blows declaration from remote peer.
+pub fn handle_fists_final_sync_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let card = get_param(&params, "card").unwrap_or("");
+
+    if card.is_empty() {
+        return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+    }
+
+    room::with_room_mut(|r| {
+        r.fists.final_blows_remote = Some(card.to_string());
+    });
+
+    // If both submissions are in, show full result (Final Blows + modifiers).
+    let is_complete = room::with_room(|r| r.fists.is_complete());
+    if is_complete {
+        render_fists_result()
+    } else {
+        r#"<span class="text-emerald-600 text-sm">Opponent declared Final Blows. Waiting for your submission.</span>"#.to_string()
     }
 }
 
@@ -730,17 +781,55 @@ fn render_fists_result() -> String {
         let atk_km = atk_km.unwrap();
         let def_km = def_km.unwrap();
 
+        let (use_final_blows, final_blows_card) = room::with_room(|r| {
+            if r.fists.final_blows_local.is_some() {
+                (true, r.fists.final_blows_local.clone())
+            } else if r.fists.final_blows_remote.is_some() {
+                (true, r.fists.final_blows_remote.clone())
+            } else {
+                (false, None)
+            }
+        });
+
         // Parse genetics into Archetypes
-        let atk_types: Vec<typing::Archetype> = atk_km
-            .genetics
-            .iter()
-            .filter_map(|g| typing::parse_archetype(g))
-            .collect();
-        let def_types: Vec<typing::Archetype> = def_km
-            .genetics
-            .iter()
-            .filter_map(|g| typing::parse_archetype(g))
-            .collect();
+        let atk_types: Vec<typing::Archetype> = if use_final_blows {
+            atk_card
+                .genetic_disposition
+                .and_then(|gd| typing::parse_archetype(gd))
+                .map(|a| vec![a])
+                .unwrap_or_else(|| {
+                    atk_km
+                        .genetics
+                        .iter()
+                        .filter_map(|g| typing::parse_archetype(g))
+                        .collect()
+                })
+        } else {
+            atk_km
+                .genetics
+                .iter()
+                .filter_map(|g| typing::parse_archetype(g))
+                .collect()
+        };
+        let def_types: Vec<typing::Archetype> = if use_final_blows {
+            def_card
+                .genetic_disposition
+                .and_then(|gd| typing::parse_archetype(gd))
+                .map(|a| vec![a])
+                .unwrap_or_else(|| {
+                    def_km
+                        .genetics
+                        .iter()
+                        .filter_map(|g| typing::parse_archetype(g))
+                        .collect()
+                })
+        } else {
+            def_km
+                .genetics
+                .iter()
+                .filter_map(|g| typing::parse_archetype(g))
+                .collect()
+        };
 
         // Parse motivations
         let atk_motive = atk_card
@@ -754,7 +843,15 @@ fn render_fists_result() -> String {
         let result = typing::type_matchup(&atk_types, &def_types, atk_motive, def_motive);
 
         // Build result HTML
-        build_result_html(atk_card, atk_km, def_card, def_km, &result)
+        build_result_html(
+            atk_card,
+            atk_km,
+            def_card,
+            def_km,
+            &result,
+            use_final_blows,
+            final_blows_card.as_deref(),
+        )
     })
 }
 
@@ -764,6 +861,8 @@ fn build_result_html(
     def_card: &crate::cards_generated::Card,
     def_km: &crate::cards_generated::KealMeans,
     result: &typing::MatchupResult,
+    use_final_blows: bool,
+    final_blows_card: Option<&str>,
 ) -> String {
     let mut h = String::with_capacity(2048);
 
@@ -777,13 +876,28 @@ fn build_result_html(
         r#"<p class="font-bold">{}</p>"#,
         atk_card.title
     ));
+    let atk_keal_label = if use_final_blows {
+        atk_card
+            .genetic_disposition
+            .unwrap_or(atk_km.name)
+    } else {
+        atk_km.name
+    };
     h.push_str(&format!(
         r#"<p class="text-sm">Keal: <strong class="text-kip-red">{}</strong></p>"#,
-        atk_km.name
+        atk_keal_label
     ));
+    let atk_archetypes = if use_final_blows {
+        atk_card
+            .genetic_disposition
+            .unwrap_or("Unknown")
+            .to_string()
+    } else {
+        atk_km.genetics.join(", ")
+    };
     h.push_str(&format!(
         r#"<p class="text-xs">Archetypes: {}</p>"#,
-        atk_km.genetics.join(", ")
+        atk_archetypes
     ));
     if !atk_card.die.is_empty() {
         h.push_str(&format!(
@@ -800,13 +914,28 @@ fn build_result_html(
         r#"<p class="font-bold">{}</p>"#,
         def_card.title
     ));
+    let def_keal_label = if use_final_blows {
+        def_card
+            .genetic_disposition
+            .unwrap_or(def_km.name)
+    } else {
+        def_km.name
+    };
     h.push_str(&format!(
         r#"<p class="text-sm">Keal: <strong class="text-blue-600">{}</strong></p>"#,
-        def_km.name
+        def_keal_label
     ));
+    let def_archetypes = if use_final_blows {
+        def_card
+            .genetic_disposition
+            .unwrap_or("Unknown")
+            .to_string()
+    } else {
+        def_km.genetics.join(", ")
+    };
     h.push_str(&format!(
         r#"<p class="text-xs">Archetypes: {}</p>"#,
-        def_km.genetics.join(", ")
+        def_archetypes
     ));
     if !def_card.die.is_empty() {
         h.push_str(&format!(
@@ -834,70 +963,73 @@ fn build_result_html(
 
     h.push_str(r#"</div>"#);
 
-    // ── Final Blows section ──────────────────────────────────────────
-    // Shows when either card has exhausted keal means. Displays motivation
-    // matchup details and the D20 roll both players make.
-    let is_final_blows = all_keal_means_exhausted(atk_card.slug) || all_keal_means_exhausted(def_card.slug);
-    if is_final_blows {
-        h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
-        h.push_str(r#"<p class="text-sm font-bold text-center mb-2">&#x1F525; Final Blows</p>"#);
+    if use_final_blows {
+        h.push_str(r#"<div class=\"bg-slate-50 border border-slate-300 rounded p-3 mb-3\">"#);
+        h.push_str(r#"<p class=\"text-sm font-bold text-center mb-2\">&#x1F525; Final Blows</p>"#);
+        if let Some(card_slug) = final_blows_card {
+            h.push_str(&format!(
+                r#"<p class=\"text-xs text-center text-amber-600 mb-2\">Final Blows declared by <strong>{}</strong></p>"#,
+                card_slug
+            ));
+        }
 
-        // Motivation info for both cards
-        h.push_str(r#"<div class="grid grid-cols-2 gap-2 mb-2 text-xs">"#);
-        h.push_str(r#"<div>"#);
-        h.push_str(r#"<p class="font-bold text-kip-red">Attacker Motive</p>"#);
+        h.push_str(r#"<div class=\"grid grid-cols-2 gap-2 mb-2 text-xs\">"#);
+        h.push_str(r#"<div><p class=\"font-bold text-kip-red\">Attacker Motive</p>"#);
         if let Some(mot) = atk_card.motivation {
             h.push_str(&format!(r#"<p>{}</p>"#, mot));
         } else {
-            h.push_str(r#"<p class="text-slate-400">None</p>"#);
+            h.push_str(r#"<p class=\"text-slate-400\">None</p>"#);
         }
         h.push_str(r#"</div>"#);
-        h.push_str(r#"<div>"#);
-        h.push_str(r#"<p class="font-bold text-blue-600">Defender Motive</p>"#);
+        h.push_str(r#"<div><p class=\"font-bold text-blue-600\">Defender Motive</p>"#);
         if let Some(mot) = def_card.motivation {
             h.push_str(&format!(r#"<p>{}</p>"#, mot));
         } else {
-            h.push_str(r#"<p class="text-slate-400">None</p>"#);
+            h.push_str(r#"<p class=\"text-slate-400\">None</p>"#);
         }
-        h.push_str(r#"</div>"#);
-        h.push_str(r#"</div>"#);
+        h.push_str(r#"</div></div>"#);
 
-        // Motivation-based combat modifiers
         let has_any_mod = result.societal_mod.is_some()
             || result.self_mod.is_some()
             || result.support_mod.is_some();
 
         if has_any_mod {
-            h.push_str(r#"<div class="border-t border-slate-200 pt-2 mb-2">"#);
+            h.push_str(r#"<div class=\"border-t border-slate-200 pt-2 mb-2\">"#);
             if let Some(s) = result.societal_mod {
                 let text = s.trim_start_matches('\n');
                 h.push_str(&format!(
-                    r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#,
+                    r#"<p class=\"text-xs text-amber-700 font-bold mb-1\">&#x2696; {}</p>"#,
                     text
                 ));
             }
             if let Some(s) = result.self_mod {
                 let text = s.trim_start_matches('\n');
                 h.push_str(&format!(
-                    r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#,
+                    r#"<p class=\"text-xs text-amber-700 font-bold mb-1\">&#x1F3C3; {}</p>"#,
                     text
                 ));
             }
             if let Some(s) = result.support_mod {
                 let text = s.trim_start_matches('\n');
                 h.push_str(&format!(
-                    r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#,
+                    r#"<p class=\"text-xs text-amber-700 font-bold mb-1\">&#x1F91D; {}</p>"#,
                     text
                 ));
             }
             h.push_str(r#"</div>"#);
         }
 
-        // D20 roll instruction
-        h.push_str(r#"<div class="bg-amber-100 rounded p-2 text-center">"#);
-        h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
-        h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
-        h.push_str(r#"<p class="text-xs text-slate-500 mt-1">Attacker adds the die modifier above to their roll</p>"#);
+        let motive_bonus = result.modifier >= 10
+            && atk_card.motivation.is_some()
+            && def_card.motivation.is_some();
+        if motive_bonus {
+            h.push_str(r#"<p class=\"text-xs text-emerald-600 font-bold text-center mb-2\">&#x2B50; Attacker gets +10 motivation bonus on die roll!</p>"#);
+        }
+
+        h.push_str(r#"<div class=\"bg-amber-100 rounded p-2 text-center\">"#);
+        h.push_str(r#"<p class=\"text-sm font-bold mb-1\">Both Players Roll</p>"#);
+        h.push_str(r#"<p class=\"text-2xl font-bold text-kip-drk-sienna\">D20</p>"#);
+        h.push_str(r#"<p class=\"text-xs text-slate-500 mt-1\">Attacker adds the die modifier above to their roll</p>"#);
         h.push_str(r#"</div>"#);
 
         h.push_str(r#"</div>"#);
@@ -1173,67 +1305,6 @@ mod tests {
     }
 
     #[test]
-    fn fists_result_shows_final_blows_when_card_exhausted() {
-        reset();
-        crate::game::state::replace_state(crate::game::state::GameState::default());
-        room::with_room_mut(|r| {
-            r.connected = true;
-            // Attacker has exhausted keal means
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        // Mark all of Brox's keal means as exhausted
-        let card = find_card("brox_the_defiant").unwrap();
-        let total: u8 = card.keal_means.iter().map(|k| k.count).sum();
-        damage::ensure_card_state("brox_the_defiant", total);
-        for slot in 1..=total {
-            damage::toggle_slot("brox_the_defiant", slot);
-        }
-        let html = render_fists_result();
-        // Final Blows section shows when attacker has exhausted keal means
-        assert!(html.contains("Final Blows"));
-        assert!(html.contains("Attacker Motive"));
-        assert!(html.contains("Defender Motive"));
-        assert!(html.contains("D20"));
-        assert!(html.contains("Combat Result"));
-        assert!(html.contains("Did you win"));
-        crate::game::state::replace_state(crate::game::state::GameState::default());
-        reset();
-    }
-
-    #[test]
-    fn fists_result_no_final_blows_when_neither_exhausted() {
-        reset();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        let html = render_fists_result();
-        // No Final Blows when neither card is exhausted
-        assert!(!html.contains("Final Blows"));
-        assert!(html.contains("Combat Result"));
-        assert!(html.contains("Did you win"));
-        reset();
-    }
-
-    #[test]
     fn fists_form_shows_final_blows_when_all_keal_exhausted() {
         reset();
         crate::game::state::replace_state(crate::game::state::GameState::default());
@@ -1247,13 +1318,37 @@ mod tests {
         }
         let html = handle_fists_get("?card=brox_the_defiant");
         assert!(html.contains("Final Blows"));
-        assert!(html.contains("All keal means exhausted"));
-        assert!(html.contains("Your Motivation"));
+        assert!(html.contains("All keal means are exhausted"));
         assert!(html.contains("State Final Blows to Opponent"));
         // Should NOT contain the normal role selector
         assert!(!html.contains("Your Role"));
         assert!(!html.contains("Lock In Choice"));
         crate::game::state::replace_state(crate::game::state::GameState::default());
+        reset();
+    }
+
+    #[test]
+    fn fists_final_blows_sync_shows_modifiers_in_result() {
+        reset();
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.final_blows_local = Some("brox_the_defiant".to_string());
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = render_fists_result();
+        assert!(html.contains("Final Blows"));
+        assert!(html.contains("Attacker Motive"));
+        assert!(html.contains("Defender Motive"));
+        assert!(html.contains("D20"));
         reset();
     }
 

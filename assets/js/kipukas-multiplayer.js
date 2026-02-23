@@ -428,6 +428,24 @@ function handleDataChannelMessage(msg) {
       break;
     }
 
+    case 'fists_final_blows': {
+      console.log('[multiplayer] Received final blows declaration:', msg.card);
+      const body = `card=${encodeURIComponent(msg.card || '')}`;
+      postToWasmWithCallback('POST', '/api/room/fists/final/sync', body, (html) => {
+        if (html && (html.includes('Combat Result') || html.includes('Final Blows'))) {
+          const container = document.getElementById('fists-container');
+          if (container) {
+            container.innerHTML = html;
+            if (typeof htmx !== 'undefined') htmx.process(container);
+            execScripts(container);
+          }
+        } else {
+          showFistsMessage('✓ Opponent declared Final Blows.', 'text-emerald-600');
+        }
+      });
+      break;
+    }
+
     case 'fists_reset': {
       console.log('[multiplayer] Remote peer reset fists');
       postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
@@ -693,17 +711,15 @@ const kipukasMultiplayer = {
     });
   },
 
-  /** Send fists data to peer. Called by inline script from WASM response. */
-  sendFists(submissionData) {
-    sendFists(submissionData);
-  },
-
-  /** Submit Final Blows combat choice (auto-defending, keal_idx=0).
-   * Called when a player with exhausted keal means declares Final Blows. */
+  /** Declare Final Blows and sync to opponent. */
   submitFistsFinalBlows(cardSlug) {
-    // POST to WASM with defending role and keal=0 (signals final blows)
-    const body = `role=defending&card=${cardSlug}&keal=0`;
-    postToWasmWithCallback('POST', '/api/room/fists', body, (html) => {
+    if (!cardSlug) {
+      showFistsMessage('Missing card for Final Blows.', 'text-kip-red');
+      return;
+    }
+
+    const body = `card=${encodeURIComponent(cardSlug)}`;
+    postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
       const container = document.getElementById('fists-container');
       if (container) {
         container.innerHTML = html;
@@ -711,6 +727,16 @@ const kipukasMultiplayer = {
         execScripts(container);
       }
     });
+
+    if (dc && dc.readyState === 'open') {
+      dc.send(JSON.stringify({ type: 'fists_final_blows', card: cardSlug }));
+      console.log('[multiplayer] Sent final blows declaration to peer');
+    }
+  },
+
+  /** Send fists data to peer. Called by inline script from WASM response. */
+  sendFists(submissionData) {
+    sendFists(submissionData);
   },
 
   /** Reset fists on both local and remote sides. Called from "Try Again" button. */
