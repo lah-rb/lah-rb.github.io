@@ -569,8 +569,17 @@ function refreshKealTracker() {
   wasmRequest('GET', '/api/game/damage', '?card=' + slug, '', (html) => {
     if (html) {
       tracker.innerHTML = html;
-      // Process any HTMX attributes in the new content
-      if (typeof htmx !== 'undefined') htmx.process(tracker);
+      // The tracker container has hx-trigger="load" — process only the
+      // inner children so we don't re-trigger a redundant HTMX load cycle.
+      if (typeof htmx !== 'undefined') {
+        tracker.querySelectorAll('[hx-get],[hx-post]').forEach(el => htmx.process(el));
+      }
+      // innerHTML sets the `checked` HTML attribute but not the DOM property
+      // on previously-existing elements. Explicitly sync the property so the
+      // browser renders the checkbox as visually checked.
+      tracker.querySelectorAll('input[type="checkbox"][checked]').forEach(cb => {
+        cb.checked = true;
+      });
       // Dispatch htmx:afterSwap so Alpine's sentinel watcher in
       // keal_damage_tracker.html updates the Final Blows section visibility
       tracker.dispatchEvent(new CustomEvent('htmx:afterSwap', { bubbles: true }));
