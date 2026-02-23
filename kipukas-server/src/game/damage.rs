@@ -178,22 +178,26 @@ pub fn render_damage_tracker(slug: &str) -> String {
 
             if is_wasted {
                 // Disabled state — greyed out, non-clickable
-                let fill = if checked { "#94a3b8" } else { "none" };
+                let style = if checked {
+                    "fill:#94a3b8;stroke:#94a3b8;stroke-width:1.5"
+                } else {
+                    "fill:none;stroke:#94a3b8;stroke-width:1.5"
+                };
                 html.push_str(&format!(
-                    r##"<span class="mr-1 opacity-40"><svg class="w-5 h-5 inline" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="{fill}" stroke="#94a3b8" stroke-width="1.5"/></svg></span>"##,
-                    fill = fill,
+                    r##"<span class="mr-1 opacity-40"><svg class="w-5 h-5 inline" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="{style}"/></svg></span>"##,
+                    style = style,
                 ));
             } else if checked {
                 // Checked state — filled red circle, clickable to toggle off
                 html.push_str(&format!(
-                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#dc2626" stroke="#dc2626" stroke-width="1.5"/></svg></button>"##,
+                    r##"<button class="mr-1 damage-slot damage-checked" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:#dc2626;stroke:#dc2626;stroke-width:1.5"/></svg></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
             } else {
-                // Unchecked state — empty circle, clickable to toggle on
+                // Unchecked state — green border, white fill, clickable to toggle on
                 html.push_str(&format!(
-                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5"/></svg></button>"##,
+                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:white;stroke:#059669;stroke-width:2.5"/></svg></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
@@ -250,12 +254,12 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
         if is_wasted {
             html.push_str(&format!(
-                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#dc2626" stroke="#dc2626" stroke-width="1.5"/></svg></button>"##,
+                r##"<button class="mr-1 damage-slot damage-checked" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:#dc2626;stroke:#dc2626;stroke-width:1.5"/></svg></button>"##,
                 slug = slug,
             ));
         } else {
             html.push_str(&format!(
-                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5"/></svg></button>"##,
+                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:white;stroke:#059669;stroke-width:2.5"/></svg></button>"##,
                 slug = slug,
             ));
         }

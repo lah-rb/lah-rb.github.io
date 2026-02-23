@@ -459,7 +459,13 @@ background_color
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
-
+                        <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showFistsMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -884,6 +890,13 @@ background_color
   <style>
     .final-blows-section { display: none; }
     .show-final-blows .final-blows-section { display: block; }
+    @keyframes damage-fade-red {
+      from { opacity: 0.3; }
+      to   { opacity: 1; }
+    }
+    .damage-checked svg circle {
+      animation: damage-fade-red 0.35s ease-out;
+    }
   </style>
   <div id="keal-damage-rooster_calling_of_light"
        class="w-full grid grid-cols-1 place-self-center"
@@ -1184,6 +1197,13 @@ background_color
   <style>
     .final-blows-section { display: none; }
     .show-final-blows .final-blows-section { display: block; }
+    @keyframes damage-fade-red {
+      from { opacity: 0.3; }
+      to   { opacity: 1; }
+    }
+    .damage-checked svg circle {
+      animation: damage-fade-red 0.35s ease-out;
+    }
   </style>
   <div id="keal-damage-rooster_calling_of_light"
        class="w-full grid grid-cols-1 place-self-center"
