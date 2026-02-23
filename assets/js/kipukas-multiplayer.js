@@ -535,19 +535,67 @@ function postToWasmWithCallback(method, path, body, callback) {
   );
 }
 
+/** Send a request to WASM worker with query string support and call back with the HTML response. */
+function wasmRequest(method, path, search, body, callback) {
+  if (!globalThis.kipukasWorker) return;
+  const channel = new MessageChannel();
+  channel.port1.onmessage = (msg) => {
+    if (callback) callback(msg.data.html);
+  };
+  globalThis.kipukasWorker.postMessage(
+    { method, pathname: path, search: search || '', body: body || '' },
+    [channel.port2],
+  );
+}
+
 /** Refresh the keal damage tracker on the card page behind the modal.
  *  After auto-mark damage changes WASM state, the checkboxes on the
- *  card page are stale. This finds the tracker element and re-fetches. */
+ *  card page are stale. Uses direct worker communication (bypasses the
+ *  service worker relay) to ensure the updated state is read reliably.
+ *  Also persists state to localStorage so changes survive page navigation. */
 function refreshKealTracker() {
-  if (typeof htmx === 'undefined') return;
   // The keal damage tracker has id="keal-damage-{slug}"
   const tracker = document.querySelector('[id^="keal-damage-"]');
-  if (tracker) {
-    const slug = tracker.id.replace('keal-damage-', '');
-    console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
-    htmx.ajax('GET', '/api/game/damage?card=' + slug,
-      { target: '#' + tracker.id, swap: 'innerHTML' });
+  if (!tracker) {
+    console.log('[multiplayer] No keal damage tracker in DOM, skipping refresh');
+    // Still persist even if tracker isn't in the DOM (e.g. on a different page)
+    persistState();
+    return;
   }
+  const slug = tracker.id.replace('keal-damage-', '');
+  console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
+
+  // Fetch updated HTML directly from the WASM worker
+  wasmRequest('GET', '/api/game/damage', '?card=' + slug, '', (html) => {
+    if (html) {
+      tracker.innerHTML = html;
+      // Process any HTMX attributes in the new content
+      if (typeof htmx !== 'undefined') htmx.process(tracker);
+      // Dispatch htmx:afterSwap so Alpine's sentinel watcher in
+      // keal_damage_tracker.html updates the Final Blows section visibility
+      tracker.dispatchEvent(new CustomEvent('htmx:afterSwap', { bubbles: true }));
+      console.log('[multiplayer] Keal damage tracker refreshed for:', slug);
+    }
+    // Persist state to localStorage so damage survives page navigation
+    persistState();
+  });
+}
+
+/** Persist WASM game state to localStorage.
+ *  Fetches the current state JSON directly from the WASM worker and writes
+ *  it to the same localStorage key used by the /api/game/persist endpoint.
+ *  Avoids detached <script> tags which don't execute without a browser refresh. */
+function persistState() {
+  wasmRequest('GET', '/api/game/state', '', '', (json) => {
+    if (json) {
+      try {
+        localStorage.setItem('kipukas_game_state', json);
+        console.log('[multiplayer] Game state persisted after damage change');
+      } catch (e) {
+        console.warn('[multiplayer] Failed to persist game state:', e);
+      }
+    }
+  });
 }
 
 /** Re-execute inline scripts after innerHTML swap. */
