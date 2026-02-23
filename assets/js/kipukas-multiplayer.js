@@ -428,29 +428,6 @@ function handleDataChannelMessage(msg) {
       break;
     }
 
-    case 'final_blows_submission': {
-      // Remote peer sent their final blows submission (when card is exhausted).
-      const json = JSON.stringify(msg.data);
-      console.log('[multiplayer] Received final blows submission:', json);
-
-      // Store in WASM
-      postToWasmWithCallback('POST', '/api/room/fists/final-blows/sync', json, (html) => {
-        // Check if the response contains "Final Blows" result
-        if (html && html.includes('Final Blows')) {
-          const container = document.getElementById('fists-container');
-          if (container) {
-            container.innerHTML = html;
-            if (typeof htmx !== 'undefined') htmx.process(container);
-            execScripts(container);
-          }
-        } else {
-          // Local hasn't submitted yet
-          showFistsMessage('✓ Opponent has sent their Final Blows!', 'text-emerald-600');
-        }
-      });
-      break;
-    }
-
     case 'fists_reset': {
       console.log('[multiplayer] Remote peer reset fists');
       postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
@@ -480,6 +457,31 @@ function handleDataChannelMessage(msg) {
         }
         // Refresh the keal damage tracker so checkboxes reflect auto-marked damage
         setTimeout(refreshKealTracker, 150);
+      });
+      break;
+    }
+
+    case 'final_blows_submission': {
+      // Remote peer sent their Final Blows submission (card with exhausted keal means).
+      const json = JSON.stringify(msg.data);
+      console.log('[multiplayer] Received Final Blows submission:', json);
+
+      // Store in WASM
+      postToWasmWithCallback('POST', '/api/room/fists/final/sync', json, (html) => {
+        // Check if the response contains "Final Blows" result — meaning both
+        // sides have submitted and we should show the full result.
+        if (html && html.includes('Final Blows')) {
+          const container = document.getElementById('fists-container');
+          if (container) {
+            container.innerHTML = html;
+            if (typeof htmx !== 'undefined') htmx.process(container);
+            execScripts(container);
+          }
+        } else {
+          // Local hasn't submitted yet — just show a message in the
+          // dedicated message area, leaving the form intact.
+          showFistsMessage('✓ Opponent stated Final Blows!', 'text-emerald-600');
+        }
       });
       break;
     }
@@ -721,6 +723,30 @@ const kipukasMultiplayer = {
     sendFists(submissionData);
   },
 
+  /** Submit Final Blows for a card with exhausted keal means. */
+  submitFinalBlows(cardSlug) {
+    // POST to WASM to store local Final Blows submission
+    const body = `card=${cardSlug}`;
+    postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
+      const container = document.getElementById('fists-container');
+      if (container) {
+        container.innerHTML = html;
+        if (typeof htmx !== 'undefined') htmx.process(container);
+        execScripts(container);
+      }
+    });
+  },
+
+  /** Send Final Blows data to peer. Called by inline script from WASM response. */
+  sendFinalBlows(submissionData) {
+    if (dc && dc.readyState === 'open') {
+      dc.send(JSON.stringify({ type: 'final_blows_submission', data: submissionData }));
+      console.log('[multiplayer] Sent Final Blows submission to peer');
+    } else {
+      console.warn('[multiplayer] Data channel not open, cannot send Final Blows');
+    }
+  },
+
   /** Reset fists on both local and remote sides. Called from "Try Again" button. */
   resetFists() {
     // Reset local WASM state and refresh UI
@@ -784,20 +810,6 @@ const kipukasMultiplayer = {
   /** Check if currently connected to a peer. */
   isConnected() {
     return dc && dc.readyState === 'open';
-  },
-
-  /** Submit final blows (when player's card is exhausted). Called from WASM button. */
-  submitFinalBlows(cardSlug) {
-    // POST to WASM to store final blows submission
-    const body = `card=${cardSlug}`;
-    postToWasmWithCallback('POST', '/api/room/fists/final-blows', body, (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-        execScripts(container);
-      }
-    });
   },
 };
 

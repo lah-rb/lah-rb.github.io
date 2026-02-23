@@ -58,8 +58,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/fists/poll", "room_fists_poll").ok();
     router.insert("/api/room/fists/reset", "room_fists_reset").ok();
     router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
-    router.insert("/api/room/fists/final-blows", "room_fists_final_blows").ok();
-    router.insert("/api/room/fists/final-blows/sync", "room_fists_final_blows_sync").ok();
+    router.insert("/api/room/fists/final", "room_fists_final").ok();
+    router.insert("/api/room/fists/final/sync", "room_fists_final_sync").ok();
     router.insert("/api/room/state", "room_state").ok();
 
     match router.at(path) {
@@ -93,8 +93,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists_sync", "POST") => routes::room::handle_fists_sync_post(body),
             ("room_fists_reset", "POST") => routes::room::handle_fists_reset_post(body),
             ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
-            ("room_fists_final_blows", "POST") => routes::room::handle_final_blows_post(body),
-            ("room_fists_final_blows_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
+            ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
+            ("room_fists_final_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
 
             _ => method_not_allowed(),
         },
