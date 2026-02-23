@@ -48,9 +48,11 @@ pub struct FistsCombat {
 }
 
 impl FistsCombat {
-    /// Both players have submitted their choices.
+    /// Both players have submitted their choices (regular fists or Final Blows).
     pub fn is_complete(&self) -> bool {
-        self.local.is_some() && self.remote.is_some()
+        let local_done = self.local.is_some() || self.local_final_blows.is_some();
+        let remote_done = self.remote.is_some() || self.remote_final_blows.is_some();
+        local_done && remote_done
     }
 
     /// Check if this is a Final Blows combat (at least one player has exhausted keal means).
