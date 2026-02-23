@@ -176,16 +176,28 @@ pub fn render_damage_tracker(slug: &str) -> String {
                     .unwrap_or(false)
             });
 
-            let checked_attr = if checked { " checked" } else { "" };
-            let disabled_attr = if is_wasted { " disabled" } else { "" };
-
-            html.push_str(&format!(
-                r#"<input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="damageTrack" id="{slug}_slot_{slot}"{checked}{disabled} onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})">"#,
-                slug = slug,
-                slot = slot_idx,
-                checked = checked_attr,
-                disabled = disabled_attr,
-            ));
+            if is_wasted {
+                // Disabled state — greyed out, non-clickable
+                let fill = if checked { "#94a3b8" } else { "none" };
+                html.push_str(&format!(
+                    r##"<span class="mr-1 opacity-40"><svg class="w-5 h-5 inline" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="{fill}" stroke="#94a3b8" stroke-width="1.5"/></svg></span>"##,
+                    fill = fill,
+                ));
+            } else if checked {
+                // Checked state — filled red circle, clickable to toggle off
+                html.push_str(&format!(
+                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#dc2626" stroke="#dc2626" stroke-width="1.5"/></svg></button>"##,
+                    slug = slug,
+                    slot = slot_idx,
+                ));
+            } else {
+                // Unchecked state — empty circle, clickable to toggle on
+                html.push_str(&format!(
+                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5"/></svg></button>"##,
+                    slug = slug,
+                    slot = slot_idx,
+                ));
+            }
 
             slot_idx += 1;
         }
@@ -214,8 +226,6 @@ pub fn render_damage_tracker(slug: &str) -> String {
     // via the .final-blows-section / .show-final-blows CSS pattern.
     // This avoids browser reflow/repaint issues with conditional innerHTML swaps.
     {
-        let wasted_checked = if is_wasted { " checked" } else { "" };
-
         html.push_str(r#"<div class="final-blows-section">"#);
 
         // Final Blows header
@@ -235,14 +245,20 @@ pub fn render_damage_tracker(slug: &str) -> String {
             html.push_str(&format!(r#"<p>Archetypal Adaptation: {}</p>"#, gd));
         }
 
-        // Wasted checkbox
-        html.push_str(r#"<div class="flex">"#);
+        // Wasted indicator — SVG circle (same pattern as damage slots)
+        html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
-        html.push_str(&format!(
-            r#"<input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red" name="damageTrack" id="{slug}_wasted"{checked} onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})">"#,
-            slug = slug,
-            checked = wasted_checked,
-        ));
+        if is_wasted {
+            html.push_str(&format!(
+                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#dc2626" stroke="#dc2626" stroke-width="1.5"/></svg></button>"##,
+                slug = slug,
+            ));
+        } else {
+            html.push_str(&format!(
+                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#94a3b8" stroke-width="1.5"/></svg></button>"##,
+                slug = slug,
+            ));
+        }
         html.push_str(r#"</div>"#);
 
         html.push_str(r#"</div></div>"#);
@@ -320,12 +336,13 @@ mod tests {
     }
 
     #[test]
-    fn render_character_card_has_checkboxes() {
+    fn render_character_card_has_damage_slots() {
         reset_state();
         let html = render_damage_tracker("brox_the_defiant");
         assert!(html.contains("Crushing Hope"));
         assert!(html.contains("Chain Raid"));
-        assert!(html.contains("checkbox"));
+        assert!(html.contains("damage-slot")); // SVG circle buttons
+        assert!(html.contains("<circle")); // SVG circles render damage state
         assert!(html.contains("Combat"));
         // Final Blows section is always in the DOM (hidden by CSS via Alpine),
         // but the sentinel div should NOT be present when slots aren't all checked.

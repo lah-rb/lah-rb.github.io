@@ -703,7 +703,7 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
 
                 // Auto-mark the wasted checkbox on the local card
                 damage::toggle_wasted(&local_card);
-                h.push_str(r#"<p class="text-sm mb-3">The final blows checkbox has been marked.</p>"#);
+                h.push_str(r#"<p class="text-sm mb-3">The final blows indicator has been marked.</p>"#);
 
             } else {
                 // Regular combat: defender lost — auto-mark damage
@@ -1071,6 +1071,26 @@ fn build_result_html(
     ));
 
     h.push_str(r#"</div>"#);
+
+    // Motivation modifiers (if any)
+    let has_mods = result.societal_mod.is_some() || result.self_mod.is_some() || result.support_mod.is_some();
+    if has_mods {
+        h.push_str(r#"<div class="bg-amber-50 border border-slate-300 rounded p-3 mb-3">"#);
+        h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Motivation Modifiers</p>"#);
+        if let Some(ref s) = result.societal_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
+        }
+        if let Some(ref s) = result.self_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#, text));
+        }
+        if let Some(ref s) = result.support_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
+        }
+        h.push_str(r#"</div>"#);
+    }
 
     // "Did you win?" outcome buttons
     h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
