@@ -220,12 +220,16 @@ background_color
             <path d="m 77.904658,-150.56444 c -0.19648,0.0865 -0.44491,0.32862 -0.52618,0.51291 -0.0778,0.17643 -0.0679,0.55252 0.0192,0.73045 0.0956,0.19524 0.2936,0.37942 0.50694,0.47158 0.16524,0.0714 0.23445,0.0747 1.35441,0.0653 0.72079,-0.006 1.23766,-0.0258 1.32768,-0.0507 0.1883,-0.0521 0.4701,-0.28665 0.57864,-0.48154 0.11092,-0.19916 0.11784,-0.60457 0.0135,-0.79302 -0.13602,-0.24576 -0.37113,-0.43497 -0.64258,-0.51715 -0.0533,-0.0161 -0.62812,-0.026 -1.27727,-0.0219 -1.10665,0.007 -1.19113,0.0122 -1.35441,0.0841 z"/>
         </svg>
     </button>
+    <!-- Full-screen modal overlay -->
     <div x-show="showTypeMenu" x-cloak
-        x-anchor.right-end.offset.10="$refs.typeButton"
-        x-transition.duration.350ms
-        class="
-    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   h-fit w-72">
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTypeMenu = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative p-4 text-kip-drk-sienna">
         <div class="flex place-content-center">
           <svg xmlns="http://www.w3.org/2000/svg" alt="show keal"
             @click="showKeal = !showKeal" :class="{ 'rotate-180': !showKeal }" x-transition
@@ -369,9 +373,19 @@ background_color
         <div id="type-result" class="col-span-2">
           <span><strong>Attack Die Modifier:</strong></span>
         </div>
-    </div>
 
-</div>
+        <!-- Close button -->
+        <div class="border-t border-slate-300 pt-3 mt-3">
+            <button @click="showTypeMenu = false"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Close
+            </button>
+        </div>
+        </div> <!-- close modal content -->
+    </div> <!-- close fixed overlay -->
+
+</div> <!-- close outer x-data -->
+
     
 
     
@@ -382,7 +396,7 @@ background_color
      @room-connected.window="roomConnected = true"
      @room-disconnected.window="roomConnected = false"
      x-init="$watch('roomConnected', value => { if (!value) showFistsMenu = false })">
-    <button aria-label="Toggle Fists Combat" x-ref="fistsButton" x-show="roomConnected" x-cloak>
+    <button aria-label="Toggle Fists Combat" x-show="roomConnected" x-cloak>
         <svg @click="showFistsMenu = !showFistsMenu"
             
             class="
@@ -409,13 +423,10 @@ background_color
         </svg>
     </button>
 
-    <!-- Fists combat modal -->
+    <!-- Full-screen modal overlay -->
     <div x-show="showFistsMenu" x-cloak
-        x-anchor.right-end.offset.10="$refs.fistsButton"
+        class="fixed inset-0 flex items-center justify-center z-50"
         x-transition.duration.350ms
-        class="
-    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   h-fit w-80 max-h-[80vh] overflow-y-auto"
         x-effect="if (showFistsMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var fc = document.getElementById('fists-container');
@@ -423,27 +434,34 @@ background_color
             }
         })">
 
-        <div class="p-3 border-b border-slate-300">
-            <p class="text-lg font-bold text-kip-drk-sienna">Fists Combat</p>
-            <p class="text-xs text-slate-500">Multiplayer room combat</p>
-        </div>
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showFistsMenu = false"></div>
 
-        <!-- Fists combat section -->
-        <div id="fists-container"
-          hx-get="/api/room/fists?card=passage_among_maples"
-          hx-trigger="load"
-          hx-swap="innerHTML">
-        </div>
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-3 border-b border-slate-300">
+                <p class="text-lg font-bold text-kip-drk-sienna">Fists Combat</p>
+                <p class="text-xs text-slate-500">Multiplayer room combat</p>
+            </div>
 
-        <!-- Close button -->
-        <div class="border-t border-slate-300 p-3">
-            <button @click="showFistsMenu = false"
-              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              Close
-            </button>
+            <!-- Fists combat section -->
+            <div id="fists-container"
+              hx-get="/api/room/fists?card=passage_among_maples"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showFistsMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
         </div>
     </div>
 </div>
+
     
 
     
