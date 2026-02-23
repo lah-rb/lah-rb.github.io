@@ -27,6 +27,15 @@ pub struct FistsSubmission {
     pub keal_idx: u8,
 }
 
+/// A player's final blow submission (when their card's keal means are exhausted).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FinalBlowsSubmission {
+    /// Card slug (e.g., "brox_the_defiant")
+    pub card: String,
+    /// The card's motivation (for final blow comparison)
+    pub motivation: Option<String>,
+}
+
 /// The fists combat state shared between both players.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FistsCombat {
@@ -34,10 +43,10 @@ pub struct FistsCombat {
     pub local: Option<FistsSubmission>,
     /// Remote player's submission (set via POST /api/room/fists/sync)
     pub remote: Option<FistsSubmission>,
-    /// Local player's final-blows state (card slug when fully exhausted)
-    pub final_blows_local: Option<String>,
-    /// Remote player's final-blows state (card slug when fully exhausted)
-    pub final_blows_remote: Option<String>,
+    /// Local player's final blows submission (when their card is exhausted)
+    pub final_blows_local: Option<FinalBlowsSubmission>,
+    /// Remote player's final blows submission
+    pub final_blows_remote: Option<FinalBlowsSubmission>,
 }
 
 impl FistsCombat {
@@ -52,6 +61,16 @@ impl FistsCombat {
         self.remote = None;
         self.final_blows_local = None;
         self.final_blows_remote = None;
+    }
+
+    /// Check if final blows scenario is active (one player submitted final blows).
+    pub fn is_final_blows(&self) -> bool {
+        self.final_blows_local.is_some() || self.final_blows_remote.is_some()
+    }
+
+    /// Check if both players have submitted for final blows.
+    pub fn is_final_blows_complete(&self) -> bool {
+        self.final_blows_local.is_some() && self.final_blows_remote.is_some()
     }
 
     /// Get the attacker submission (from whichever player chose Attacking).
@@ -148,6 +167,8 @@ pub fn export_room_json() -> String {
 pub fn export_fists_json() -> String {
     with_room(|room| {
         if let Some(ref local) = room.fists.local {
+            serde_json::to_string(local).unwrap_or_else(|_| "{}".to_string())
+        } else if let Some(ref local) = room.fists.final_blows_local {
             serde_json::to_string(local).unwrap_or_else(|_| "{}".to_string())
         } else {
             "null".to_string()
