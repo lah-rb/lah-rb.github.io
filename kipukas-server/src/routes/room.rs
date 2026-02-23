@@ -864,56 +864,52 @@ fn render_fists_result() -> String {
 }
 
 /// Render Final Blows result showing both motivations and modifiers (no archetypes).
+/// Uses local_card()/remote_card() helpers which correctly resolve the card slug
+/// from either regular fists or final blows submissions on each side.
 fn render_final_blows_result() -> String {
-    let (atk_card_slug, def_card_slug) = room::with_room(|r| {
-        let atk = r.fists.attacker();
-        let def = r.fists.defender();
-        let atk_slug = atk.map(|a| a.card.clone())
-            .or_else(|| r.fists.local_final_blows.as_ref().map(|f| f.card.clone()))
-            .unwrap_or_default();
-        let def_slug = def.map(|d| d.card.clone())
-            .or_else(|| r.fists.remote_final_blows.as_ref().map(|f| f.card.clone()))
-            .unwrap_or_default();
-        (atk_slug, def_slug)
+    let (local_slug, remote_slug) = room::with_room(|r| {
+        let local = r.fists.local_card().unwrap_or_default().to_string();
+        let remote = r.fists.remote_card().unwrap_or_default().to_string();
+        (local, remote)
     });
 
-    let atk_card = find_card(&atk_card_slug);
-    let def_card = find_card(&def_card_slug);
+    let local_card = find_card(&local_slug);
+    let remote_card = find_card(&remote_slug);
 
-    if atk_card.is_none() || def_card.is_none() {
+    if local_card.is_none() || remote_card.is_none() {
         return r#"<div class="p-4 text-kip-red">Error: Card not found in catalog.</div>"#.to_string();
     }
 
-    let atk_card = atk_card.unwrap();
-    let def_card = def_card.unwrap();
+    let local_card = local_card.unwrap();
+    let remote_card = remote_card.unwrap();
 
     // Parse motivations for the matchup
-    let atk_motive = atk_card.motivation.and_then(|m| typing::parse_motive(m));
-    let def_motive = def_card.motivation.and_then(|m| typing::parse_motive(m));
+    let local_motive = local_card.motivation.and_then(|m| typing::parse_motive(m));
+    let remote_motive = remote_card.motivation.and_then(|m| typing::parse_motive(m));
 
     // Compute matchup using empty archetype lists (motivation-only)
-    let result = typing::type_matchup(&[], &[], atk_motive, def_motive);
+    let result = typing::type_matchup(&[], &[], local_motive, remote_motive);
 
     let mut h = String::with_capacity(2048);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(r#"<p class="text-xl font-bold text-center mb-4">&#x1F525; Final Blows &#x1F525;</p>"#);
 
-    // Attacker info (simplified, no keal means)
+    // Your card info
     h.push_str(r#"<div class="bg-red-50 rounded p-3 mb-2">"#);
-    h.push_str(r#"<p class="font-bold text-kip-red text-sm">&#x2694; ATTACKER</p>"#);
-    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, atk_card.title));
-    if let Some(mot) = atk_card.motivation {
+    h.push_str(r#"<p class="font-bold text-kip-red text-sm">&#x1F0CF; YOUR CARD</p>"#);
+    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, local_card.title));
+    if let Some(mot) = local_card.motivation {
         h.push_str(&format!(r#"<p class="text-sm">Motivation: <strong>{}</strong></p>"#, mot));
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);
     }
     h.push_str(r#"</div>"#);
 
-    // Defender info (simplified, no keal means)
+    // Opponent card info
     h.push_str(r#"<div class="bg-blue-50 rounded p-3 mb-3">"#);
-    h.push_str(r#"<p class="font-bold text-blue-600 text-sm">&#x1F6E1; DEFENDER</p>"#);
-    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, def_card.title));
-    if let Some(mot) = def_card.motivation {
+    h.push_str(r#"<p class="font-bold text-blue-600 text-sm">&#x1F0CF; OPPONENT'S CARD</p>"#);
+    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, remote_card.title));
+    if let Some(mot) = remote_card.motivation {
         h.push_str(&format!(r#"<p class="text-sm">Motivation: <strong>{}</strong></p>"#, mot));
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);
