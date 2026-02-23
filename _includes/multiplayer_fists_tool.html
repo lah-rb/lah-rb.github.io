@@ -4,7 +4,7 @@
      @room-connected.window="roomConnected = true"
      @room-disconnected.window="roomConnected = false"
      x-init="$watch('roomConnected', value => { if (!value) showFistsMenu = false })">
-    <button aria-label="Toggle Fists Combat" x-ref="fistsButton" x-show="roomConnected" x-cloak>
+    <button aria-label="Toggle Fists Combat" x-show="roomConnected" x-cloak>
         <svg @click="showFistsMenu = !showFistsMenu"
             {% unless page.landscape %}
               :class="'lg:fill-kip-goldenrod'"
@@ -31,11 +31,10 @@
         </svg>
     </button>
 
-    <!-- Fists combat modal -->
+    <!-- Full-screen modal overlay -->
     <div x-show="showFistsMenu" x-cloak
-        x-anchor.right-end.offset.10="$refs.fistsButton"
+        class="fixed inset-0 flex items-center justify-center z-50"
         x-transition.duration.350ms
-        class="{{ include.menuClass }} h-fit w-80 max-h-[80vh] overflow-y-auto"
         x-effect="if (showFistsMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var fc = document.getElementById('fists-container');
@@ -43,24 +42,30 @@
             }
         })">
 
-        <div class="p-3 border-b border-slate-300">
-            <p class="text-lg font-bold text-kip-drk-sienna">Fists Combat</p>
-            <p class="text-xs text-slate-500">Multiplayer room combat</p>
-        </div>
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showFistsMenu = false"></div>
 
-        <!-- Fists combat section -->
-        <div id="fists-container"
-          hx-get="/api/room/fists{% if include.card_slug %}?card={{ include.card_slug }}{% endif %}"
-          hx-trigger="load"
-          hx-swap="innerHTML">
-        </div>
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-3 border-b border-slate-300">
+                <p class="text-lg font-bold text-kip-drk-sienna">Fists Combat</p>
+                <p class="text-xs text-slate-500">Multiplayer room combat</p>
+            </div>
 
-        <!-- Close button -->
-        <div class="border-t border-slate-300 p-3">
-            <button @click="showFistsMenu = false"
-              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              Close
-            </button>
+            <!-- Fists combat section -->
+            <div id="fists-container"
+              hx-get="/api/room/fists{% if include.card_slug %}?card={{ include.card_slug }}{% endif %}"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showFistsMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
         </div>
     </div>
 </div>

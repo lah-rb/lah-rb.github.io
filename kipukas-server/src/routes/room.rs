@@ -542,8 +542,7 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             h.push_str(r#"</div>"#);
         }
     } else {
-        // Defender won — show message only, no action buttons.
-        // The attack is stopped; player uses the modal's Close button.
+        // Defender won
         if local_role == CombatRole::Defending {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
@@ -551,6 +550,12 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F614;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">Too bad, try next turn!</p>"#);
         }
+
+        // Show buttons so both sides can start a new round
+        h.push_str(r#"<div class="flex gap-2">"#);
+        h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+        h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+        h.push_str(r#"</div>"#);
     }
 
     h.push_str(r#"</div>"#);
@@ -762,6 +767,82 @@ fn build_result_html(
 
     h.push_str(r#"</div>"#);
 
+    // ── Final Blows section ──────────────────────────────────────────
+    // Shows motivation matchup details and the D20 roll both players make.
+    // Visible on both players' screens so they have the same information.
+    h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
+    h.push_str(r#"<p class="text-sm font-bold text-center mb-2">&#x1F525; Final Blows</p>"#);
+
+    // Motivation info for both cards
+    h.push_str(r#"<div class="grid grid-cols-2 gap-2 mb-2 text-xs">"#);
+    // Attacker motivation
+    h.push_str(r#"<div>"#);
+    h.push_str(r#"<p class="font-bold text-kip-red">Attacker Motive</p>"#);
+    if let Some(mot) = atk_card.motivation {
+        h.push_str(&format!(r#"<p>{}</p>"#, mot));
+    } else {
+        h.push_str(r#"<p class="text-slate-400">None</p>"#);
+    }
+    h.push_str(r#"</div>"#);
+    // Defender motivation
+    h.push_str(r#"<div>"#);
+    h.push_str(r#"<p class="font-bold text-blue-600">Defender Motive</p>"#);
+    if let Some(mot) = def_card.motivation {
+        h.push_str(&format!(r#"<p>{}</p>"#, mot));
+    } else {
+        h.push_str(r#"<p class="text-slate-400">None</p>"#);
+    }
+    h.push_str(r#"</div>"#);
+    h.push_str(r#"</div>"#);
+
+    // Motivation-based combat modifiers
+    let has_any_mod = result.societal_mod.is_some()
+        || result.self_mod.is_some()
+        || result.support_mod.is_some();
+
+    if has_any_mod {
+        h.push_str(r#"<div class="border-t border-slate-200 pt-2 mb-2">"#);
+        if let Some(s) = result.societal_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(
+                r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#,
+                text
+            ));
+        }
+        if let Some(s) = result.self_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(
+                r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#,
+                text
+            ));
+        }
+        if let Some(s) = result.support_mod {
+            let text = s.trim_start_matches('\n');
+            h.push_str(&format!(
+                r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#,
+                text
+            ));
+        }
+        h.push_str(r#"</div>"#);
+    }
+
+    // Motivation bonus indicator — +10 when atk/def motive indices align
+    let motive_bonus = result.modifier >= 10
+        && atk_card.motivation.is_some()
+        && def_card.motivation.is_some();
+    if motive_bonus {
+        h.push_str(r#"<p class="text-xs text-emerald-600 font-bold text-center mb-2">&#x2B50; Attacker gets +10 motivation bonus on die roll!</p>"#);
+    }
+
+    // D20 roll instruction for both players
+    h.push_str(r#"<div class="bg-amber-100 rounded p-2 text-center">"#);
+    h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
+    h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">&#x1F3B2; D20</p>"#);
+    h.push_str(r#"<p class="text-xs text-slate-500 mt-1">Attacker adds the die modifier above to their roll</p>"#);
+    h.push_str(r#"</div>"#);
+
+    h.push_str(r#"</div>"#); // close final-blows section
+
     // "Did you win?" outcome buttons
     h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
     h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Did you win?</p>"#);
@@ -967,7 +1048,7 @@ mod tests {
     }
 
     #[test]
-    fn fists_outcome_defender_wins_shows_message() {
+    fn fists_outcome_defender_wins_shows_message_and_buttons() {
         reset();
         room::with_room_mut(|r| {
             r.connected = true;
@@ -984,8 +1065,9 @@ mod tests {
         });
         let html = handle_fists_outcome_post("won=no"); // attacker says no → defender won
         assert!(html.contains("Too bad"));
-        // No buttons or auto-close — player uses modal Close button
-        assert!(!html.contains("New Round"));
+        // Both outcomes now show New Round + Close buttons
+        assert!(html.contains("New Round"));
+        assert!(html.contains("resetFists"));
         reset();
     }
 
@@ -1027,6 +1109,58 @@ mod tests {
             assert!(r.fists.local.is_none());
             assert!(r.fists.remote.is_none());
         });
+        reset();
+    }
+
+    #[test]
+    fn fists_result_includes_final_blows_section() {
+        reset();
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "liliel_healing_fairy".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = render_fists_result();
+        // Final Blows section present
+        assert!(html.contains("Final Blows"));
+        // Both motivations shown
+        assert!(html.contains("Attacker Motive"));
+        assert!(html.contains("Defender Motive"));
+        assert!(html.contains("Service")); // Brox's motivation
+        assert!(html.contains("Duty")); // Liliel's motivation
+        // D20 roll instruction
+        assert!(html.contains("D20"));
+        assert!(html.contains("Both Players Roll"));
+        reset();
+    }
+
+    #[test]
+    fn fists_result_shows_societal_mod_for_spirit_attacker() {
+        reset();
+        // Gray Wolf has Spirit motivation (societal) — should trigger "Defender must win 2 of 3"
+        room::with_room_mut(|r| {
+            r.connected = true;
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "gray_wolf_harbinger_of_night".to_string(),
+                keal_idx: 1,
+            });
+            r.fists.remote = Some(FistsSubmission {
+                role: CombatRole::Defending,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+        });
+        let html = render_fists_result();
+        assert!(html.contains("Defender must win 2 of 3"));
         reset();
     }
 
