@@ -395,7 +395,10 @@ background_color
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
      @room-disconnected.window="roomConnected = false"
-     x-init="$watch('roomConnected', value => { if (!value) showFistsMenu = false })">
+     x-init="
+       $watch('roomConnected', value => { if (!value) showFistsMenu = false });
+       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.resetFists(); });
+     ">
     <button aria-label="Toggle Fists Combat" x-show="roomConnected" x-cloak>
         <svg @click="showFistsMenu = !showFistsMenu"
             
