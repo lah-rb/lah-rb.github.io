@@ -781,15 +781,21 @@ const kipukasMultiplayer = {
       setTimeout(refreshKealTracker, 150);
     });
 
-    // Derive attacker_won for the peer: we need to know our local role
-    // We can infer from the `won` param and the checked role radio
-    // But simpler: let WASM tell us. We'll compute it ourselves:
-    // We need local role from the fists state. Ask WASM for it.
+    // Derive attacker_won for the peer: we need to know our local role.
+    // For Final Blows (local_final_blows exists, local is null) treat as Defending.
     postToWasmWithCallback('GET', '/api/room/state', '', (json) => {
       try {
         const state = JSON.parse(json);
-        if (!state || !state.fists || !state.fists.local) return;
-        const localRole = state.fists.local.role;
+        if (!state || !state.fists) return;
+        let localRole;
+        if (state.fists.local) {
+          localRole = state.fists.local.role;
+        } else if (state.fists.local_final_blows) {
+          // Final Blows card is always the defender
+          localRole = 'Defending';
+        } else {
+          return;
+        }
         let attackerWon;
         if (localRole === 'Attacking') {
           attackerWon = won === 'yes';

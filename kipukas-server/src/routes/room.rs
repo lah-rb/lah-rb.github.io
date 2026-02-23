@@ -645,13 +645,23 @@ pub fn handle_fists_reset_post(_body: &str) -> String {
 pub fn handle_fists_outcome_post(body: &str) -> String {
     let params = parse_form_body(body);
 
+    // Determine the effective local role. For Final Blows (no regular submission),
+    // the Final Blows card is always the defender.
+    let (local_role, is_final_blows) = room::with_room(|r| {
+        let role = r.fists.local.as_ref().map(|s| s.role)
+            .or_else(|| {
+                // If local submitted Final Blows, treat as Defending
+                r.fists.local_final_blows.as_ref().map(|_| CombatRole::Defending)
+            });
+        (role, r.fists.is_final_blows())
+    });
+
     // Determine if attacker won
     let attacker_won = if let Some(aw) = get_param(&params, "attacker_won") {
         // Peer sync path — attacker_won is already resolved
         aw == "true"
     } else if let Some(won) = get_param(&params, "won") {
         // Local click path — derive from role
-        let local_role = room::with_room(|r| r.fists.local.as_ref().map(|s| s.role));
         match (local_role, won) {
             (Some(CombatRole::Attacking), "yes") => true,
             (Some(CombatRole::Attacking), "no") => false,
@@ -667,55 +677,75 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
             .to_string();
     };
 
-    // Get local role and submission info
-    let (local_role, local_card, local_keal_idx) = room::with_room(|r| {
-        r.fists
-            .local
-            .as_ref()
-            .map(|s| (s.role, s.card.clone(), s.keal_idx))
-            .unwrap_or((CombatRole::Attacking, String::new(), 0))
+    let local_role = local_role.unwrap_or(CombatRole::Attacking);
+
+    // Get local card and keal info from either regular or Final Blows submission
+    let (local_card, local_keal_idx) = room::with_room(|r| {
+        if let Some(ref s) = r.fists.local {
+            (s.card.clone(), s.keal_idx)
+        } else if let Some(ref f) = r.fists.local_final_blows {
+            (f.card.clone(), 0)
+        } else {
+            (String::new(), 0)
+        }
     });
 
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
 
     if attacker_won {
-        // Attacker won
+        // Attacker won — defender lost
         if local_role == CombatRole::Defending {
-            // I'm the defender and I lost — auto-mark damage on my card
-            h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
-            h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
+            if is_final_blows && !local_card.is_empty() {
+                // Final Blows: defender lost → card is wasted
+                h.push_str(r#"<p class="text-2xl mb-2">&#x1F480;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Yikes! Your card was wasted, remove it from the field.</p>"#);
 
-            // Auto-mark the next unchecked slot.
-            // The JS caller (reportOutcome / fists_outcome handler) will refresh
-            // the keal damage tracker on the card page after this response.
-            let marked = auto_mark_damage(&local_card, local_keal_idx);
-            if marked {
-                h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
+                // Auto-mark the wasted checkbox on the local card
+                damage::toggle_wasted(&local_card);
+                h.push_str(r#"<p class="text-sm mb-3">The final blows checkbox has been marked.</p>"#);
+
+                // Close button only — no New Round for a wasted card
+                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
             } else {
-                h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
-            }
+                // Regular combat: defender lost — auto-mark damage
+                h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
 
-            // Show buttons
-            h.push_str(r#"<div class="flex gap-2">"#);
-            h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
-            h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
-            h.push_str(r#"</div>"#);
+                let marked = auto_mark_damage(&local_card, local_keal_idx);
+                if marked {
+                    h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
+                } else {
+                    h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
+                }
+
+                h.push_str(r#"<div class="flex gap-2">"#);
+                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+                h.push_str(r#"</div>"#);
+            }
         } else {
             // I'm the attacker and I won
-            h.push_str(r#"<p class="text-2xl mb-2">&#x2694;</p>"#);
-            h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Nice Play! Damage is now reflected on the opponent.</p>"#);
+            if is_final_blows {
+                // Final Blows: attacker won → opponent's card is wasted
+                h.push_str(r#"<p class="text-2xl mb-2">&#x1F3C6;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">You clinched victory! Keep pushing.</p>"#);
 
-            // Show buttons
-            h.push_str(r#"<div class="flex gap-2">"#);
-            h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
-            h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
-            h.push_str(r#"</div>"#);
+                // Close button only
+                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+            } else {
+                // Regular combat: attacker won
+                h.push_str(r#"<p class="text-2xl mb-2">&#x2694;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Nice Play! Damage is now reflected on the opponent.</p>"#);
+
+                h.push_str(r#"<div class="flex gap-2">"#);
+                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
+                h.push_str(r#"</div>"#);
+            }
         }
     } else {
-        // Defender won — no action buttons needed.
-        // Combat ends for this turn. The modal Close button resets fists state
-        // on both clients automatically (via $watch on showFistsMenu).
+        // Defender won — same messaging for both regular and Final Blows.
         if local_role == CombatRole::Defending {
             h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
             h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
