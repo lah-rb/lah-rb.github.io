@@ -705,8 +705,6 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
                 damage::toggle_wasted(&local_card);
                 h.push_str(r#"<p class="text-sm mb-3">The final blows checkbox has been marked.</p>"#);
 
-                // Close button only — no New Round for a wasted card
-                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
             } else {
                 // Regular combat: defender lost — auto-mark damage
                 h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
@@ -719,10 +717,7 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
                     h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
                 }
 
-                h.push_str(r#"<div class="flex gap-2">"#);
-                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
-                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
-                h.push_str(r#"</div>"#);
+                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
             }
         } else {
             // I'm the attacker and I won
@@ -730,18 +725,12 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
                 // Final Blows: attacker won → opponent's card is wasted
                 h.push_str(r#"<p class="text-2xl mb-2">&#x1F3C6;</p>"#);
                 h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">You clinched victory! Keep pushing.</p>"#);
-
-                // Close button only
-                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
             } else {
                 // Regular combat: attacker won
                 h.push_str(r#"<p class="text-2xl mb-2">&#x2694;</p>"#);
                 h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Nice Play! Damage is now reflected on the opponent.</p>"#);
 
-                h.push_str(r#"<div class="flex gap-2">"#);
-                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
-                h.push_str(r#"<button onclick="document.dispatchEvent(new CustomEvent('close-multiplayer'))" class="flex-1 bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Close</button>"#);
-                h.push_str(r#"</div>"#);
+                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
             }
         }
     } else {
@@ -896,50 +885,68 @@ fn render_fists_result() -> String {
 /// Render Final Blows result showing both motivations and modifiers (no archetypes).
 /// Uses local_card()/remote_card() helpers which correctly resolve the card slug
 /// from either regular fists or final blows submissions on each side.
+///
+/// Determines attacker/defender based on submissions so that motivation modifiers
+/// are computed identically on both clients (local/remote are perspective-relative).
 fn render_final_blows_result() -> String {
-    let (local_slug, remote_slug) = room::with_room(|r| {
-        let local = r.fists.local_card().unwrap_or_default().to_string();
-        let remote = r.fists.remote_card().unwrap_or_default().to_string();
-        (local, remote)
+    // Determine attacker and defender cards based on submission types.
+    // The Final Blows player is always the defender.
+    let (atk_slug, def_slug) = room::with_room(|r| {
+        if r.fists.local_final_blows.is_some() {
+            // Local submitted Final Blows → local is defender, remote is attacker
+            let def = r.fists.local_card().unwrap_or_default().to_string();
+            let atk = r.fists.remote_card().unwrap_or_default().to_string();
+            (atk, def)
+        } else if r.fists.remote_final_blows.is_some() {
+            // Remote submitted Final Blows → remote is defender, local is attacker
+            let atk = r.fists.local_card().unwrap_or_default().to_string();
+            let def = r.fists.remote_card().unwrap_or_default().to_string();
+            (atk, def)
+        } else {
+            // Both have Final Blows (rare) — pick a convention
+            let atk = r.fists.local_card().unwrap_or_default().to_string();
+            let def = r.fists.remote_card().unwrap_or_default().to_string();
+            (atk, def)
+        }
     });
 
-    let local_card = find_card(&local_slug);
-    let remote_card = find_card(&remote_slug);
+    let atk_card = find_card(&atk_slug);
+    let def_card = find_card(&def_slug);
 
-    if local_card.is_none() || remote_card.is_none() {
+    if atk_card.is_none() || def_card.is_none() {
         return r#"<div class="p-4 text-kip-red">Error: Card not found in catalog.</div>"#.to_string();
     }
 
-    let local_card = local_card.unwrap();
-    let remote_card = remote_card.unwrap();
+    let atk_card = atk_card.unwrap();
+    let def_card = def_card.unwrap();
 
-    // Parse motivations for the matchup
-    let local_motive = local_card.motivation.and_then(|m| typing::parse_motive(m));
-    let remote_motive = remote_card.motivation.and_then(|m| typing::parse_motive(m));
+    // Parse motivations in attacker, defender order for correct modifier computation
+    let atk_motive = atk_card.motivation.and_then(|m| typing::parse_motive(m));
+    let def_motive = def_card.motivation.and_then(|m| typing::parse_motive(m));
 
     // Compute matchup using empty archetype lists (motivation-only)
-    let result = typing::type_matchup(&[], &[], local_motive, remote_motive);
+    let result = typing::type_matchup(&[], &[], atk_motive, def_motive);
 
     let mut h = String::with_capacity(2048);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(r#"<p class="text-xl font-bold text-center mb-4">&#x1F525; Final Blows &#x1F525;</p>"#);
 
-    // Your card info
+    // Attacker card info
     h.push_str(r#"<div class="bg-red-50 rounded p-3 mb-2">"#);
-    h.push_str(r#"<p class="font-bold text-kip-red text-sm">&#x1F0CF; YOUR CARD</p>"#);
-    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, local_card.title));
-    if let Some(mot) = local_card.motivation {
+    h.push_str(r#"<p class="font-bold text-kip-red text-sm">&#x2694; ATTACKER</p>"#);
+    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, atk_card.title));
+    if let Some(mot) = atk_card.motivation {
         h.push_str(&format!(r#"<p class="text-sm">Motivation: <strong>{}</strong></p>"#, mot));
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);
     }
     h.push_str(r#"</div>"#);
 
-    // Opponent card info
+    // Defender card info
     h.push_str(r#"<div class="bg-blue-50 rounded p-3 mb-3">"#);
-    h.push_str(r#"<p class="font-bold text-blue-600 text-sm">&#x1F0CF; OPPONENT'S CARD</p>"#);
-    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, remote_card.title));
-    if let Some(mot) = remote_card.motivation {
+    h.push_str(r#"<p class="font-bold text-blue-600 text-sm">&#x1F6E1; DEFENDER</p>"#);
+    h.push_str(&format!(r#"<p class="font-bold">{}</p>"#, def_card.title));
+    if let Some(mot) = def_card.motivation {
         h.push_str(&format!(r#"<p class="text-sm">Motivation: <strong>{}</strong></p>"#, mot));
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);

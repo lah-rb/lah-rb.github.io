@@ -576,8 +576,115 @@ Embed the room code in a QR code so scanning joins the room directly. This conne
 #### 3. Replace ZXing with Rust QR Decoder
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
-#### 4. Decentralized Identity & Authentication (Yrs Foundation)
-**Prerequisite for:** Deck Builder, Affinity/Loyalty tracking, and cross-device sync.
+#### 4. WebSocket Relay Migration (Replace WebRTC)
+**Replaces:** The WebRTC peer-to-peer data channel with a WebSocket message relay through the signaling server.
+
+**The Problem with WebRTC:**
+
+Current multiplayer uses WebRTC for peer-to-peer game state sync after the signaling server brokers the initial connection. This architecture is elegant in theory but carries significant operational burden:
+
+| Complexity | Impact |
+|------------|--------|
+| ICE negotiation | 3-5 round trips before gameplay starts |
+| STUN servers | 2 external dependencies (Cloudflare + Google) |
+| TURN servers | Cloudflare API integration, credential proxying, ~50 lines of server code |
+| SDP offer/answer | Fragile timing, complex error handling |
+| Connection resilience | Mobile browser sleep often kills WebRTC; reconnection requires full re-signaling |
+
+For a turn-based card game with ~1-2 messages per combat round, this is massive over-engineering. The signaling server is already a hard dependency for room creation. The theoretical benefit ("server can go offline after connection") rarely materializes in practice due to mobile browser lifecycle issues.
+
+**The WebSocket Relay Solution:**
+
+Replace the WebRTC data channel with direct message relay through the signaling server's WebSocket connection:
+
+```
+Current:  Player A ←WebRTC→ Player B  (with STUN/TURN/ICE overhead)
+Proposed: Player A ←WebSocket→ Signaling Server ←WebSocket→ Player B
+```
+
+**Why This Tradeoff Is Right for Kipukas:**
+
+| Factor | WebRTC (Current) | WebSocket Relay (Proposed) |
+|--------|------------------|---------------------------|
+| **Connection setup** | 8+ round trips (ICE + SDP) | 2 round trips (already connected) |
+| **Firewall traversal** | Needs TURN for symmetric NATs | Works everywhere (HTTPS) |
+| **External dependencies** | Signaling + 2 STUN + 1 TURN | Signaling server only |
+| **Code complexity** | ~250 lines (peer connection, ICE, SDP handling) | ~50 lines |
+| **Mobile reliability** | Poor (sleep kills connections) | Excellent (auto-reconnect) |
+| **Latency** | P2P (lower) | Server hop (negligible for turn-based) |
+| **Server load** | None after connection | ~100 bytes/minute per room |
+
+**Server Load Analysis:**
+
+A typical fists combat round generates ~4 messages (submission × 2, outcome × 2) at ~200 bytes each. With 1000 concurrent games:
+- Messages per second: 1000 × 4 / 60 = ~67 msg/s
+- Bandwidth: 67 × 200 × 2 (relay) = ~27KB/s
+- Deno Deploy free tier: 100K req/day, 1GB egress — sufficient for ~100K combat rounds/day
+
+The signaling server remains stateless. It forwards messages without parsing them. Game logic stays 100% client-side in WASM.
+
+**HTMX WebSocket Extension Integration:**
+
+The migration enables use of `htmx-ext-ws` for declarative multiplayer UI:
+
+```html
+<div hx-ext="ws" ws-connect="wss://signal.kipukas.deno.net/ws">
+  <div id="fists-container" hx-swap-oob="true">
+    <!-- WASM-generated combat UI -->
+  </div>
+  <form ws-send>
+    <input name="fists_submission" type="hidden">
+  </form>
+</div>
+```
+
+The extension handles:
+- Auto-reconnection with exponential backoff
+- Message queuing during disconnection
+- HTML fragment swapping via Out-of-Band swaps
+- Event hooks for WASM integration (`htmx:wsBeforeMessage`)
+
+**Implementation Phases:**
+
+**Phase 1: Server simplification**
+- Add `relay` message type to forward game messages between room peers
+- Remove `sdp_offer`, `sdp_answer`, `ice_candidate` handlers
+- Remove `/turn-credentials` endpoint
+- Remove Cloudflare TURN API integration
+
+**Phase 2: Client refactor**
+- Vendor `htmx-ext-ws` (similar to `htmx.min.js`)
+- Replace WebRTC peer connection with WebSocket message relay
+- Route game messages (fists submissions, outcomes) through signaling WS
+- Delete `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`
+
+**Phase 3: HTMX integration**
+- Use `ws-connect` for declarative WebSocket management
+- Use `ws-send` for form submissions
+- Intercept `htmx:wsBeforeMessage` to route through WASM for HTML generation
+
+**Expected Code Reduction:**
+
+| File | Before | After | Delta |
+|------|--------|-------|-------|
+| `signaling-server/main.ts` | ~180 lines | ~100 lines | -80 lines |
+| `kipukas-multiplayer.js` | ~320 lines | ~80 lines | -240 lines |
+| **Total** | ~500 lines | ~180 lines | **-320 lines** |
+
+**Why Not Keep WebRTC?**
+
+WebRTC's benefits (P2P, server bypass, lower latency) matter for:
+- Video/audio streaming (bandwidth)
+- Real-time games (FPS, RTS)
+- Privacy-critical applications
+
+Kipukas is none of these. It's a turn-based card game between friends. The reliability gains and code reduction outweigh the theoretical benefits of P2P. The only better solution arcitecturally is peer to peer websockets connecting the individual client WASM binaries directly after assistance establishing the connection using the signaling server. Due to browser restrictions, this is currently impossible. Double check before implementing that this is still the case.
+
+**Why Not Use Puter.js or Similar?**
+Basically, puter.js is just a proxy with fairly misleading marketing. rusttls-wasm is cool though.
+
+#### 5. Decentralized Identity & Authentication (Yrs Foundation)
+**Prerequisite for:** Deck Builder (feature #6), Affinity/Loyalty tracking (feature #8), and cross-device sync.
 
 Implement a serverless identity system using **y-crdt (yrs)** CRDT library and local keypairs. This provides the foundation for persistent player state without requiring a backend database or traditional authentication servers.
 
@@ -604,26 +711,26 @@ Implement a serverless identity system using **y-crdt (yrs)** CRDT library and l
 
 **Implementation Phases:**
 
-**Phase 4a: yrs Integration**
+**Phase 5a: yrs Integration**
 - Add `yrs` crate to `kipukas-server` (~400-800KB WASM with optimizations)
 - Create `IdentityState` module alongside existing `GameState` and `RoomState`
 - Implement yrs document with `YMap`/`YArray` types for structured data
 - Add `/api/identity/*` routes for keypair generation and document access
 
-**Phase 4b: Local Keypair Identity**
+**Phase 5b: Local Keypair Identity**
 - Generate Ed25519 keypair on first app launch
 - Store private key in localStorage (AES-encrypted with device-derived key)
 - Display public key as user "ID" (shortened hash for readability)
 - Add identity export/import (QR code for key backup)
 
-**Phase 4c: yrs-Based State Containers**
+**Phase 5c: yrs-Based State Containers**
 Replace simple `serde_json` state with yrs documents for:
 - **Decks**: `YMap<deck_name, YArray<card_slug>>`
 - **Combat History**: `YArray<CombatRecord>`
 - **Counters**: `YMap<card_slug, loyalty_count>`, `YMap<archetype, affinity_count>`
 - Persistence via yrs update events → localStorage/IndexedDB
 
-**Phase 4d: Cross-Device Sync**
+**Phase 5d: Cross-Device Sync**
 - yrs sync protocol over WebRTC data channel (reuses existing P2P infrastructure)
 - Device pairing via QR code exchange of public keys
 - Automatic conflict resolution via CRDT merge semantics
@@ -643,8 +750,8 @@ Replace simple `serde_json` state with yrs documents for:
 - **Storage**: yrs binary format is compact; localStorage 5MB limit sufficient for card game data.
 - **Security**: Private key never leaves device unencrypted; cross-device sync uses authenticated encryption.
 
-#### 5. Deck Builder / Hand Management
-**Requires:** Decentralized Identity & Authentication (feature #6) for persistent deck storage.
+#### 6. Deck Builder / Hand Management
+**Requires:** Decentralized Identity & Authentication (feature #5) for persistent deck storage.
 
 Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush") and cycle through cards during a match without page navigation.
 
@@ -659,14 +766,14 @@ Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush")
 - UI Components: deck sidebar in card grid, deck selector in toolbar, card "add to deck" buttons
 - State stored in yrs `YMap` keyed by deck name; active deck reference in separate yrs root type
 
-#### 6. Combat History Log
+#### 7. Combat History Log
 Persist combat results in yrs document so players can review past rounds across sessions. Each outcome (attacker, defender, keal means used, modifier, who won) stored as a `CombatRecord` in a `YArray`.
 
 **UI**: Scrollable log modal accessible from toolbar, filterable by date range or opponent (if identity known).
 
 **Technical**: Append-only `YArray` in yrs document; automatic synchronization if cross-device sync enabled.
 
-#### 7. Affinity & Loyalty Tracking *(post-Yrs)*
+#### 8. Affinity & Loyalty Tracking *(post-Yrs)*
 **Requires:** Decentralized Identity & Authentication (feature #6) with yrs document infrastructure.
 
 Implement long-term gameplay progression as described in the game rules: affinity with archetypes and loyalty with individual soul cards.
@@ -686,14 +793,14 @@ Implement long-term gameplay progression as described in the game rules: affinit
 
 ### Long-Term
 
-#### 8. Infinite Scroll with Content-Visibility
+#### 9. Infinite Scroll with Content-Visibility
 Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
 
-#### 9. Card Trading
+#### 10. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).
 
-#### 10. Spectator Mode
+#### 11. Spectator Mode
 Allow a third peer to observe a match via a read-only data channel. Architecturally simple (receive-only data channel, no submissions) but requires rooms to support >2 peers and the signaling server to handle multi-peer SDP negotiation. Low priority until competitive, streaming, or particularily compelling (active, visual, and exciting) use cases emerge.
 
-#### 11. Provide Kippa Tools
+#### 12. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
