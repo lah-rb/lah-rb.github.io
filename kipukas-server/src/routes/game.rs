@@ -252,7 +252,7 @@ mod tests {
         reset_state();
         let html = handle_damage_get("?card=brox_the_defiant");
         assert!(html.contains("Crushing Hope"));
-        assert!(html.contains("checkbox"));
+        assert!(html.contains("damage-slot"));
         reset_state();
     }
 
@@ -260,7 +260,7 @@ mod tests {
     fn damage_post_toggle_slot() {
         reset_state();
         let html = handle_damage_post("card=brox_the_defiant&slot=1");
-        assert!(html.contains("checked")); // slot 1 should now be checked
+        assert!(html.contains(r##"fill="#dc2626""##)); // slot 1 should now show filled red circle
         reset_state();
     }
 
@@ -273,7 +273,7 @@ mod tests {
         handle_damage_post("card=brox_the_defiant&slot=3");
         let html = handle_damage_post("card=brox_the_defiant&action=wasted");
         assert!(html.contains("Final Blows"));
-        assert!(html.contains("checked")); // wasted should be checked
+        assert!(html.contains(r##"fill="#dc2626""##)); // wasted should show filled red circle
         reset_state();
     }
 

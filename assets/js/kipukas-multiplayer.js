@@ -574,12 +574,6 @@ function refreshKealTracker() {
       if (typeof htmx !== 'undefined') {
         tracker.querySelectorAll('[hx-get],[hx-post]').forEach(el => htmx.process(el));
       }
-      // innerHTML sets the `checked` HTML attribute but not the DOM property
-      // on previously-existing elements. Explicitly sync the property so the
-      // browser renders the checkbox as visually checked.
-      tracker.querySelectorAll('input[type="checkbox"][checked]').forEach(cb => {
-        cb.checked = true;
-      });
       // Dispatch htmx:afterSwap so Alpine's sentinel watcher in
       // keal_damage_tracker.html updates the Final Blows section visibility
       tracker.dispatchEvent(new CustomEvent('htmx:afterSwap', { bubbles: true }));
