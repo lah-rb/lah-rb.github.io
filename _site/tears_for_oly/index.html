@@ -424,8 +424,8 @@ background_color
    h-fit w-80 max-h-[80vh] overflow-y-auto"
         x-effect="if (showFistsMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
-                var fc = document.getElementById('mp-fists-container');
-                if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists', {target:'#mp-fists-container', swap:'innerHTML'});
+                var fc = document.getElementById('fists-container');
+                if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists', {target:'#fists-container', swap:'innerHTML'});
             }
         })">
 
@@ -435,7 +435,7 @@ background_color
         </div>
 
         <!-- Fists combat section -->
-        <div id="mp-fists-container"
+        <div id="fists-container"
           hx-get="/api/room/fists?card=tears_for_oly"
           hx-trigger="load"
           hx-swap="innerHTML">
