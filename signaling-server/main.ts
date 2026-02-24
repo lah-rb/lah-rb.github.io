@@ -1,7 +1,7 @@
 /**
- * Kipukas Signaling Server — WebSocket relay for WebRTC connection brokering.
+ * Kipukas Signaling Server — WebSocket relay for multiplayer game messaging.
  *
- * Purpose: Only brokers WebRTC connections. Does NOT process game logic.
+ * Purpose: Relays game messages between peers in a room. Does NOT process game logic.
  * Deploy: Deno Deploy (free tier) or run locally with `deno run --allow-net main.ts`
  *
  * Protocol:
@@ -13,8 +13,8 @@
  *   Client → { type: "rejoin", code: "ABCD" }
  *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
  *     Server → (to other peer) { type: "peer_joined" }
- *   Client → { type: "sdp_offer"|"sdp_answer"|"ice_candidate", data: ... }
- *     Server → relays to the other peer in the room
+ *   Client → { type: "relay", data: ... }
+ *     Server → forwards { type: "relay", data: ... } to the other peer in the room
  *   On disconnect: grace period (15s), then notify remaining peer { type: "peer_left" }
  */
 
@@ -206,15 +206,15 @@ function handleWebSocket(ws: WebSocket) {
         break;
       }
 
-      case "sdp_offer":
-      case "sdp_answer":
-      case "ice_candidate": {
+      case "relay": {
+        // Forward game messages (fists submissions, outcomes, etc.) to the other
+        // peer in the room. The server never inspects the payload — game logic
+        // stays 100% client-side in WASM.
         const other = getOtherPeer(ws);
         if (other) {
-          console.log(`[signal] Relaying ${msg.type} to peer`);
           other.send(JSON.stringify(msg));
         } else {
-          console.warn(`[signal] Cannot relay ${msg.type}: no other peer found in room`);
+          console.warn(`[signal] Cannot relay: no other peer found in room`);
         }
         break;
       }
@@ -233,58 +233,6 @@ function handleWebSocket(ws: WebSocket) {
   });
 }
 
-// ── Cloudflare TURN credential generation ──────────────────────────
-
-const CF_TURN_KEY_ID = Deno.env.get("CF_TURN_KEY_ID") || "";
-const CF_TURN_API_TOKEN = Deno.env.get("CF_TURN_API_TOKEN") || "";
-
-/** Cache TURN credentials to avoid hitting the API on every request. */
-let cachedTurnCreds: { iceServers: unknown; expiry: number } | null = null;
-
-async function getTurnCredentials(): Promise<unknown> {
-  const now = Date.now();
-  // Return cached if still valid (refresh 5 min before expiry)
-  if (cachedTurnCreds && cachedTurnCreds.expiry > now + 300_000) {
-    return cachedTurnCreds.iceServers;
-  }
-
-  if (!CF_TURN_KEY_ID || !CF_TURN_API_TOKEN) {
-    console.warn("[signal] TURN credentials not configured (missing env vars)");
-    return null;
-  }
-
-  try {
-    const ttl = 86400; // 24 hours
-    const resp = await fetch(
-      `https://rtc.live.cloudflare.com/v1/turn/keys/${CF_TURN_KEY_ID}/credentials/generate`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CF_TURN_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ttl }),
-      },
-    );
-
-    if (!resp.ok) {
-      console.error("[signal] Cloudflare TURN API error:", resp.status, await resp.text());
-      return null;
-    }
-
-    const data = await resp.json();
-    cachedTurnCreds = {
-      iceServers: data.iceServers,
-      expiry: now + ttl * 1000,
-    };
-    console.log("[signal] TURN credentials generated, valid for", ttl, "seconds");
-    return data.iceServers;
-  } catch (err) {
-    console.error("[signal] Failed to fetch TURN credentials:", err);
-    return null;
-  }
-}
-
 // ── CORS helper ────────────────────────────────────────────────────
 
 const CORS_HEADERS = {
@@ -297,11 +245,11 @@ const CORS_HEADERS = {
 
 const port = parseInt(Deno.env.get("PORT") || "8787");
 
-Deno.serve({ port }, async (req) => {
-  const url = new URL(req.url);
+Deno.serve({ port }, (_req) => {
+  const url = new URL(_req.url);
 
   // CORS preflight
-  if (req.method === "OPTIONS") {
+  if (_req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
@@ -310,27 +258,12 @@ Deno.serve({ port }, async (req) => {
     return new Response("ok", { status: 200 });
   }
 
-  // TURN credentials endpoint
-  if (url.pathname === "/turn-credentials" && req.method === "GET") {
-    const iceServers = await getTurnCredentials();
-    if (!iceServers) {
-      return new Response(JSON.stringify({ iceServers: null }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
-    }
-    return new Response(JSON.stringify({ iceServers }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-    });
-  }
-
   // WebSocket upgrade
   if (url.pathname === "/ws") {
-    if (req.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+    if (_req.headers.get("upgrade")?.toLowerCase() !== "websocket") {
       return new Response("Expected WebSocket", { status: 400 });
     }
-    const { socket, response } = Deno.upgradeWebSocket(req);
+    const { socket, response } = Deno.upgradeWebSocket(_req);
     handleWebSocket(socket);
     return response;
   }
