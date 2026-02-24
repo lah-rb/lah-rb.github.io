@@ -268,3 +268,25 @@ wasmWorker.addEventListener('message', (event) => {
     [channel.port2],
   );
 })();
+
+// ============================================
+// Phase 4b: AUTO-LOAD multiplayer module if room session exists
+// ============================================
+// kipukas-multiplayer.js is normally lazy-loaded when the user clicks
+// the multiplayer button. But if there's a saved room session from a
+// previous page, we need to eagerly load it so autoReconnect() fires
+// and the WebSocket relay reconnects automatically on page navigation.
+(function autoLoadMultiplayer() {
+  if (!sessionStorage.getItem('kipukas_room')) return;
+  if (window.kipukasMultiplayerLoaded) return;
+
+  console.log('[kipukas-api] Saved room session found, auto-loading multiplayer module');
+  import('/assets/js/kipukas-multiplayer.js')
+    .then(function () {
+      window.kipukasMultiplayerLoaded = true;
+      console.log('[kipukas-api] Multiplayer module auto-loaded for reconnect');
+    })
+    .catch(function (err) {
+      console.warn('[kipukas-api] Failed to auto-load multiplayer:', err);
+    });
+})();
