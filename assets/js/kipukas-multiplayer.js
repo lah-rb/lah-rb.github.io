@@ -1,8 +1,10 @@
 /**
- * kipukas-multiplayer.js — WebRTC multiplayer manager for Kipukas.
+ * kipukas-multiplayer.js — WebSocket relay multiplayer manager for Kipukas.
  *
- * Phase 4: Handles signaling server connection, WebRTC peer setup,
- * data channel messaging, and room state synchronization with WASM.
+ * Phase 4b: Replaces WebRTC peer-to-peer with WebSocket message relay
+ * through the signaling server. Game messages are forwarded between peers
+ * by the server without inspection — game logic stays 100% client-side
+ * in WASM.
  *
  * Persists room session in sessionStorage so connections survive page
  * navigation (multi-page Jekyll site). On each page load the module
@@ -12,28 +14,30 @@
  * HTML onclick handlers.
  */
 
-// Signaling server base URL (Deno Deploy)
-const SIGNAL_BASE = 'https://signal.kipukas.deno.net';
+// Signaling server WebSocket URL (Deno Deploy)
 const SIGNAL_WS_URL = 'wss://signal.kipukas.deno.net/ws';
-
-// Baseline ICE servers (STUN only — Cloudflare primary, Google fallback).
-// TURN servers are fetched dynamically from the signaling server.
-const STUN_SERVERS = [
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
 
 const SESSION_KEY = 'kipukas_room';
 
-let ws = null; // WebSocket to signaling server
-let pc = null; // RTCPeerConnection
-let dc = null; // RTCDataChannel
+let ws = null; // WebSocket to signaling server (also the message relay)
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
-let peerConnectedCalled = false; // Guard against double onPeerConnected calls
-let turnServers = []; // Populated from signaling server
+let peerPresent = false; // Whether the other peer is in the room
+
+// ── Reconnection ───────────────────────────────────────────────────
+
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 8;
+const BASE_RECONNECT_DELAY_MS = 1000;
+
+/** Exponential backoff with jitter for reconnection. */
+function reconnectDelay() {
+  const exp = Math.min(reconnectAttempts, 6);
+  const base = BASE_RECONNECT_DELAY_MS * Math.pow(2, exp);
+  const jitter = Math.random() * base * 0.3;
+  return base + jitter;
+}
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -64,34 +68,7 @@ function clearSession() {
   } catch (_) { /* ignore */ }
 }
 
-// ── TURN credential fetching ───────────────────────────────────────
-
-/** Fetch TURN credentials from the signaling server (proxies Cloudflare API). */
-async function fetchTurnCredentials() {
-  try {
-    const resp = await fetch(`${SIGNAL_BASE}/turn-credentials`);
-    if (!resp.ok) {
-      console.warn('[multiplayer] TURN credential fetch failed:', resp.status);
-      return;
-    }
-    const data = await resp.json();
-    if (data.iceServers && Array.isArray(data.iceServers)) {
-      turnServers = data.iceServers;
-      console.log('[multiplayer] TURN credentials loaded:', turnServers.length, 'servers');
-    } else {
-      console.log('[multiplayer] No TURN servers available (STUN only)');
-    }
-  } catch (err) {
-    console.warn('[multiplayer] Could not fetch TURN credentials:', err);
-  }
-}
-
-/** Build the full ICE server list (STUN + TURN). */
-function getIceServers() {
-  return [...STUN_SERVERS, ...turnServers];
-}
-
-// ── Signaling ──────────────────────────────────────────────────────
+// ── Signaling + Message Relay ──────────────────────────────────────
 
 /** Connect to signaling server WebSocket. */
 function connectSignaling() {
@@ -101,6 +78,7 @@ function connectSignaling() {
 
     ws.onopen = () => {
       console.log('[multiplayer] Signaling connected');
+      reconnectAttempts = 0;
       resolve();
     };
 
@@ -112,6 +90,17 @@ function connectSignaling() {
     ws.onclose = () => {
       console.log('[multiplayer] Signaling disconnected');
       ws = null;
+
+      // If we were in a room, mark peer as gone and attempt reconnect
+      if (roomCode) {
+        if (peerPresent) {
+          peerPresent = false;
+          postToWasm('POST', '/api/room/peer_left', '');
+          window.dispatchEvent(new CustomEvent('room-disconnected'));
+          refreshRoomStatus();
+        }
+        scheduleReconnect();
+      }
     };
 
     ws.onmessage = (event) => {
@@ -120,9 +109,34 @@ function connectSignaling() {
   });
 }
 
+/** Schedule a reconnection attempt with exponential backoff. */
+function scheduleReconnect() {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.warn('[multiplayer] Max reconnect attempts reached, giving up');
+    return;
+  }
+  const delay = reconnectDelay();
+  reconnectAttempts++;
+  console.log(
+    `[multiplayer] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
+  );
+  setTimeout(async () => {
+    if (ws && ws.readyState === WebSocket.OPEN) return; // Already reconnected
+    const session = loadSession();
+    if (!session || !session.code) return; // Session cleared (user disconnected)
+    try {
+      await connectSignaling();
+      ws.send(JSON.stringify({ type: 'rejoin', code: session.code }));
+    } catch (err) {
+      console.warn('[multiplayer] Reconnect failed:', err);
+      scheduleReconnect();
+    }
+  }, delay);
+}
+
 /** Handle messages from the signaling server. */
 function handleSignalingMessage(msg) {
-  console.log('[multiplayer] ← signaling msg:', msg.type, msg);
+  console.log('[multiplayer] ← signaling msg:', msg.type);
   switch (msg.type) {
     case 'room_created':
       roomCode = msg.code;
@@ -143,40 +157,33 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Update WASM state so it knows we're in a room (even before WebRTC connects)
+      // Update WASM state so it knows we're in a room
       postToWasm(
         'POST',
         '/api/room/join',
         `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
       );
-      // Joiner creates the RTCPeerConnection and sends offer
-      setupPeerConnection(true);
       refreshRoomStatus();
       break;
 
     case 'peer_joined':
       console.log('[multiplayer] Peer joined our room');
-      // Creator sets up peer connection, waits for offer
-      setupPeerConnection(false);
+      peerPresent = true;
+      onPeerConnected();
       break;
 
-    case 'sdp_offer':
-      handleSdpOffer(msg.data);
-      break;
-
-    case 'sdp_answer':
-      handleSdpAnswer(msg.data);
-      break;
-
-    case 'ice_candidate':
-      handleIceCandidate(msg.data);
+    case 'relay':
+      // Game message relayed from the other peer through the server
+      if (msg.data) {
+        handleRelayedMessage(msg.data);
+      }
       break;
 
     case 'peer_left':
       console.log('[multiplayer] Peer disconnected');
-      cleanupPeer();
-      // Don't clear session — peer may come back (grace period on server)
+      peerPresent = false;
       postToWasm('POST', '/api/room/peer_left', '');
+      window.dispatchEvent(new CustomEvent('room-disconnected'));
       refreshRoomStatus();
       break;
 
@@ -185,190 +192,19 @@ function handleSignalingMessage(msg) {
       // If room expired, clear session
       if (msg.message && msg.message.includes('not found')) {
         clearSession();
+        roomCode = '';
+        roomName = '';
         postToWasm('POST', '/api/room/disconnect', '');
+        window.dispatchEvent(new CustomEvent('room-disconnected'));
       }
       showError(msg.message);
       break;
   }
 }
 
-// ── WebRTC ─────────────────────────────────────────────────────────
-
-/** Set up RTCPeerConnection and data channel. */
-function setupPeerConnection(initiator) {
-  console.log('[multiplayer] setupPeerConnection(initiator=' + initiator + ')');
-  // Clean up any existing connection first
-  cleanupPeer();
-
-  const iceServers = getIceServers();
-  console.log(
-    '[multiplayer] Using ICE servers:',
-    iceServers.length,
-    '(STUN:',
-    STUN_SERVERS.length,
-    '+ TURN:',
-    turnServers.length,
-    ')',
-  );
-  pc = new RTCPeerConnection({ iceServers });
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-      console.log(
-        '[multiplayer] → sending ICE candidate:',
-        event.candidate.candidate?.substring(0, 60),
-      );
-      ws.send(JSON.stringify({ type: 'ice_candidate', data: event.candidate }));
-    } else if (!event.candidate) {
-      console.log('[multiplayer] ICE gathering complete (null candidate)');
-    }
-  };
-
-  pc.onicegatheringstatechange = () => {
-    console.log('[multiplayer] ICE gathering state:', pc.iceGatheringState);
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    console.log('[multiplayer] ICE connection state:', pc.iceConnectionState);
-  };
-
-  pc.onsignalingstatechange = () => {
-    console.log('[multiplayer] Signaling state:', pc.signalingState);
-  };
-
-  pc.onconnectionstatechange = () => {
-    console.log('[multiplayer] Connection state:', pc.connectionState);
-    if (pc.connectionState === 'connected') {
-      onPeerConnected();
-    } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-      cleanupPeer();
-      postToWasm('POST', '/api/room/peer_left', '');
-      refreshRoomStatus();
-    }
-  };
-
-  if (initiator) {
-    // Create data channel and send SDP offer
-    dc = pc.createDataChannel('kipukas', { ordered: true });
-    setupDataChannel(dc);
-    console.log('[multiplayer] Creating SDP offer...');
-    pc.createOffer().then(async (offer) => {
-      console.log('[multiplayer] SDP offer created, setting local description...');
-      await pc.setLocalDescription(offer);
-      console.log('[multiplayer] Local description set, sending offer to signaling server');
-      // Log whether candidates are embedded in the SDP
-      const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter((l) =>
-        l.startsWith('a=candidate')
-      );
-      console.log(
-        '[multiplayer] Candidates embedded in offer SDP:',
-        candidateLines.length,
-        candidateLines,
-      );
-      ws.send(JSON.stringify({ type: 'sdp_offer', data: pc.localDescription }));
-    }).catch((err) => {
-      console.error('[multiplayer] Failed to create/send offer:', err);
-    });
-  } else {
-    // Wait for data channel from the initiator
-    pc.ondatachannel = (event) => {
-      dc = event.channel;
-      setupDataChannel(dc);
-    };
-  }
-}
-
-/** Configure data channel event handlers. */
-function setupDataChannel(channel) {
-  channel.onopen = () => {
-    console.log('[multiplayer] Data channel open');
-    // Data channel open is the most reliable signal that we can
-    // exchange messages. Use it as the primary "connected" trigger.
-    onPeerConnected();
-  };
-
-  channel.onclose = () => {
-    console.log('[multiplayer] Data channel closed');
-  };
-
-  channel.onmessage = (event) => {
-    handleDataChannelMessage(JSON.parse(event.data));
-  };
-}
-
-/** Handle incoming SDP offer from remote peer. */
-async function handleSdpOffer(offer) {
-  console.log('[multiplayer] handleSdpOffer called, pc exists:', !!pc);
-  if (!pc) {
-    console.error('[multiplayer] No peer connection! Cannot handle SDP offer.');
-    return;
-  }
-  try {
-    console.log('[multiplayer] Setting remote description (offer)...');
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    console.log('[multiplayer] Remote description set, creating answer...');
-    const answer = await pc.createAnswer();
-    console.log('[multiplayer] Answer created, setting local description...');
-    await pc.setLocalDescription(answer);
-    console.log('[multiplayer] Local description set, sending answer to signaling server');
-    // Log whether candidates are embedded in the SDP
-    const candidateLines = (pc.localDescription?.sdp || '').split('\n').filter((l) =>
-      l.startsWith('a=candidate')
-    );
-    console.log(
-      '[multiplayer] Candidates embedded in answer SDP:',
-      candidateLines.length,
-      candidateLines,
-    );
-    ws.send(JSON.stringify({ type: 'sdp_answer', data: pc.localDescription }));
-  } catch (err) {
-    console.error('[multiplayer] Error handling SDP offer:', err);
-  }
-}
-
-/** Handle incoming SDP answer from remote peer. */
-async function handleSdpAnswer(answer) {
-  console.log('[multiplayer] handleSdpAnswer called, pc exists:', !!pc);
-  if (!pc) {
-    console.error('[multiplayer] No peer connection! Cannot handle SDP answer.');
-    return;
-  }
-  try {
-    console.log('[multiplayer] Setting remote description (answer)...');
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    console.log('[multiplayer] Remote description (answer) set successfully');
-  } catch (err) {
-    console.error('[multiplayer] Error handling SDP answer:', err);
-  }
-}
-
-/** Handle incoming ICE candidate from remote peer. */
-async function handleIceCandidate(candidate) {
-  console.log(
-    '[multiplayer] handleIceCandidate called, pc exists:',
-    !!pc,
-    'signalingState:',
-    pc?.signalingState,
-  );
-  if (!pc) {
-    console.error('[multiplayer] No peer connection! Cannot add ICE candidate.');
-    return;
-  }
-  try {
-    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    console.log('[multiplayer] ICE candidate added successfully');
-  } catch (err) {
-    console.warn('[multiplayer] ICE candidate error:', err);
-  }
-}
-
-/** Called when WebRTC connection is fully established.
- *  May be called from both connectionstatechange and data channel onopen;
- *  the guard ensures we only process it once per connection. */
+/** Called when both peers are in the room and can exchange messages. */
 function onPeerConnected() {
-  if (peerConnectedCalled) return;
-  peerConnectedCalled = true;
-  console.log('[multiplayer] Peer connected via WebRTC!');
+  console.log('[multiplayer] Peer connected via WebSocket relay!');
   postToWasm(
     'POST',
     '/api/room/connected',
@@ -379,39 +215,28 @@ function onPeerConnected() {
   refreshRoomStatus();
 }
 
-/** Clean up peer connection. */
-function cleanupPeer() {
-  peerConnectedCalled = false;
-  if (dc) {
-    try {
-      dc.close();
-    } catch (_) { /* ignore */ }
-    dc = null;
-  }
-  if (pc) {
-    try {
-      pc.close();
-    } catch (_) { /* ignore */ }
-    pc = null;
+/** Send a game message to the peer via the WebSocket relay. */
+function sendToPeer(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'relay', data }));
+  } else {
+    console.warn('[multiplayer] WebSocket not open, cannot relay message');
   }
 }
 
-// ── Data Channel Protocol ──────────────────────────────────────────
+// ── Relayed Message Protocol ───────────────────────────────────────
 
-/** Handle messages received via the WebRTC data channel. */
-function handleDataChannelMessage(msg) {
+/** Handle game messages received via the WebSocket relay from the peer. */
+function handleRelayedMessage(msg) {
   switch (msg.type) {
     case 'fists_submission': {
       // Remote peer sent their fists combat choice.
-      // Store it in WASM via fire-and-forget, then show a message
-      // WITHOUT wiping the local submission form.
       const json = JSON.stringify(msg.data);
       console.log('[multiplayer] Received fists submission:', json);
 
       // Store in WASM
       postToWasmWithCallback('POST', '/api/room/fists/sync', json, (html) => {
         // Check if the response contains a result page (regular or Final Blows)
-        // by looking for the reportOutcome function which only appears in results.
         if (html && html.includes('reportOutcome')) {
           const container = document.getElementById('fists-container');
           if (container) {
@@ -420,9 +245,8 @@ function handleDataChannelMessage(msg) {
             execScripts(container);
           }
         } else {
-          // Local hasn't submitted yet — just show a message in the
-          // dedicated message area, leaving the form intact.
-          showFistsMessage('✓ Opponent has locked in their choice!', 'text-emerald-600');
+          // Local hasn't submitted yet — just show a message
+          showFistsMessage('\u2713 Opponent has locked in their choice!', 'text-emerald-600');
         }
       });
       break;
@@ -436,40 +260,36 @@ function handleDataChannelMessage(msg) {
           container.innerHTML = html;
           if (typeof htmx !== 'undefined') htmx.process(container);
         }
-        // Refresh to re-fetch the fists selection form (same as local resetFists)
         refreshRoomStatus();
       });
       break;
     }
 
     case 'fists_outcome': {
-      // Remote peer reported the combat outcome.
-      // attacker_won is already resolved by the sender.
       const attackerWon = msg.attacker_won;
       console.log('[multiplayer] Received fists outcome: attacker_won=' + attackerWon);
-      postToWasmWithCallback('POST', '/api/room/fists/outcome',
-        'attacker_won=' + (attackerWon ? 'true' : 'false'), (html) => {
-        const container = document.getElementById('fists-container');
-        if (container) {
-          container.innerHTML = html;
-          if (typeof htmx !== 'undefined') htmx.process(container);
-          execScripts(container);
-        }
-        // Refresh the keal damage tracker so checkboxes reflect auto-marked damage
-        setTimeout(refreshKealTracker, 150);
-      });
+      postToWasmWithCallback(
+        'POST',
+        '/api/room/fists/outcome',
+        'attacker_won=' + (attackerWon ? 'true' : 'false'),
+        (html) => {
+          const container = document.getElementById('fists-container');
+          if (container) {
+            container.innerHTML = html;
+            if (typeof htmx !== 'undefined') htmx.process(container);
+            execScripts(container);
+          }
+          setTimeout(refreshKealTracker, 150);
+        },
+      );
       break;
     }
 
     case 'final_blows_submission': {
-      // Remote peer sent their Final Blows submission (card with exhausted keal means).
       const json = JSON.stringify(msg.data);
       console.log('[multiplayer] Received Final Blows submission:', json);
 
-      // Store in WASM
       postToWasmWithCallback('POST', '/api/room/fists/final/sync', json, (html) => {
-        // Check if the response contains a result page by looking for the
-        // reportOutcome function which only appears in actual results.
         if (html && html.includes('reportOutcome')) {
           const container = document.getElementById('fists-container');
           if (container) {
@@ -478,26 +298,14 @@ function handleDataChannelMessage(msg) {
             execScripts(container);
           }
         } else {
-          // Local hasn't submitted yet — just show a message in the
-          // dedicated message area, leaving the form intact.
-          showFistsMessage('✓ Opponent stated Final Blows!', 'text-emerald-600');
+          showFistsMessage('\u2713 Opponent stated Final Blows!', 'text-emerald-600');
         }
       });
       break;
     }
 
     default:
-      console.log('[multiplayer] Unknown data channel message:', msg);
-  }
-}
-
-/** Send a fists submission to the remote peer via data channel. */
-function sendFists(submissionData) {
-  if (dc && dc.readyState === 'open') {
-    dc.send(JSON.stringify({ type: 'fists_submission', data: submissionData }));
-    console.log('[multiplayer] Sent fists submission to peer');
-  } else {
-    console.warn('[multiplayer] Data channel not open, cannot send fists');
+      console.log('[multiplayer] Unknown relayed message:', msg);
   }
 }
 
@@ -572,12 +380,9 @@ function refreshKealTracker() {
       // The tracker container has hx-trigger="load" — process only the
       // inner children so we don't re-trigger a redundant HTMX load cycle.
       if (typeof htmx !== 'undefined') {
-        tracker.querySelectorAll('[hx-get],[hx-post]').forEach(el => htmx.process(el));
+        tracker.querySelectorAll('[hx-get],[hx-post]').forEach((el) => htmx.process(el));
       }
-      // Initialize Alpine components on the new DOM tree. Raw innerHTML
-      // swaps bypass htmx's swap pipeline, so Alpine's MutationObserver
-      // doesn't reliably detect new x-data elements on all browsers.
-      // Alpine.initTree() explicitly scans and initializes them.
+      // Initialize Alpine components on the new DOM tree.
       if (typeof Alpine !== 'undefined') {
         Alpine.initTree(tracker);
       }
@@ -591,10 +396,7 @@ function refreshKealTracker() {
   });
 }
 
-/** Persist WASM game state to localStorage.
- *  Fetches the current state JSON directly from the WASM worker and writes
- *  it to the same localStorage key used by the /api/game/persist endpoint.
- *  Avoids detached <script> tags which don't execute without a browser refresh. */
+/** Persist WASM game state to localStorage. */
 function persistState() {
   wasmRequest('GET', '/api/game/state', '', '', (json) => {
     if (json) {
@@ -617,9 +419,7 @@ function execScripts(el) {
   });
 }
 
-/** Refresh the room status panel and fists section in the UI.
- *  Small delay ensures WASM state updates (via postToWasm) are
- *  processed before the HTMX GET requests arrive at the worker. */
+/** Refresh the room status panel and fists section in the UI. */
 function refreshRoomStatus() {
   if (typeof htmx === 'undefined') return;
   setTimeout(() => {
@@ -627,8 +427,6 @@ function refreshRoomStatus() {
     if (status) {
       htmx.ajax('GET', '/api/room/status', { target: '#room-status', swap: 'innerHTML' });
     }
-    // Also refresh the fists section so it reflects the new connection state.
-    // Re-use the hx-get URL already on the element (includes card slug if any).
     const fists = document.getElementById('fists-container');
     if (fists) {
       const url = fists.getAttribute('hx-get') || '/api/room/fists';
@@ -665,16 +463,13 @@ async function autoReconnect() {
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
 
-  // Fetch TURN credentials before connecting
-  await fetchTurnCredentials();
-
   try {
     await connectSignaling();
     // Use 'rejoin' — skips name validation, cancels grace timers
     ws.send(JSON.stringify({ type: 'rejoin', code: roomCode }));
   } catch (err) {
     console.warn('[multiplayer] Auto-reconnect failed:', err);
-    // Don't clear session — user can try manually
+    scheduleReconnect();
   }
 }
 
@@ -689,9 +484,6 @@ const kipukasMultiplayer = {
     const nameInput = document.getElementById('room-name-input');
     roomName = nameInput ? nameInput.value.trim() : '';
     isCreator = true;
-
-    // Fetch TURN credentials before creating the room
-    await fetchTurnCredentials();
 
     try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -717,9 +509,6 @@ const kipukasMultiplayer = {
     isCreator = false;
     roomName = name;
 
-    // Fetch TURN credentials before joining
-    await fetchTurnCredentials();
-
     try {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         await connectSignaling();
@@ -733,8 +522,9 @@ const kipukasMultiplayer = {
 
   /** Disconnect from room and clean up. */
   disconnect() {
-    cleanupPeer();
     clearSession();
+    peerPresent = false;
+    reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect
     if (ws) {
       ws.close();
       ws = null;
@@ -778,12 +568,12 @@ const kipukasMultiplayer = {
 
   /** Send fists data to peer. Called by inline script from WASM response. */
   sendFists(submissionData) {
-    sendFists(submissionData);
+    sendToPeer({ type: 'fists_submission', data: submissionData });
+    console.log('[multiplayer] Sent fists submission to peer');
   },
 
   /** Submit Final Blows for a card with exhausted keal means. */
   submitFinalBlows(cardSlug) {
-    // POST to WASM to store local Final Blows submission
     const body = `card=${cardSlug}`;
     postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
       const container = document.getElementById('fists-container');
@@ -797,35 +587,27 @@ const kipukasMultiplayer = {
 
   /** Send Final Blows data to peer. Called by inline script from WASM response. */
   sendFinalBlows(submissionData) {
-    if (dc && dc.readyState === 'open') {
-      dc.send(JSON.stringify({ type: 'final_blows_submission', data: submissionData }));
-      console.log('[multiplayer] Sent Final Blows submission to peer');
-    } else {
-      console.warn('[multiplayer] Data channel not open, cannot send Final Blows');
-    }
+    sendToPeer({ type: 'final_blows_submission', data: submissionData });
+    console.log('[multiplayer] Sent Final Blows submission to peer');
   },
 
-  /** Reset fists on both local and remote sides. Called from "Try Again" button. */
+  /** Reset fists on both local and remote sides. */
   resetFists() {
-    // Reset local WASM state and refresh UI
     postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
       const container = document.getElementById('fists-container');
       if (container) {
         container.innerHTML = html;
         if (typeof htmx !== 'undefined') htmx.process(container);
       }
-      // After local reset, refresh the fists section to show the form again
       refreshRoomStatus();
     });
 
     // Notify remote peer to reset as well
-    if (dc && dc.readyState === 'open') {
-      dc.send(JSON.stringify({ type: 'fists_reset' }));
-      console.log('[multiplayer] Sent fists reset to peer');
-    }
+    sendToPeer({ type: 'fists_reset' });
+    console.log('[multiplayer] Sent fists reset to peer');
   },
 
-  /** Report combat outcome ("Did you win?" answer). Called from WASM-rendered buttons. */
+  /** Report combat outcome ("Did you win?" answer). */
   reportOutcome(won) {
     // Determine attacker_won from local role + answer
     postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, (html) => {
@@ -835,12 +617,10 @@ const kipukasMultiplayer = {
         if (typeof htmx !== 'undefined') htmx.process(container);
         execScripts(container);
       }
-      // Refresh the keal damage tracker so checkboxes reflect auto-marked damage
       setTimeout(refreshKealTracker, 150);
     });
 
-    // Derive attacker_won for the peer: we need to know our local role.
-    // For Final Blows (local_final_blows exists, local is null) treat as Defending.
+    // Derive attacker_won for the peer
     postToWasmWithCallback('GET', '/api/room/state', '', (json) => {
       try {
         const state = JSON.parse(json);
@@ -849,7 +629,6 @@ const kipukasMultiplayer = {
         if (state.fists.local) {
           localRole = state.fists.local.role;
         } else if (state.fists.local_final_blows) {
-          // Final Blows card is always the defender
           localRole = 'Defending';
         } else {
           return;
@@ -860,11 +639,8 @@ const kipukasMultiplayer = {
         } else {
           attackerWon = won === 'no';
         }
-        // Send to peer
-        if (dc && dc.readyState === 'open') {
-          dc.send(JSON.stringify({ type: 'fists_outcome', attacker_won: attackerWon }));
-          console.log('[multiplayer] Sent fists outcome to peer: attacker_won=' + attackerWon);
-        }
+        sendToPeer({ type: 'fists_outcome', attacker_won: attackerWon });
+        console.log('[multiplayer] Sent fists outcome to peer: attacker_won=' + attackerWon);
       } catch (e) {
         console.warn('[multiplayer] Could not parse room state for outcome sync:', e);
       }
@@ -873,9 +649,9 @@ const kipukasMultiplayer = {
 
   /** Check if currently connected to a peer. */
   isConnected() {
-    return dc && dc.readyState === 'open';
+    return peerPresent && ws && ws.readyState === WebSocket.OPEN;
   },
 };
 
 globalThis.kipukasMultiplayer = kipukasMultiplayer;
-console.log('[multiplayer] Kipukas multiplayer module loaded');
+console.log('[multiplayer] Kipukas multiplayer module loaded (WebSocket relay)');

@@ -24,7 +24,7 @@ The site works without internet after the first load. Workbox **injectManifest**
 
 ### Decentralized Architecture
 
-Game logic runs **100% client-side** in WebAssembly. There is no backend server processing game state. The only hosted component is a stateless WebSocket signaling relay (~130 lines) that brokers WebRTC connections between players. After the peer-to-peer connection is established, the signaling server can go offline and the game continues.
+Game logic runs **100% client-side** in WebAssembly. There is no backend server processing game state. The only hosted component is a stateless WebSocket relay server (~120 lines) that forwards game messages between peers. The server never inspects message payloads — it simply relays them to the other player in the room.
 
 ### HTMX Over SPA Frameworks
 
@@ -53,10 +53,10 @@ Card metadata is extracted from Jekyll `_posts/*.html` YAML front matter at buil
 
 All data is tracked in two distinct scopes:
 
-| Scope | Storage | Synced via WebRTC? | Examples |
-|-------|---------|-------------------|----------|
+| Scope | Storage | Synced via WebSocket relay? | Examples |
+|-------|---------|----------------------------|----------|
 | **Local User** | WASM `GameState` + localStorage | No | Damage tracking, turn alarms, card browsing |
-| **Global (Room)** | WASM `RoomState` + WebRTC data channel | Yes | Fists combat submissions, combat results, outcome damage |
+| **Global (Room)** | WASM `RoomState` + WebSocket relay | Yes | Fists combat submissions, combat results, outcome damage |
 
 A feature defaults to local user state unless it explicitly requires cross-player visibility. Single-player behavior is completely unaffected by multiplayer code.
 
@@ -64,9 +64,8 @@ A feature defaults to local user state unless it explicitly requires cross-playe
 
 - **Hosting:** GitHub Pages (free, static)
 - **Game logic:** In-browser WASM (zero server cost)
-- **Multiplayer networking:** Peer-to-peer WebRTC
-- **Signaling:** Deno Deploy free tier (stateless, <150 lines)
-- **kipukas-turn:** Cloudflare free tier backup TURN server (public Cloudflare STUN first)
+- **Multiplayer networking:** WebSocket relay through signaling server
+- **Signaling/relay:** Deno Deploy free tier (stateless, ~120 lines)
 - **No database, no authentication, no paid services**
 
 ### Formatting & Linting
@@ -134,14 +133,14 @@ Player A's Browser                     Player B's Browser
 │  HTMX ←→ SW ←→ WASM   │              │  HTMX ←→ SW ←→ WASM   │
 │  (local game server)  │              │  (local game server)  │
 │          │            │              │            │          │
-│   WebRTC Data Channel  ←──────────→  WebRTC Data Channel     │
+│     WebSocket ────────┼──────────────┼────── WebSocket       │
 └──────────┼────────────┘              └────────────┼──────────┘
            │                                        │
-           └──────── Signaling Server ──────────────┘
-                    (WebSocket, stateless)
+           └──── Relay Server (stateless) ──────────┘
+                 (forwards game messages)
 ```
 
-The signaling server handles **only** connection brokering: room creation, SDP offer/answer relay, ICE candidate exchange, and player presence. It never touches game state or logic.
+The relay server handles room management (create/join/rejoin) and message forwarding. It never inspects game message payloads — game logic stays 100% client-side in WASM. Auto-reconnect with exponential backoff handles mobile browser sleep and network transitions.
 
 ### Key Files
 
@@ -153,10 +152,10 @@ The signaling server handles **only** connection brokering: room creation, SDP o
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
-| `assets/js/kipukas-multiplayer.js` | WebRTC peer connection + data channel protocol |
+| `assets/js/kipukas-multiplayer.js` | WebSocket relay multiplayer manager + game message protocol |
 | `assets/js/qr-camera.js` | Camera + ZXing QR scan loop |
 | `sw-src.js` | Service worker source (Workbox injectManifest) |
-| `signaling-server/main.ts` | WebSocket signaling relay for WebRTC |
+| `signaling-server/main.ts` | WebSocket relay server — room management + message forwarding |
 | `scripts/build-card-catalog.ts` | Extracts card YAML → Rust source |
 | `scripts/bundle-alpine.ts` | Bundles Alpine.js + plugins via esbuild |
 | `.tmuxinator.yml` | Multi-pane dev environment config |
@@ -247,7 +246,7 @@ function postToWasmWithCallback(method, path, body, callback) {
 }
 ```
 
-**Why it works:** HTMX swaps are great for simple GET/POST → innerHTML patterns. But multiplayer needs to: (1) POST to WASM, (2) read the response, (3) update multiple DOM targets, (4) send data to a WebRTC peer, (5) trigger side effects. The callback pattern gives full control over the response.
+**Why it works:** HTMX swaps are great for simple GET/POST → innerHTML patterns. But multiplayer needs to: (1) POST to WASM, (2) read the response, (3) update multiple DOM targets, (4) send data to the peer via WebSocket relay, (5) trigger side effects. The callback pattern gives full control over the response.
 
 **Fire-and-forget variant:** `postToWasm()` (no callback) is used for state updates where we don't need the response (e.g., `POST /api/room/create`).
 
@@ -265,7 +264,7 @@ function execScripts(el) {
 }
 ```
 
-**Why it's needed:** Both HTMX swap and direct `innerHTML` assignment produce inert scripts. This is used by the QR scanner, multiplayer module, and dev fallback. The pattern is simple but essential — without it, WASM-returned HTML that includes `<script>` (e.g., for WebRTC data channel sends) silently fails.
+**Why it's needed:** Both HTMX swap and direct `innerHTML` assignment produce inert scripts. This is used by the QR scanner, multiplayer module, and dev fallback. The pattern is simple but essential — without it, WASM-returned HTML that includes `<script>` (e.g., for multiplayer relay sends) silently fails.
 
 ### Pattern 8: thread_local! + RefCell for WASM State
 
@@ -285,19 +284,22 @@ pub fn with_state_mut<F, R>(f: F) -> R where F: FnOnce(&mut GameState) -> R {
 
 **Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it. Room state and game state use **separate** `thread_local!` stores — room is global (synced), game is local (private).
 
-### Pattern 9: WebRTC Data Channel Protocol
+### Pattern 9: WebSocket Relay Protocol
 
-**The pattern:** Peers exchange JSON messages over the WebRTC data channel. Each message has a `type` field:
+**The pattern:** Peers exchange JSON messages via the signaling server's WebSocket relay. Each game message is wrapped in `{ type: "relay", data: { type: "...", ... } }` for transport. The server forwards `relay` messages to the other peer without inspection. The inner `data.type` field determines how the client processes the message:
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
 | `fists_submission` | Both → peer | `{ data: FistsSubmission }` | Sync combat choice |
 | `fists_reset` | Both → peer | (none) | Reset for next round |
 | `fists_outcome` | Both → peer | `{ attacker_won: bool }` | Sync "Did you win?" result |
+| `final_blows_submission` | Both → peer | `{ data: FinalBlowsSubmission }` | Sync Final Blows choice |
 
 **Why JSON over binary:** With 56 cards and simple turn-based interactions, message frequency is ~1-2 per combat round. JSON is human-readable for debugging and trivially parsed. Binary would add complexity for negligible performance gain.
 
-**Outcome sync pattern:** When a player answers "Did you win?", the JS derives `attacker_won` from the local role + answer, sends it to the peer, and both sides independently process the outcome via `POST /api/room/fists/outcome`. The defender's WASM auto-marks damage on their local card. Each side sees a role-appropriate message.
+**Outcome sync pattern:** When a player answers "Did you win?", the JS derives `attacker_won` from the local role + answer, sends it to the peer via `sendToPeer()`, and both sides independently process the outcome via `POST /api/room/fists/outcome`. The defender's WASM auto-marks damage on their local card. Each side sees a role-appropriate message.
+
+**Connection lifecycle:** The WebSocket connection to the signaling server handles both room management (create/join/rejoin) and game message relay. Auto-reconnect with exponential backoff (up to 8 attempts) handles mobile browser sleep, network transitions, and temporary server issues. A 15-second grace period on the server preserves the room slot during brief disconnections.
 
 ### Pattern 10: Session Persistence via sessionStorage
 
@@ -311,11 +313,143 @@ function saveSession() {
 async function autoReconnect() {
   const session = loadSession();
   if (!session) return;
-  // Rejoin signaling server, re-establish WebRTC
+  // Reconnect WebSocket and rejoin signaling server room
 }
 ```
 
 **Why sessionStorage (not localStorage):** Room connections are ephemeral — they should survive page navigation within a session but not persist across browser restarts. `sessionStorage` provides exactly this lifecycle. Game state (damage, turns) uses `localStorage` for cross-session persistence.
+
+### Pattern 11: Self-Contained Tool Component (Alpine × HTMX × Tailwind × localStorage)
+
+**The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state, `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get` for WASM data fetching, Tailwind utilities for all styling, and the existing JSON → localStorage pipeline for persistence. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
+
+**Reference implementation:** `_includes/multiplayer_fists_tool.html` (also see `turn_tracker.html`, `local_fists_tool.html`).
+
+**Layer breakdown:**
+
+| Layer | Technology | Role in the component |
+|-------|-----------|----------------------|
+| **UI state** | Alpine `x-data` | Local booleans like `showFistsMenu`, `roomConnected` — purely visual, never persisted |
+| **Behavior** | Alpine `@click`, `$watch`, `x-effect` | `@click` toggles visibility; `$watch` handles side effects; `x-effect` bridges to HTMX |
+| **Data fetching** | HTMX `hx-get` + `hx-trigger` | Declarative WASM endpoint on the container div; `x-effect` re-fetches via `htmx.ajax()` on reopen |
+| **Styling** | Tailwind utilities | Layout, theming, spacing, responsiveness — all inline classes, zero custom CSS |
+| **Persistence** | JSON → localStorage (via kipukas-api.js) | WASM state auto-persists on `beforeunload`; component reads fresh state from WASM on each open |
+
+**How the layers connect (annotated from `multiplayer_fists_tool.html`):**
+
+```html
+<!-- 1. Alpine x-data: declare ALL visual state locally -->
+<div x-data="{ showFistsMenu: false, roomConnected: false }"
+     class="relative place-content-center"
+
+     <!-- 2. Window events: receive cross-component signals (from kipukas-multiplayer.js) -->
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false"
+
+     <!-- 3. $watch: side effects when state changes -->
+     x-init="
+       $watch('roomConnected', value => { if (!value) showFistsMenu = false });
+       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.resetFists(); });
+     ">
+
+    <!-- 4. @click: toggle visibility (Alpine handles show/hide) -->
+    <button x-show="roomConnected" x-cloak>
+        <svg @click="showFistsMenu = !showFistsMenu" ...>...</svg>
+    </button>
+
+    <!-- 5. Modal overlay: Tailwind utilities for layout + theming -->
+    <div x-show="showFistsMenu" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+
+        <!-- 6. x-effect: bridge Alpine → HTMX. Re-fetch WASM data every time modal opens -->
+        x-effect="if (showFistsMenu) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                var fc = document.getElementById('fists-container');
+                if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists',
+                    {target:'#fists-container', swap:'innerHTML'});
+            }
+        })">
+
+        <!-- Backdrop: click-to-close -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showFistsMenu = false"></div>
+
+        <!-- Modal content: Tailwind for card-like appearance -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+
+            <!-- 7. HTMX container: declares WASM endpoint, loads on page init -->
+            <div id="fists-container"
+              hx-get="/api/room/fists"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- 8. Close button: Alpine @click, Tailwind styling -->
+            <button @click="showFistsMenu = false"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Close
+            </button>
+        </div>
+    </div>
+</div>
+```
+
+**Why it works:**
+
+- **No global state pollution.** All UI state is scoped to the `x-data` block. External signals arrive via custom window events (`@room-connected.window`), not shared Alpine stores or global variables.
+- **Fresh data on every open.** `hx-trigger="load"` handles the first page load. `x-effect` handles every subsequent open by calling `htmx.ajax()` — this avoids stale DOM from a previous session (see Pattern 4).
+- **WASM is the source of truth.** The component never reads or writes localStorage directly. It asks WASM for current state via HTMX, and WASM's state is auto-persisted to localStorage as JSON by the `kipukas-api.js` bridge on `beforeunload`. On page load the bridge restores JSON → WASM before any component renders.
+- **Single-file portability.** Because styling is Tailwind utilities, behavior is Alpine attributes, and data fetching is HTMX attributes, the entire component is one `_includes/*.html` partial with zero dependencies beyond the global Alpine/HTMX/Tailwind setup.
+
+**Template for new tools (e.g., shared turn timer):**
+
+```html
+<!-- _includes/my_new_tool.html -->
+<div x-data="{ showTool: false }"
+     class="relative">
+
+    <!-- Trigger button -->
+    <button @click="showTool = !showTool" class="...tailwind classes...">
+        <!-- icon SVG or text -->
+    </button>
+
+    <!-- Modal -->
+    <div x-show="showTool" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+        x-effect="if (showTool) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', '/api/your/endpoint',
+                    {target:'#tool-container', swap:'innerHTML'});
+            }
+        })">
+
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTool = false"></div>
+
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <!-- HTMX container — WASM renders the content -->
+            <div id="tool-container"
+              hx-get="/api/your/endpoint"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <button @click="showTool = false"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Close
+            </button>
+        </div>
+    </div>
+</div>
+```
+
+Then add the corresponding WASM route in `kipukas-server/src/routes/`, register it in `lib.rs`, and return an HTML fragment. The component handles the rest.
+
+**Key constraints:**
+- **Alpine owns visibility, HTMX owns data.** Don't fetch data in Alpine (`fetch()` calls in `x-init`). Don't toggle visibility from HTMX responses. Keep the boundary clean.
+- **Always include the `x-effect` re-fetch.** Without it, reopening the modal shows stale HTML from the previous HTMX swap (see Pattern 4 for why `hx-trigger="load"` alone is insufficient).
+- **Use `$nextTick` in `x-effect`.** The DOM must be visible before `htmx.ajax()` fires, otherwise the target element may not be findable.
+- **Prefer window events for cross-component signals.** If another module needs to tell your tool something (e.g., "room connected"), dispatch a `CustomEvent` on `window` and listen with `@my-event.window` in the `x-data` div. This avoids coupling between includes.
 
 ---
 
@@ -340,7 +474,7 @@ async function autoReconnect() {
 | [Rust](https://www.rust-lang.org/) | Edition 2024 | MIT / Apache-2.0 | Game logic, routing, type safety |
 | [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/) | 0.2 | MIT / Apache-2.0 | Rust ↔ JavaScript interop |
 | [matchit](https://crates.io/crates/matchit) | 0.8 | MIT | Radix-tree URL router (same engine as Axum) |
-| [serde](https://serde.rs/) + serde_json | 1.x | MIT / Apache-2.0 | State serialization (localStorage + WebRTC) |
+| [serde](https://serde.rs/) + serde_json | 1.x | MIT / Apache-2.0 | State serialization (localStorage + WebSocket relay) |
 
 ### Server & Runtime
 
@@ -462,12 +596,12 @@ Currently 114 tests covering: route dispatch, type matchup tables, QR URL valida
 | `[kipukas-api] No SW controller, routing directly:` | Dev fallback active (expected during `jekyll serve`) |
 | `[qr-camera] Camera started, scanning at 2 fps` | Camera + scan loop running |
 | `[multiplayer] Signaling connected` | WebSocket to signaling server open |
-| `[multiplayer] Peer connected via WebRTC!` | Data channel established |
+| `[multiplayer] Peer connected via WebSocket relay!` | Game message relay established |
 
 **Multiplayer testing:**
-- Two browser tabs on same machine (WebRTC works locally)
+- Two browser tabs on same machine
 - Two devices on same network
-- Two devices on different networks (requires TURN — Cloudflare credentials fetched dynamically)
+- Two devices on different networks (works everywhere — WebSocket relay traverses all firewalls/NATs)
 
 ### Formatting & Linting
 
@@ -544,11 +678,11 @@ A condensed record of architectural decisions and key lessons from each developm
 
 **Built:** `GameState` with per-card damage tracking, turn/alarm system, state persistence (localStorage). `thread_local! + RefCell` for safe WASM globals. POST method support. Alpine `$persist` migration script.
 
-**Key decisions:** `serde_json` added (+111KB WASM) as strategic investment for both localStorage and future WebRTC sync. Custom `Default` needed for non-zero defaults (`show_alarms: true`). State persistence via `beforeunload` + restore on load.
+**Key decisions:** `serde_json` added (+111KB WASM) as strategic investment for both localStorage and multiplayer sync. Custom `Default` needed for non-zero defaults (`show_alarms: true`). State persistence via `beforeunload` + restore on load.
 
 **Alpine state removed:** `clearDamage: $persist(...)`, per-card `$persist({...})` damage state, `alarms: $persist([])`, `showAlarms: $persist(true)`. Moved `showKealModal` to local scope.
 
-### Phase 4: WebRTC Multiplayer + Fists Combat
+### Phase 4a: WebRTC Multiplayer + Fists Combat (✅)
 
 **Built:** Signaling server (Deno, ~130 lines). WebRTC peer connection with ICE (STUN + Cloudflare TURN). Data channel protocol. Room state module (`RoomState` separate from `GameState`). Fists combat tool: role selection, keal means picker, archetype matchup computation, die modifier display. "Did you win?" outcome flow with auto-damage marking. Session persistence for cross-page navigation.
 
@@ -556,7 +690,17 @@ A condensed record of architectural decisions and key lessons from each developm
 
 **Lessons:** Sentinel + always-present-DOM pattern is cross-browser reliable for conditional UI (final blows). `x-effect` is the correct trigger for HTMX refresh on Alpine modal open. Explicit JS `refreshKealTracker()` is more reliable than inline scripts for cross-component DOM sync. Custom DOM events (`close-multiplayer`) bridge WASM-rendered HTML to Alpine state.
 
-**WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4).
+### Phase 4b: WebSocket Relay Migration (✅)
+
+**Built:** Replaced WebRTC peer-to-peer data channel with WebSocket message relay through the signaling server. Eliminated all STUN/TURN/ICE/SDP complexity.
+
+**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 15s server-side grace period) handles mobile browser sleep and network transitions. The `htmx-ext-ws` integration was deferred — the current `sendToPeer()` pattern is simpler and sufficient for the existing message protocol.
+
+**Removed:** `RTCPeerConnection`, `RTCDataChannel`, ICE candidate handling, SDP offer/answer exchange, STUN server configuration, Cloudflare TURN API integration + credential proxying, `/turn-credentials` endpoint, `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`.
+
+**Lessons:** WebRTC is overkill for turn-based games with ~1-2 messages per combat round. The operational burden (STUN/TURN external deps, ICE negotiation fragility, mobile browser sleep killing connections) far outweighed the theoretical P2P benefits. WebSocket relay works everywhere, reconnects automatically, and reduced multiplayer code from ~500 lines to ~330 lines across server and client. The only architecturally superior solution — peer-to-peer WebSocket connections between browser WASM instances — remains impossible due to browser security restrictions (browsers cannot listen on sockets). Verify this constraint before future architecture changes.
+
+**WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4a) → ~185KB (Phase 4b, no WASM changes).
 
 ---
 
@@ -567,124 +711,17 @@ Features are grouped by priority. Items marked *post-launch* require the game to
 ### Near-Term
 
 #### 1. Shared Turn Timer
-Sync the diel cycle alarm system via WebRTC so both players see the same turn countdown. Multiple timers should be supported and visable for both players on both devices. If one player advances a turn the other players countdown SHOULD be advanced as well (mutual culpability + true to game intention). First candidate for expanding room scope beyond fists combat. Requires the room/fists separation (feature #1) to be clean.
+Sync the diel cycle alarm system via the WebSocket relay so both players see the same turn countdown. Multiple timers should be supported and visible for both players on both devices. If one player advances a turn the other player's countdown SHOULD be advanced as well (mutual culpability + true to game intention). First candidate for expanding room scope beyond fists combat. New `turn_sync` message type in the relay protocol (Pattern 9). Requires the room/fists separation to be clean.
 
 #### 2. QR Room Join
 Embed the room code in a QR code so scanning joins the room directly. This connects two existing features (QR scanner + multiplayer) with minimal new code. The flow: Player A creates a room → room code appears as both text and a QR. Player B scans the QR → auto-joins the room. The QR URL format could be `kpks.us/join?code=ABCD#room=myroom` with a redirect that passes the code to the multiplayer module.
 ### Medium-Term
 
-#### 3. Replace ZXing with Rust QR Decoder
+#### 3. Replace ZXing with Rust QR Decoder (renumbered from old #3)
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
-#### 4. WebSocket Relay Migration (Replace WebRTC)
-**Replaces:** The WebRTC peer-to-peer data channel with a WebSocket message relay through the signaling server.
-
-**The Problem with WebRTC:**
-
-Current multiplayer uses WebRTC for peer-to-peer game state sync after the signaling server brokers the initial connection. This architecture is elegant in theory but carries significant operational burden:
-
-| Complexity | Impact |
-|------------|--------|
-| ICE negotiation | 3-5 round trips before gameplay starts |
-| STUN servers | 2 external dependencies (Cloudflare + Google) |
-| TURN servers | Cloudflare API integration, credential proxying, ~50 lines of server code |
-| SDP offer/answer | Fragile timing, complex error handling |
-| Connection resilience | Mobile browser sleep often kills WebRTC; reconnection requires full re-signaling |
-
-For a turn-based card game with ~1-2 messages per combat round, this is massive over-engineering. The signaling server is already a hard dependency for room creation. The theoretical benefit ("server can go offline after connection") rarely materializes in practice due to mobile browser lifecycle issues.
-
-**The WebSocket Relay Solution:**
-
-Replace the WebRTC data channel with direct message relay through the signaling server's WebSocket connection:
-
-```
-Current:  Player A ←WebRTC→ Player B  (with STUN/TURN/ICE overhead)
-Proposed: Player A ←WebSocket→ Signaling Server ←WebSocket→ Player B
-```
-
-**Why This Tradeoff Is Right for Kipukas:**
-
-| Factor | WebRTC (Current) | WebSocket Relay (Proposed) |
-|--------|------------------|---------------------------|
-| **Connection setup** | 8+ round trips (ICE + SDP) | 2 round trips (already connected) |
-| **Firewall traversal** | Needs TURN for symmetric NATs | Works everywhere (HTTPS) |
-| **External dependencies** | Signaling + 2 STUN + 1 TURN | Signaling server only |
-| **Code complexity** | ~250 lines (peer connection, ICE, SDP handling) | ~50 lines |
-| **Mobile reliability** | Poor (sleep kills connections) | Excellent (auto-reconnect) |
-| **Latency** | P2P (lower) | Server hop (negligible for turn-based) |
-| **Server load** | None after connection | ~100 bytes/minute per room |
-
-**Server Load Analysis:**
-
-A typical fists combat round generates ~4 messages (submission × 2, outcome × 2) at ~200 bytes each. With 1000 concurrent games:
-- Messages per second: 1000 × 4 / 60 = ~67 msg/s
-- Bandwidth: 67 × 200 × 2 (relay) = ~27KB/s
-- Deno Deploy free tier: 100K req/day, 1GB egress — sufficient for ~100K combat rounds/day
-
-The signaling server remains stateless. It forwards messages without parsing them. Game logic stays 100% client-side in WASM.
-
-**HTMX WebSocket Extension Integration:**
-
-The migration enables use of `htmx-ext-ws` for declarative multiplayer UI:
-
-```html
-<div hx-ext="ws" ws-connect="wss://signal.kipukas.deno.net/ws">
-  <div id="fists-container" hx-swap-oob="true">
-    <!-- WASM-generated combat UI -->
-  </div>
-  <form ws-send>
-    <input name="fists_submission" type="hidden">
-  </form>
-</div>
-```
-
-The extension handles:
-- Auto-reconnection with exponential backoff
-- Message queuing during disconnection
-- HTML fragment swapping via Out-of-Band swaps
-- Event hooks for WASM integration (`htmx:wsBeforeMessage`)
-
-**Implementation Phases:**
-
-**Phase 1: Server simplification**
-- Add `relay` message type to forward game messages between room peers
-- Remove `sdp_offer`, `sdp_answer`, `ice_candidate` handlers
-- Remove `/turn-credentials` endpoint
-- Remove Cloudflare TURN API integration
-
-**Phase 2: Client refactor**
-- Vendor `htmx-ext-ws` (similar to `htmx.min.js`)
-- Replace WebRTC peer connection with WebSocket message relay
-- Route game messages (fists submissions, outcomes) through signaling WS
-- Delete `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`
-
-**Phase 3: HTMX integration**
-- Use `ws-connect` for declarative WebSocket management
-- Use `ws-send` for form submissions
-- Intercept `htmx:wsBeforeMessage` to route through WASM for HTML generation
-
-**Expected Code Reduction:**
-
-| File | Before | After | Delta |
-|------|--------|-------|-------|
-| `signaling-server/main.ts` | ~180 lines | ~100 lines | -80 lines |
-| `kipukas-multiplayer.js` | ~320 lines | ~80 lines | -240 lines |
-| **Total** | ~500 lines | ~180 lines | **-320 lines** |
-
-**Why Not Keep WebRTC?**
-
-WebRTC's benefits (P2P, server bypass, lower latency) matter for:
-- Video/audio streaming (bandwidth)
-- Real-time games (FPS, RTS)
-- Privacy-critical applications
-
-Kipukas is none of these. It's a turn-based card game between friends. The reliability gains and code reduction outweigh the theoretical benefits of P2P. The only better solution arcitecturally is peer to peer websockets connecting the individual client WASM binaries directly after assistance establishing the connection using the signaling server. Due to browser restrictions, this is currently impossible. Double check before implementing that this is still the case.
-
-**Why Not Use Puter.js or Similar?**
-Basically, puter.js is just a proxy with fairly misleading marketing. rusttls-wasm is cool though.
-
-#### 5. Decentralized Identity & Authentication (Yrs Foundation)
-**Prerequisite for:** Deck Builder (feature #6), Affinity/Loyalty tracking (feature #8), and cross-device sync.
+#### 4. Decentralized Identity & Authentication (Yrs Foundation)
+**Prerequisite for:** Deck Builder (feature #5), Affinity/Loyalty tracking (feature #7), and cross-device sync.
 
 Implement a serverless identity system using **y-crdt (yrs)** CRDT library and local keypairs. This provides the foundation for persistent player state without requiring a backend database or traditional authentication servers.
 
@@ -704,7 +741,7 @@ Implement a serverless identity system using **y-crdt (yrs)** CRDT library and l
               ▼               ▼               ▼
         ┌─────────┐     ┌──────────┐     ┌──────────┐
         │ Storage │     │   Sync   │     │  Backup  │
-        │localStorage   │ WebRTC   │     │ Optional │
+        │localStorage   │ WS relay │     │ Optional │
         │IndexedDB      │ yrs sync │     │ Passkeys │
         └─────────┘     └──────────┘     └──────────┘
 ```
@@ -731,7 +768,7 @@ Replace simple `serde_json` state with yrs documents for:
 - Persistence via yrs update events → localStorage/IndexedDB
 
 **Phase 5d: Cross-Device Sync**
-- yrs sync protocol over WebRTC data channel (reuses existing P2P infrastructure)
+- yrs sync protocol over WebSocket relay (reuses existing multiplayer infrastructure)
 - Device pairing via QR code exchange of public keys
 - Automatic conflict resolution via CRDT merge semantics
 
@@ -750,8 +787,8 @@ Replace simple `serde_json` state with yrs documents for:
 - **Storage**: yrs binary format is compact; localStorage 5MB limit sufficient for card game data.
 - **Security**: Private key never leaves device unencrypted; cross-device sync uses authenticated encryption.
 
-#### 6. Deck Builder / Hand Management
-**Requires:** Decentralized Identity & Authentication (feature #5) for persistent deck storage.
+#### 5. Deck Builder / Hand Management
+**Requires:** Decentralized Identity & Authentication (feature #4) for persistent deck storage.
 
 Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush") and cycle through cards during a match without page navigation.
 
@@ -766,15 +803,15 @@ Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush")
 - UI Components: deck sidebar in card grid, deck selector in toolbar, card "add to deck" buttons
 - State stored in yrs `YMap` keyed by deck name; active deck reference in separate yrs root type
 
-#### 7. Combat History Log
+#### 6. Combat History Log
 Persist combat results in yrs document so players can review past rounds across sessions. Each outcome (attacker, defender, keal means used, modifier, who won) stored as a `CombatRecord` in a `YArray`.
 
 **UI**: Scrollable log modal accessible from toolbar, filterable by date range or opponent (if identity known).
 
 **Technical**: Append-only `YArray` in yrs document; automatic synchronization if cross-device sync enabled.
 
-#### 8. Affinity & Loyalty Tracking *(post-Yrs)*
-**Requires:** Decentralized Identity & Authentication (feature #6) with yrs document infrastructure.
+#### 7. Affinity & Loyalty Tracking *(post-Yrs)*
+**Requires:** Decentralized Identity & Authentication (feature #4) with yrs document infrastructure.
 
 Implement long-term gameplay progression as described in the game rules: affinity with archetypes and loyalty with individual soul cards.
 
@@ -793,14 +830,14 @@ Implement long-term gameplay progression as described in the game rules: affinit
 
 ### Long-Term
 
-#### 9. Infinite Scroll with Content-Visibility
+#### 8. Infinite Scroll with Content-Visibility
 Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
 
-#### 10. Card Trading
+#### 9. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).
 
-#### 11. Spectator Mode
-Allow a third peer to observe a match via a read-only data channel. Architecturally simple (receive-only data channel, no submissions) but requires rooms to support >2 peers and the signaling server to handle multi-peer SDP negotiation. Low priority until competitive, streaming, or particularily compelling (active, visual, and exciting) use cases emerge.
+#### 10. Spectator Mode
+Allow a third peer to observe a match via a read-only WebSocket connection. Architecturally simple (receive-only relay, no submissions) but requires rooms to support >2 peers. Low priority until competitive, streaming, or particularly compelling (active, visual, and exciting) use cases emerge.
 
-#### 12. Provide Kippa Tools
+#### 11. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
