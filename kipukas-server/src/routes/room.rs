@@ -974,9 +974,12 @@ fn render_final_blows_result() -> String {
     };
     let bonus_sign = if damage_bonus > 0 { "+" } else { "" };
 
-    h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">"#);
+    // Single unified Final Blows info box: Damage Bonus + Motivation Modifiers + D20
+    h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 mb-3">"#);
+
+    // Damage Bonus
     h.push_str(&format!(
-        r#"<p class="text-sm font-bold">Damage Bonus</p><p class="text-3xl font-bold {}">{}{}</p>"#,
+        r#"<p class="text-sm font-bold text-center">Damage Bonus</p><p class="text-3xl font-bold text-center {}">{}{}</p>"#,
         bonus_color, bonus_sign, damage_bonus
     ));
     // Breakdown
@@ -992,17 +995,16 @@ fn render_final_blows_result() -> String {
     }
     if !breakdown_parts.is_empty() {
         h.push_str(&format!(
-            r#"<p class="text-xs text-slate-500">({})</p>"#,
+            r#"<p class="text-xs text-center text-slate-500">({})</p>"#,
             breakdown_parts.join(", ")
         ));
     }
-    h.push_str(r#"</div>"#);
 
     // Motivation modifiers section
     let has_mods = result.societal_mod.is_some() || result.self_mod.is_some() || result.support_mod.is_some();
     if has_mods {
-        h.push_str(r#"<div class="bg-amber-50 border border-slate-300 rounded p-3 mb-3">"#);
-        h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Motivation Modifiers</p>"#);
+        h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2">"#);
+        h.push_str(r#"<p class="text-sm font-bold text-center mb-1">Motivation Modifiers</p>"#);
         if let Some(ref s) = result.societal_mod {
             let text = s.trim_start_matches('\n');
             h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
@@ -1019,7 +1021,7 @@ fn render_final_blows_result() -> String {
     }
 
     // D20 roll instruction
-    h.push_str(r#"<div class="bg-amber-100 rounded p-3 text-center mb-3">"#);
+    h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2 text-center">"#);
     h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
     h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
     if result.modifier != 0 {
@@ -1027,6 +1029,8 @@ fn render_final_blows_result() -> String {
         h.push_str(&format!(r#"<p class="text-xs text-slate-500 mt-1">Attacker gets {}{} from motivation</p>"#, mod_sign, result.modifier));
     }
     h.push_str(r#"</div>"#);
+
+    h.push_str(r#"</div>"#); // close unified Final Blows info box
 
     // "Did you win?" outcome buttons
     h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
@@ -1119,26 +1123,6 @@ fn build_result_html(
 
     h.push_str(r#"</div>"#);
 
-    // Motivation modifiers (if any)
-    let has_mods = result.societal_mod.is_some() || result.self_mod.is_some() || result.support_mod.is_some();
-    if has_mods {
-        h.push_str(r#"<div class="bg-amber-50 border border-slate-300 rounded p-3 mb-3">"#);
-        h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Motivation Modifiers</p>"#);
-        if let Some(ref s) = result.societal_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
-        }
-        if let Some(ref s) = result.self_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#, text));
-        }
-        if let Some(ref s) = result.support_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
-        }
-        h.push_str(r#"</div>"#);
-    }
-
     // Final Blows box — only shows when at least one player's keal means are exhausted
     let atk_exhausted = all_keal_means_exhausted(atk_slug);
     let def_exhausted = all_keal_means_exhausted(def_slug);
@@ -1190,6 +1174,33 @@ fn build_result_html(
                 breakdown_parts.join(", ")
             ));
         }
+
+        // Motivation modifiers (only shown in Final Blows context)
+        let fb_result = typing::type_matchup(&[], &[], atk_motive, def_motive);
+        let has_mods = fb_result.societal_mod.is_some() || fb_result.self_mod.is_some() || fb_result.support_mod.is_some();
+        if has_mods {
+            h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2">"#);
+            h.push_str(r#"<p class="text-sm font-bold text-center mb-1">Motivation Modifiers</p>"#);
+            if let Some(ref s) = fb_result.societal_mod {
+                let text = s.trim_start_matches('\n');
+                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
+            }
+            if let Some(ref s) = fb_result.self_mod {
+                let text = s.trim_start_matches('\n');
+                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#, text));
+            }
+            if let Some(ref s) = fb_result.support_mod {
+                let text = s.trim_start_matches('\n');
+                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
+            }
+            h.push_str(r#"</div>"#);
+        }
+
+        // D20 roll instruction for the final combat
+        h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2 text-center">"#);
+        h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
+        h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
+        h.push_str(r#"</div>"#);
 
         h.push_str(r#"</div>"#);
     }
@@ -1464,7 +1475,7 @@ mod tests {
     }
 
     #[test]
-    fn fists_result_no_final_blows_in_result() {
+    fn fists_result_no_final_blows_or_motivation_mods_in_regular_result() {
         reset();
         room::with_room_mut(|r| {
             r.connected = true;
@@ -1480,8 +1491,9 @@ mod tests {
             });
         });
         let html = render_fists_result();
-        // Final Blows is now in the form stage (when keal means exhausted), not in the result
+        // Regular combat should NOT show Final Blows or Motivation Modifiers
         assert!(!html.contains("Final Blows"));
+        assert!(!html.contains("Motivation Modifiers"));
         assert!(html.contains("Combat Result"));
         assert!(html.contains("Did you win"));
         reset();
