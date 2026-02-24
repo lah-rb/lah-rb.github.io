@@ -178,26 +178,23 @@ pub fn render_damage_tracker(slug: &str) -> String {
 
             if is_wasted {
                 // Disabled state — greyed out, non-clickable
-                let style = if checked {
-                    "fill:#94a3b8;stroke:#94a3b8;stroke-width:1.5"
-                } else {
-                    "fill:none;stroke:#94a3b8;stroke-width:1.5"
-                };
+                let bg = if checked { "bg-slate-400" } else { "bg-transparent" };
                 html.push_str(&format!(
-                    r##"<span class="mr-1 opacity-40"><svg class="w-5 h-5 inline" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="{style}"/></svg></span>"##,
-                    style = style,
+                    r##"<span class="mr-1 opacity-40"><div class="w-5 h-5 rounded-full border-2 {bg} border-slate-400"></div></span>"##,
+                    bg = bg,
                 ));
             } else if checked {
                 // Checked state — filled red circle, clickable to toggle off
+                // Alpine x-data drives the visual state; :class swaps Tailwind utilities
                 html.push_str(&format!(
-                    r##"<button class="mr-1 damage-slot damage-checked" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:#dc2626;stroke:#dc2626;stroke-width:1.5"/></svg></button>"##,
+                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
             } else {
                 // Unchecked state — green border, white fill, clickable to toggle on
                 html.push_str(&format!(
-                    r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:white;stroke:#059669;stroke-width:2.5"/></svg></button>"##,
+                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
@@ -249,20 +246,15 @@ pub fn render_damage_tracker(slug: &str) -> String {
             html.push_str(&format!(r#"<p>Archetypal Adaptation: {}</p>"#, gd));
         }
 
-        // Wasted indicator — SVG circle (same pattern as damage slots)
+        // Wasted indicator — Alpine-driven div circle (same pattern as damage slots)
         html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
-        if is_wasted {
-            html.push_str(&format!(
-                r##"<button class="mr-1 damage-slot damage-checked" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:#dc2626;stroke:#dc2626;stroke-width:1.5"/></svg></button>"##,
-                slug = slug,
-            ));
-        } else {
-            html.push_str(&format!(
-                r##"<button class="mr-1 damage-slot" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><svg class="w-5 h-5" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" style="fill:white;stroke:#059669;stroke-width:2.5"/></svg></button>"##,
-                slug = slug,
-            ));
-        }
+        let wasted_on = if is_wasted { "true" } else { "false" };
+        html.push_str(&format!(
+            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+            on = wasted_on,
+            slug = slug,
+        ));
         html.push_str(r#"</div>"#);
 
         html.push_str(r#"</div></div>"#);
@@ -345,8 +337,9 @@ mod tests {
         let html = render_damage_tracker("brox_the_defiant");
         assert!(html.contains("Crushing Hope"));
         assert!(html.contains("Chain Raid"));
-        assert!(html.contains("damage-slot")); // SVG circle buttons
-        assert!(html.contains("<circle")); // SVG circles render damage state
+        assert!(html.contains("damage-slot")); // Alpine-driven circle buttons
+        assert!(html.contains("rounded-full")); // div circles with Tailwind classes
+        assert!(html.contains("border-emerald-600")); // green unchecked state
         assert!(html.contains("Combat"));
         // Final Blows section is always in the DOM (hidden by CSS via Alpine),
         // but the sentinel div should NOT be present when slots aren't all checked.
