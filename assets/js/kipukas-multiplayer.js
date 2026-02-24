@@ -574,6 +574,13 @@ function refreshKealTracker() {
       if (typeof htmx !== 'undefined') {
         tracker.querySelectorAll('[hx-get],[hx-post]').forEach(el => htmx.process(el));
       }
+      // Initialize Alpine components on the new DOM tree. Raw innerHTML
+      // swaps bypass htmx's swap pipeline, so Alpine's MutationObserver
+      // doesn't reliably detect new x-data elements on all browsers.
+      // Alpine.initTree() explicitly scans and initializes them.
+      if (typeof Alpine !== 'undefined') {
+        Alpine.initTree(tracker);
+      }
       // Dispatch htmx:afterSwap so Alpine's sentinel watcher in
       // keal_damage_tracker.html updates the Final Blows section visibility
       tracker.dispatchEvent(new CustomEvent('htmx:afterSwap', { bubbles: true }));
