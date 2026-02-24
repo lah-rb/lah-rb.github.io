@@ -118,7 +118,9 @@ for (const filePath of targets) {
 const totalSaved = totalBefore - totalAfter;
 const totalPct = totalBefore > 0 ? ((totalSaved / totalBefore) * 100).toFixed(1) : '0.0';
 console.log(
-  `\n✅ Total: ${fmtKB(totalBefore)} → ${fmtKB(totalAfter)}  (−${totalPct}%, saved ${fmtKB(totalSaved)})\n`,
+  `\n✅ Total: ${fmtKB(totalBefore)} → ${fmtKB(totalAfter)}  (−${totalPct}%, saved ${
+    fmtKB(totalSaved)
+  })\n`,
 );
 
 esbuild.stop();

@@ -7,6 +7,7 @@
 //! Phase 5: Extended with name, color_set fields and cleaner UI.
 //! Multiplayer sync broadcasts timer mutations to the connected peer.
 
+use crate::game::crdt;
 use crate::game::state::{with_state, with_state_mut, Alarm};
 
 /// Add a new alarm with the given number of diel cycles, optional name, and color set.
@@ -167,7 +168,15 @@ pub fn render_turn_panel(multiplayer: bool) -> String {
 /// If `multiplayer` is true, the advance and remove buttons route through
 /// the multiplayer sync path so both peers are updated.
 pub fn render_alarm_list(multiplayer: bool) -> String {
-    let (alarms, show_alarms) = with_state(|state| (state.alarms.clone(), state.show_alarms));
+    // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
+    // When local, read from GameState.alarms (persisted to localStorage).
+    let (alarms, show_alarms) = if multiplayer {
+        let crdt_alarms = crdt::get_alarms();
+        let show = with_state(|state| state.show_alarms);
+        (crdt_alarms, show)
+    } else {
+        with_state(|state| (state.alarms.clone(), state.show_alarms))
+    };
 
     if alarms.is_empty() {
         return String::new();
@@ -384,12 +393,15 @@ mod tests {
     #[test]
     fn render_alarm_list_multiplayer_uses_sync_buttons() {
         reset_state();
-        add_alarm(3, "", "blue");
+        // Multiplayer mode reads from the yrs CRDT Doc, not GameState
+        crdt::init_doc();
+        crdt::add_alarm(3, "", "blue");
         let html = render_alarm_list(true);
         assert!(html.contains("kipukasMultiplayer.tickTurns()"));
         assert!(html.contains("kipukasMultiplayer.removeTurn(0)"));
         // Toggle visibility always uses htmx.ajax (local-only), but tick/remove should use multiplayer
         assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
+        crdt::reset_doc();
         reset_state();
     }
 

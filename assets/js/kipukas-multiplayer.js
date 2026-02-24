@@ -215,6 +215,20 @@ function onPeerConnected() {
   // Notify UI that room is connected
   globalThis.dispatchEvent(new CustomEvent('room-connected'));
   refreshRoomStatus();
+
+  // Initiate yrs CRDT sync handshake — exchange state vectors so both
+  // peers converge on the same Doc state after (re)connect.
+  initiateYrsSync();
+}
+
+/** Yrs CRDT sync handshake: send our state vector to the peer. */
+function initiateYrsSync() {
+  wasmRequest('GET', '/api/room/yrs/sv', '', '', (sv) => {
+    if (sv) {
+      sendToPeer({ type: 'yrs_sv', sv });
+      console.log('[multiplayer] Sent yrs state vector to peer');
+    }
+  });
 }
 
 /** Send a game message to the peer via the WebSocket relay. */
@@ -306,38 +320,49 @@ function handleRelayedMessage(msg) {
       break;
     }
 
-    case 'turn_add': {
-      console.log('[multiplayer] Received turn_add from peer');
-      postToWasmWithCallback(
-        'POST',
-        '/api/game/turns',
-        'action=add&turns=' + msg.turns + '&name=' + encodeURIComponent(msg.name || '') +
-          '&color_set=' + (msg.color_set || 'red'),
-        (_html) => {
-          refreshTurnAlarms();
-        },
-      );
-      break;
-    }
-
-    case 'turn_tick': {
-      console.log('[multiplayer] Received turn_tick from peer');
-      postToWasmWithCallback('POST', '/api/game/turns', 'action=tick', (_html) => {
-        refreshTurnAlarms();
+    case 'yrs_sv': {
+      // Peer sent their state vector — compute our diff and send it back,
+      // then send our own state vector so they can compute their diff for us.
+      console.log('[multiplayer] Received yrs state vector from peer');
+      postToWasmWithCallback('POST', '/api/room/yrs/diff', 'sv=' + msg.sv, (diff) => {
+        if (diff && !diff.startsWith('{')) {
+          sendToPeer({ type: 'yrs_update', update: diff });
+          console.log('[multiplayer] Sent yrs diff to peer');
+        }
+      });
+      // Send our state vector back so peer can compute their diff for us
+      wasmRequest('GET', '/api/room/yrs/sv', '', '', (sv) => {
+        if (sv) {
+          sendToPeer({ type: 'yrs_sv_reply', sv });
+        }
       });
       break;
     }
 
-    case 'turn_remove': {
-      console.log('[multiplayer] Received turn_remove from peer, index=' + msg.index);
-      postToWasmWithCallback(
-        'POST',
-        '/api/game/turns',
-        'action=remove&index=' + msg.index,
-        (_html) => {
-          refreshTurnAlarms();
-        },
-      );
+    case 'yrs_sv_reply': {
+      // Peer replied with their state vector (response to our initial sv).
+      // Compute and send our diff.
+      console.log('[multiplayer] Received yrs state vector reply from peer');
+      postToWasmWithCallback('POST', '/api/room/yrs/diff', 'sv=' + msg.sv, (diff) => {
+        if (diff && !diff.startsWith('{')) {
+          sendToPeer({ type: 'yrs_update', update: diff });
+          console.log('[multiplayer] Sent yrs diff reply to peer');
+        }
+      });
+      break;
+    }
+
+    case 'yrs_update': {
+      // Peer sent a yrs binary update — apply it to our local Doc.
+      console.log('[multiplayer] Received yrs update from peer');
+      postToWasmWithCallback('POST', '/api/room/yrs/apply', 'update=' + msg.update, (html) => {
+        // html is the refreshed alarm list from the yrs Doc
+        const alarms = document.getElementById('turn-alarms');
+        if (alarms && html) {
+          alarms.innerHTML = html;
+          if (typeof htmx !== 'undefined') htmx.process(alarms);
+        }
+      });
       break;
     }
 
@@ -454,20 +479,6 @@ function execScripts(el) {
     s.textContent = old.textContent;
     old.parentNode.replaceChild(s, old);
   });
-}
-
-/** Refresh the turn alarm display on the page. */
-function refreshTurnAlarms() {
-  const alarms = document.getElementById('turn-alarms');
-  if (!alarms) return;
-  if (typeof htmx !== 'undefined') {
-    htmx.ajax('GET', '/api/game/turns?display=alarms', {
-      target: '#turn-alarms',
-      swap: 'innerHTML',
-    });
-  }
-  // Also persist state so alarm changes survive navigation
-  persistState();
 }
 
 /** Refresh the room status panel and fists section in the UI. */
@@ -698,46 +709,84 @@ const kipukasMultiplayer = {
     });
   },
 
-  // ── Turn timer sync ────────────────────────────────────────────────
+  // ── Turn timer sync (yrs CRDT) ─────────────────────────────────────
 
-  /** Add a turn timer and sync to peer. Called from WASM-rendered HTML. */
+  /** Add a turn timer via yrs CRDT and sync update to peer. */
   addTurn(turns, name, colorSet) {
     const t = parseInt(turns, 10) || 1;
     const clamped = Math.max(1, Math.min(99, t));
     const n = (name || '').trim();
     const c = colorSet || 'red';
 
-    // Add locally via WASM
+    // Mutate the yrs Doc — returns JSON { update, html }
     postToWasmWithCallback(
       'POST',
-      '/api/game/turns',
-      'action=add&turns=' + clamped + '&name=' + encodeURIComponent(n) + '&color_set=' + c,
-      (_html) => {
-        refreshTurnAlarms();
+      '/api/room/yrs/alarm/add',
+      'turns=' + clamped + '&name=' + encodeURIComponent(n) + '&color_set=' + c,
+      (response) => {
+        try {
+          const result = JSON.parse(response);
+          // Swap the alarm list HTML
+          const alarms = document.getElementById('turn-alarms');
+          if (alarms && result.html) {
+            alarms.innerHTML = result.html;
+            if (typeof htmx !== 'undefined') htmx.process(alarms);
+          }
+          // Relay the yrs update to peer
+          if (result.update) {
+            sendToPeer({ type: 'yrs_update', update: result.update });
+          }
+        } catch (e) {
+          console.warn('[multiplayer] addTurn parse error:', e);
+        }
       },
     );
-
-    // Sync to peer
-    sendToPeer({ type: 'turn_add', turns: clamped, name: n, color_set: c });
-    console.log('[multiplayer] Sent turn_add to peer: ' + clamped + ' cycles');
+    console.log('[multiplayer] Added turn via yrs CRDT: ' + clamped + ' cycles');
   },
 
-  /** Advance all turn timers by one diel cycle and sync to peer. */
+  /** Advance all turn timers by one diel cycle via yrs CRDT. */
   tickTurns() {
-    postToWasmWithCallback('POST', '/api/game/turns', 'action=tick', (_html) => {
-      refreshTurnAlarms();
+    postToWasmWithCallback('POST', '/api/room/yrs/alarm/tick', '', (response) => {
+      try {
+        const result = JSON.parse(response);
+        const alarms = document.getElementById('turn-alarms');
+        if (alarms && result.html) {
+          alarms.innerHTML = result.html;
+          if (typeof htmx !== 'undefined') htmx.process(alarms);
+        }
+        if (result.update) {
+          sendToPeer({ type: 'yrs_update', update: result.update });
+        }
+      } catch (e) {
+        console.warn('[multiplayer] tickTurns parse error:', e);
+      }
     });
-    sendToPeer({ type: 'turn_tick' });
-    console.log('[multiplayer] Sent turn_tick to peer');
+    console.log('[multiplayer] Ticked turns via yrs CRDT');
   },
 
-  /** Remove a turn timer by index and sync to peer. */
+  /** Remove a turn timer by index via yrs CRDT. */
   removeTurn(index) {
-    postToWasmWithCallback('POST', '/api/game/turns', 'action=remove&index=' + index, (_html) => {
-      refreshTurnAlarms();
-    });
-    sendToPeer({ type: 'turn_remove', index: index });
-    console.log('[multiplayer] Sent turn_remove to peer, index=' + index);
+    postToWasmWithCallback(
+      'POST',
+      '/api/room/yrs/alarm/remove',
+      'index=' + index,
+      (response) => {
+        try {
+          const result = JSON.parse(response);
+          const alarms = document.getElementById('turn-alarms');
+          if (alarms && result.html) {
+            alarms.innerHTML = result.html;
+            if (typeof htmx !== 'undefined') htmx.process(alarms);
+          }
+          if (result.update) {
+            sendToPeer({ type: 'yrs_update', update: result.update });
+          }
+        } catch (e) {
+          console.warn('[multiplayer] removeTurn parse error:', e);
+        }
+      },
+    );
+    console.log('[multiplayer] Removed turn via yrs CRDT, index=' + index);
   },
 
   /** Check if currently connected to a peer. */
