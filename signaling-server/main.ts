@@ -9,10 +9,10 @@
  *     Server → { type: "room_created", code: "ABCD", name: "My Room" }
  *   Client → { type: "join", code: "ABCD", name: "My Room" }
  *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
- *     Server → (to creator) { type: "peer_joined" }
+ *     Server → (to ALL peers including joiner) { type: "peer_joined" }
  *   Client → { type: "rejoin", code: "ABCD" }
  *     Server → { type: "room_joined", code: "ABCD", name: "My Room" }
- *     Server → (to other peer) { type: "peer_joined" }
+ *     Server → (to ALL peers including rejoiner) { type: "peer_joined" }
  *   Client → { type: "relay", data: ... }
  *     Server → forwards { type: "relay", data: ... } to the other peer in the room
  *   On disconnect: grace period (15s), then notify remaining peer { type: "peer_left" }
@@ -158,10 +158,12 @@ function handleWebSocket(ws: WebSocket) {
         }
         room.peers.push(ws);
         ws.send(JSON.stringify({ type: "room_joined", code, name: room.name }));
-        // Notify the other peer (if any)
-        for (const peer of room.peers) {
-          if (peer !== ws && peer.readyState === WebSocket.OPEN) {
-            peer.send(JSON.stringify({ type: "peer_joined" }));
+        // Notify ALL peers (including joiner) that a peer is present
+        if (room.peers.filter((p) => p.readyState === WebSocket.OPEN).length >= 2) {
+          for (const peer of room.peers) {
+            if (peer.readyState === WebSocket.OPEN) {
+              peer.send(JSON.stringify({ type: "peer_joined" }));
+            }
           }
         }
         console.log(`[signal] Peer joined room: ${code}`);
@@ -196,10 +198,12 @@ function handleWebSocket(ws: WebSocket) {
         }
         room.peers.push(ws);
         ws.send(JSON.stringify({ type: "room_joined", code, name: room.name }));
-        // Notify the other peer
-        for (const peer of room.peers) {
-          if (peer !== ws && peer.readyState === WebSocket.OPEN) {
-            peer.send(JSON.stringify({ type: "peer_joined" }));
+        // Notify ALL peers (including rejoiner) that a peer is present
+        if (room.peers.filter((p) => p.readyState === WebSocket.OPEN).length >= 2) {
+          for (const peer of room.peers) {
+            if (peer.readyState === WebSocket.OPEN) {
+              peer.send(JSON.stringify({ type: "peer_joined" }));
+            }
           }
         }
         console.log(`[signal] Peer rejoined room: ${code}`);
