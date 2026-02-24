@@ -103,7 +103,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     };
 
     format!(
-        r#"<div class="animate-card-fade-in relative" style="animation-delay:{}ms">
+        r#"<div class="animate-card-fade-in relative w-40 lg:w-50" style="animation-delay:{}ms">
   <a href="{url}"
     class="block w-full h-full pt-4 bg-amber-50 active:shadow-inner active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
   >
@@ -117,7 +117,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         loading="lazy"
         decoding="async"
         fetchpriority="low"
-        class="w-40 lg:w-50 card-image opacity-0 transition-opacity duration-300"
+        class="w-full opacity-0 transition-opacity duration-300 ease-out"
         onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('skeleton-pulse');"
       >
     </picture>
