@@ -185,16 +185,20 @@ pub fn render_damage_tracker(slug: &str) -> String {
                 ));
             } else if checked {
                 // Checked state — filled red circle, clickable to toggle off
-                // Alpine x-data drives the visual state; :class swaps Tailwind utilities
+                // Static classes (bg-red-600 border-red-600) ensure correct render
+                // even before Alpine initializes (e.g. multiplayer innerHTML swap).
+                // Alpine :class then takes over for interactive click feedback.
                 html.push_str(&format!(
-                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
             } else {
                 // Unchecked state — green border, white fill, clickable to toggle on
+                // Static classes (bg-white border-emerald-600) ensure correct render
+                // even before Alpine initializes.
                 html.push_str(&format!(
-                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-white border-emerald-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
@@ -250,10 +254,16 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
         let wasted_on = if is_wasted { "true" } else { "false" };
+        let wasted_static = if is_wasted {
+            "bg-red-600 border-red-600"
+        } else {
+            "bg-white border-emerald-600"
+        };
         html.push_str(&format!(
-            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {static_cls}" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
             on = wasted_on,
             slug = slug,
+            static_cls = wasted_static,
         ));
         html.push_str(r#"</div>"#);
 
