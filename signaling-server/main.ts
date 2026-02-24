@@ -15,7 +15,7 @@
  *     Server → (to ALL peers including rejoiner) { type: "peer_joined" }
  *   Client → { type: "relay", data: ... }
  *     Server → forwards { type: "relay", data: ... } to the other peer in the room
- *   On disconnect: grace period (15s), then notify remaining peer { type: "peer_left" }
+ *   On disconnect: grace period (5min), then notify remaining peer { type: "peer_left" }
  */
 
 interface Room {
@@ -30,8 +30,10 @@ interface Room {
 
 const rooms = new Map<string, Room>();
 
-/** Grace period (ms) before removing a disconnected peer from the room. */
-const GRACE_PERIOD_MS = 15_000;
+/** Grace period (ms) before removing a disconnected peer from the room.
+ *  5 minutes allows for page navigation, mobile browser sleep, and slow
+ *  network reconnections without losing the room slot. */
+const GRACE_PERIOD_MS = 300_000;
 
 /** Generate a 4-character alphanumeric room code. */
 function generateCode(): string {

@@ -299,7 +299,9 @@ pub fn with_state_mut<F, R>(f: F) -> R where F: FnOnce(&mut GameState) -> R {
 
 **Outcome sync pattern:** When a player answers "Did you win?", the JS derives `attacker_won` from the local role + answer, sends it to the peer via `sendToPeer()`, and both sides independently process the outcome via `POST /api/room/fists/outcome`. The defender's WASM auto-marks damage on their local card. Each side sees a role-appropriate message.
 
-**Connection lifecycle:** The WebSocket connection to the signaling server handles both room management (create/join/rejoin) and game message relay. Auto-reconnect with exponential backoff (up to 8 attempts) handles mobile browser sleep, network transitions, and temporary server issues. A 15-second grace period on the server preserves the room slot during brief disconnections.
+**Connection lifecycle:** The WebSocket connection to the signaling server handles both room management (create/join/rejoin) and game message relay. Auto-reconnect with exponential backoff (up to 8 attempts) handles mobile browser sleep, network transitions, and temporary server issues. A 5-minute grace period on the server preserves the room slot during page navigation, mobile sleep, and slow reconnections.
+
+**Cross-page auto-reconnect:** `kipukas-multiplayer.js` is normally lazy-loaded when the user clicks the multiplayer button. To support seamless page navigation, `kipukas-api.js` checks `sessionStorage` for a saved room session on every page load. If found, it eagerly imports the multiplayer module, which triggers `autoReconnect()` → WebSocket connects → `rejoin` sent → both peers receive `peer_joined` → fists tool appears automatically.
 
 ### Pattern 10: Session Persistence via sessionStorage
 
@@ -694,7 +696,7 @@ A condensed record of architectural decisions and key lessons from each developm
 
 **Built:** Replaced WebRTC peer-to-peer data channel with WebSocket message relay through the signaling server. Eliminated all STUN/TURN/ICE/SDP complexity.
 
-**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 15s server-side grace period) handles mobile browser sleep and network transitions. The `sendToPeer()` pattern routes game messages through WASM before sending, which doesn't fit the `htmx-ext-ws` model of direct HTML-over-WebSocket — so the manual WebSocket approach is the correct choice for this architecture.
+**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 5-minute server-side grace period) handles page navigation, mobile browser sleep, and network transitions. `kipukas-api.js` eagerly loads the multiplayer module on any page when a `sessionStorage` room session exists, enabling seamless cross-page reconnection. The `sendToPeer()` pattern routes game messages through WASM before sending, which doesn't fit the `htmx-ext-ws` model of direct HTML-over-WebSocket — so the manual WebSocket approach is the correct choice for this architecture.
 
 **Removed:** `RTCPeerConnection`, `RTCDataChannel`, ICE candidate handling, SDP offer/answer exchange, STUN server configuration, Cloudflare TURN API integration + credential proxying, `/turn-credentials` endpoint, `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`.
 
