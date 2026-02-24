@@ -909,6 +909,31 @@ pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
     )
 }
 
+/// POST /api/room/yrs/alarm/toggle — toggle alarm visibility then re-render.
+/// Returns the multiplayer alarm list HTML (reads from CRDT Doc).
+pub fn handle_yrs_alarm_toggle_post(_body: &str) -> String {
+    turns::toggle_alarms_visibility();
+    turns::render_alarm_list(true)
+}
+
+/// GET /api/room/yrs/state — return the full CRDT Doc state as URL-safe base64.
+/// Used by JS to persist Doc to sessionStorage across page navigation.
+pub fn handle_yrs_state_get(_query: &str) -> String {
+    crdt::encode_full_state()
+}
+
+/// POST /api/room/yrs/restore — restore CRDT Doc from persisted state.
+/// Body: state=<url-safe-base64>
+/// Called on page load to recover Doc before sync handshake.
+pub fn handle_yrs_restore_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let state = get_param(&params, "state").unwrap_or(body.trim());
+    match crdt::restore_from_state(state) {
+        Ok(()) => "ok".to_string(),
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    }
+}
+
 /// POST /api/room/yrs/alarm/remove — remove an alarm by index via yrs CRDT.
 /// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
 pub fn handle_yrs_alarm_remove_post(body: &str) -> String {

@@ -72,6 +72,9 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/yrs/alarm/add", "yrs_alarm_add").ok();
     router.insert("/api/room/yrs/alarm/tick", "yrs_alarm_tick").ok();
     router.insert("/api/room/yrs/alarm/remove", "yrs_alarm_remove").ok();
+    router.insert("/api/room/yrs/alarm/toggle", "yrs_alarm_toggle").ok();
+    router.insert("/api/room/yrs/state", "yrs_state").ok();
+    router.insert("/api/room/yrs/restore", "yrs_restore").ok();
 
     match router.at(path) {
         Ok(matched) => match (*matched.value, method) {
@@ -117,6 +120,9 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("yrs_alarm_add", "POST") => routes::room::handle_yrs_alarm_add_post(body),
             ("yrs_alarm_tick", "POST") => routes::room::handle_yrs_alarm_tick_post(body),
             ("yrs_alarm_remove", "POST") => routes::room::handle_yrs_alarm_remove_post(body),
+            ("yrs_alarm_toggle", "POST") => routes::room::handle_yrs_alarm_toggle_post(body),
+            ("yrs_state", "GET") => routes::room::handle_yrs_state_get(query),
+            ("yrs_restore", "POST") => routes::room::handle_yrs_restore_post(body),
 
             _ => method_not_allowed(),
         },

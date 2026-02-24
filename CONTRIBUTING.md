@@ -30,7 +30,7 @@ Game logic runs **100% client-side** in WebAssembly. There is no backend server 
 
 Instead of React, Vue, or Svelte, the project uses **HTMX** to add dynamic behavior to server-rendered HTML. The "server" happens to be a Rust WASM module running in a Web Worker inside the browser — but HTMX doesn't know or care. This fits naturally with Jekyll's static HTML model: just add `hx-*` attributes to existing markup.
 
-### Incremental Migration (Alpine.js + HTMX Coexistence)
+### Alpine.js + HTMX: Highly flexible and browser friendly
 
 Alpine.js and HTMX coexist throughout the codebase. The guiding principle:
 
@@ -39,11 +39,11 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle:
 | **UI chrome** (visual-only) | Alpine.js | Modal open/close, hamburger menu, visibility toggles, animations |
 | **Data & logic** | HTMX + WASM | Card filtering, damage tracking, type matchups, combat resolution |
 
-A feature migrates from Alpine to HTMX when it involves data processing, complex state machines, or cross-player synchronization. A feature stays in Alpine when it's purely visual with no data dependencies.
+A feature migrates from Alpine to HTMX when it involves data processing, complex state machines, or cross-player synchronization. A feature stays in Alpine when it's purely visual and can rely on side effect data reflected from WASM state.
 
 ### Type Safety via Rust
 
-Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust type system catches bugs at compile time that JavaScript hides. The crate currently has **114 unit tests** covering route handlers, game logic, matchup tables, combat outcomes, and edge cases.
+Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust type system catches bugs at compile time that JavaScript hides. The crate currently has **over 100 unit tests** covering route handlers, game logic, matchup tables, combat outcomes, and edge cases.
 
 ### Build-Time Code Generation
 

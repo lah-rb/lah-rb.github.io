@@ -21,8 +21,15 @@
 //! 1. On room connect: exchange state vectors → compute diffs → apply
 //! 2. On mutation: capture update bytes → relay to peer → peer applies
 //! 3. On reconnect: repeat step 1 (yrs handles deduplication)
+//!
+//! ## Encoding
+//!
+//! All base64 encoding uses URL_SAFE_NO_PAD (`-` and `_` instead of `+`
+//! and `/`). This prevents `+` from being decoded as space when values
+//! pass through form-encoded HTTP bodies.
 
-use base64::prelude::*;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
 use std::cell::RefCell;
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
@@ -53,6 +60,40 @@ pub fn init_doc() {
 /// Reset the Doc (on disconnect). Replaces with a fresh empty Doc.
 pub fn reset_doc() {
     init_doc();
+}
+
+// ── Doc persistence (survives page navigation via sessionStorage) ──
+
+/// Encode the full Doc state as a URL-safe base64 string for persistence.
+/// Stored in sessionStorage so the Doc survives page navigation.
+pub fn encode_full_state() -> String {
+    CRDT_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let state = doc
+            .transact()
+            .encode_diff_v1(&StateVector::default());
+        URL_SAFE_NO_PAD.encode(&state)
+    })
+}
+
+/// Restore Doc from a previously persisted URL-safe base64 state.
+/// Called on page load (before sync handshake) to recover state.
+pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
+    if state_b64.is_empty() {
+        return Ok(());
+    }
+    let state_bytes = URL_SAFE_NO_PAD
+        .decode(state_b64)
+        .map_err(|e| format!("base64 decode error: {}", e))?;
+    let update = Update::decode_v1(&state_bytes)
+        .map_err(|e| format!("state decode error: {}", e))?;
+
+    CRDT_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let mut txn = doc.transact_mut();
+        txn.apply_update(update)
+            .map_err(|e| format!("restore error: {}", e))
+    })
 }
 
 // ── Alarm mutations (return update bytes as base64) ────────────────
@@ -185,21 +226,21 @@ pub fn get_alarms() -> Vec<Alarm> {
 
 // ── Sync protocol ──────────────────────────────────────────────────
 
-/// Encode the Doc's state vector as a base64 string.
+/// Encode the Doc's state vector as a URL-safe base64 string.
 /// Used for sync handshake step 1.
 pub fn encode_state_vector() -> String {
     CRDT_DOC.with(|cell| {
         let doc = cell.borrow();
         let sv = doc.transact().state_vector().encode_v1();
-        BASE64_STANDARD.encode(&sv)
+        URL_SAFE_NO_PAD.encode(&sv)
     })
 }
 
-/// Given a remote peer's state vector (base64), compute the diff
-/// update containing all changes they haven't seen. Returns base64 update.
+/// Given a remote peer's state vector (URL-safe base64), compute the diff
+/// update containing all changes they haven't seen. Returns URL-safe base64 update.
 /// Used for sync handshake step 2.
 pub fn encode_diff(remote_sv_b64: &str) -> Result<String, String> {
-    let sv_bytes = BASE64_STANDARD
+    let sv_bytes = URL_SAFE_NO_PAD
         .decode(remote_sv_b64)
         .map_err(|e| format!("base64 decode error: {}", e))?;
     let remote_sv = StateVector::decode_v1(&sv_bytes)
@@ -208,13 +249,13 @@ pub fn encode_diff(remote_sv_b64: &str) -> Result<String, String> {
     CRDT_DOC.with(|cell| {
         let doc = cell.borrow();
         let update = doc.transact().encode_diff_v1(&remote_sv);
-        Ok(BASE64_STANDARD.encode(&update))
+        Ok(URL_SAFE_NO_PAD.encode(&update))
     })
 }
 
-/// Apply a base64-encoded update from a remote peer.
+/// Apply a URL-safe base64-encoded update from a remote peer.
 pub fn apply_update(update_b64: &str) -> Result<(), String> {
-    let update_bytes = BASE64_STANDARD
+    let update_bytes = URL_SAFE_NO_PAD
         .decode(update_b64)
         .map_err(|e| format!("base64 decode error: {}", e))?;
     let update = Update::decode_v1(&update_bytes)
@@ -231,10 +272,10 @@ pub fn apply_update(update_b64: &str) -> Result<(), String> {
 // ── Internal helpers ───────────────────────────────────────────────
 
 /// Compute the diff between the current Doc state and a previous state vector,
-/// return it as a base64 string. Used after mutations to capture the update.
+/// return it as a URL-safe base64 string. Used after mutations to capture the update.
 fn encode_diff_since(doc: &Doc, before_sv: &StateVector) -> String {
     let update = doc.transact().encode_diff_v1(before_sv);
-    BASE64_STANDARD.encode(&update)
+    URL_SAFE_NO_PAD.encode(&update)
 }
 
 /// Validate color set, defaulting to "red" if invalid.
@@ -302,16 +343,16 @@ mod tests {
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 1);
-        assert_eq!(alarms[1].remaining, 0); // complete
+        assert_eq!(alarms[1].remaining, 0);
 
         tick_alarms();
         let alarms = get_alarms();
-        assert_eq!(alarms.len(), 1); // 0→removed
-        assert_eq!(alarms[0].remaining, 0); // 1→0 complete
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].remaining, 0);
 
         tick_alarms();
         let alarms = get_alarms();
-        assert!(alarms.is_empty()); // all removed
+        assert!(alarms.is_empty());
     }
 
     #[test]
@@ -320,7 +361,7 @@ mod tests {
         add_alarm(5, "first", "red");
         add_alarm(3, "second", "green");
         add_alarm(1, "third", "blue");
-        remove_alarm(1); // remove the 3-turn alarm
+        remove_alarm(1);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -341,8 +382,7 @@ mod tests {
         reset();
         let update = add_alarm(5, "test", "red");
         assert!(!update.is_empty());
-        // Verify it's valid base64
-        let decoded = BASE64_STANDARD.decode(&update);
+        let decoded = URL_SAFE_NO_PAD.decode(&update);
         assert!(decoded.is_ok());
     }
 
@@ -352,36 +392,30 @@ mod tests {
         add_alarm(3, "test", "blue");
         let sv = encode_state_vector();
         assert!(!sv.is_empty());
-        let decoded = BASE64_STANDARD.decode(&sv);
+        let decoded = URL_SAFE_NO_PAD.decode(&sv);
         assert!(decoded.is_ok());
     }
 
     #[test]
     fn sync_two_docs_converge() {
-        // Simulate two peers syncing via state vector exchange
         reset();
         add_alarm(5, "peer_a_timer", "green");
 
-        // "Peer B" — a separate Doc
         let doc_b = Doc::new();
         {
             let mut txn = doc_b.transact_mut();
             txn.get_or_insert_array("alarms");
         }
 
-        // Peer B sends its state vector
         let sv_b = doc_b.transact().state_vector().encode_v1();
-        let sv_b_b64 = BASE64_STANDARD.encode(&sv_b);
+        let sv_b_b64 = URL_SAFE_NO_PAD.encode(&sv_b);
 
-        // Peer A computes diff for Peer B
         let diff_for_b = encode_diff(&sv_b_b64).unwrap();
 
-        // Peer B applies the diff
-        let diff_bytes = BASE64_STANDARD.decode(&diff_for_b).unwrap();
+        let diff_bytes = URL_SAFE_NO_PAD.decode(&diff_for_b).unwrap();
         let update = Update::decode_v1(&diff_bytes).unwrap();
         doc_b.transact_mut().apply_update(update).unwrap();
 
-        // Verify Peer B now has the alarm
         let alarms_b = {
             let arr = doc_b.get_or_insert_array("alarms");
             let txn = doc_b.transact();
@@ -407,7 +441,6 @@ mod tests {
     fn apply_update_from_remote() {
         reset();
 
-        // Create an update from a separate Doc
         let remote_doc = Doc::new();
         let remote_arr = remote_doc.get_or_insert_array("alarms");
         let sv_before = remote_doc.transact().state_vector();
@@ -421,9 +454,8 @@ mod tests {
             remote_arr.insert(&mut txn, 0, alarm_map);
         }
         let update_bytes = remote_doc.transact().encode_diff_v1(&sv_before);
-        let update_b64 = BASE64_STANDARD.encode(&update_bytes);
+        let update_b64 = URL_SAFE_NO_PAD.encode(&update_bytes);
 
-        // Apply to our Doc
         let result = apply_update(&update_b64);
         assert!(result.is_ok());
 
@@ -452,13 +484,10 @@ mod tests {
 
     #[test]
     fn concurrent_adds_both_survive() {
-        // Simulate concurrent adds from two peers that both sync
         reset();
 
-        // Peer A adds locally
         let update_a = add_alarm(5, "from_a", "red");
 
-        // Peer B is a separate Doc that also adds
         let doc_b = Doc::new();
         let arr_b = doc_b.get_or_insert_array("alarms");
         let sv_b_before = doc_b.transact().state_vector();
@@ -472,27 +501,55 @@ mod tests {
             arr_b.insert(&mut txn, 0, alarm);
         }
         let update_b_bytes = doc_b.transact().encode_diff_v1(&sv_b_before);
-        let update_b = BASE64_STANDARD.encode(&update_b_bytes);
+        let update_b = URL_SAFE_NO_PAD.encode(&update_b_bytes);
 
-        // Peer A applies Peer B's update
         apply_update(&update_b).unwrap();
 
-        // Peer B applies Peer A's update
-        let update_a_bytes = BASE64_STANDARD.decode(&update_a).unwrap();
+        let update_a_bytes = URL_SAFE_NO_PAD.decode(&update_a).unwrap();
         doc_b
             .transact_mut()
             .apply_update(Update::decode_v1(&update_a_bytes).unwrap())
             .unwrap();
 
-        // Both should have 2 alarms
         let alarms_a = get_alarms();
         assert_eq!(alarms_a.len(), 2);
 
         let alarms_b = {
             let txn = doc_b.transact();
-            let len = arr_b.len(&txn);
-            len
+            arr_b.len(&txn)
         };
         assert_eq!(alarms_b, 2);
+    }
+
+    #[test]
+    fn persist_and_restore_roundtrip() {
+        reset();
+        add_alarm(5, "persisted", "green");
+        add_alarm(2, "also persisted", "pink");
+
+        let state = encode_full_state();
+        assert!(!state.is_empty());
+
+        // Reset and restore
+        reset_doc();
+        assert_eq!(get_alarms().len(), 0);
+
+        let result = restore_from_state(&state);
+        assert!(result.is_ok());
+
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 2);
+        assert_eq!(alarms[0].name, "persisted");
+        assert_eq!(alarms[0].color_set, "green");
+        assert_eq!(alarms[1].name, "also persisted");
+    }
+
+    #[test]
+    fn restore_empty_is_noop() {
+        reset();
+        add_alarm(1, "keep", "red");
+        let result = restore_from_state("");
+        assert!(result.is_ok());
+        assert_eq!(get_alarms().len(), 1);
     }
 }

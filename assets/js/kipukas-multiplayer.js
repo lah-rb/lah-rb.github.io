@@ -18,6 +18,7 @@
 const SIGNAL_WS_URL = 'wss://signal.kipukas.deno.net/ws';
 
 const SESSION_KEY = 'kipukas_room';
+const CRDT_STATE_KEY = 'kipukas_crdt_state';
 
 let ws = null; // WebSocket to signaling server (also the message relay)
 let roomCode = '';
@@ -65,7 +66,42 @@ function loadSession() {
 function clearSession() {
   try {
     sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(CRDT_STATE_KEY);
   } catch (_) { /* ignore */ }
+}
+
+// ── CRDT Doc persistence (survives page navigation) ────────────────
+
+/** Persist the yrs CRDT Doc state to sessionStorage.
+ *  Called after every mutation so the Doc survives page navigation. */
+function persistCrdtState() {
+  wasmRequest('GET', '/api/room/yrs/state', '', '', (state) => {
+    if (state) {
+      try {
+        sessionStorage.setItem(CRDT_STATE_KEY, state);
+      } catch (_) { /* ignore quota errors */ }
+    }
+  });
+}
+
+/** Restore the yrs CRDT Doc from sessionStorage (before sync handshake).
+ *  Returns a Promise that resolves when restoration is complete. */
+function restoreCrdtState() {
+  return new Promise((resolve) => {
+    try {
+      const state = sessionStorage.getItem(CRDT_STATE_KEY);
+      if (!state) {
+        resolve();
+        return;
+      }
+      postToWasmWithCallback('POST', '/api/room/yrs/restore', 'state=' + state, () => {
+        console.log('[multiplayer] Restored CRDT Doc from sessionStorage');
+        resolve();
+      });
+    } catch (_) {
+      resolve();
+    }
+  });
 }
 
 // ── Signaling + Message Relay ──────────────────────────────────────
@@ -362,6 +398,7 @@ function handleRelayedMessage(msg) {
           alarms.innerHTML = html;
           if (typeof htmx !== 'undefined') htmx.process(alarms);
         }
+        persistCrdtState();
       });
       break;
     }
@@ -518,12 +555,18 @@ async function autoReconnect() {
   roomName = session.name || '';
   isCreator = session.creator || false;
 
-  // Tell WASM we're in a room (waiting for peer)
+  // Tell WASM we're in a room (waiting for peer) — this calls init_doc()
   postToWasm(
     'POST',
     '/api/room/create',
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
+
+  // Restore CRDT Doc from sessionStorage (must happen after init_doc via
+  // room/create, before the sync handshake). Uses a small delay to ensure
+  // the create POST has been processed by the worker first.
+  await new Promise((r) => setTimeout(r, 50));
+  await restoreCrdtState();
 
   try {
     await connectSignaling();
@@ -736,6 +779,7 @@ const kipukasMultiplayer = {
           if (result.update) {
             sendToPeer({ type: 'yrs_update', update: result.update });
           }
+          persistCrdtState();
         } catch (e) {
           console.warn('[multiplayer] addTurn parse error:', e);
         }
@@ -757,6 +801,7 @@ const kipukasMultiplayer = {
         if (result.update) {
           sendToPeer({ type: 'yrs_update', update: result.update });
         }
+        persistCrdtState();
       } catch (e) {
         console.warn('[multiplayer] tickTurns parse error:', e);
       }
@@ -781,6 +826,7 @@ const kipukasMultiplayer = {
           if (result.update) {
             sendToPeer({ type: 'yrs_update', update: result.update });
           }
+          persistCrdtState();
         } catch (e) {
           console.warn('[multiplayer] removeTurn parse error:', e);
         }
