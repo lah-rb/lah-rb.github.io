@@ -128,6 +128,11 @@ pub fn render_turn_panel(multiplayer: bool) -> String {
         r#"<input type="number" inputmode="numeric" pattern="[0-9]*" id="turnsSelector" min="1" max="99" value="1" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red"></div>"#,
     );
 
+    // Hidden input to reliably track selected color (Alpine x-model)
+    html.push_str(
+        r#"<input type="hidden" id="timerColorSet" x-model="selectedColor">"#,
+    );
+
     // Color picker
     html.push_str(r#"<div><label class="block text-xs font-bold mb-1">Color</label>"#);
     html.push_str(r#"<div class="flex gap-2">"#);
@@ -145,14 +150,14 @@ pub fn render_turn_panel(multiplayer: bool) -> String {
     }
     html.push_str(r#"</div></div>"#);
 
-    // Submit button — routes differently for multiplayer vs local
+    // Submit button — reads color from hidden input (reliable across all Alpine contexts)
     if multiplayer {
         html.push_str(
-            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="kipukasMultiplayer.addTurn(document.getElementById('turnsSelector').value, document.getElementById('timerName').value, document.querySelector('[x-data] button.ring-2')?.getAttribute('aria-label')?.replace(' color','') || 'red')">New Timer</button>"#,
+            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="kipukasMultiplayer.addTurn(document.getElementById('turnsSelector').value, document.getElementById('timerName').value, document.getElementById('timerColorSet').value || 'red')">New Timer</button>"#,
         );
     } else {
         html.push_str(
-            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="htmx.ajax('POST', '/api/game/turns', {values: {action: 'add', turns: document.getElementById('turnsSelector').value, name: document.getElementById('timerName').value, color_set: document.querySelector('[x-data] button.ring-2')?.getAttribute('aria-label')?.replace(' color','') || 'red'}, target: '#turn-alarms', swap: 'innerHTML'})">New Timer</button>"#,
+            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="htmx.ajax('POST', '/api/game/turns', {values: {action: 'add', turns: document.getElementById('turnsSelector').value, name: document.getElementById('timerName').value, color_set: document.getElementById('timerColorSet').value || 'red'}, target: '#turn-alarms', swap: 'innerHTML'})">New Timer</button>"#,
         );
     }
 
@@ -255,11 +260,16 @@ pub fn render_alarm_list(multiplayer: bool) -> String {
 
     html.push_str(r#"</div>"#); // close alarm-list-inner
 
-    // Toggle visibility button
+    // Toggle visibility button — routes through multiplayer-aware path when synced
     let rotate_class = if show_alarms { "" } else { " rotate-180" };
+    let toggle_action = if multiplayer {
+        "htmx.ajax('POST', '/api/room/yrs/alarm/toggle', {target: '#turn-alarms', swap: 'innerHTML'})"
+    } else {
+        "htmx.ajax('POST', '/api/game/turns', {values: {action: 'toggle_visibility'}, target: '#turn-alarms', swap: 'innerHTML'})"
+    };
     html.push_str(&format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle" onclick="htmx.ajax('POST', '/api/game/turns', {{values: {{action: 'toggle_visibility'}}, target: '#turn-alarms', swap: 'innerHTML'}})" class="fill-none stroke-2 z-50 stroke-kip-drk-goldenrod w-6 h-6 mb-2 justify-left cursor-pointer{}">"#,
-        rotate_class
+        r#"<svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle" onclick="{}" class="fill-none stroke-2 z-50 stroke-kip-drk-goldenrod w-6 h-6 mb-2 justify-left cursor-pointer{}">"#,
+        toggle_action, rotate_class
     ));
     html.push_str(
         r#"<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />"#,
