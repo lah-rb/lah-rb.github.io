@@ -6,6 +6,7 @@
 //! Phase 4: Room state (global/shared) for multiplayer via WebRTC.
 //! All structs derive Serialize/Deserialize for WebRTC diffs.
 
+pub mod crdt;
 pub mod damage;
 pub mod room;
 pub mod state;

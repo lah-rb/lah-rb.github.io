@@ -145,7 +145,11 @@
     } else {
       // Move to next device in list
       currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-      console.log(`[qr-camera] Switching to device ${currentDeviceIndex}: ${videoDevices[currentDeviceIndex].label || 'Unknown'}`);
+      console.log(
+        `[qr-camera] Switching to device ${currentDeviceIndex}: ${
+          videoDevices[currentDeviceIndex].label || 'Unknown'
+        }`,
+      );
     }
 
     // Stop current stream and restart with new constraints

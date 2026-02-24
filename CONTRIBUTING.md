@@ -70,7 +70,7 @@ A feature defaults to local user state unless it explicitly requires cross-playe
 
 ### Formatting & Linting
 
-`deno fmt` and `deno lint` enforce consistent style on scripts and JavaScript assets. Run `deno task check` to verify both in a single command. Configuration lives in `deno.json` under `fmt` and `lint` keys.
+`deno fmt` and `deno lint` enforce consistent style on scripts and JavaScript assets. Run `deno task check` to verify both in a single command. Configuration lives in `deno.json` under `fmt` and `lint` keys. --PLEASE RUN deno fmt and deno lint/ deno lint --fix FOR CODE QUALITY-- --ATTEMPT TO FIX LINTING ERRORS AS THEY ARE FOUND--
 
 ---
 
@@ -294,6 +294,9 @@ pub fn with_state_mut<F, R>(f: F) -> R where F: FnOnce(&mut GameState) -> R {
 | `fists_reset` | Both → peer | (none) | Reset for next round |
 | `fists_outcome` | Both → peer | `{ attacker_won: bool }` | Sync "Did you win?" result |
 | `final_blows_submission` | Both → peer | `{ data: FinalBlowsSubmission }` | Sync Final Blows choice |
+| `yrs_sv` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector (sync handshake step 1) |
+| `yrs_sv_reply` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector reply (sync handshake step 2) |
+| `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (mutation broadcast) |
 
 **Why JSON over binary:** With 56 cards and simple turn-based interactions, message frequency is ~1-2 per combat round. JSON is human-readable for debugging and trivially parsed. Binary would add complexity for negligible performance gain.
 
@@ -477,6 +480,8 @@ Then add the corresponding WASM route in `kipukas-server/src/routes/`, register 
 | [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/) | 0.2 | MIT / Apache-2.0 | Rust ↔ JavaScript interop |
 | [matchit](https://crates.io/crates/matchit) | 0.8 | MIT | Radix-tree URL router (same engine as Axum) |
 | [serde](https://serde.rs/) + serde_json | 1.x | MIT / Apache-2.0 | State serialization (localStorage + WebSocket relay) |
+| [yrs](https://crates.io/crates/yrs) | 0.25 | MIT | Yjs CRDT port — conflict-free replicated data types for multiplayer sync |
+| [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
 
 ### Server & Runtime
 
@@ -703,6 +708,20 @@ A condensed record of architectural decisions and key lessons from each developm
 **Lessons:** WebRTC is overkill for turn-based games with ~1-2 messages per combat round. The operational burden (STUN/TURN external deps, ICE negotiation fragility, mobile browser sleep killing connections) far outweighed the theoretical P2P benefits. WebSocket relay works everywhere, reconnects automatically, and reduced multiplayer code from ~500 lines to ~330 lines across server and client. The only architecturally superior solution — peer-to-peer WebSocket connections between browser WASM instances — remains impossible due to browser security restrictions (browsers cannot listen on sockets). Verify this constraint before future architecture changes.
 
 **WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4a) → ~185KB (Phase 4b, no WASM changes).
+
+### Phase 5: Yrs CRDT Integration + Shared Turn Timer (✅)
+
+**Built:** `yrs` (Yjs Rust port) CRDT library integrated into the WASM crate. Multiplayer turn timer sync replaced with yrs-backed state that converges automatically via binary update exchange. New `crdt.rs` module with `thread_local!` yrs `Doc` alongside existing `GameState` and `RoomState`. Six new `/api/room/yrs/*` routes for CRDT sync operations (state vector exchange, diff computation, update application, alarm mutations). Multiplayer JS updated with 3-message yrs sync handshake (`yrs_sv` → `yrs_sv_reply` → `yrs_update`) triggered on peer connect/reconnect.
+
+**Key decisions:** yrs chosen over Automerge (300-400KB vs 828KB WASM). Turn timer used as proof-of-concept — the yrs Doc structure (`"alarms"` ArrayRef of MapRef entries) is extensible for future features (decks, combat history, identity). Multiplayer `render_alarm_list(true)` reads from the yrs Doc; local `render_alarm_list(false)` continues reading from `GameState`. Base64 encoding for yrs binary updates over the JSON WebSocket relay — keeps the existing relay protocol intact without requiring binary WebSocket frames. CRDT Doc initialized on room create/join and reset on disconnect, matching the room lifecycle.
+
+**Removed:** Old turn timer message-based sync (`turn_add`, `turn_tick`, `turn_remove` relay messages). These are replaced by `yrs_update` messages carrying the full CRDT binary diff, which handles concurrent edits, reconnection convergence, and deduplication automatically.
+
+**Added:** `yrs` 0.25 crate, `base64` 0.22 crate, `kipukas-server/src/game/crdt.rs` module (14 unit tests covering add/tick/remove/sync/convergence/concurrent edits).
+
+**Lessons:** yrs `WriteTxn` trait must be imported explicitly for `get_or_insert_array` on `TransactionMut`. The state vector exchange handshake requires both directions — each peer computes the diff the other needs. Multiplayer alarm rendering must read from the CRDT Doc, not `GameState`, since mutations go through yrs routes. Existing tests that checked multiplayer alarm rendering needed updating to add alarms via `crdt::add_alarm()` instead of `turns::add_alarm()`.
+
+**WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4) → TBD (Phase 5, +yrs — expect ~500-600KB).
 
 ---
 

@@ -4,6 +4,7 @@
 //! Local game state (damage, turns) remains per-user.
 
 use crate::cards_generated::CARDS;
+use crate::game::crdt;
 use crate::game::damage;
 use crate::game::room::{self, CombatRole, FistsSubmission};
 use crate::game::state::{with_state, Alarm};
@@ -156,6 +157,9 @@ pub fn handle_create_post(body: &str) -> String {
         r.fists.reset();
     });
 
+    // Initialize yrs CRDT Doc for this multiplayer session
+    crdt::init_doc();
+
     r#"<span class="text-emerald-600 text-sm">Room created. Waiting for peer...</span>"#
         .to_string()
 }
@@ -172,13 +176,12 @@ pub fn handle_join_post(body: &str) -> String {
         if !name.is_empty() {
             r.room_name = name.to_string();
         }
-        // Don't set connected = true here. The signaling server accepted
-        // the join, but WebRTC (and the data channel) isn't established yet.
-        // connected will be set to true by handle_connected_post() once
-        // the RTCPeerConnection reaches the 'connected' state.
         r.connected = false;
         r.fists.reset();
     });
+
+    // Initialize yrs CRDT Doc for this multiplayer session
+    crdt::init_doc();
 
     room::with_room(|r| render_waiting_status(r))
 }
@@ -207,6 +210,7 @@ pub fn handle_connected_post(body: &str) -> String {
 
 pub fn handle_disconnect_post(_body: &str) -> String {
     room::reset_room();
+    crdt::reset_doc();
     render_disconnected_status()
 }
 
@@ -839,6 +843,87 @@ pub fn handle_room_turns_export_get(_query: &str) -> String {
 
 pub fn handle_room_state_get(_query: &str) -> String {
     room::export_room_json()
+}
+
+// ── Yrs CRDT sync routes ──────────────────────────────────────────
+
+/// GET /api/room/yrs/sv — return this peer's state vector (base64).
+pub fn handle_yrs_sv_get(_query: &str) -> String {
+    crdt::encode_state_vector()
+}
+
+/// POST /api/room/yrs/diff — receive a remote state vector (base64 in body),
+/// return the diff update (base64) that the remote peer needs.
+pub fn handle_yrs_diff_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let sv = get_param(&params, "sv").unwrap_or(body.trim());
+    match crdt::encode_diff(sv) {
+        Ok(diff) => diff,
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    }
+}
+
+/// POST /api/room/yrs/apply — apply a base64-encoded update from peer.
+/// Returns fresh alarm list HTML for the multiplayer turn tracker.
+pub fn handle_yrs_apply_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let update = get_param(&params, "update").unwrap_or(body.trim());
+    match crdt::apply_update(update) {
+        Ok(()) => turns::render_alarm_list(true),
+        Err(e) => format!(
+            r#"<span class="text-kip-red text-sm">CRDT apply error: {}</span>"#,
+            e
+        ),
+    }
+}
+
+/// POST /api/room/yrs/alarm/add — add an alarm via yrs CRDT.
+/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
+pub fn handle_yrs_alarm_add_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let turns_str = get_param(&params, "turns").unwrap_or("1");
+    let name = get_param(&params, "name").unwrap_or("");
+    let color_set = get_param(&params, "color_set").unwrap_or("red");
+    let turns_val: i32 = turns_str.parse().unwrap_or(1).max(1).min(99);
+
+    let update = crdt::add_alarm(turns_val, name, color_set);
+    let html = turns::render_alarm_list(true);
+
+    format!(
+        r#"{{"update":"{}","html":{}}}"#,
+        update,
+        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
+    )
+}
+
+/// POST /api/room/yrs/alarm/tick — tick all alarms via yrs CRDT.
+/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
+pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
+    let update = crdt::tick_alarms();
+    let html = turns::render_alarm_list(true);
+
+    format!(
+        r#"{{"update":"{}","html":{}}}"#,
+        update,
+        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
+    )
+}
+
+/// POST /api/room/yrs/alarm/remove — remove an alarm by index via yrs CRDT.
+/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
+pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let idx_str = get_param(&params, "index").unwrap_or("0");
+    let idx: u32 = idx_str.parse().unwrap_or(0);
+
+    let update = crdt::remove_alarm(idx);
+    let html = turns::render_alarm_list(true);
+
+    format!(
+        r#"{{"update":"{}","html":{}}}"#,
+        update,
+        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
+    )
 }
 
 // ── Result rendering ───────────────────────────────────────────────

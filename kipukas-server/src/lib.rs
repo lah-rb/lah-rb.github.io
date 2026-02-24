@@ -65,6 +65,14 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/turns/export", "room_turns_export").ok();
     router.insert("/api/room/state", "room_state").ok();
 
+    // Phase 5: Yrs CRDT sync routes
+    router.insert("/api/room/yrs/sv", "yrs_sv").ok();
+    router.insert("/api/room/yrs/diff", "yrs_diff").ok();
+    router.insert("/api/room/yrs/apply", "yrs_apply").ok();
+    router.insert("/api/room/yrs/alarm/add", "yrs_alarm_add").ok();
+    router.insert("/api/room/yrs/alarm/tick", "yrs_alarm_tick").ok();
+    router.insert("/api/room/yrs/alarm/remove", "yrs_alarm_remove").ok();
+
     match router.at(path) {
         Ok(matched) => match (*matched.value, method) {
             // GET routes
@@ -101,6 +109,14 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
             ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
             ("room_fists_final_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
+
+            // Phase 5: Yrs CRDT sync routes
+            ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
+            ("yrs_diff", "POST") => routes::room::handle_yrs_diff_post(body),
+            ("yrs_apply", "POST") => routes::room::handle_yrs_apply_post(body),
+            ("yrs_alarm_add", "POST") => routes::room::handle_yrs_alarm_add_post(body),
+            ("yrs_alarm_tick", "POST") => routes::room::handle_yrs_alarm_tick_post(body),
+            ("yrs_alarm_remove", "POST") => routes::room::handle_yrs_alarm_remove_post(body),
 
             _ => method_not_allowed(),
         },
