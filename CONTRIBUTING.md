@@ -694,7 +694,7 @@ A condensed record of architectural decisions and key lessons from each developm
 
 **Built:** Replaced WebRTC peer-to-peer data channel with WebSocket message relay through the signaling server. Eliminated all STUN/TURN/ICE/SDP complexity.
 
-**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 15s server-side grace period) handles mobile browser sleep and network transitions. The `htmx-ext-ws` integration was deferred — the current `sendToPeer()` pattern is simpler and sufficient for the existing message protocol.
+**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 15s server-side grace period) handles mobile browser sleep and network transitions. The `sendToPeer()` pattern routes game messages through WASM before sending, which doesn't fit the `htmx-ext-ws` model of direct HTML-over-WebSocket — so the manual WebSocket approach is the correct choice for this architecture.
 
 **Removed:** `RTCPeerConnection`, `RTCDataChannel`, ICE candidate handling, SDP offer/answer exchange, STUN server configuration, Cloudflare TURN API integration + credential proxying, `/turn-credentials` endpoint, `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`.
 
