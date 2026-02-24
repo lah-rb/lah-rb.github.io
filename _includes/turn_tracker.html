@@ -1,9 +1,13 @@
 <!-- Phase 3b: Turn tracker with HTMX + WASM state management.
      The popover toggle (showTurnTracker) stays Alpine — purely visual.
-     Timer creation form is loaded from WASM. Alarm state lives in WASM memory. -->
-<div x-data="{ showTurnTracker: false }">
-    <svg xmlns="http://www.w3.org/2000/svg" 
+     Timer creation form is loaded from WASM. Alarm state lives in WASM memory.
+     Hides when multiplayer room is connected (multiplayer_turn_tool.html takes over). -->
+<div x-data="{ showTurnTracker: false, roomConnected: false }"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false">
+    <svg xmlns="http://www.w3.org/2000/svg"
     @click="showTurnTracker = !showTurnTracker"
+    x-show="!roomConnected" x-cloak
     x-ref="turnTracker"
     viewBox="0 0 24 24"
     {% unless page.landscape %}
@@ -13,10 +17,10 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
 
-    <div x-show="showTurnTracker" x-cloak
+    <div x-show="showTurnTracker && !roomConnected" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
-    class="{{ include.menuClass }} grid grid-cols-1 h-fit w-40"
+    class="{{ include.menuClass }} grid grid-cols-1 h-fit w-56"
     hx-get="/api/game/turns"
     hx-trigger="intersect once"
     hx-swap="innerHTML">
