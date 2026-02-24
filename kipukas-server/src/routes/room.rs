@@ -878,7 +878,7 @@ fn render_fists_result() -> String {
         let result = typing::type_matchup(&atk_types, &def_types, atk_motive, def_motive);
 
         // Build result HTML
-        build_result_html(atk_card, atk_km, def_card, def_km, &result)
+        build_result_html(atk_card, &atk.card, atk_km, def_card, &def.card, def_km, &result)
     })
 }
 
@@ -927,6 +927,11 @@ fn render_final_blows_result() -> String {
     // Compute matchup using empty archetype lists (motivation-only)
     let result = typing::type_matchup(&[], &[], atk_motive, def_motive);
 
+    // Compute damage bonus from genetic_disposition
+    let atk_genetic = atk_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
+    let def_genetic = def_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
+    let damage_bonus = typing::compute_damage_bonus(atk_genetic, def_genetic, atk_motive, def_motive);
+
     let mut h = String::with_capacity(2048);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(r#"<p class="text-xl font-bold text-center mb-4">&#x1F525; Final Blows &#x1F525;</p>"#);
@@ -940,6 +945,9 @@ fn render_final_blows_result() -> String {
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);
     }
+    if let Some(gd) = atk_card.genetic_disposition {
+        h.push_str(&format!(r#"<p class="text-xs">Disposition: {}</p>"#, gd));
+    }
     h.push_str(r#"</div>"#);
 
     // Defender card info
@@ -950,6 +958,43 @@ fn render_final_blows_result() -> String {
         h.push_str(&format!(r#"<p class="text-sm">Motivation: <strong>{}</strong></p>"#, mot));
     } else {
         h.push_str(r#"<p class="text-sm text-slate-400">No motivation</p>"#);
+    }
+    if let Some(gd) = def_card.genetic_disposition {
+        h.push_str(&format!(r#"<p class="text-xs">Disposition: {}</p>"#, gd));
+    }
+    h.push_str(r#"</div>"#);
+
+    // Damage Bonus from genetic disposition
+    let bonus_color = if damage_bonus > 0 {
+        "text-emerald-600"
+    } else if damage_bonus < 0 {
+        "text-kip-red"
+    } else {
+        "text-slate-600"
+    };
+    let bonus_sign = if damage_bonus > 0 { "+" } else { "" };
+
+    h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">"#);
+    h.push_str(&format!(
+        r#"<p class="text-sm font-bold">Damage Bonus</p><p class="text-3xl font-bold {}">{}{}</p>"#,
+        bonus_color, bonus_sign, damage_bonus
+    ));
+    // Breakdown
+    let mut breakdown_parts: Vec<String> = Vec::new();
+    if let (Some(_ag), Some(_dg)) = (atk_genetic, def_genetic) {
+        let raw = typing::compute_damage_bonus(atk_genetic, def_genetic, None, None);
+        let atk_name = atk_card.genetic_disposition.unwrap_or("?");
+        let def_name = def_card.genetic_disposition.unwrap_or("?");
+        breakdown_parts.push(format!("{} vs {} ×2 = {}", atk_name, def_name, raw));
+    }
+    if typing::motives_interact(atk_motive, def_motive) {
+        breakdown_parts.push("+10 motives interact".to_string());
+    }
+    if !breakdown_parts.is_empty() {
+        h.push_str(&format!(
+            r#"<p class="text-xs text-slate-500">({})</p>"#,
+            breakdown_parts.join(", ")
+        ));
     }
     h.push_str(r#"</div>"#);
 
@@ -998,8 +1043,10 @@ fn render_final_blows_result() -> String {
 
 fn build_result_html(
     atk_card: &crate::cards_generated::Card,
+    atk_slug: &str,
     atk_km: &crate::cards_generated::KealMeans,
     def_card: &crate::cards_generated::Card,
+    def_slug: &str,
     def_km: &crate::cards_generated::KealMeans,
     result: &typing::MatchupResult,
 ) -> String {
@@ -1089,6 +1136,61 @@ fn build_result_html(
             let text = s.trim_start_matches('\n');
             h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
         }
+        h.push_str(r#"</div>"#);
+    }
+
+    // Final Blows box — only shows when at least one player's keal means are exhausted
+    let atk_exhausted = all_keal_means_exhausted(atk_slug);
+    let def_exhausted = all_keal_means_exhausted(def_slug);
+    if atk_exhausted || def_exhausted {
+        let atk_genetic = atk_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
+        let def_genetic = def_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
+        let atk_motive = atk_card.motivation.and_then(|m| typing::parse_motive(m));
+        let def_motive = def_card.motivation.and_then(|m| typing::parse_motive(m));
+        let damage_bonus = typing::compute_damage_bonus(atk_genetic, def_genetic, atk_motive, def_motive);
+
+        h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
+        h.push_str(r#"<p class="text-sm font-bold text-center mb-2">&#x1F525; Final Blows</p>"#);
+        if atk_exhausted && def_exhausted {
+            h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">Both players' keal means are exhausted. Next round is the final combat.</p>"#);
+        } else if def_exhausted {
+            h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">Defender's keal means are exhausted. Next round is the final combat.</p>"#);
+        } else {
+            h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">Attacker's keal means are exhausted. Next round is the final combat.</p>"#);
+        }
+
+        // Damage bonus display
+        let bonus_color = if damage_bonus > 0 {
+            "text-emerald-600"
+        } else if damage_bonus < 0 {
+            "text-kip-red"
+        } else {
+            "text-slate-600"
+        };
+        let bonus_sign = if damage_bonus > 0 { "+" } else { "" };
+        h.push_str(&format!(
+            r#"<p class="text-sm font-bold text-center">Damage Bonus: <span class="{}">{}{}</span></p>"#,
+            bonus_color, bonus_sign, damage_bonus
+        ));
+
+        // Breakdown
+        let mut breakdown_parts: Vec<String> = Vec::new();
+        if let (Some(ag), Some(dg)) = (atk_genetic, def_genetic) {
+            let raw = crate::typing::compute_damage_bonus(Some(ag), Some(dg), None, None);
+            let atk_name = atk_card.genetic_disposition.unwrap_or("?");
+            let def_name = def_card.genetic_disposition.unwrap_or("?");
+            breakdown_parts.push(format!("{} vs {} ×2 = {}", atk_name, def_name, raw));
+        }
+        if typing::motives_interact(atk_motive, def_motive) {
+            breakdown_parts.push("+10 motives interact".to_string());
+        }
+        if !breakdown_parts.is_empty() {
+            h.push_str(&format!(
+                r#"<p class="text-xs text-center text-slate-500">({})</p>"#,
+                breakdown_parts.join(", ")
+            ));
+        }
+
         h.push_str(r#"</div>"#);
     }
 

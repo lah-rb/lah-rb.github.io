@@ -143,6 +143,44 @@ impl MatchupResult {
     }
 }
 
+/// Compute a damage bonus from genetic disposition matchup.
+///
+/// Formula: TYPE_CHART\[atk_genetic\]\[def_genetic\] × 2, plus +10 if motives interact
+/// (i.e. the attacker's motive attack index equals the defender's motive defense index).
+///
+/// This bonus only applies during Final Blows combat.
+pub fn compute_damage_bonus(
+    atk_genetic: Option<Archetype>,
+    def_genetic: Option<Archetype>,
+    atk_motive: Option<Motive>,
+    def_motive: Option<Motive>,
+) -> i32 {
+    let mut bonus: i32 = 0;
+
+    // Genetic disposition matchup × 2
+    if let (Some(atk), Some(def)) = (atk_genetic, def_genetic) {
+        bonus += (TYPE_CHART[atk as usize][def as usize] as i32) * 2;
+    }
+
+    // +10 if motives interact
+    if let (Some(atk_mot), Some(def_mot)) = (atk_motive, def_motive) {
+        if motive_atk_index(atk_mot) == motive_def_index(def_mot) {
+            bonus += 10;
+        }
+    }
+
+    bonus
+}
+
+/// Check whether two motives interact (attacker's motive attack index matches
+/// defender's motive defense index).
+pub fn motives_interact(atk_motive: Option<Motive>, def_motive: Option<Motive>) -> bool {
+    match (atk_motive, def_motive) {
+        (Some(a), Some(d)) => motive_atk_index(a) == motive_def_index(d),
+        _ => false,
+    }
+}
+
 pub fn type_matchup(
     attackers: &[Archetype],
     defenders: &[Archetype],
@@ -340,5 +378,67 @@ mod tests {
         assert_eq!(parse_motive("Spirit"), Some(Motive::Spirit));
         assert_eq!(parse_motive("DUTY"), Some(Motive::Duty));
         assert_eq!(parse_motive("unknown"), None);
+    }
+
+    #[test]
+    fn damage_bonus_genetic_only() {
+        // Brutal vs Angelic: TYPE_CHART[3][2] = -3, ×2 = -6
+        let bonus = compute_damage_bonus(
+            Some(Archetype::Brutal),
+            Some(Archetype::Angelic),
+            None,
+            None,
+        );
+        assert_eq!(bonus, -6);
+    }
+
+    #[test]
+    fn damage_bonus_with_motive_interaction() {
+        // Cenozoic vs Cenozoic: TYPE_CHART[0][0] = 0, ×2 = 0
+        // Motives that interact add +10
+        // Need to find a pair where atk_idx == def_idx
+        // Spirit atk_idx=0, Possessor def_idx=0 → match → +10
+        let bonus = compute_damage_bonus(
+            Some(Archetype::Cenozoic),
+            Some(Archetype::Cenozoic),
+            Some(Motive::Spirit),
+            Some(Motive::Possessor),
+        );
+        assert_eq!(bonus, 10);
+    }
+
+    #[test]
+    fn damage_bonus_genetic_plus_motive() {
+        // Entropic vs Cenozoic: TYPE_CHART[14][0] = 3, ×2 = 6
+        // Spirit vs Possessor: interact → +10
+        let bonus = compute_damage_bonus(
+            Some(Archetype::Entropic),
+            Some(Archetype::Cenozoic),
+            Some(Motive::Spirit),
+            Some(Motive::Possessor),
+        );
+        assert_eq!(bonus, 16);
+    }
+
+    #[test]
+    fn damage_bonus_no_genetic_disposition() {
+        let bonus = compute_damage_bonus(None, None, Some(Motive::Spirit), Some(Motive::Possessor));
+        assert_eq!(bonus, 10); // only motive interaction
+    }
+
+    #[test]
+    fn motives_interact_true() {
+        assert!(motives_interact(Some(Motive::Spirit), Some(Motive::Possessor)));
+    }
+
+    #[test]
+    fn motives_interact_false() {
+        assert!(!motives_interact(Some(Motive::Spirit), Some(Motive::Spirit)));
+    }
+
+    #[test]
+    fn motives_interact_none() {
+        assert!(!motives_interact(None, Some(Motive::Spirit)));
+        assert!(!motives_interact(Some(Motive::Spirit), None));
     }
 }

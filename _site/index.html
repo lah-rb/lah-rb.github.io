@@ -871,7 +871,7 @@ If you have not already installed our pwa, check if your browser (and launcher i
 <!-- Card grid: HTMX infinite scroll powered by WASM /api/cards -->
 <!-- Uses CSS Grid with dynamic batch sizing based on viewport -->
  <template x-if="true">
-  <!-- Mobile: 160px min, Desktop (md+): 200px min for better desktop experience -->
+  <!-- Mobile: 160px min, Desktop (lg+): 200px min for better desktop experience -->
   <div id="card-grid"
     class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
     hx-get="/api/cards?page=0&per=12&all=true"
