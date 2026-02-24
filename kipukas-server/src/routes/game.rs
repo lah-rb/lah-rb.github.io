@@ -130,13 +130,15 @@ pub fn handle_damage_post(body: &str) -> String {
 /// Handle GET /api/game/turns
 /// Returns the turn tracker panel HTML (timer creation form),
 /// or the alarm list if `?display=alarms` is specified.
+/// Pass `?multiplayer=true` to render with multiplayer sync buttons.
 pub fn handle_turns_get(query: &str) -> String {
     let params = parse_query(query);
     let display = get_param(&params, "display").unwrap_or("");
+    let multiplayer = get_param(&params, "multiplayer").unwrap_or("") == "true";
     if display == "alarms" {
-        turns::render_alarm_list()
+        turns::render_alarm_list(multiplayer)
     } else {
-        turns::render_turn_panel()
+        turns::render_turn_panel(multiplayer)
     }
 }
 
@@ -154,13 +156,17 @@ pub fn handle_turns_post(body: &str) -> String {
     let params = parse_form_body(body);
     let action = get_param(&params, "action").unwrap_or("");
 
+    let multiplayer = get_param(&params, "multiplayer").unwrap_or("") == "true";
+
     match action {
         "add" => {
             let t: i32 = get_param(&params, "turns")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1);
             let clamped = t.clamp(1, 99);
-            turns::add_alarm(clamped);
+            let name = get_param(&params, "name").unwrap_or("");
+            let color_set = get_param(&params, "color_set").unwrap_or("red");
+            turns::add_alarm(clamped, name, color_set);
         }
         "tick" => {
             turns::tick_alarms();
@@ -177,7 +183,7 @@ pub fn handle_turns_post(body: &str) -> String {
         _ => {}
     }
 
-    turns::render_alarm_list()
+    turns::render_alarm_list(multiplayer)
 }
 
 // ── GET /api/game/state ────────────────────────────────────────────
@@ -290,21 +296,33 @@ mod tests {
     #[test]
     fn turns_post_add_and_tick() {
         reset_state();
-        handle_turns_post("action=add&turns=3");
-        let html = turns::render_alarm_list();
-        assert!(html.contains("Turns to Alarm: <strong>3</strong>"));
+        handle_turns_post("action=add&turns=3&name=test&color_set=green");
+        let html = turns::render_alarm_list(false);
+        assert!(html.contains("test")); // named alarm: "test — 3"
+        assert!(html.contains("3"));
 
         let html2 = handle_turns_post("action=tick");
-        assert!(html2.contains("Turns to Alarm: <strong>2</strong>"));
+        assert!(html2.contains("test")); // named alarm: "test — 2"
+        assert!(html2.contains("2"));
+        reset_state();
+    }
+
+    #[test]
+    fn turns_post_add_with_name_and_color() {
+        reset_state();
+        handle_turns_post("action=add&turns=5&name=Dragon+siege&color_set=blue");
+        let html = turns::render_alarm_list(false);
+        assert!(html.contains("Dragon siege"));
+        assert!(html.contains("bg-blue-100"));
         reset_state();
     }
 
     #[test]
     fn turns_post_toggle_visibility() {
         reset_state();
-        turns::add_alarm(5);
+        turns::add_alarm(5, "", "red");
         handle_turns_post("action=toggle_visibility");
-        let html = turns::render_alarm_list();
+        let html = turns::render_alarm_list(false);
         assert!(html.contains("hidden"));
         reset_state();
     }

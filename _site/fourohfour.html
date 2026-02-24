@@ -456,10 +456,14 @@ background_color
     
         <!-- Phase 3b: Turn tracker with HTMX + WASM state management.
      The popover toggle (showTurnTracker) stays Alpine — purely visual.
-     Timer creation form is loaded from WASM. Alarm state lives in WASM memory. -->
-<div x-data="{ showTurnTracker: false }">
-    <svg xmlns="http://www.w3.org/2000/svg" 
+     Timer creation form is loaded from WASM. Alarm state lives in WASM memory.
+     Hides when multiplayer room is connected (multiplayer_turn_tool.html takes over). -->
+<div x-data="{ showTurnTracker: false, roomConnected: false }"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false">
+    <svg xmlns="http://www.w3.org/2000/svg"
     @click="showTurnTracker = !showTurnTracker"
+    x-show="!roomConnected" x-cloak
     x-ref="turnTracker"
     viewBox="0 0 24 24"
     
@@ -471,12 +475,12 @@ background_color
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
 
-    <div x-show="showTurnTracker" x-cloak
+    <div x-show="showTurnTracker && !roomConnected" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
-   grid grid-cols-1 h-fit w-40"
+   grid grid-cols-1 h-fit w-56"
     hx-get="/api/game/turns"
     hx-trigger="intersect once"
     hx-swap="innerHTML">
@@ -489,6 +493,70 @@ background_color
      hx-trigger="load"
      hx-swap="innerHTML"
      hx-target="this">
+</div>
+
+    
+
+    
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+<div x-data="{ showTurnMenu: false, roomConnected: false }"
+     class="relative place-content-center"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false"
+     x-init="
+       $watch('roomConnected', value => { if (!value) showTurnMenu = false });
+     ">
+    <button aria-label="Toggle Shared Turn Timer" x-show="roomConnected" x-cloak>
+        <svg @click="showTurnMenu = !showTurnMenu"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            
+              :class="'lg:stroke-kip-goldenrod'"
+            
+            class="
+    stroke-slate-200
+  h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+    </button>
+
+    <!-- Full-screen modal overlay -->
+    <div x-show="showTurnMenu" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+        x-effect="if (showTurnMenu) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                var tc = document.getElementById('turn-container');
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+            }
+        })">
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTurnMenu = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-3 border-b border-slate-300">
+                <p class="text-lg font-bold text-kip-drk-sienna">Shared Turn Timer</p>
+                <p class="text-xs text-slate-500">Synced with multiplayer room</p>
+            </div>
+
+            <!-- Turn timer section -->
+            <div id="turn-container"
+              hx-get="/api/room/turns"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showTurnMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
     

@@ -278,12 +278,12 @@ wasmWorker.addEventListener('message', (event) => {
 // and the WebSocket relay reconnects automatically on page navigation.
 (function autoLoadMultiplayer() {
   if (!sessionStorage.getItem('kipukas_room')) return;
-  if (window.kipukasMultiplayerLoaded) return;
+  if (globalThis.kipukasMultiplayerLoaded) return;
 
   console.log('[kipukas-api] Saved room session found, auto-loading multiplayer module');
   import('/assets/js/kipukas-multiplayer.js')
     .then(function () {
-      window.kipukasMultiplayerLoaded = true;
+      globalThis.kipukasMultiplayerLoaded = true;
       console.log('[kipukas-api] Multiplayer module auto-loaded for reconnect');
     })
     .catch(function (err) {

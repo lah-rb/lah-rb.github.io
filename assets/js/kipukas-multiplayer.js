@@ -96,7 +96,7 @@ function connectSignaling() {
         if (peerPresent) {
           peerPresent = false;
           postToWasm('POST', '/api/room/peer_left', '');
-          window.dispatchEvent(new CustomEvent('room-disconnected'));
+          globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
           refreshRoomStatus();
         }
         scheduleReconnect();
@@ -118,7 +118,9 @@ function scheduleReconnect() {
   const delay = reconnectDelay();
   reconnectAttempts++;
   console.log(
-    `[multiplayer] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
+    `[multiplayer] Reconnecting in ${
+      Math.round(delay)
+    }ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
   );
   setTimeout(async () => {
     if (ws && ws.readyState === WebSocket.OPEN) return; // Already reconnected
@@ -183,7 +185,7 @@ function handleSignalingMessage(msg) {
       console.log('[multiplayer] Peer disconnected');
       peerPresent = false;
       postToWasm('POST', '/api/room/peer_left', '');
-      window.dispatchEvent(new CustomEvent('room-disconnected'));
+      globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
       refreshRoomStatus();
       break;
 
@@ -195,7 +197,7 @@ function handleSignalingMessage(msg) {
         roomCode = '';
         roomName = '';
         postToWasm('POST', '/api/room/disconnect', '');
-        window.dispatchEvent(new CustomEvent('room-disconnected'));
+        globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
       }
       showError(msg.message);
       break;
@@ -211,7 +213,7 @@ function onPeerConnected() {
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
   // Notify UI that room is connected
-  window.dispatchEvent(new CustomEvent('room-connected'));
+  globalThis.dispatchEvent(new CustomEvent('room-connected'));
   refreshRoomStatus();
 }
 
@@ -301,6 +303,41 @@ function handleRelayedMessage(msg) {
           showFistsMessage('\u2713 Opponent stated Final Blows!', 'text-emerald-600');
         }
       });
+      break;
+    }
+
+    case 'turn_add': {
+      console.log('[multiplayer] Received turn_add from peer');
+      postToWasmWithCallback(
+        'POST',
+        '/api/game/turns',
+        'action=add&turns=' + msg.turns + '&name=' + encodeURIComponent(msg.name || '') +
+          '&color_set=' + (msg.color_set || 'red'),
+        (_html) => {
+          refreshTurnAlarms();
+        },
+      );
+      break;
+    }
+
+    case 'turn_tick': {
+      console.log('[multiplayer] Received turn_tick from peer');
+      postToWasmWithCallback('POST', '/api/game/turns', 'action=tick', (_html) => {
+        refreshTurnAlarms();
+      });
+      break;
+    }
+
+    case 'turn_remove': {
+      console.log('[multiplayer] Received turn_remove from peer, index=' + msg.index);
+      postToWasmWithCallback(
+        'POST',
+        '/api/game/turns',
+        'action=remove&index=' + msg.index,
+        (_html) => {
+          refreshTurnAlarms();
+        },
+      );
       break;
     }
 
@@ -419,6 +456,20 @@ function execScripts(el) {
   });
 }
 
+/** Refresh the turn alarm display on the page. */
+function refreshTurnAlarms() {
+  const alarms = document.getElementById('turn-alarms');
+  if (!alarms) return;
+  if (typeof htmx !== 'undefined') {
+    htmx.ajax('GET', '/api/game/turns?display=alarms', {
+      target: '#turn-alarms',
+      swap: 'innerHTML',
+    });
+  }
+  // Also persist state so alarm changes survive navigation
+  persistState();
+}
+
 /** Refresh the room status panel and fists section in the UI. */
 function refreshRoomStatus() {
   if (typeof htmx === 'undefined') return;
@@ -533,7 +584,7 @@ const kipukasMultiplayer = {
     roomName = '';
     postToWasm('POST', '/api/room/disconnect', '');
     // Notify UI that room is disconnected
-    window.dispatchEvent(new CustomEvent('room-disconnected'));
+    globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
     refreshRoomStatus();
   },
 
@@ -645,6 +696,48 @@ const kipukasMultiplayer = {
         console.warn('[multiplayer] Could not parse room state for outcome sync:', e);
       }
     });
+  },
+
+  // ── Turn timer sync ────────────────────────────────────────────────
+
+  /** Add a turn timer and sync to peer. Called from WASM-rendered HTML. */
+  addTurn(turns, name, colorSet) {
+    const t = parseInt(turns, 10) || 1;
+    const clamped = Math.max(1, Math.min(99, t));
+    const n = (name || '').trim();
+    const c = colorSet || 'red';
+
+    // Add locally via WASM
+    postToWasmWithCallback(
+      'POST',
+      '/api/game/turns',
+      'action=add&turns=' + clamped + '&name=' + encodeURIComponent(n) + '&color_set=' + c,
+      (_html) => {
+        refreshTurnAlarms();
+      },
+    );
+
+    // Sync to peer
+    sendToPeer({ type: 'turn_add', turns: clamped, name: n, color_set: c });
+    console.log('[multiplayer] Sent turn_add to peer: ' + clamped + ' cycles');
+  },
+
+  /** Advance all turn timers by one diel cycle and sync to peer. */
+  tickTurns() {
+    postToWasmWithCallback('POST', '/api/game/turns', 'action=tick', (_html) => {
+      refreshTurnAlarms();
+    });
+    sendToPeer({ type: 'turn_tick' });
+    console.log('[multiplayer] Sent turn_tick to peer');
+  },
+
+  /** Remove a turn timer by index and sync to peer. */
+  removeTurn(index) {
+    postToWasmWithCallback('POST', '/api/game/turns', 'action=remove&index=' + index, (_html) => {
+      refreshTurnAlarms();
+    });
+    sendToPeer({ type: 'turn_remove', index: index });
+    console.log('[multiplayer] Sent turn_remove to peer, index=' + index);
   },
 
   /** Check if currently connected to a peer. */

@@ -6,7 +6,8 @@
 use crate::cards_generated::CARDS;
 use crate::game::damage;
 use crate::game::room::{self, CombatRole, FistsSubmission};
-use crate::game::state::with_state;
+use crate::game::state::{with_state, Alarm};
+use crate::game::turns;
 use crate::typing;
 
 /// Parse URL-encoded form body into key-value pairs.
@@ -789,6 +790,49 @@ fn auto_mark_damage(card_slug: &str, keal_idx: u8) -> bool {
     }
 
     false
+}
+
+// ── GET /api/room/turns ────────────────────────────────────────────
+
+/// Handle GET /api/room/turns
+/// Returns the multiplayer turn tracker panel (creation form + alarm list).
+/// Renders with multiplayer sync buttons so mutations broadcast to peer.
+pub fn handle_room_turns_get(query: &str) -> String {
+    let params = parse_query(query);
+    let display = get_param(&params, "display").unwrap_or("");
+    if display == "alarms" {
+        turns::render_alarm_list(true)
+    } else {
+        turns::render_turn_panel(true)
+    }
+}
+
+// ── POST /api/room/turns/sync ──────────────────────────────────────
+
+/// Handle POST /api/room/turns/sync
+/// Receives full alarm state from the peer (used for initial sync on room connect).
+/// Body is JSON: array of Alarm objects.
+pub fn handle_room_turns_sync_post(body: &str) -> String {
+    match serde_json::from_str::<Vec<Alarm>>(body) {
+        Ok(remote_alarms) => {
+            turns::merge_alarms(&remote_alarms);
+            turns::render_alarm_list(true)
+        }
+        Err(e) => {
+            format!(
+                r#"<span class="text-kip-red text-sm">Turn sync error: {}</span>"#,
+                e
+            )
+        }
+    }
+}
+
+// ── GET /api/room/turns/export ─────────────────────────────────────
+
+/// Handle GET /api/room/turns/export
+/// Returns current alarms as JSON for sending to peer.
+pub fn handle_room_turns_export_get(_query: &str) -> String {
+    turns::export_alarms_json()
 }
 
 // ── GET /api/room/state ────────────────────────────────────────────
