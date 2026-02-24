@@ -260,7 +260,8 @@ mod tests {
     fn damage_post_toggle_slot() {
         reset_state();
         let html = handle_damage_post("card=brox_the_defiant&slot=1");
-        assert!(html.contains("fill:#dc2626")); // slot 1 should now show filled red circle (inline style)
+        assert!(html.contains("on: true")); // slot 1 Alpine state should be checked
+        assert!(html.contains("bg-red-600")); // checked slot shows red via Tailwind class
         reset_state();
     }
 
@@ -273,7 +274,7 @@ mod tests {
         handle_damage_post("card=brox_the_defiant&slot=3");
         let html = handle_damage_post("card=brox_the_defiant&action=wasted");
         assert!(html.contains("Final Blows"));
-        assert!(html.contains("fill:#dc2626")); // wasted should show filled red circle (inline style)
+        assert!(html.contains("bg-red-600")); // wasted indicator shows red via Tailwind class
         reset_state();
     }
 
