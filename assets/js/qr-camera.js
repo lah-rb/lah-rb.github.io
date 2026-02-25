@@ -111,9 +111,9 @@
                 [imageData.data.buffer], // Transfer ownership (zero-copy)
               );
             }
-          }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+          }, 250); // 4 fps — faster scan rate catches tilt sweet spots
 
-          console.log('[qr-camera] Camera started, scanning at 2 fps');
+          console.log('[qr-camera] Camera started, scanning at 4 fps');
         })
         .catch((err) => {
           console.error('[qr-camera] Camera access error:', err);

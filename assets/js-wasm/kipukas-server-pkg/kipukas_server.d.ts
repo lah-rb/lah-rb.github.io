@@ -54,12 +54,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
     readonly reset_qr_frames: () => void;
     readonly get_qr_stats: () => [number, number];
     readonly set_qr_strategy_order: (a: number, b: number) => void;
     readonly reset_qr_strategy_order: () => void;
+    readonly handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;

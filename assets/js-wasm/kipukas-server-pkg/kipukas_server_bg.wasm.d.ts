@@ -1,12 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
 export const decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
 export const reset_qr_frames: () => void;
 export const get_qr_stats: () => [number, number];
 export const set_qr_strategy_order: (a: number, b: number) => void;
 export const reset_qr_strategy_order: () => void;
+export const handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
