@@ -1,8 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
 export const handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+export const decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
+export const reset_qr_frames: () => void;
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;

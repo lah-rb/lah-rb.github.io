@@ -65,6 +65,13 @@ export function handle_request(method, path, query, body) {
     }
 }
 
+/**
+ * Reset the frame accumulator (call when scanner closes).
+ */
+export function reset_qr_frames() {
+    wasm.reset_qr_frames();
+}
+
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

@@ -25,12 +25,18 @@ export function decode_qr_frame(rgba: Uint8Array, width: number, height: number)
  */
 export function handle_request(method: string, path: string, query: string, body: string): string;
 
+/**
+ * Reset the frame accumulator (call when scanner closes).
+ */
+export function reset_qr_frames(): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
     readonly handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+    readonly decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly reset_qr_frames: () => void;
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
