@@ -233,6 +233,18 @@
 
     worker.addEventListener('message', (event) => {
       if (event.data?.type === 'QR_FOUND') {
+        // Persist decoder info before redirect wipes the page
+        const decoder = event.data.decoder || 'unknown';
+        sessionStorage.setItem('qr-last-decoder', decoder);
+        sessionStorage.setItem('qr-last-url', event.data.url || '');
+
+        // Update cumulative decode stats (survives across scans within session)
+        const stats = JSON.parse(
+          sessionStorage.getItem('qr-decode-stats') || '{"rqrr":0,"zxing":0}',
+        );
+        stats[decoder] = (stats[decoder] || 0) + 1;
+        sessionStorage.setItem('qr-decode-stats', JSON.stringify(stats));
+
         // Stop scanning immediately
         stop();
 

@@ -87,10 +87,12 @@ self.onmessage = async (event) => {
 
     // Try rqrr multi-strategy cascade first (pure Rust WASM, no external deps)
     let decoded = null;
+    let decoder = null;
     try {
       const rqrrResult = decode_qr_frame(new Uint8Array(pixels), width, height);
       if (rqrrResult) {
         decoded = rqrrResult;
+        decoder = 'rqrr';
         console.debug('[kipukas-worker] QR decoded by rqrr');
       }
     } catch (err) {
@@ -101,6 +103,7 @@ self.onmessage = async (event) => {
     if (!decoded) {
       decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
       if (decoded) {
+        decoder = 'zxing';
         console.debug('[kipukas-worker] QR decoded by ZXing (rqrr missed)');
       }
     }
@@ -113,7 +116,7 @@ self.onmessage = async (event) => {
         `?url=${encodeURIComponent(decoded)}`,
         '',
       );
-      self.postMessage({ type: 'QR_FOUND', html, url: decoded });
+      self.postMessage({ type: 'QR_FOUND', html, url: decoded, decoder });
     }
     return;
   }
