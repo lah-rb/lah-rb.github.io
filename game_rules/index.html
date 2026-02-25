@@ -53,7 +53,8 @@
 
         <!-- Logo + title -->
         <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src="./images/small_kip_logo.png" alt="Kipukas" class="h-14 w-14">
+            <img src="./images/small_kip_logo.png" alt="Kipukas" class="h-14 w-14 shrink-0 object-contain">
+
         </a>
         <h1 class="font-bold text-lg hidden sm:block">Kipukas Rules</h1>
 
@@ -61,7 +62,6 @@
         <div class="flex-1"></div>
 
         <!-- QR Scanner button -->
-        <div id="qr-container"></div>
         <button class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Scan QR Code"
                 onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@
 
         <!-- Sidebar -->
         <aside id="sidebar"
-               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transition-transform duration-300 mt-[57px] lg:mt-0"
+               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transition-transform duration-300 mt-14.25 lg:mt-0"
                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
             <div class="px-4 py-3 border-b border-sky-700 flex items-center justify-between shrink-0">
                 <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Table of Contents</span>
@@ -731,7 +731,7 @@
 <p>Many games have a mechanic where the card that you just played can't attack in the same turn it was played. Kipukas; however, does not as it is in direct conflict with unrevealed cards. Instead, if a card is played unrevealed it is essentially in a liminal state by the player's choosing. By playing it unrevealed, it is of no immediate consequence to the opposing player. If a player chooses to play a soul card revealed, it is free to move and attack in the same turn it was placed.</p>
 <h2 id="building_decks">Building Decks<a class="header-anchor" href="#building_decks" title="Link to this section">#</a></h2>
 <p>Decks are built gradually in Kipukas. To keep barriers to entry as low as possible we offer a starter kit that includes a starter map (changes by season), a starter deck or two of your choice (at first only the founder's deck is available, but more archetypal adaptation specific starter decks will be produced), and two sets of tokens. Growing your deck after you purchase a starter kit (or if you are ambitious, before ever purchasing one) involves purchasing other starter decks separately, purchasing individual cards from kipukas.com, purchasing and waiting out the incubation period for incubation cards, or trading with people that you trust. Kipukas cards are valuable pieces of fine art, as such we take their trade and resell seriously. You can request any sell or trade to be brokered through Kipukas. A brokered trade will involve both parties sending their cards to Kipukas. Each card in the trade will be authenticated using our 7 factor authentication process. If all cards involved in the trade are presumed authentic, we will complete the trade and send the cards to their new owners. If any cards are found to be inauthentic the trade will be canceled, the authentic cards will be returned to their owners and the inauthentic cards will be retained by Kipukas. This process protects your information as neither party gets to know the other’s address while protecting you from counterfeit cards. Kipukas will also put cards that you want to trade, sell, or auction on our website and inform you of offers as they are made. Keep watch for Kipukas Trade Deals, where we offer an exceptional trade from time to time (frequency increases as customer base builds).<br>As for recipes, you can submit a request for the recipe card with your next order. Recipes also act as information that players can trade. Standardly, one recipe is given out with the purchase of three cards or three recipes with the purchase of one starter pack. If a certain recipe is requested in the order notes, it will replace one of the random recipes you would have received.</p>
-<h3 id="building_decks">Deck Sturcture<a class="header-anchor" href="#building_decks" title="Link to this section">#</a></h3>
+<h3 id="deck_structure">Deck Sturcture<a class="header-anchor" href="#deck_structure" title="Link to this section">#</a></h3>
 <h4 id="decks_must_have_30_cards_1_optional_personal_effect_no_more_no_less">Decks must have 30 cards + 1 optional Personal Effect No more. No less.<a class="header-anchor" href="#decks_must_have_30_cards_1_optional_personal_effect_no_more_no_less" title="Link to this section">#</a></h4>
 <p><strong>Card Copy Limits</strong></p>
 <table>
@@ -880,6 +880,9 @@
         </main>
     </div>
 
+    <!-- QR Overlay -->
+    <div id="qr-container" class="fixed inset-0 z-50 flex items-center justify-center" style="display:none;"></div>
+
     <!-- Chat Widget (Kippa) -->
     <div class="fixed bottom-5 right-5 z-50">
         <!-- Chat toggle button -->
@@ -895,7 +898,7 @@
         <!-- Chat panel -->
         <div x-show="chatOpen" x-cloak
              x-transition.duration.300ms
-             class="absolute bottom-16 right-0 w-80 sm:w-96 h-[28rem] bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden"
+             class="absolute bottom-16 right-0 w-80 sm:w-96 h-112 bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden"
              id="chat-panel">
             <!-- Chat header -->
             <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 shrink-0">
