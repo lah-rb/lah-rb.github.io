@@ -2,6 +2,14 @@
 /* eslint-disable */
 
 /**
+ * Decode a QR code from raw RGBA pixel data using multi-strategy rqrr cascade.
+ *
+ * Called from kipukas-worker.js on each camera frame.
+ * Returns decoded text or empty string if no QR found.
+ */
+export function decode_qr_frame(rgba: Uint8Array, width: number, height: number): string;
+
+/**
  * Process an HTTP-like request and return an HTML fragment.
  *
  * Called from JavaScript (Web Worker) via wasm-bindgen.
@@ -21,13 +29,14 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly decode_qr_frame: (a: number, b: number, c: number, d: number) => [number, number];
     readonly handle_request: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
-    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_start: () => void;
 }
 

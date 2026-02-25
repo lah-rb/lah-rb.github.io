@@ -1,6 +1,31 @@
 /* @ts-self-types="./kipukas_server.d.ts" */
 
 /**
+ * Decode a QR code from raw RGBA pixel data using multi-strategy rqrr cascade.
+ *
+ * Called from kipukas-worker.js on each camera frame.
+ * Returns decoded text or empty string if no QR found.
+ * @param {Uint8Array} rgba
+ * @param {number} width
+ * @param {number} height
+ * @returns {string}
+ */
+export function decode_qr_frame(rgba, width, height) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passArray8ToWasm0(rgba, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.decode_qr_frame(ptr0, len0, width, height);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Process an HTTP-like request and return an HTML fragment.
  *
  * Called from JavaScript (Web Worker) via wasm-bindgen.
@@ -197,6 +222,13 @@ function handleError(f, args) {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {

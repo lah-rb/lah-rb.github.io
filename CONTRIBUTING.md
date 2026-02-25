@@ -731,18 +731,11 @@ Features are grouped by priority. Items marked *post-launch* require the game to
 
 ### Near-Term
 
-#### 1. Shared Turn Timer
-Sync the diel cycle alarm system via the WebSocket relay so both players see the same turn countdown. Multiple timers should be supported and visible for both players on both devices. If one player advances a turn the other player's countdown SHOULD be advanced as well (mutual culpability + true to game intention). First candidate for expanding room scope beyond fists combat. New `turn_sync` message type in the relay protocol (Pattern 9). Additionally, the basic UI/UX should also be enhanced for both the local_version of the tool and the multiplayer version:
-User should be able to select the color set used by the timer from predetermined sets (red, green, blue, yellow, pink)
-The timer should have an optional name field in the input section
-The timer should have an integer only input field (brings up number pad on mobile) rather than a slider
-Discussions should be had about cleaner timer display on screen (for instance only having one advance turn button for all timers)
-
-#### 2. QR Room Join
+#### 1. QR Room Join
 Embed the room code in a QR code so scanning joins the room directly. This connects two existing features (QR scanner + multiplayer) with minimal new code. The flow: Player A creates a room → room code appears as both text and a QR. Player B scans the QR → auto-joins the room. The QR URL format could be `kpks.us/join?code=ABCD#room=myroom` with a redirect that passes the code to the multiplayer module.
 ### Medium-Term
 
-#### 3. Decentralized Identity & Authentication (Yrs Foundation)
+#### 2. Decentralized Identity & Authentication (Yrs Foundation)
 **Prerequisite for:** Deck Builder (feature #5), Affinity/Loyalty tracking (feature #7), and cross-device sync.
 
 Implement a serverless identity system using **y-crdt (yrs)** CRDT library and local keypairs. This provides the foundation for persistent player state without requiring a backend database or traditional authentication servers.
@@ -770,26 +763,26 @@ Implement a serverless identity system using **y-crdt (yrs)** CRDT library and l
 
 **Implementation Phases:**
 
-**Phase 3a: yrs Integration**
+**Phase 2a: yrs Integration**
 - Add `yrs` crate to `kipukas-server` (~400-800KB WASM with optimizations)
 - Create `IdentityState` module alongside existing `GameState` and `RoomState`
 - Implement yrs document with `YMap`/`YArray` types for structured data
 - Add `/api/identity/*` routes for keypair generation and document access
 
-**Phase 3b: Local Keypair Identity**
+**Phase 2b: Local Keypair Identity**
 - Generate Ed25519 keypair on first app launch
 - Store private key in localStorage (AES-encrypted with device-derived key)
 - Display public key as user "ID" (shortened hash for readability)
 - Add identity export/import (QR code for key backup)
 
-**Phase 3c: yrs-Based State Containers**
+**Phase 2c: yrs-Based State Containers**
 Replace simple `serde_json` state with yrs documents for:
 - **Decks**: `YMap<deck_name, YArray<card_slug>>`
 - **Combat History**: `YArray<CombatRecord>`
 - **Counters**: `YMap<card_slug, loyalty_count>`, `YMap<archetype, affinity_count>`
 - Persistence via yrs update events → localStorage/IndexedDB
 
-**Phase 3d: Cross-Device Sync**
+**Phase 2d: Cross-Device Sync**
 - yrs sync protocol over WebSocket relay (reuses existing multiplayer infrastructure)
 - Device pairing via QR code exchange of public keys
 - Automatic conflict resolution via CRDT merge semantics
@@ -805,11 +798,10 @@ Replace simple `serde_json` state with yrs documents for:
 | Future cloud backup | Passkeys encrypt backup key | Optional, no lock-in |
 
 **Technical Considerations:**
-- **WASM Size**: yrs adds ~300-400KB (vs. 828KB for Automerge WASM). Total WASM: ~500-600KB.
 - **Storage**: yrs binary format is compact; localStorage 5MB limit sufficient for card game data.
 - **Security**: Private key never leaves device unencrypted; cross-device sync uses authenticated encryption.
 
-#### 4. Deck Builder / Hand Management
+#### 3. Deck Builder / Hand Management
 **Requires:** Decentralized Identity & Authentication (feature #4) for persistent deck storage.
 
 Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush") and cycle through cards during a match without page navigation.
@@ -825,14 +817,14 @@ Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush")
 - UI Components: deck sidebar in card grid, deck selector in toolbar, card "add to deck" buttons
 - State stored in yrs `YMap` keyed by deck name; active deck reference in separate yrs root type
 
-#### 5. Combat History Log
+#### 4. Combat History Log
 Persist combat results in yrs document so players can review past rounds across sessions. Each outcome (attacker, defender, keal means used, modifier, who won) stored as a `CombatRecord` in a `YArray`.
 
 **UI**: Scrollable log modal accessible from toolbar, filterable by date range or opponent (if identity known).
 
 **Technical**: Append-only `YArray` in yrs document; automatic synchronization if cross-device sync enabled.
 
-#### 6. Affinity & Loyalty Tracking *(post-Yrs)*
+#### 5. Affinity & Loyalty Tracking *(post-Yrs)*
 **Requires:** Decentralized Identity & Authentication (feature #4) with yrs document infrastructure.
 
 Implement long-term gameplay progression as described in the game rules: affinity with archetypes and loyalty with individual soul cards.
@@ -852,17 +844,17 @@ Implement long-term gameplay progression as described in the game rules: affinit
 
 ### Long-Term
 
-#### 7. Replace ZXing with Rust QR Decoder
+#### 6. Replace ZXing with Rust QR Decoder
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
-#### 8. Infinite Scroll with Content-Visibility
+#### 7. Infinite Scroll with Content-Visibility
 Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
 
-#### 9. Card Trading
+#### 8. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).
 
-#### 10. Spectator Mode
+#### 9. Spectator Mode
 Allow a third peer to observe a match via a read-only WebSocket connection. Architecturally simple (receive-only relay, no submissions) but requires rooms to support >2 peers. Low priority until competitive, streaming, or particularly compelling (active, visual, and exciting) use cases emerge.
 
-#### 11. Provide Kippa Tools
+#### 10. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
