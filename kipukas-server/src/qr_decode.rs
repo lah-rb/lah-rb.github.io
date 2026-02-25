@@ -40,8 +40,15 @@ const STRAT_MORPH_CLOSE: u8 = 18;
 const STRAT_QUIET_ZONE: u8 = 19;
 const STRAT_LOCAL_NORM: u8 = 20;
 const STRAT_OTSU: u8 = 21;
+// Phase A: Tilt compensation — adaptive_thresh variants
+const STRAT_AT_FINE: u8 = 22;
+const STRAT_AT_COARSE: u8 = 23;
+const STRAT_AT_STRETCH_X10: u8 = 24;
+const STRAT_AT_STRETCH_X20: u8 = 25;
+const STRAT_AT_STRETCH_Y10: u8 = 26;
+const STRAT_AT_STRETCH_Y20: u8 = 27;
 
-const NUM_STRATEGIES: usize = 22;
+const NUM_STRATEGIES: usize = 28;
 
 const STRATEGY_NAMES: [&str; NUM_STRATEGIES] = [
     "raw",
@@ -66,9 +73,26 @@ const STRATEGY_NAMES: [&str; NUM_STRATEGIES] = [
     "quiet_zone",
     "local_norm",
     "otsu",
+    "at_fine",
+    "at_coarse",
+    "at_stretch_x10",
+    "at_stretch_x20",
+    "at_stretch_y10",
+    "at_stretch_y20",
 ];
 
+/// Default order: adaptive_thresh family first (proven winners for Kipukas
+/// camouflaged cards), then remaining strategies for generality.
 const DEFAULT_ORDER: [u8; NUM_STRATEGIES] = [
+    // Tier 1: adaptive_thresh family — addresses tilt, distance, and glossy surface
+    STRAT_ADAPTIVE_THRESH,
+    STRAT_AT_FINE,
+    STRAT_AT_COARSE,
+    STRAT_AT_STRETCH_X10,
+    STRAT_AT_STRETCH_X20,
+    STRAT_AT_STRETCH_Y10,
+    STRAT_AT_STRETCH_Y20,
+    // Tier 2: other strategies that may help in edge cases
     STRAT_RAW,
     STRAT_YELLOW,
     STRAT_YELLOW_BLUR,
@@ -83,7 +107,6 @@ const DEFAULT_ORDER: [u8; NUM_STRATEGIES] = [
     STRAT_CLAHE_3,
     STRAT_CLAHE_BLUR,
     STRAT_CONTRAST_STRETCH,
-    STRAT_ADAPTIVE_THRESH,
     STRAT_BLUR_OTSU,
     STRAT_DOWNSCALE_2X,
     STRAT_DOWNSCALE_4X,
@@ -444,6 +467,41 @@ fn execute_strategy(
         STRAT_OTSU => {
             let threshold = otsu_threshold(grey);
             try_decode_bitmap(grey, w, h, threshold)
+        }
+
+        // Phase A: adaptive_thresh variants for tilt compensation
+        STRAT_AT_FINE => {
+            let adaptive = adaptive_threshold(grey, w, h, 11, 6);
+            try_decode_greyscale(&adaptive, w, h)
+        }
+
+        STRAT_AT_COARSE => {
+            let adaptive = adaptive_threshold(grey, w, h, 21, 10);
+            try_decode_greyscale(&adaptive, w, h)
+        }
+
+        STRAT_AT_STRETCH_X10 => {
+            let (stretched, sw, sh) = anisotropic_stretch(grey, w, h, 110, 100);
+            let adaptive = adaptive_threshold(&stretched, sw, sh, 15, 8);
+            try_decode_greyscale(&adaptive, sw, sh)
+        }
+
+        STRAT_AT_STRETCH_X20 => {
+            let (stretched, sw, sh) = anisotropic_stretch(grey, w, h, 120, 100);
+            let adaptive = adaptive_threshold(&stretched, sw, sh, 15, 8);
+            try_decode_greyscale(&adaptive, sw, sh)
+        }
+
+        STRAT_AT_STRETCH_Y10 => {
+            let (stretched, sw, sh) = anisotropic_stretch(grey, w, h, 100, 110);
+            let adaptive = adaptive_threshold(&stretched, sw, sh, 15, 8);
+            try_decode_greyscale(&adaptive, sw, sh)
+        }
+
+        STRAT_AT_STRETCH_Y20 => {
+            let (stretched, sw, sh) = anisotropic_stretch(grey, w, h, 100, 120);
+            let adaptive = adaptive_threshold(&stretched, sw, sh, 15, 8);
+            try_decode_greyscale(&adaptive, sw, sh)
         }
 
         _ => None,
@@ -882,6 +940,67 @@ fn otsu_threshold(grey: &[u8]) -> u8 {
     }
 
     best_threshold
+}
+
+// ── Anisotropic stretch (tilt compensation) ───────────────────────
+
+/// Stretch image along X and/or Y axis to compensate for perspective
+/// distortion from tilted cards. Uses bilinear interpolation.
+///
+/// `scale_x_pct` and `scale_y_pct` are percentages: 100 = no change,
+/// 110 = stretch 10%, 120 = stretch 20%. Only stretching (≥100) is supported;
+/// values below 100 are clamped to 100.
+///
+/// Returns `(stretched_pixels, new_width, new_height)`.
+fn anisotropic_stretch(
+    grey: &[u8],
+    w: usize,
+    h: usize,
+    scale_x_pct: usize,
+    scale_y_pct: usize,
+) -> (Vec<u8>, usize, usize) {
+    let sx = scale_x_pct.max(100);
+    let sy = scale_y_pct.max(100);
+    if sx == 100 && sy == 100 {
+        return (grey.to_vec(), w, h);
+    }
+
+    let nw = (w * sx + 50) / 100; // round
+    let nh = (h * sy + 50) / 100;
+    if nw == 0 || nh == 0 {
+        return (grey.to_vec(), w, h);
+    }
+
+    let mut out = Vec::with_capacity(nw * nh);
+
+    for ny in 0..nh {
+        // Map output y back to source y (floating point)
+        let src_y = ny as f32 * (h as f32 - 1.0) / (nh as f32 - 1.0).max(1.0);
+        let y0 = (src_y as usize).min(h - 1);
+        let y1 = (y0 + 1).min(h - 1);
+        let fy = src_y - y0 as f32;
+
+        for nx in 0..nw {
+            let src_x = nx as f32 * (w as f32 - 1.0) / (nw as f32 - 1.0).max(1.0);
+            let x0 = (src_x as usize).min(w - 1);
+            let x1 = (x0 + 1).min(w - 1);
+            let fx = src_x - x0 as f32;
+
+            // Bilinear interpolation
+            let tl = grey[y0 * w + x0] as f32;
+            let tr = grey[y0 * w + x1] as f32;
+            let bl = grey[y1 * w + x0] as f32;
+            let br = grey[y1 * w + x1] as f32;
+
+            let top = tl * (1.0 - fx) + tr * fx;
+            let bot = bl * (1.0 - fx) + br * fx;
+            let val = top * (1.0 - fy) + bot * fy;
+
+            out.push(val.round().min(255.0).max(0.0) as u8);
+        }
+    }
+
+    (out, nw, nh)
 }
 
 // ── Yellow-aware & CLAHE preprocessing ────────────────────────────
@@ -1383,5 +1502,79 @@ mod tests {
         assert!(stats.0 >= 2);
         assert!(stats.1 >= 1);
         reset_qr_strategy_order(); // clears stats
+    }
+
+    // ── Anisotropic stretch tests ──────────────────────────────────
+
+    #[test]
+    fn stretch_noop_at_100() {
+        let grey = vec![10, 20, 30, 40];
+        let (out, nw, nh) = anisotropic_stretch(&grey, 2, 2, 100, 100);
+        assert_eq!(nw, 2);
+        assert_eq!(nh, 2);
+        assert_eq!(out, grey);
+    }
+
+    #[test]
+    fn stretch_x_increases_width() {
+        let grey = vec![128; 10 * 10];
+        let (out, nw, nh) = anisotropic_stretch(&grey, 10, 10, 120, 100);
+        assert_eq!(nw, 12); // 10 * 120 / 100 = 12
+        assert_eq!(nh, 10);
+        assert_eq!(out.len(), 12 * 10);
+    }
+
+    #[test]
+    fn stretch_y_increases_height() {
+        let grey = vec![128; 10 * 10];
+        let (out, nw, nh) = anisotropic_stretch(&grey, 10, 10, 100, 110);
+        assert_eq!(nw, 10);
+        assert_eq!(nh, 11); // 10 * 110 / 100 = 11
+        assert_eq!(out.len(), 10 * 11);
+    }
+
+    #[test]
+    fn stretch_preserves_corners() {
+        // 3×3 image, stretch X by 10%
+        let grey = vec![0, 128, 255, 50, 100, 200, 10, 80, 250];
+        let (out, nw, nh) = anisotropic_stretch(&grey, 3, 3, 110, 100);
+        assert!(nw >= 3);
+        assert_eq!(nh, 3);
+        // Corners should be preserved exactly (they map to source corners)
+        assert_eq!(out[0], 0); // top-left
+        assert_eq!(out[nw - 1], 255); // top-right
+        assert_eq!(out[(nh - 1) * nw], 10); // bottom-left
+        assert_eq!(out[nh * nw - 1], 250); // bottom-right
+    }
+
+    #[test]
+    fn stretch_clamps_below_100() {
+        let grey = vec![128; 4];
+        let (out, nw, nh) = anisotropic_stretch(&grey, 2, 2, 50, 80);
+        // Should clamp to 100, returning original
+        assert_eq!(nw, 2);
+        assert_eq!(nh, 2);
+        assert_eq!(out, grey);
+    }
+
+    #[test]
+    fn default_order_starts_with_adaptive_thresh() {
+        assert_eq!(DEFAULT_ORDER[0], STRAT_ADAPTIVE_THRESH);
+        assert_eq!(DEFAULT_ORDER[1], STRAT_AT_FINE);
+        assert_eq!(DEFAULT_ORDER[2], STRAT_AT_COARSE);
+        assert_eq!(DEFAULT_ORDER[3], STRAT_AT_STRETCH_X10);
+    }
+
+    #[test]
+    fn all_28_strategies_in_default_order() {
+        assert_eq!(DEFAULT_ORDER.len(), NUM_STRATEGIES);
+        // Every strategy ID 0..27 should appear exactly once
+        for id in 0..NUM_STRATEGIES as u8 {
+            assert!(
+                DEFAULT_ORDER.contains(&id),
+                "strategy {} missing from DEFAULT_ORDER",
+                id
+            );
+        }
     }
 }
