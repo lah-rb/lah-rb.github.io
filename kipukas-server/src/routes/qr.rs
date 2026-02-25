@@ -231,13 +231,6 @@ fn error_html(msg: &str) -> String {
 
 // ── Tests ──────────────────────────────────────────────────────────
 
-/// Handle GET /api/qr/stats — return JSON with per-strategy decode hit counts.
-/// This proxies to the `qr_decode::get_qr_stats()` function which tracks
-/// which preprocessing strategies are succeeding during the rqrr cascade.
-pub fn handle_stats(_query: &str) -> String {
-    crate::qr_decode::get_qr_stats()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

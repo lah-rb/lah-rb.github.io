@@ -1,51 +1,6 @@
 /* @ts-self-types="./kipukas_server.d.ts" */
 
 /**
- * Decode a QR code from raw RGBA pixel data using multi-strategy rqrr cascade.
- *
- * Called from kipukas-worker.js on each camera frame.
- * Returns `"strategy_id|strategy_name|decoded_text"` on success, or empty
- * string if no QR found. The pipe-delimited format lets JS extract telemetry
- * without adding serde to the WASM boundary.
- * @param {Uint8Array} rgba
- * @param {number} width
- * @param {number} height
- * @returns {string}
- */
-export function decode_qr_frame(rgba, width, height) {
-    let deferred2_0;
-    let deferred2_1;
-    try {
-        const ptr0 = passArray8ToWasm0(rgba, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.decode_qr_frame(ptr0, len0, width, height);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-    }
-}
-
-/**
- * Return JSON with per-strategy hit counts and total decodes.
- * Example: `{"total":42,"strategies":{"raw":5,"yellow":12,"clahe_2":8}}`
- * @returns {string}
- */
-export function get_qr_stats() {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-        const ret = wasm.get_qr_stats();
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-}
-
-/**
  * Process an HTTP-like request and return an HTML fragment.
  *
  * Called from JavaScript (Web Worker) via wasm-bindgen.
@@ -83,32 +38,6 @@ export function handle_request(method, path, query, body) {
     } finally {
         wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
     }
-}
-
-/**
- * Reset the frame accumulator (call when scanner closes).
- */
-export function reset_qr_frames() {
-    wasm.reset_qr_frames();
-}
-
-/**
- * Reset strategy order to default and clear stats.
- */
-export function reset_qr_strategy_order() {
-    wasm.reset_qr_strategy_order();
-}
-
-/**
- * Set the strategy execution order. `order_csv` is a comma-separated list
- * of strategy IDs (e.g. `"1,0,10,3"`). Strategies not listed are appended
- * in default order. Invalid IDs are skipped.
- * @param {string} order_csv
- */
-export function set_qr_strategy_order(order_csv) {
-    const ptr0 = passStringToWasm0(order_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    wasm.set_qr_strategy_order(ptr0, len0);
 }
 
 function __wbg_get_imports() {
@@ -268,13 +197,6 @@ function handleError(f, args) {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
-}
-
-function passArray8ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 1, 1) >>> 0;
-    getUint8ArrayMemory0().set(arg, ptr / 1);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {

@@ -15,14 +15,7 @@
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
 
-import init, {
-  decode_qr_frame,
-  get_qr_stats,
-  handle_request,
-  reset_qr_frames,
-  reset_qr_strategy_order,
-  set_qr_strategy_order,
-} from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -84,111 +77,20 @@ function decodeQR(pixels, width, height) {
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
-  // ── QR config (toggle ZXing on/off for testing) ──
-  // Usage from main thread console:
-  //   kipukasWorker.postMessage({type:'QR_CONFIG', disableZxing: true})
-  //   kipukasWorker.postMessage({type:'QR_CONFIG', disableZxing: false})
-  if (event.data?.type === 'QR_CONFIG') {
-    self._disableZxing = !!event.data.disableZxing;
-    console.log(
-      `[kipukas-worker] ZXing ${
-        self._disableZxing ? 'DISABLED' : 'enabled'
-      } (rqrr-only mode: ${self._disableZxing})`,
-    );
-    return;
-  }
-
-  // ── QR frame buffer reset (when scanner closes) ──
-  if (event.data?.type === 'QR_RESET') {
-    if (initialized) reset_qr_frames();
-    return;
-  }
-
-  // ── QR stats request ──
-  if (event.data?.type === 'QR_STATS') {
-    if (!initialized) await wasmReady;
-    const json = get_qr_stats();
-    self.postMessage({ type: 'QR_STATS_RESULT', json });
-    return;
-  }
-
-  // ── QR strategy order config ──
-  if (event.data?.type === 'QR_STRATEGY_ORDER') {
-    if (!initialized) await wasmReady;
-    if (event.data.order) {
-      set_qr_strategy_order(event.data.order);
-      console.log(
-        `[kipukas-worker] QR strategy order set: ${event.data.order}`,
-      );
-    } else {
-      reset_qr_strategy_order();
-      console.log('[kipukas-worker] QR strategy order reset to default');
-    }
-    return;
-  }
-
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     const { pixels, width, height } = event.data;
-    if (!initialized) await wasmReady;
-
-    // Try rqrr multi-strategy cascade first (pure Rust WASM, no external deps)
-    // Returns "strategy_id|strategy_name|decoded_text" or "" on miss
-    let decoded = null;
-    let decoder = null;
-    let strategyId = null;
-    let strategyName = null;
-    try {
-      const rqrrResult = decode_qr_frame(new Uint8Array(pixels), width, height);
-      if (rqrrResult) {
-        // Parse pipe-delimited telemetry: "id|name|text"
-        const pipeIdx = rqrrResult.indexOf('|');
-        const pipeIdx2 = pipeIdx >= 0 ? rqrrResult.indexOf('|', pipeIdx + 1) : -1;
-        if (pipeIdx2 > 0) {
-          strategyId = rqrrResult.substring(0, pipeIdx);
-          strategyName = rqrrResult.substring(pipeIdx + 1, pipeIdx2);
-          decoded = rqrrResult.substring(pipeIdx2 + 1);
-        } else {
-          // Fallback: treat entire string as decoded text
-          decoded = rqrrResult;
-        }
-        decoder = 'rqrr';
-        console.debug(
-          `[kipukas-worker] QR decoded by rqrr/${strategyName || 'unknown'} (strategy ${
-            strategyId || '?'
-          })`,
-        );
-      }
-    } catch (err) {
-      console.warn('[kipukas-worker] rqrr decode error:', err.message);
-    }
-
-    // Fall back to ZXing if rqrr didn't find anything
-    // Toggle: sessionStorage.setItem('qr-disable-zxing', 'true') to isolate rqrr
-    if (!decoded && !self._disableZxing) {
-      decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
-      if (decoded) {
-        decoder = 'zxing';
-        console.debug('[kipukas-worker] QR decoded by ZXing (rqrr missed)');
-      }
-    }
-
+    const decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
     if (decoded) {
       // Format result via WASM, then post back to main thread
+      if (!initialized) await wasmReady;
       const html = handle_request(
         'GET',
         '/api/qr/found',
         `?url=${encodeURIComponent(decoded)}`,
         '',
       );
-      self.postMessage({
-        type: 'QR_FOUND',
-        html,
-        url: decoded,
-        decoder,
-        strategyId,
-        strategyName,
-      });
+      self.postMessage({ type: 'QR_FOUND', html, url: decoded });
     }
     return;
   }
