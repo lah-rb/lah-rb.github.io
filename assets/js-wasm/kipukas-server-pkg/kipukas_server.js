@@ -4,7 +4,9 @@
  * Decode a QR code from raw RGBA pixel data using multi-strategy rqrr cascade.
  *
  * Called from kipukas-worker.js on each camera frame.
- * Returns decoded text or empty string if no QR found.
+ * Returns `"strategy_id|strategy_name|decoded_text"` on success, or empty
+ * string if no QR found. The pipe-delimited format lets JS extract telemetry
+ * without adding serde to the WASM boundary.
  * @param {Uint8Array} rgba
  * @param {number} width
  * @param {number} height
@@ -22,6 +24,24 @@ export function decode_qr_frame(rgba, width, height) {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
+ * Return JSON with per-strategy hit counts and total decodes.
+ * Example: `{"total":42,"strategies":{"raw":5,"yellow":12,"clahe_2":8}}`
+ * @returns {string}
+ */
+export function get_qr_stats() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.get_qr_stats();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
 }
 
@@ -70,6 +90,25 @@ export function handle_request(method, path, query, body) {
  */
 export function reset_qr_frames() {
     wasm.reset_qr_frames();
+}
+
+/**
+ * Reset strategy order to default and clear stats.
+ */
+export function reset_qr_strategy_order() {
+    wasm.reset_qr_strategy_order();
+}
+
+/**
+ * Set the strategy execution order. `order_csv` is a comma-separated list
+ * of strategy IDs (e.g. `"1,0,10,3"`). Strategies not listed are appended
+ * in default order. Invalid IDs are skipped.
+ * @param {string} order_csv
+ */
+export function set_qr_strategy_order(order_csv) {
+    const ptr0 = passStringToWasm0(order_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.set_qr_strategy_order(ptr0, len0);
 }
 
 function __wbg_get_imports() {

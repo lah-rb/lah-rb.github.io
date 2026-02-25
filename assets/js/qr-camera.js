@@ -241,15 +241,39 @@
       if (event.data?.type === 'QR_FOUND') {
         // Persist decoder info before redirect wipes the page
         const decoder = event.data.decoder || 'unknown';
+        const strategyName = event.data.strategyName || null;
+        const strategyId = event.data.strategyId || null;
         sessionStorage.setItem('qr-last-decoder', decoder);
         sessionStorage.setItem('qr-last-url', event.data.url || '');
+        if (strategyName) {
+          sessionStorage.setItem('qr-last-strategy', strategyName);
+        }
 
         // Update cumulative decode stats (survives across scans within session)
+        // Format: {"rqrr":{"total":5,"strategies":{"yellow":3,"clahe_2":2}},"zxing":1}
         const stats = JSON.parse(
-          sessionStorage.getItem('qr-decode-stats') || '{"rqrr":0,"zxing":0}',
+          sessionStorage.getItem('qr-decode-stats') ||
+            '{"rqrr":{"total":0,"strategies":{}},"zxing":0}',
         );
-        stats[decoder] = (stats[decoder] || 0) + 1;
+        if (decoder === 'rqrr') {
+          if (typeof stats.rqrr !== 'object') {
+            stats.rqrr = { total: stats.rqrr || 0, strategies: {} };
+          }
+          stats.rqrr.total = (stats.rqrr.total || 0) + 1;
+          if (strategyName) {
+            stats.rqrr.strategies[strategyName] = (stats.rqrr.strategies[strategyName] || 0) + 1;
+          }
+        } else {
+          stats[decoder] = (stats[decoder] || 0) + 1;
+        }
         sessionStorage.setItem('qr-decode-stats', JSON.stringify(stats));
+
+        console.log(
+          `[qr-camera] Decoded by ${decoder}${
+            strategyName ? `/${strategyName} (strategy ${strategyId})` : ''
+          } | stats:`,
+          stats,
+        );
 
         // Stop scanning immediately
         stop();
