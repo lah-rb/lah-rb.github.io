@@ -2,9 +2,7 @@
   "imports": {
     "marked": "npm:marked@17",
     "dompurify": "npm:dompurify@3",
-    "jsdom": "npm:jsdom@28",
-    "@tailwindcss/cli": "npm:@tailwindcss/cli@4",
-    "tailwindcss": "npm:tailwindcss@4"
+    "jsdom": "npm:jsdom@28"
   },
   "tasks": {
     "build": "deno run -A scripts/build.ts",

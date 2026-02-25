@@ -5,25 +5,28 @@
  *
  * Steps:
  *   1. Clean dist/
- *   2. Run Tailwind CLI → dist/css/styles.css
+ *   2. Copy main site CSS → dist/css/styles.css (unified Tailwind build)
  *   3. Copy vendor JS (marked, DOMPurify) → dist/js/vendor/
- *   4. Copy app JS → dist/js/
+ *   4. Copy app JS (rules-book.js) → dist/js/
  *   5. Copy print CSS → dist/css/
  *   6. Pre-render rules.md → HTML and inject into index.html
- *   7. Copy images/ → dist/images/ (if exists)
- *   8. Process index.html → dist/index.html (rewrite CDN refs, inject content)
+ *   7. Generate search index JSON → dist/js/search-index.json
+ *   8. Copy images/ → dist/images/ (if exists)
+ *   9. Process index.html → dist/index.html (rewrite refs, inject content)
  *
  * Ported from build.js (Node/CJS) → Deno-native TypeScript.
+ * Phase 6: Unified Tailwind build — no more internal Tailwind compilation.
  */
 
 import { Marked } from 'marked';
 import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
-import { join, relative, dirname, fromFileUrl } from 'jsr:@std/path@1';
-import { ensureDirSync, copySync, walkSync } from 'jsr:@std/fs@1';
+import { dirname, fromFileUrl, join, relative } from 'jsr:@std/path@1';
+import { copySync, ensureDirSync, walkSync } from 'jsr:@std/fs@1';
 import { existsSync } from 'jsr:@std/fs@1/exists';
 
 const ROOT = dirname(dirname(fromFileUrl(import.meta.url)));
+const SITE_ROOT = dirname(ROOT); // parent: the main site repo root
 const DIST = join(ROOT, 'dist');
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -53,28 +56,20 @@ function copyDirSync(src: string, dest: string): boolean {
 console.log('🧹  Cleaning dist/...');
 clean(DIST);
 
-// ── 2. Run Tailwind CLI ─────────────────────────────────────
+// ── 2. Copy main site CSS (unified Tailwind build) ──────────
 
-console.log('🎨  Building Tailwind CSS...');
-const inputCSS = join(ROOT, 'src', 'input.css');
+console.log('🎨  Copying main site CSS...');
+const mainCSS = join(SITE_ROOT, 'assets', 'css', 'output.css');
 const outputCSS = join(DIST, 'css', 'styles.css');
 
-ensureDirSync(dirname(outputCSS));
-
-const tailwindCmd = new Deno.Command('deno', {
-  args: ['run', '-A', 'npm:@tailwindcss/cli', '-i', inputCSS, '-o', outputCSS, '--minify'],
-  cwd: ROOT,
-  stdin: 'inherit',
-  stdout: 'inherit',
-  stderr: 'inherit',
-});
-const tailwindResult = tailwindCmd.outputSync();
-if (!tailwindResult.success) {
-  console.error('❌ Tailwind CSS build failed');
+if (existsSync(mainCSS)) {
+  copyFileSync(mainCSS, outputCSS);
+  console.log(`   → ${relative(ROOT, outputCSS)} (from main site build)`);
+} else {
+  console.error('❌ Main site CSS not found at', mainCSS);
+  console.error('   Run "deno task build:css" from the site root first.');
   Deno.exit(1);
 }
-
-console.log(`   → ${relative(ROOT, outputCSS)}`);
 
 // ── 3. Copy vendor JS ───────────────────────────────────────
 
@@ -100,7 +95,7 @@ for (const v of vendors) {
 
 console.log('📄  Copying app JS...');
 
-const jsFiles = ['markdown.js', 'sidebar.js', 'search.js', 'chat.js', 'app.js'];
+const jsFiles = ['rules-book.js'];
 for (const file of jsFiles) {
   copyFileSync(join(ROOT, 'js', file), join(DIST, 'js', file));
   console.log(`   → dist/js/${file}`);
@@ -109,10 +104,7 @@ for (const file of jsFiles) {
 // ── 5. Copy print CSS ───────────────────────────────────────
 
 console.log('🖨️   Copying print CSS...');
-copyFileSync(
-  join(ROOT, 'css', 'print.css'),
-  join(DIST, 'css', 'print.css'),
-);
+copyFileSync(join(ROOT, 'css', 'print.css'), join(DIST, 'css', 'print.css'));
 console.log('   → dist/css/print.css');
 
 // ── 6. Pre-render rules.md → HTML ───────────────────────────
@@ -164,7 +156,7 @@ function classifyImage(src: string): string {
   return DEFAULT_IMG_CLASSES;
 }
 
-// Same custom renderer as js/markdown.js — handles {#id} header anchors + image classes
+// Same custom renderer as before — handles {#id} header anchors + image classes
 const headerRegex = /\{#([^}]+)\}\s*$/;
 
 interface HeadingToken {
@@ -218,8 +210,8 @@ const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
 });
 
 // Post-process: group multi-image paragraphs into flex rows (via JSDOM)
-const contentDom = new JSDOM(`<div id="content">${sanitizedHtml}</div>`);
-const contentEl = contentDom.window.document.getElementById('content')!;
+const contentDom = new JSDOM(`<div id="rules-content">${sanitizedHtml}</div>`);
+const contentEl = contentDom.window.document.getElementById('rules-content')!;
 contentEl.querySelectorAll('p').forEach((p) => {
   const imgs = p.querySelectorAll('img');
   if (imgs.length < 2) return;
@@ -241,10 +233,47 @@ const preRenderedContent = contentEl.innerHTML;
 // Count headers for verification
 const headerMatches = preRenderedContent.match(/<h[23]\s/g) || [];
 console.log(
-  `   → Rendered ${headerMatches.length} sections (${(preRenderedContent.length / 1024).toFixed(1)} KB)`,
+  `   → Rendered ${headerMatches.length} sections (${
+    (preRenderedContent.length / 1024).toFixed(1)
+  } KB)`,
 );
 
-// ── 7. Copy images/ (if exists) ─────────────────────────────
+// ── 7. Generate search index JSON ────────────────────────────
+
+console.log('🔍  Generating search index...');
+
+interface SearchEntry {
+  id: string;
+  title: string;
+  text: string;
+}
+
+const searchIndex: SearchEntry[] = [];
+const allHeaders = contentEl.querySelectorAll('h2, h3');
+
+allHeaders.forEach((header) => {
+  const id = header.id || '';
+  const title = header.textContent?.replace('#', '').trim() || '';
+  if (!title) return;
+
+  // Gather text between this header and the next
+  let text = '';
+  let sibling = header.nextElementSibling;
+  while (sibling && !sibling.matches('h2, h3')) {
+    text += ' ' + (sibling.textContent || '');
+    sibling = sibling.nextElementSibling;
+  }
+
+  searchIndex.push({ id, title, text: text.trim() });
+});
+
+const searchIndexPath = join(DIST, 'js', 'search-index.json');
+ensureDirSync(dirname(searchIndexPath));
+Deno.writeTextFileSync(searchIndexPath, JSON.stringify(searchIndex));
+const indexSizeKB = (JSON.stringify(searchIndex).length / 1024).toFixed(1);
+console.log(`   → ${searchIndex.length} sections indexed (${indexSizeKB} KB)`);
+
+// ── 8. Copy images/ (if exists) ─────────────────────────────
 
 const imagesDir = join(ROOT, 'images');
 if (copyDirSync(imagesDir, join(DIST, 'images'))) {
@@ -257,28 +286,25 @@ if (copyDirSync(imagesDir, join(DIST, 'images'))) {
   console.log('⚠️   No images/ directory found — skipping');
 }
 
-// ── 8. Process index.html ────────────────────────────────────
+// ── 9. Process index.html ────────────────────────────────────
 
 console.log('🏗️   Processing index.html...');
 
 let html = Deno.readTextFileSync(join(ROOT, 'index.html'));
 
-// 8a. Remove the Tailwind CDN script + inline config block
+// 9a. Replace dev CSS path with local built copy
 html = html.replace(
-  /<script src="https:\/\/cdn\.tailwindcss\.com"><\/script>\s*<script>\s*tailwind\.config\s*=\s*\{[\s\S]*?\}\s*<\/script>/,
-  '<!-- Tailwind CSS (built) -->\n    <link rel="stylesheet" href="css/styles.css">',
+  'href="../assets/css/output.css"',
+  'href="css/styles.css"',
 );
 
-// 8b. Remove the entire <style> block (now in Tailwind output)
-html = html.replace(/\n\s*<style>[\s\S]*?<\/style>/, '');
-
-// 8c. Inject pre-rendered rules content into #content div
+// 9b. Inject pre-rendered rules content into #rules-content div
 html = html.replace(
-  /(<div id="content"[^>]*>)[\s\S]*?(<\/div>\s*<\/main>)/,
+  /(<div id="rules-content"[^>]*>)[\s\S]*?(<\/div>\s*<\/main>)/,
   `$1\n${preRenderedContent}\n            $2`,
 );
 
-// 8d. Replace CDN vendor scripts with local paths
+// 9b. Replace CDN vendor scripts with local paths
 html = html.replace(
   /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/marked\/marked\.min\.js"><\/script>/,
   '<script src="js/vendor/marked.umd.js"></script>',

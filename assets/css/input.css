@@ -10,6 +10,7 @@
 @source "../../sections/*.{html,js,yml}";
 @source "../../game_rules/*.{html,js,yml}";
 @source "../../kipukas-server/src/**/*.rs";
+@source "../../kipukas_rules_book/**/*.{html,js}";
 
 /* ── Safelist (classes generated dynamically) ── */
 @source inline("grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7");
@@ -92,4 +93,60 @@
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Rules Book — custom styles that prose / Tailwind can't cover
+   ══════════════════════════════════════════════════════════════ */
+
+/* Scrollbar styling (rules book panels) */
+#sidebar::-webkit-scrollbar, #content-scroll::-webkit-scrollbar { width: 6px; }
+#sidebar::-webkit-scrollbar-track, #content-scroll::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 3px; }
+#content-scroll::-webkit-scrollbar-thumb { background: rgba(14,116,144,0.3); border-radius: 3px; }
+#sidebar::-webkit-scrollbar-thumb:hover, #content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(14,116,144,0.5); }
+
+/* Prose overrides — fine-tune typography plugin for rules book look */
+#rules-content h2 { border-bottom: 2px solid rgba(14,116,144,0.2); padding-bottom: 0.5rem; }
+
+/* Header anchor links (hover-reveal # link) */
+.header-anchor { opacity: 0; margin-left: 0.5rem; color: #38bdf8; text-decoration: none; transition: opacity 0.2s; font-weight: 400; }
+#rules-content h2:hover .header-anchor,
+#rules-content h3:hover .header-anchor,
+#rules-content h4:hover .header-anchor { opacity: 1; }
+
+/* Search highlight */
+mark.search-highlight { background: #fde68a; padding: 0.1rem 0.2rem; border-radius: 0.15rem; }
+
+/* TOC sidebar links */
+.toc-link { display: block; padding: 0.3rem 0.75rem; border-radius: 0.375rem; color: #bae6fd; text-decoration: none; transition: all 0.15s; font-size: 0.875rem; line-height: 1.4; }
+.toc-link:hover { background: rgba(56,189,248,0.15); color: #e0f2fe; }
+.toc-link.active { background: rgba(56,189,248,0.2); color: #ffffff; font-weight: 600; }
+.toc-sub { padding-left: 1rem; }
+
+/* Chat widget */
+#chat-panel { transition: all 0.3s ease; }
+.chat-bubble { max-width: 85%; word-wrap: break-word; }
+.chat-bubble .markdown-content h1,
+.chat-bubble .markdown-content h2,
+.chat-bubble .markdown-content h3 { font-weight: 600; margin-top: 0.5rem; margin-bottom: 0.25rem; font-size: 1rem; }
+.chat-bubble .markdown-content p { margin-bottom: 0.5rem; line-height: 1.5; }
+.chat-bubble .markdown-content ul,
+.chat-bubble .markdown-content ol { margin-left: 1rem; margin-bottom: 0.5rem; }
+.chat-bubble .markdown-content ul { list-style-type: disc; }
+.chat-bubble .markdown-content ol { list-style-type: decimal; }
+.chat-bubble .markdown-content a { color: #60a5fa; text-decoration: underline; text-decoration-color: rgba(96,165,250,0.4); text-underline-offset: 2px; }
+.chat-bubble .markdown-content a:hover { color: #93c5fd; text-decoration-color: rgba(147,197,253,0.6); }
+.chat-bubble .markdown-content code { background: rgba(0,0,0,0.15); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.85em; }
+.streaming-cursor::after { content: '▋'; animation: blink 1s infinite; color: #38bdf8; }
+@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+/* Rules book layout — lock outer scroll, only #content-scroll scrolls */
+.rules-book-layout { overflow: hidden; }
+
+/* Print overrides for rules book (supplement print.css) */
+@media print {
+  .rules-book-layout { overflow: visible !important; height: auto !important; display: block !important; }
+  .rules-book-layout > div { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
+  #content-scroll { display: block !important; overflow: visible !important; height: auto !important; }
 }
