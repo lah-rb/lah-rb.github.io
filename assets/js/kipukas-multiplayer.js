@@ -252,6 +252,11 @@ function onPeerConnected() {
   globalThis.dispatchEvent(new CustomEvent('room-connected'));
   refreshRoomStatus();
 
+  // Switch alarm display to multiplayer mode (reads from CRDT Doc,
+  // shows sync buttons). Seeded alarms from local GameState are
+  // already in the Doc via seed_from_local() on room create/join.
+  refreshAlarms(true);
+
   // Initiate yrs CRDT sync handshake — exchange state vectors so both
   // peers converge on the same Doc state after (re)connect.
   initiateYrsSync();
@@ -518,6 +523,22 @@ function execScripts(el) {
   });
 }
 
+/** Refresh the alarm display in #turn-alarms.
+ *  @param {boolean} multiplayer — if true, fetch from /api/room/turns (CRDT);
+ *                                 if false, fetch from /api/game/turns (local). */
+function refreshAlarms(multiplayer) {
+  const endpoint = multiplayer
+    ? '/api/room/turns?display=alarms'
+    : '/api/game/turns?display=alarms';
+  wasmRequest('GET', endpoint.split('?')[0], '?' + endpoint.split('?')[1], '', (html) => {
+    const alarms = document.getElementById('turn-alarms');
+    if (alarms && html != null) {
+      alarms.innerHTML = html;
+      if (typeof htmx !== 'undefined') htmx.process(alarms);
+    }
+  });
+}
+
 /** Refresh the room status panel and fists section in the UI. */
 function refreshRoomStatus() {
   if (typeof htmx === 'undefined') return;
@@ -636,7 +657,12 @@ const kipukasMultiplayer = {
     }
     roomCode = '';
     roomName = '';
-    postToWasm('POST', '/api/room/disconnect', '');
+    // POST disconnect runs export_to_local() in WASM, copying shared
+    // CRDT alarms back to local GameState. After it completes, refresh
+    // the alarm display in local mode so exported timers appear.
+    postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
+      refreshAlarms(false);
+    });
     // Notify UI that room is disconnected
     globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
     refreshRoomStatus();

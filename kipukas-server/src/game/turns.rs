@@ -50,24 +50,6 @@ pub fn toggle_alarms_visibility() {
     });
 }
 
-/// Merge a set of remote alarms into local state (union — no duplicates by position).
-/// Used on initial multiplayer room connect to sync both players' timers.
-pub fn merge_alarms(remote_alarms: &[Alarm]) {
-    with_state_mut(|state| {
-        for alarm in remote_alarms {
-            // Simple append — both players see all timers
-            state.alarms.push(alarm.clone());
-        }
-    });
-}
-
-/// Export current alarms as JSON for sync.
-pub fn export_alarms_json() -> String {
-    with_state(|state| {
-        serde_json::to_string(&state.alarms).unwrap_or_else(|_| "[]".to_string())
-    })
-}
-
 /// Validate color set, defaulting to "red" if invalid.
 fn validate_color_set(color: &str) -> &str {
     match color {
@@ -435,40 +417,6 @@ mod tests {
         let html = render_turn_panel(true);
         assert!(html.contains("kipukasMultiplayer.addTurn"));
         assert!(!html.contains("htmx.ajax")); // multiplayer routes through JS
-    }
-
-    #[test]
-    fn merge_alarms_appends() {
-        reset_state();
-        add_alarm(5, "local", "red");
-        let remote = vec![
-            Alarm {
-                remaining: 3,
-                name: "remote".to_string(),
-                color_set: "blue".to_string(),
-            },
-        ];
-        merge_alarms(&remote);
-        with_state(|s| {
-            assert_eq!(s.alarms.len(), 2);
-            assert_eq!(s.alarms[0].name, "local");
-            assert_eq!(s.alarms[1].name, "remote");
-        });
-        reset_state();
-    }
-
-    #[test]
-    fn export_alarms_json_roundtrip() {
-        reset_state();
-        add_alarm(5, "test", "green");
-        let json = export_alarms_json();
-        assert!(json.contains("test"));
-        assert!(json.contains("green"));
-
-        let parsed: Vec<Alarm> = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].remaining, 5);
-        reset_state();
     }
 
     #[test]
