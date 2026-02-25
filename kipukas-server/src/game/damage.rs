@@ -4,10 +4,10 @@
 //! all keal means groups). Checking all slots reveals the "Final Blows" section
 //! where the wasted checkbox appears.
 //!
-//! State is stored in the global GameState (thread_local WASM memory).
+//! State is stored in the PLAYER_DOC yrs CRDT document (thread_local WASM memory).
 
 use crate::cards_generated::CARDS;
-use crate::game::state::{with_state, with_state_mut, CardDamageState};
+use crate::game::player_doc;
 
 /// Look up a card by slug from the compiled-in catalog.
 fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
@@ -15,57 +15,42 @@ fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
 }
 
 /// Get or initialize damage state for a card.
-/// Ensures all expected slots exist in the HashMap.
+/// Ensures all expected slots exist in the PLAYER_DOC.
 pub fn ensure_card_state(slug: &str, total_slots: u8) {
-    with_state_mut(|state| {
-        let entry = state
-            .cards
-            .entry(slug.to_string())
-            .or_insert_with(CardDamageState::default);
-        // Ensure all slot keys exist
-        for i in 1..=total_slots {
-            entry.slots.entry(i).or_insert(false);
-        }
-    });
+    player_doc::ensure_card_state(slug, total_slots);
 }
 
 /// Toggle a specific damage slot for a card. Returns the new checked state.
+/// Auto-ensures card state exists in PLAYER_DOC before toggling.
 pub fn toggle_slot(slug: &str, slot: u8) -> bool {
-    with_state_mut(|state| {
-        let entry = state
-            .cards
-            .entry(slug.to_string())
-            .or_insert_with(CardDamageState::default);
-        let current = entry.slots.get(&slot).copied().unwrap_or(false);
-        entry.slots.insert(slot, !current);
-        !current
-    })
+    // Ensure the card entry exists with the correct number of slots
+    let card = find_card(slug);
+    if let Some(c) = card {
+        let total = total_slots(c);
+        ensure_card_state(slug, total);
+    }
+    player_doc::toggle_slot(slug, slot)
 }
 
 /// Toggle the wasted state for a card. Returns the new wasted state.
+/// Auto-ensures card state exists in PLAYER_DOC before toggling.
 pub fn toggle_wasted(slug: &str) -> bool {
-    with_state_mut(|state| {
-        let entry = state
-            .cards
-            .entry(slug.to_string())
-            .or_insert_with(CardDamageState::default);
-        entry.wasted = !entry.wasted;
-        entry.wasted
-    })
+    let card = find_card(slug);
+    if let Some(c) = card {
+        let total = total_slots(c);
+        ensure_card_state(slug, total);
+    }
+    player_doc::toggle_wasted(slug)
 }
 
 /// Clear damage state for a specific card.
 pub fn clear_card(slug: &str) {
-    with_state_mut(|state| {
-        state.cards.remove(slug);
-    });
+    player_doc::clear_card(slug);
 }
 
 /// Clear damage state for ALL cards.
 pub fn clear_all() {
-    with_state_mut(|state| {
-        state.cards.clear();
-    });
+    player_doc::clear_all();
 }
 
 /// Count total keal means slots for a card.
@@ -78,18 +63,12 @@ fn all_slots_checked(slug: &str, total: u8) -> bool {
     if total == 0 {
         return false;
     }
-    with_state(|state| {
-        if let Some(card_state) = state.cards.get(slug) {
-            for i in 1..=total {
-                if !card_state.slots.get(&i).copied().unwrap_or(false) {
-                    return false;
-                }
-            }
-            true
-        } else {
-            false
+    for i in 1..=total {
+        if !player_doc::get_slot(slug, i) {
+            return false;
         }
-    })
+    }
+    true
 }
 
 /// Render the keal damage tracker HTML for a specific card.
@@ -114,25 +93,15 @@ pub fn render_damage_tracker(slug: &str) -> String {
     ensure_card_state(slug, total);
 
     let all_checked = all_slots_checked(slug, total);
-    let is_wasted = with_state(|state| {
-        state
-            .cards
-            .get(slug)
-            .map(|c| c.wasted)
-            .unwrap_or(false)
-    });
+    let is_wasted = player_doc::is_wasted(slug);
 
     // Debug: emit slot states as HTML comment for production diagnosis
-    let slot_debug = with_state(|state| {
-        if let Some(card_state) = state.cards.get(slug) {
-            let pairs: Vec<String> = (1..=total)
-                .map(|i| format!("{}:{}", i, card_state.slots.get(&i).copied().unwrap_or(false)))
-                .collect();
-            format!("slots=[{}] all_checked={} wasted={}", pairs.join(","), all_checked, is_wasted)
-        } else {
-            format!("no_card_state total={}", total)
-        }
-    });
+    let slot_debug = {
+        let pairs: Vec<String> = (1..=total)
+            .map(|i| format!("{}:{}", i, player_doc::get_slot(slug, i)))
+            .collect();
+        format!("slots=[{}] all_checked={} wasted={}", pairs.join(","), all_checked, is_wasted)
+    };
 
     let mut html = String::with_capacity(2048);
     html.push_str(&format!("<!-- [kipukas-debug] {} {} -->", slug, slot_debug));
@@ -168,13 +137,7 @@ pub fn render_damage_tracker(slug: &str) -> String {
         ));
 
         for _ in 0..km.count {
-            let checked = with_state(|state| {
-                state
-                    .cards
-                    .get(slug)
-                    .and_then(|c| c.slots.get(&slot_idx).copied())
-                    .unwrap_or(false)
-            });
+            let checked = player_doc::get_slot(slug, slot_idx);
 
             if is_wasted {
                 // Disabled state — greyed out, non-clickable
@@ -185,9 +148,6 @@ pub fn render_damage_tracker(slug: &str) -> String {
                 ));
             } else if checked {
                 // Checked state — filled red circle, clickable to toggle off
-                // Static classes (bg-red-600 border-red-600) ensure correct render
-                // even before Alpine initializes (e.g. multiplayer innerHTML swap).
-                // Alpine :class then takes over for interactive click feedback.
                 html.push_str(&format!(
                     r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
@@ -195,8 +155,6 @@ pub fn render_damage_tracker(slug: &str) -> String {
                 ));
             } else {
                 // Unchecked state — green border, white fill, clickable to toggle on
-                // Static classes (bg-white border-emerald-600) ensure correct render
-                // even before Alpine initializes.
                 html.push_str(&format!(
                     r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-white border-emerald-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
@@ -220,16 +178,11 @@ pub fn render_damage_tracker(slug: &str) -> String {
     }
 
     // Sentinel div: present when all keal means slots are checked (or wasted).
-    // The parent Alpine component in keal_damage_tracker.html watches for this
-    // class after each HTMX swap and toggles .show-final-blows on the wrapper,
-    // which makes .final-blows-section visible via CSS.
     if all_checked || is_wasted {
         html.push_str(r#"<div class="keal-all-checked hidden"></div>"#);
     }
 
     // Final Blows section — always in the DOM, visibility controlled by Alpine
-    // via the .final-blows-section / .show-final-blows CSS pattern.
-    // This avoids browser reflow/repaint issues with conditional innerHTML swaps.
     {
         html.push_str(r#"<div class="final-blows-section">"#);
 
@@ -250,7 +203,7 @@ pub fn render_damage_tracker(slug: &str) -> String {
             html.push_str(&format!(r#"<p>Archetypal Adaptation: {}</p>"#, gd));
         }
 
-        // Wasted indicator — Alpine-driven div circle (same pattern as damage slots)
+        // Wasted indicator
         html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
         let wasted_on = if is_wasted { "true" } else { "false" };
@@ -279,15 +232,16 @@ pub fn render_damage_tracker(slug: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::state::replace_state;
+    use crate::game::player_doc;
 
     fn reset_state() {
-        replace_state(crate::game::state::GameState::default());
+        player_doc::init_player_doc();
     }
 
     #[test]
     fn toggle_slot_works() {
         reset_state();
+        ensure_card_state("test", 3);
         assert!(toggle_slot("test", 1)); // false → true
         assert!(!toggle_slot("test", 1)); // true → false
         reset_state();
@@ -296,6 +250,7 @@ mod tests {
     #[test]
     fn toggle_wasted_works() {
         reset_state();
+        ensure_card_state("test", 2);
         assert!(toggle_wasted("test")); // false → true
         assert!(!toggle_wasted("test")); // true → false
         reset_state();
@@ -304,23 +259,26 @@ mod tests {
     #[test]
     fn clear_card_works() {
         reset_state();
+        ensure_card_state("card_a", 2);
+        ensure_card_state("card_b", 2);
         toggle_slot("card_a", 1);
         toggle_slot("card_b", 1);
         clear_card("card_a");
-        with_state(|s| {
-            assert!(!s.cards.contains_key("card_a"));
-            assert!(s.cards.contains_key("card_b"));
-        });
+        assert!(!player_doc::has_card_state("card_a"));
+        assert!(player_doc::has_card_state("card_b"));
         reset_state();
     }
 
     #[test]
     fn clear_all_works() {
         reset_state();
+        ensure_card_state("card_a", 2);
+        ensure_card_state("card_b", 2);
         toggle_slot("card_a", 1);
         toggle_slot("card_b", 1);
         clear_all();
-        with_state(|s| assert!(s.cards.is_empty()));
+        assert!(!player_doc::has_card_state("card_a"));
+        assert!(!player_doc::has_card_state("card_b"));
         reset_state();
     }
 
@@ -362,6 +320,7 @@ mod tests {
     fn final_blows_appear_when_all_checked() {
         reset_state();
         // Brox has 3 keal slots (Crushing Hope: 1, Chain Raid: 2)
+        ensure_card_state("brox_the_defiant", 3);
         toggle_slot("brox_the_defiant", 1);
         toggle_slot("brox_the_defiant", 2);
         toggle_slot("brox_the_defiant", 3);

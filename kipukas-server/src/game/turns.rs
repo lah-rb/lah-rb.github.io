@@ -8,46 +8,27 @@
 //! Multiplayer sync broadcasts timer mutations to the connected peer.
 
 use crate::game::crdt;
-use crate::game::state::{with_state, with_state_mut, Alarm};
+use crate::game::player_doc;
 
 /// Add a new alarm with the given number of diel cycles, optional name, and color set.
 pub fn add_alarm(turns: i32, name: &str, color_set: &str) {
-    let color = validate_color_set(color_set);
-    with_state_mut(|state| {
-        state.alarms.push(Alarm {
-            remaining: turns,
-            name: name.to_string(),
-            color_set: color.to_string(),
-        });
-    });
+    player_doc::add_alarm(turns, name, color_set);
 }
 
 /// Tick all alarms: decrement by 1, remove any that went below 0.
 pub fn tick_alarms() {
-    with_state_mut(|state| {
-        // Decrement all
-        for alarm in state.alarms.iter_mut() {
-            alarm.remaining -= 1;
-        }
-        // Remove expired (below 0 means they were already shown as "Complete" at 0)
-        state.alarms.retain(|a| a.remaining >= 0);
-    });
+    player_doc::tick_alarms();
 }
 
 /// Remove a specific alarm by index.
 pub fn remove_alarm(index: usize) {
-    with_state_mut(|state| {
-        if index < state.alarms.len() {
-            state.alarms.remove(index);
-        }
-    });
+    player_doc::remove_alarm(index);
 }
 
 /// Toggle alarm panel visibility.
 pub fn toggle_alarms_visibility() {
-    with_state_mut(|state| {
-        state.show_alarms = !state.show_alarms;
-    });
+    let current = player_doc::get_show_alarms();
+    player_doc::set_show_alarms(!current);
 }
 
 /// Validate color set, defaulting to "red" if invalid.
@@ -156,13 +137,13 @@ pub fn render_turn_panel(multiplayer: bool) -> String {
 /// the multiplayer sync path so both peers are updated.
 pub fn render_alarm_list(multiplayer: bool) -> String {
     // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
-    // When local, read from GameState.alarms (persisted to localStorage).
+    // When local, read from PLAYER_DOC (persisted to localStorage).
     let (alarms, show_alarms) = if multiplayer {
         let crdt_alarms = crdt::get_alarms();
-        let show = with_state(|state| state.show_alarms);
+        let show = player_doc::get_show_alarms();
         (crdt_alarms, show)
     } else {
-        with_state(|state| (state.alarms.clone(), state.show_alarms))
+        (player_doc::get_alarms(), player_doc::get_show_alarms())
     };
 
     if alarms.is_empty() {
@@ -264,10 +245,9 @@ pub fn render_alarm_list(multiplayer: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::state::{replace_state, with_state, GameState};
 
     fn reset_state() {
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
     }
 
     #[test]
@@ -275,15 +255,14 @@ mod tests {
         reset_state();
         add_alarm(5, "Scout patrol", "green");
         add_alarm(3, "", "red");
-        with_state(|s| {
-            assert_eq!(s.alarms.len(), 2);
-            assert_eq!(s.alarms[0].remaining, 5);
-            assert_eq!(s.alarms[0].name, "Scout patrol");
-            assert_eq!(s.alarms[0].color_set, "green");
-            assert_eq!(s.alarms[1].remaining, 3);
-            assert_eq!(s.alarms[1].name, "");
-            assert_eq!(s.alarms[1].color_set, "red");
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 2);
+        assert_eq!(alarms[0].remaining, 5);
+        assert_eq!(alarms[0].name, "Scout patrol");
+        assert_eq!(alarms[0].color_set, "green");
+        assert_eq!(alarms[1].remaining, 3);
+        assert_eq!(alarms[1].name, "");
+        assert_eq!(alarms[1].color_set, "red");
         reset_state();
     }
 
@@ -291,9 +270,8 @@ mod tests {
     fn add_alarm_validates_color() {
         reset_state();
         add_alarm(1, "", "invalid");
-        with_state(|s| {
-            assert_eq!(s.alarms[0].color_set, "red"); // defaults to red
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms[0].color_set, "red"); // defaults to red
         reset_state();
     }
 
@@ -304,22 +282,19 @@ mod tests {
         add_alarm(1, "", "blue");
 
         tick_alarms();
-        with_state(|s| {
-            assert_eq!(s.alarms.len(), 2);
-            assert_eq!(s.alarms[0].remaining, 1);
-            assert_eq!(s.alarms[1].remaining, 0); // complete
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 2);
+        assert_eq!(alarms[0].remaining, 1);
+        assert_eq!(alarms[1].remaining, 0); // complete
 
         tick_alarms();
-        with_state(|s| {
-            assert_eq!(s.alarms.len(), 1); // 0→-1 removed
-            assert_eq!(s.alarms[0].remaining, 0); // 1→0 complete
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 1); // 0→-1 removed
+        assert_eq!(alarms[0].remaining, 0); // 1→0 complete
 
         tick_alarms();
-        with_state(|s| {
-            assert!(s.alarms.is_empty()); // all removed
-        });
+        let alarms = player_doc::get_alarms();
+        assert!(alarms.is_empty()); // all removed
 
         reset_state();
     }
@@ -331,11 +306,10 @@ mod tests {
         add_alarm(3, "second", "green");
         add_alarm(1, "third", "blue");
         remove_alarm(1); // remove the 3-turn alarm
-        with_state(|s| {
-            assert_eq!(s.alarms.len(), 2);
-            assert_eq!(s.alarms[0].remaining, 5);
-            assert_eq!(s.alarms[1].remaining, 1);
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 2);
+        assert_eq!(alarms[0].remaining, 5);
+        assert_eq!(alarms[1].remaining, 1);
         reset_state();
     }
 
@@ -344,18 +318,18 @@ mod tests {
         reset_state();
         add_alarm(5, "", "red");
         remove_alarm(99);
-        with_state(|s| assert_eq!(s.alarms.len(), 1));
+        assert_eq!(player_doc::get_alarms().len(), 1);
         reset_state();
     }
 
     #[test]
     fn toggle_visibility() {
         reset_state();
-        with_state(|s| assert!(s.show_alarms));
+        assert!(player_doc::get_show_alarms());
         toggle_alarms_visibility();
-        with_state(|s| assert!(!s.show_alarms));
+        assert!(!player_doc::get_show_alarms());
         toggle_alarms_visibility();
-        with_state(|s| assert!(s.show_alarms));
+        assert!(player_doc::get_show_alarms());
         reset_state();
     }
 
@@ -385,13 +359,12 @@ mod tests {
     #[test]
     fn render_alarm_list_multiplayer_uses_sync_buttons() {
         reset_state();
-        // Multiplayer mode reads from the yrs CRDT Doc, not GameState
+        // Multiplayer mode reads from the yrs CRDT Doc, not PLAYER_DOC
         crdt::init_doc();
         crdt::add_alarm(3, "", "blue");
         let html = render_alarm_list(true);
         assert!(html.contains("kipukasMultiplayer.tickTurns()"));
         assert!(html.contains("kipukasMultiplayer.removeTurn(0)"));
-        // Toggle visibility always uses htmx.ajax (local-only), but tick/remove should use multiplayer
         assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
         crdt::reset_doc();
         reset_state();

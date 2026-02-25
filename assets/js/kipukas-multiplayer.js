@@ -500,15 +500,26 @@ function refreshKealTracker() {
   });
 }
 
-/** Persist WASM game state to localStorage. */
+/** Persist WASM game state to localStorage (both legacy JSON and PLAYER_DOC base64). */
 function persistState() {
+  // Legacy JSON persistence
   wasmRequest('GET', '/api/game/state', '', '', (json) => {
     if (json) {
       try {
         localStorage.setItem('kipukas_game_state', json);
-        console.log('[multiplayer] Game state persisted after damage change');
       } catch (e) {
-        console.warn('[multiplayer] Failed to persist game state:', e);
+        console.warn('[multiplayer] Failed to persist legacy game state:', e);
+      }
+    }
+  });
+  // PLAYER_DOC base64 persistence
+  wasmRequest('GET', '/api/player/state', '', '', (b64) => {
+    if (b64) {
+      try {
+        localStorage.setItem('kipukas_player_doc', b64);
+        console.log('[multiplayer] Player doc persisted after damage change');
+      } catch (e) {
+        console.warn('[multiplayer] Failed to persist player doc:', e);
       }
     }
   });

@@ -122,14 +122,28 @@ wasmWorker.onerror = (err) => {
 };
 
 // ============================================
-// Phase 3b: PERSIST_STATE listener — auto-save after every game mutation
+// Phase 6: PERSIST_STATE listener — auto-save PLAYER_DOC after every game mutation
 // ============================================
-// The WASM worker sends { type: 'PERSIST_STATE', json } after every
-// POST to /api/game/*. We write directly to localStorage here on the
-// main thread — no async round-trips, no unreliable beforeunload.
+// The WASM worker sends { type: 'PERSIST_STATE' } after every POST to /api/game/*.
+// We fetch the full PLAYER_DOC as base64 from WASM and save to localStorage.
+// Also supports legacy JSON persistence for backward compatibility during migration.
 wasmWorker.addEventListener('message', (event) => {
   if (event.data?.type === 'PERSIST_STATE') {
-    localStorage.setItem('kipukas_game_state', event.data.json);
+    // Legacy: also save JSON if present (for old kipukas_game_state key)
+    if (event.data.json) {
+      localStorage.setItem('kipukas_game_state', event.data.json);
+    }
+    // New: fetch PLAYER_DOC binary state and save as base64
+    const ch = new MessageChannel();
+    ch.port1.onmessage = (msg) => {
+      if (msg.data.html) {
+        localStorage.setItem('kipukas_player_doc', msg.data.html);
+      }
+    };
+    wasmWorker.postMessage(
+      { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
+      [ch.port2],
+    );
   }
 });
 
@@ -242,31 +256,75 @@ wasmWorker.addEventListener('message', (event) => {
 })();
 
 // ============================================
-// Phase 3b: RESTORE game state from localStorage on load
+// Phase 6: RESTORE PLAYER_DOC from localStorage on load
 // ============================================
-// Send the import message immediately — the worker queues messages and
-// gates on `await wasmReady`, so this will be processed before any
-// HTMX `hx-trigger="load"` requests that arrive later.
+// Prefer kipukas_player_doc (base64 yrs binary) if it exists.
+// Fall back to kipukas_game_state (JSON) with one-time migration.
+// Messages are queued by the worker and gated on `await wasmReady`,
+// so they are processed before any HTMX `hx-trigger="load"` requests.
 (function restorePersistedState() {
-  const saved = localStorage.getItem('kipukas_game_state');
-  if (!saved) return;
-
-  console.log('[kipukas-api] Restoring persisted game state from localStorage');
-  const channel = new MessageChannel();
-  channel.port1.onmessage = (msg) => {
-    if (msg.data.ok) {
-      console.log('[kipukas-api] Game state restored from localStorage');
+  const playerDoc = localStorage.getItem('kipukas_player_doc');
+  if (playerDoc) {
+    // Restore from base64 PLAYER_DOC (preferred path)
+    console.log('[kipukas-api] Restoring PLAYER_DOC from localStorage');
+    const ch = new MessageChannel();
+    ch.port1.onmessage = (msg) => {
+      if (msg.data.html === 'ok') {
+        console.log('[kipukas-api] PLAYER_DOC restored from localStorage');
+      } else {
+        console.warn('[kipukas-api] PLAYER_DOC restore issue:', msg.data.html);
+      }
+    };
+    wasmWorker.postMessage(
+      { method: 'POST', pathname: '/api/player/restore', search: '', body: playerDoc },
+      [ch.port2],
+    );
+    // Also restore legacy GameState for backward compatibility of old routes
+    const legacyJson = localStorage.getItem('kipukas_game_state');
+    if (legacyJson) {
+      wasmWorker.postMessage(
+        { method: 'POST', pathname: '/api/game/import', search: '', body: legacyJson },
+        [new MessageChannel().port2],
+      );
     }
-  };
-  wasmWorker.postMessage(
-    {
-      method: 'POST',
-      pathname: '/api/game/import',
-      search: '',
-      body: saved,
-    },
-    [channel.port2],
-  );
+    return;
+  }
+
+  // No PLAYER_DOC yet — check for legacy JSON and migrate
+  const saved = localStorage.getItem('kipukas_game_state');
+  if (saved) {
+    console.log('[kipukas-api] Migrating kipukas_game_state JSON → PLAYER_DOC');
+    // First restore legacy GameState
+    wasmWorker.postMessage(
+      { method: 'POST', pathname: '/api/game/import', search: '', body: saved },
+      [new MessageChannel().port2],
+    );
+    // Then migrate into PLAYER_DOC
+    const ch = new MessageChannel();
+    ch.port1.onmessage = (msg) => {
+      if (msg.data.html === 'ok') {
+        console.log('[kipukas-api] Migration to PLAYER_DOC complete');
+        // Persist the new PLAYER_DOC immediately
+        const ch2 = new MessageChannel();
+        ch2.port1.onmessage = (msg2) => {
+          if (msg2.data.html) {
+            localStorage.setItem('kipukas_player_doc', msg2.data.html);
+            console.log('[kipukas-api] PLAYER_DOC persisted after migration');
+          }
+        };
+        wasmWorker.postMessage(
+          { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
+          [ch2.port2],
+        );
+      } else {
+        console.warn('[kipukas-api] PLAYER_DOC migration failed:', msg.data.html);
+      }
+    };
+    wasmWorker.postMessage(
+      { method: 'POST', pathname: '/api/player/migrate', search: '', body: saved },
+      [ch.port2],
+    );
+  }
 })();
 
 // ============================================
