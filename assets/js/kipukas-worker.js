@@ -15,7 +15,10 @@
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
 
-import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import init, {
+  decode_qr_frame,
+  handle_request,
+} from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -80,10 +83,30 @@ self.onmessage = async (event) => {
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     const { pixels, width, height } = event.data;
-    const decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
+    if (!initialized) await wasmReady;
+
+    // Try rqrr multi-strategy cascade first (pure Rust WASM, no external deps)
+    let decoded = null;
+    try {
+      const rqrrResult = decode_qr_frame(new Uint8Array(pixels), width, height);
+      if (rqrrResult) {
+        decoded = rqrrResult;
+        console.debug('[kipukas-worker] QR decoded by rqrr');
+      }
+    } catch (err) {
+      console.warn('[kipukas-worker] rqrr decode error:', err.message);
+    }
+
+    // Fall back to ZXing if rqrr didn't find anything
+    if (!decoded) {
+      decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
+      if (decoded) {
+        console.debug('[kipukas-worker] QR decoded by ZXing (rqrr missed)');
+      }
+    }
+
     if (decoded) {
       // Format result via WASM, then post back to main thread
-      if (!initialized) await wasmReady;
       const html = handle_request(
         'GET',
         '/api/qr/found',

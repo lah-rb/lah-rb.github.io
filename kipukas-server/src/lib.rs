@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod cards_generated;
 pub mod game;
+pub mod qr_decode;
 pub mod routes;
 pub mod typing;
 
