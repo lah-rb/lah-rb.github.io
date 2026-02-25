@@ -4,106 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kipukas — Game Rules</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+
+    <!-- Unified Tailwind CSS (built by main site) -->
+    <!-- Dev: relative path to main site output; Build: replaced with local copy -->
+    <link rel="stylesheet" href="../assets/css/output.css">
     <link rel="stylesheet" href="css/print.css">
-    <style>
-        html { scroll-behavior: smooth; }
-        body { overflow: hidden; }
-        #sidebar::-webkit-scrollbar, #content-scroll::-webkit-scrollbar { width: 6px; }
-        #sidebar::-webkit-scrollbar-track, #content-scroll::-webkit-scrollbar-track { background: transparent; }
-        #sidebar::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 3px; }
-        #content-scroll::-webkit-scrollbar-thumb { background: rgba(14,116,144,0.3); border-radius: 3px; }
-        #sidebar::-webkit-scrollbar-thumb:hover, #content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(14,116,144,0.5); }
 
-        /* Markdown content styling */
-        #content h2 { font-size: 1.75rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(14,116,144,0.2); color: #0c4a6e; }
-        #content h3 { font-size: 1.35rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #0e7490; }
-        #content h4 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #155e75; }
-        #content p { margin-bottom: 1rem; line-height: 1.7; color: #1e293b; }
-        #content ul, #content ol { margin-left: 1.5rem; margin-bottom: 1rem; color: #1e293b; }
-        #content ul { list-style-type: disc; }
-        #content ol { list-style-type: decimal; }
-        #content li { margin-bottom: 0.35rem; line-height: 1.6; }
-        #content a { color: #0369a1; text-decoration: underline; text-decoration-color: rgba(3,105,161,0.3); text-underline-offset: 2px; }
-        #content a:hover { color: #0c4a6e; text-decoration-color: rgba(12,74,110,0.6); }
-        #content img { margin: 0.75rem 0; transition: opacity 0.2s; }
-        #content strong { font-weight: 600; color: #0f172a; }
-        #content em { font-style: italic; }
-        #content blockquote { border-left: 4px solid #38bdf8; padding-left: 1rem; margin: 1rem 0; color: #475569; background: rgba(56,189,248,0.05); padding: 0.75rem 1rem; border-radius: 0 0.5rem 0.5rem 0; }
-        #content table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.925rem; }
-        #content th { background: #e0f2fe; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; border: 1px solid #bae6fd; color: #0c4a6e; }
-        #content td { padding: 0.5rem 0.75rem; border: 1px solid #e0f2fe; }
-        #content tr:nth-child(even) { background: rgba(224,242,254,0.3); }
-        #content hr { border: none; border-top: 2px solid #bae6fd; margin: 2rem 0; }
-        #content code { background: #e0f2fe; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.9em; color: #0e7490; }
-        #content pre { background: #0c4a6e; color: #e0f2fe; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; }
-        #content pre code { background: transparent; color: inherit; padding: 0; }
+    <!-- Favicons (shared with main site) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <meta name="theme-color" content="#0369a1">
 
-        /* Header anchor links */
-        .header-anchor { opacity: 0; margin-left: 0.5rem; color: #38bdf8; text-decoration: none; transition: opacity 0.2s; font-weight: 400; }
-        #content h2:hover .header-anchor, #content h3:hover .header-anchor, #content h4:hover .header-anchor { opacity: 1; }
+    <!-- Alpine.js (shared site bundle) -->
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
-        /* Search highlight */
-        mark.search-highlight { background: #fde68a; padding: 0.1rem 0.2rem; border-radius: 0.15rem; }
+    <!-- HTMX (needed for QR scanner WASM routes) -->
+    <script defer src="/assets/js/htmx.min.js"></script>
 
-        /* Sidebar active state */
-        .toc-link { display: block; padding: 0.3rem 0.75rem; border-radius: 0.375rem; color: #bae6fd; text-decoration: none; transition: all 0.15s; font-size: 0.875rem; line-height: 1.4; }
-        .toc-link:hover { background: rgba(56,189,248,0.15); color: #e0f2fe; }
-        .toc-link.active { background: rgba(56,189,248,0.2); color: #ffffff; font-weight: 600; }
-        .toc-sub { padding-left: 1rem; }
+    <!-- WASM API bridge: enables QR scanner + multiplayer reconnect -->
+    <script defer src="/assets/js/kipukas-api.js"></script>
 
-        /* Chat widget */
-        #chat-panel { transition: all 0.3s ease; }
-        .chat-bubble { max-width: 85%; word-wrap: break-word; }
-        .chat-bubble .markdown-content h1,.chat-bubble .markdown-content h2,.chat-bubble .markdown-content h3 { font-weight:600; margin-top:0.5rem; margin-bottom:0.25rem; font-size:1rem; }
-        .chat-bubble .markdown-content p { margin-bottom:0.5rem; line-height:1.5; }
-        .chat-bubble .markdown-content ul,.chat-bubble .markdown-content ol { margin-left:1rem; margin-bottom:0.5rem; }
-        .chat-bubble .markdown-content ul { list-style-type:disc; }
-        .chat-bubble .markdown-content ol { list-style-type:decimal; }
-        .chat-bubble .markdown-content a { color: #60a5fa; text-decoration: underline; text-decoration-color: rgba(96,165,250,0.4); text-underline-offset: 2px; }
-        .chat-bubble .markdown-content a:hover { color: #93c5fd; text-decoration-color: rgba(147,197,253,0.6); }
-        .chat-bubble .markdown-content code { background:rgba(0,0,0,0.15); padding:0.1rem 0.3rem; border-radius:0.2rem; font-size:0.85em; }
-        .streaming-cursor::after { content:'▋'; animation:blink 1s infinite; color:#38bdf8; }
-        @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
-
-        /* Sidebar overlay on mobile */
-        #sidebar-overlay { transition: opacity 0.3s; }
-
-        /* Definition list style (colon prefix in md) */
-        #content p > strong:first-child { display: inline; }
-
-        /* Print: override inline overflow/flex that blocks page breaks */
-        @media print {
-            html, body { overflow: visible !important; height: auto !important; display: block !important; }
-            body > div { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
-            #content-scroll { display: block !important; overflow: visible !important; height: auto !important; }
-        }
-    </style>
+    <!-- Lazy loaders for site-wide tools -->
+    <script>
+      window.kipukasLoadQR = function() {
+        if (window.kipukasQRLoaded) return Promise.resolve();
+        return import('/assets/js/qr-camera.js')
+          .then(function() { window.kipukasQRLoaded = true; })
+          .catch(function(err) { console.error('Failed to load QR camera:', err); });
+      };
+    </script>
 </head>
-<body class="bg-sky-200 text-slate-900 h-screen flex flex-col font-sans">
+<body class="rules-book-layout bg-sky-200 text-slate-900 h-screen flex flex-col font-sans"
+      x-data="rulesBook()"
+      x-init="init()"
+      @hashchange.window="handleHash()"
+      @keydown.meta.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()"
+      @keydown.ctrl.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()">
 
     <!-- Header -->
-    <header class="bg-sky-700 text-sky-50 px-4 py-1 flex items-center gap-3 z-40 shadow-lg flex-shrink-0">
+    <header class="bg-sky-700 text-sky-50 px-4 py-1 flex items-center gap-3 z-40 shadow-lg shrink-0">
         <!-- Sidebar toggle -->
-        <button id="sidebar-toggle" class="p-1.5 rounded-lg hover:bg-sky-800 transition-colors" title="Toggle menu">
+        <button @click="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-sky-800 transition-colors" title="Toggle menu">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
         </button>
 
         <!-- Logo + title -->
-        <a href="https://www.kipukas.cards/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img src="./images/small_kip_logo.png" alt="Kipukas" class="h-14 w-14">
         </a>
         <h1 class="font-bold text-lg hidden sm:block">Kipukas Rules</h1>
@@ -111,25 +60,50 @@
         <!-- Spacer -->
         <div class="flex-1"></div>
 
+        <!-- QR Scanner button -->
+        <div id="qr-container"></div>
+        <button class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Scan QR Code"
+                onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
+            </svg>
+        </button>
+
         <!-- Search -->
-        <div class="relative" id="search-wrapper">
+        <div class="relative" @click.outside="showSearchResults = false">
             <div class="flex items-center bg-sky-800 rounded-lg border border-sky-800 focus-within:border-sky-400 transition-colors">
                 <svg class="w-4 h-4 ml-3 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <input id="search-input" type="text" placeholder="Search rules..." autocomplete="off"
+                <input x-ref="searchInput" type="text" placeholder="Search rules..." autocomplete="off"
+                    x-model="searchQuery"
+                    @input="onSearchInput()"
+                    @keydown.escape="clearSearch(); $refs.searchInput.blur()"
                     class="bg-transparent text-sky-50 placeholder-sky-400 px-3 py-2 text-sm w-40 sm:w-64 focus:outline-none">
-                <button id="search-clear" class="hidden pr-3 text-sky-400 hover:text-sky-200">
+                <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-sky-400 hover:text-sky-200">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <div id="search-results" class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-sky-200 max-h-96 overflow-y-auto z-50"></div>
+            <!-- Search results dropdown -->
+            <div x-show="showSearchResults" x-cloak x-transition
+                 class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-sky-200 max-h-96 overflow-y-auto z-50">
+                <template x-if="searchResults.length === 0 && searchQuery.length >= 2">
+                    <div class="p-4 text-center text-slate-500 text-sm">No results found</div>
+                </template>
+                <template x-for="r in searchResults" :key="r.id">
+                    <button @click="selectSearchResult(r.id)"
+                            class="block w-full text-left px-4 py-3 hover:bg-sky-50 border-b border-sky-100 last:border-0 transition-colors">
+                        <div class="font-semibold text-sky-900 text-sm" x-text="r.title"></div>
+                        <div class="text-xs text-slate-600 mt-1 leading-relaxed" x-html="r.snippet"></div>
+                    </button>
+                </template>
+            </div>
         </div>
 
         <!-- Print button -->
-        <button id="print-btn" class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Export to PDF">
+        <button @click="handlePrint()" class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Export to PDF">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
             </svg>
@@ -139,26 +113,50 @@
     <!-- Main layout -->
     <div class="flex flex-1 overflow-hidden relative">
         <!-- Sidebar overlay (mobile) -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" aria-hidden="true"></div>
+        <div x-show="sidebarOpen" x-cloak
+             class="fixed inset-0 bg-black/40 z-30 lg:hidden"
+             @click="closeSidebar()"
+             x-transition:enter="transition-opacity duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 pt-0 lg:pt-0 mt-[57px] lg:mt-0">
-            <div class="px-4 py-3 border-b border-sky-800 flex items-center justify-between flex-shrink-0">
+        <aside id="sidebar"
+               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transition-transform duration-300 mt-[57px] lg:mt-0"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+            <div class="px-4 py-3 border-b border-sky-700 flex items-center justify-between shrink-0">
                 <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Table of Contents</span>
-                <button id="sidebar-close" class="lg:hidden p-1 rounded hover:bg-sky-800 text-sky-400">
+                <button @click="closeSidebar()" class="lg:hidden p-1 rounded hover:bg-sky-700 text-sky-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <nav id="toc" class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5"></nav>
+            <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+                <template x-for="h in headers" :key="h.id">
+                    <a :href="'#' + h.id"
+                       @click.prevent="tocClick(h.id)"
+                       class="toc-link"
+                       :class="{
+                           'active': activeId === h.id,
+                           'toc-sub': h.level === 3
+                       }"
+                       x-text="h.text"
+                       x-effect="if (activeId === h.id) $el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })"></a>
+                </template>
+            </nav>
         </aside>
 
         <!-- Content -->
         <main id="content-scroll" class="flex-1 overflow-y-auto bg-sky-50">
-            <div id="content" class="max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full">
-                <!-- Loading state -->
-                <div id="loading" class="flex items-center justify-center h-64">
+            <div id="rules-content"
+                 class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full"
+                 @click="handleContentClick($event)">
+                <!-- Loading state (replaced by build-time pre-render) -->
+                <div id="loading" class="flex items-center justify-center h-64 not-prose">
                     <div class="text-center">
                         <svg class="animate-spin h-8 w-8 text-sky-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -171,22 +169,25 @@
         </main>
     </div>
 
-    <!-- Chat Widget -->
-    <div id="chat-widget" class="fixed bottom-5 right-5 z-50">
+    <!-- Chat Widget (Kippa) -->
+    <div class="fixed bottom-5 right-5 z-50">
         <!-- Chat toggle button -->
-        <button id="chat-toggle" class="w-14 h-14 bg-sky-700 hover:bg-sky-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
-            <svg id="chat-icon-open" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button @click="toggleChat()" class="w-14 h-14 bg-sky-700 hover:bg-sky-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
+            <svg x-show="!chatOpen" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
             </svg>
-            <svg id="chat-icon-close" class="w-7 h-7 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg x-show="chatOpen" x-cloak class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
 
         <!-- Chat panel -->
-        <div id="chat-panel" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 h-[28rem] bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden">
+        <div x-show="chatOpen" x-cloak
+             x-transition.duration.300ms
+             class="absolute bottom-16 right-0 w-80 sm:w-96 h-[28rem] bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden"
+             id="chat-panel">
             <!-- Chat header -->
-            <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 flex-shrink-0">
+            <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 shrink-0">
                 <div class="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
@@ -194,34 +195,48 @@
                 </div>
                 <span class="font-semibold text-sky-100 text-sm">Kippa — Rules Assistant</span>
                 <div class="flex-1"></div>
-                <div id="chat-status" class="w-2 h-2 rounded-full bg-gray-500" title="Connecting..."></div>
+                <div class="w-2 h-2 rounded-full"
+                     :class="chatConnected ? 'bg-green-500' : 'bg-gray-500'"
+                     :title="chatConnected ? 'Connected' : 'Disconnected'"></div>
             </div>
 
             <!-- Chat messages -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm"></div>
+            <div x-ref="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+                <template x-for="(msg, i) in messages" :key="i">
+                    <div :class="msg.isUser ? 'flex justify-end' : 'flex justify-start'">
+                        <div class="chat-bubble rounded-xl px-3 py-2"
+                             :class="{
+                                 'bg-sky-600 text-white rounded-br-sm': msg.isUser,
+                                 'bg-sky-800 text-sky-100 rounded-bl-sm': !msg.isUser,
+                                 'streaming-cursor': msg.streaming
+                             }">
+                            <div class="markdown-content"
+                                 x-html="msg.isUser ? msg.text : renderChatMarkdown(msg.text)"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
 
             <!-- Chat input -->
-            <form id="chat-form" class="border-t border-sky-800 p-3 flex gap-2 flex-shrink-0">
-                <input type="text" id="chat-input" placeholder="Ask Kippa..."
+            <form @submit.prevent="sendMessage()" class="border-t border-sky-800 p-3 flex gap-2 shrink-0">
+                <input type="text" x-model="chatInput" placeholder="Ask Kippa..."
+                    :placeholder="chatConnected ? 'Ask Kippa...' : 'Connecting...'"
+                    :disabled="!chatConnected"
                     class="flex-1 bg-sky-900 border border-sky-700 rounded-lg px-3 py-2 text-sky-100 placeholder-sky-500 text-sm focus:outline-none focus:border-sky-500 disabled:opacity-50"
-                    autocomplete="off" disabled>
-                <button type="submit" id="chat-send"
-                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Send
-                </button>
+                    autocomplete="off">
+                <button type="submit"
+                    :disabled="!chatConnected || chatStreaming"
+                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    x-text="chatStreaming ? '...' : 'Send'">Send</button>
             </form>
         </div>
     </div>
 
-    <!-- Dependencies -->
+    <!-- Vendor dependencies (for chat markdown rendering in dev/runtime) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
 
-    <!-- App modules -->
-    <script src="js/markdown.js"></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/search.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Rules book Alpine component -->
+    <script src="js/rules-book.js"></script>
 </body>
 </html>

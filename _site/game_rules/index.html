@@ -4,23 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kipukas — Game Rules</title>
-    <!-- Tailwind CSS (built) -->
+
+    <!-- Unified Tailwind CSS (built by main site) -->
+    <!-- Dev: relative path to main site output; Build: replaced with local copy -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/print.css">
+
+    <!-- Favicons (shared with main site) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <meta name="theme-color" content="#0369a1">
+
+    <!-- Alpine.js (shared site bundle) -->
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+
+    <!-- HTMX (needed for QR scanner WASM routes) -->
+    <script defer src="/assets/js/htmx.min.js"></script>
+
+    <!-- WASM API bridge: enables QR scanner + multiplayer reconnect -->
+    <script defer src="/assets/js/kipukas-api.js"></script>
+
+    <!-- Lazy loaders for site-wide tools -->
+    <script>
+      window.kipukasLoadQR = function() {
+        if (window.kipukasQRLoaded) return Promise.resolve();
+        return import('/assets/js/qr-camera.js')
+          .then(function() { window.kipukasQRLoaded = true; })
+          .catch(function(err) { console.error('Failed to load QR camera:', err); });
+      };
+    </script>
 </head>
-<body class="bg-sky-200 text-slate-900 h-screen flex flex-col font-sans">
+<body class="rules-book-layout bg-sky-200 text-slate-900 h-screen flex flex-col font-sans"
+      x-data="rulesBook()"
+      x-init="init()"
+      @hashchange.window="handleHash()"
+      @keydown.meta.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()"
+      @keydown.ctrl.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()">
 
     <!-- Header -->
-    <header class="bg-sky-700 text-sky-50 px-4 py-1 flex items-center gap-3 z-40 shadow-lg flex-shrink-0">
+    <header class="bg-sky-700 text-sky-50 px-4 py-1 flex items-center gap-3 z-40 shadow-lg shrink-0">
         <!-- Sidebar toggle -->
-        <button id="sidebar-toggle" class="p-1.5 rounded-lg hover:bg-sky-800 transition-colors" title="Toggle menu">
+        <button @click="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-sky-800 transition-colors" title="Toggle menu">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
         </button>
 
         <!-- Logo + title -->
-        <a href="https://www.kipukas.cards/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img src="./images/small_kip_logo.png" alt="Kipukas" class="h-14 w-14">
         </a>
         <h1 class="font-bold text-lg hidden sm:block">Kipukas Rules</h1>
@@ -28,25 +60,50 @@
         <!-- Spacer -->
         <div class="flex-1"></div>
 
+        <!-- QR Scanner button -->
+        <div id="qr-container"></div>
+        <button class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Scan QR Code"
+                onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
+            </svg>
+        </button>
+
         <!-- Search -->
-        <div class="relative" id="search-wrapper">
+        <div class="relative" @click.outside="showSearchResults = false">
             <div class="flex items-center bg-sky-800 rounded-lg border border-sky-800 focus-within:border-sky-400 transition-colors">
                 <svg class="w-4 h-4 ml-3 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <input id="search-input" type="text" placeholder="Search rules..." autocomplete="off"
+                <input x-ref="searchInput" type="text" placeholder="Search rules..." autocomplete="off"
+                    x-model="searchQuery"
+                    @input="onSearchInput()"
+                    @keydown.escape="clearSearch(); $refs.searchInput.blur()"
                     class="bg-transparent text-sky-50 placeholder-sky-400 px-3 py-2 text-sm w-40 sm:w-64 focus:outline-none">
-                <button id="search-clear" class="hidden pr-3 text-sky-400 hover:text-sky-200">
+                <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-sky-400 hover:text-sky-200">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <div id="search-results" class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-sky-200 max-h-96 overflow-y-auto z-50"></div>
+            <!-- Search results dropdown -->
+            <div x-show="showSearchResults" x-cloak x-transition
+                 class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-sky-200 max-h-96 overflow-y-auto z-50">
+                <template x-if="searchResults.length === 0 && searchQuery.length >= 2">
+                    <div class="p-4 text-center text-slate-500 text-sm">No results found</div>
+                </template>
+                <template x-for="r in searchResults" :key="r.id">
+                    <button @click="selectSearchResult(r.id)"
+                            class="block w-full text-left px-4 py-3 hover:bg-sky-50 border-b border-sky-100 last:border-0 transition-colors">
+                        <div class="font-semibold text-sky-900 text-sm" x-text="r.title"></div>
+                        <div class="text-xs text-slate-600 mt-1 leading-relaxed" x-html="r.snippet"></div>
+                    </button>
+                </template>
+            </div>
         </div>
 
         <!-- Print button -->
-        <button id="print-btn" class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Export to PDF">
+        <button @click="handlePrint()" class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Export to PDF">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
             </svg>
@@ -56,24 +113,48 @@
     <!-- Main layout -->
     <div class="flex flex-1 overflow-hidden relative">
         <!-- Sidebar overlay (mobile) -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" aria-hidden="true"></div>
+        <div x-show="sidebarOpen" x-cloak
+             class="fixed inset-0 bg-black/40 z-30 lg:hidden"
+             @click="closeSidebar()"
+             x-transition:enter="transition-opacity duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"></div>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 pt-0 lg:pt-0 mt-[57px] lg:mt-0">
-            <div class="px-4 py-3 border-b border-sky-800 flex items-center justify-between flex-shrink-0">
+        <aside id="sidebar"
+               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transition-transform duration-300 mt-[57px] lg:mt-0"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+            <div class="px-4 py-3 border-b border-sky-700 flex items-center justify-between shrink-0">
                 <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Table of Contents</span>
-                <button id="sidebar-close" class="lg:hidden p-1 rounded hover:bg-sky-800 text-sky-400">
+                <button @click="closeSidebar()" class="lg:hidden p-1 rounded hover:bg-sky-700 text-sky-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <nav id="toc" class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5"></nav>
+            <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+                <template x-for="h in headers" :key="h.id">
+                    <a :href="'#' + h.id"
+                       @click.prevent="tocClick(h.id)"
+                       class="toc-link"
+                       :class="{
+                           'active': activeId === h.id,
+                           'toc-sub': h.level === 3
+                       }"
+                       x-text="h.text"
+                       x-effect="if (activeId === h.id) $el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })"></a>
+                </template>
+            </nav>
         </aside>
 
         <!-- Content -->
         <main id="content-scroll" class="flex-1 overflow-y-auto bg-sky-50">
-            <div id="content" class="max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full">
+            <div id="rules-content"
+                 class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full"
+                 @click="handleContentClick($event)">
 <h2 id="overview">Welcome to the Kipuka!<a class="header-anchor" href="#overview" title="Link to this section">#</a></h2>
 <p><strong><em>I am glad you are here</em> and want to play by the rules.</strong> We have put a lot of time into organizing our rules to make viewing pleasurable on a variety of devices and still look good on paper.</p>
 <p><strong>Warnings before play:</strong><br>Kipukas uses many small game pieces to keep track of play. All pieces should be treated as <strong>CHOKING HAZARDS and the game content is for people 13+ years of age.</strong> Do not let children under or pets play with the pieces. At all times, it is the responsibility of the legal guardians to keep all pieces out of reach of children and pets.</p>
@@ -799,22 +880,25 @@
         </main>
     </div>
 
-    <!-- Chat Widget -->
-    <div id="chat-widget" class="fixed bottom-5 right-5 z-50">
+    <!-- Chat Widget (Kippa) -->
+    <div class="fixed bottom-5 right-5 z-50">
         <!-- Chat toggle button -->
-        <button id="chat-toggle" class="w-14 h-14 bg-sky-700 hover:bg-sky-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
-            <svg id="chat-icon-open" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button @click="toggleChat()" class="w-14 h-14 bg-sky-700 hover:bg-sky-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
+            <svg x-show="!chatOpen" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
             </svg>
-            <svg id="chat-icon-close" class="w-7 h-7 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg x-show="chatOpen" x-cloak class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
 
         <!-- Chat panel -->
-        <div id="chat-panel" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 h-[28rem] bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden">
+        <div x-show="chatOpen" x-cloak
+             x-transition.duration.300ms
+             class="absolute bottom-16 right-0 w-80 sm:w-96 h-[28rem] bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden"
+             id="chat-panel">
             <!-- Chat header -->
-            <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 flex-shrink-0">
+            <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 shrink-0">
                 <div class="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
@@ -822,34 +906,48 @@
                 </div>
                 <span class="font-semibold text-sky-100 text-sm">Kippa — Rules Assistant</span>
                 <div class="flex-1"></div>
-                <div id="chat-status" class="w-2 h-2 rounded-full bg-gray-500" title="Connecting..."></div>
+                <div class="w-2 h-2 rounded-full"
+                     :class="chatConnected ? 'bg-green-500' : 'bg-gray-500'"
+                     :title="chatConnected ? 'Connected' : 'Disconnected'"></div>
             </div>
 
             <!-- Chat messages -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm"></div>
+            <div x-ref="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+                <template x-for="(msg, i) in messages" :key="i">
+                    <div :class="msg.isUser ? 'flex justify-end' : 'flex justify-start'">
+                        <div class="chat-bubble rounded-xl px-3 py-2"
+                             :class="{
+                                 'bg-sky-600 text-white rounded-br-sm': msg.isUser,
+                                 'bg-sky-800 text-sky-100 rounded-bl-sm': !msg.isUser,
+                                 'streaming-cursor': msg.streaming
+                             }">
+                            <div class="markdown-content"
+                                 x-html="msg.isUser ? msg.text : renderChatMarkdown(msg.text)"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
 
             <!-- Chat input -->
-            <form id="chat-form" class="border-t border-sky-800 p-3 flex gap-2 flex-shrink-0">
-                <input type="text" id="chat-input" placeholder="Ask Kippa..."
+            <form @submit.prevent="sendMessage()" class="border-t border-sky-800 p-3 flex gap-2 shrink-0">
+                <input type="text" x-model="chatInput" placeholder="Ask Kippa..."
+                    :placeholder="chatConnected ? 'Ask Kippa...' : 'Connecting...'"
+                    :disabled="!chatConnected"
                     class="flex-1 bg-sky-900 border border-sky-700 rounded-lg px-3 py-2 text-sky-100 placeholder-sky-500 text-sm focus:outline-none focus:border-sky-500 disabled:opacity-50"
-                    autocomplete="off" disabled>
-                <button type="submit" id="chat-send"
-                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Send
-                </button>
+                    autocomplete="off">
+                <button type="submit"
+                    :disabled="!chatConnected || chatStreaming"
+                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    x-text="chatStreaming ? '...' : 'Send'">Send</button>
             </form>
         </div>
     </div>
 
-    <!-- Dependencies -->
+    <!-- Vendor dependencies (for chat markdown rendering in dev/runtime) -->
     <script src="js/vendor/marked.umd.js"></script>
     <script src="js/vendor/purify.min.js"></script>
 
-    <!-- App modules -->
-    <script src="js/markdown.js"></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/search.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Rules book Alpine component -->
+    <script src="js/rules-book.js"></script>
 </body>
 </html>

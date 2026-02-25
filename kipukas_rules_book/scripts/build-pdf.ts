@@ -22,7 +22,7 @@
 import { Marked } from 'marked';
 import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
-import { join, resolve, relative, dirname, fromFileUrl } from 'jsr:@std/path@1';
+import { dirname, fromFileUrl, join, relative, resolve } from 'jsr:@std/path@1';
 import { ensureDirSync } from 'jsr:@std/fs@1';
 import { existsSync } from 'jsr:@std/fs@1/exists';
 

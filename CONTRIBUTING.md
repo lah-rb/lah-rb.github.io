@@ -733,7 +733,6 @@ Features are grouped by priority. Items marked *post-launch* require the game to
 
 #### 1. QR Room Join
 Embed the room code in a QR code so scanning joins the room directly. This connects two existing features (QR scanner + multiplayer) with minimal new code. The flow: Player A creates a room → room code appears as both text and a QR. Player B scans the QR → auto-joins the room. The QR URL format could be `kpks.us/join?code=ABCD#room=myroom` with a redirect that passes the code to the multiplayer module.
-### Medium-Term
 
 #### 2. Decentralized Identity & Authentication (Yrs Foundation)
 **Prerequisite for:** Deck Builder (feature #5), Affinity/Loyalty tracking (feature #7), and cross-device sync.

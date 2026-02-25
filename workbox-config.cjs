@@ -14,6 +14,8 @@ module.exports = {
     'assets/css/**/*.css',
     'assets/js/**/*.js',
     'assets/js-wasm/**/*.{js,wasm}',
+    // Rules book JS + search index (for offline rules viewing)
+    'game_rules/js/**/*.{js,json}',
     // SVG utility images (small)
     'assets/utility_images/**/*.svg',
     // App icons & favicons
