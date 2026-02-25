@@ -13,7 +13,85 @@
 /// rqrr is fast enough (~2-10ms per attempt at 640×480) to run 7 strategies per frame
 /// well within the 500ms scan interval.
 use rqrr::PreparedImage;
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
+
+// ── Frame Accumulator (ring buffer for temporal averaging) ─────────
+
+const MAX_FRAMES: usize = 4;
+
+struct FrameBuffer {
+    frames: Vec<Vec<u8>>, // greyscale frames
+    width: usize,
+    height: usize,
+    count: usize,
+}
+
+impl FrameBuffer {
+    fn new() -> Self {
+        Self { frames: Vec::new(), width: 0, height: 0, count: 0 }
+    }
+
+    fn push(&mut self, grey: &[u8], w: usize, h: usize) {
+        // Reset if dimensions changed
+        if w != self.width || h != self.height {
+            self.frames.clear();
+            self.width = w;
+            self.height = h;
+            self.count = 0;
+        }
+        if self.frames.len() < MAX_FRAMES {
+            self.frames.push(grey.to_vec());
+        } else {
+            let idx = self.count % MAX_FRAMES;
+            self.frames[idx] = grey.to_vec();
+        }
+        self.count += 1;
+    }
+
+    /// Per-pixel average of all accumulated frames.
+    fn average(&self) -> Option<Vec<u8>> {
+        if self.frames.len() < 2 {
+            return None;
+        }
+        let n = self.frames.len();
+        let len = self.width * self.height;
+        let mut avg = Vec::with_capacity(len);
+        for i in 0..len {
+            let sum: u32 = self.frames.iter().map(|f| f[i] as u32).sum();
+            avg.push((sum / n as u32) as u8);
+        }
+        Some(avg)
+    }
+
+    /// Per-pixel median of all accumulated frames.
+    fn median(&self) -> Option<Vec<u8>> {
+        if self.frames.len() < 3 {
+            return None;
+        }
+        let n = self.frames.len();
+        let len = self.width * self.height;
+        let mut med = Vec::with_capacity(len);
+        let mut vals = vec![0u8; n];
+        for i in 0..len {
+            for (j, f) in self.frames.iter().enumerate() {
+                vals[j] = f[i];
+            }
+            vals[..n].sort_unstable();
+            med.push(vals[n / 2]);
+        }
+        Some(med)
+    }
+
+    fn reset(&mut self) {
+        self.frames.clear();
+        self.count = 0;
+    }
+}
+
+thread_local! {
+    static FRAME_BUF: RefCell<FrameBuffer> = RefCell::new(FrameBuffer::new());
+}
 
 // ── Public WASM API ────────────────────────────────────────────────
 
@@ -29,47 +107,140 @@ pub fn decode_qr_frame(rgba: &[u8], width: usize, height: usize) -> String {
 
     let grey = rgba_to_greyscale(rgba, width, height);
 
-    // Strategy 1: Raw greyscale — handles normal conditions, good lighting
-    if let Some(text) = try_decode_greyscale(&grey, width, height) {
+    // Accumulate frame for temporal strategies
+    FRAME_BUF.with(|fb| fb.borrow_mut().push(&grey, width, height));
+
+    // Run single-frame + temporal strategies
+    run_all_strategies(&grey, width, height)
+}
+
+/// Reset the frame accumulator (call when scanner closes).
+#[wasm_bindgen]
+pub fn reset_qr_frames() {
+    FRAME_BUF.with(|fb| fb.borrow_mut().reset());
+}
+
+/// Run all decode strategies on a greyscale buffer.
+fn run_all_strategies(grey: &[u8], width: usize, height: usize) -> String {
+    // ── Single-frame strategies ────────────────────────────────────
+
+    // 1: Raw greyscale
+    if let Some(text) = try_decode_greyscale(grey, width, height) {
         return text;
     }
 
-    // Strategy 2: Gaussian blur σ≈1.5 — smooths cracked-lava SVG texture
-    let blurred_light = gaussian_blur(&grey, width, height, 1);
+    // 2: Gaussian blur σ≈1.5
+    let blurred_light = gaussian_blur(grey, width, height, 1);
     if let Some(text) = try_decode_greyscale(&blurred_light, width, height) {
         return text;
     }
 
-    // Strategy 3: Gaussian blur σ≈3.0 — heavier smoothing for heavy texture + slight gloss
-    let blurred_heavy = gaussian_blur(&grey, width, height, 2);
+    // 3: Gaussian blur σ≈3.0
+    let blurred_heavy = gaussian_blur(grey, width, height, 2);
     if let Some(text) = try_decode_greyscale(&blurred_heavy, width, height) {
         return text;
     }
 
-    // Strategy 4: Contrast stretch — handles washed-out captures from gloss
-    let stretched = contrast_stretch(&grey);
+    // 4: Median filter 3×3 — edge-preserving texture removal
+    let med3 = median_filter(grey, width, height, 1);
+    if let Some(text) = try_decode_greyscale(&med3, width, height) {
+        return text;
+    }
+
+    // 5: Median filter 5×5 — heavier edge-preserving smoothing
+    let med5 = median_filter(grey, width, height, 2);
+    if let Some(text) = try_decode_greyscale(&med5, width, height) {
+        return text;
+    }
+
+    // ── Temporal strategies (use accumulated frames) ───────────────
+
+    // 6: Temporal average — reinforces static QR, washes out texture shimmer
+    let temporal_result = FRAME_BUF.with(|fb| {
+        let buf = fb.borrow();
+        if let Some(avg) = buf.average() {
+            if let Some(text) = try_decode_greyscale(&avg, buf.width, buf.height) {
+                return Some(text);
+            }
+            // Also try blur on the averaged frame
+            let blurred_avg = gaussian_blur(&avg, buf.width, buf.height, 1);
+            if let Some(text) = try_decode_greyscale(&blurred_avg, buf.width, buf.height) {
+                return Some(text);
+            }
+        }
+        // 7: Temporal median — even more robust noise elimination
+        if let Some(med) = buf.median() {
+            if let Some(text) = try_decode_greyscale(&med, buf.width, buf.height) {
+                return Some(text);
+            }
+        }
+        None
+    });
+    if let Some(text) = temporal_result {
+        return text;
+    }
+
+    // ── More single-frame strategies ──────────────────────────────
+
+    // 8: Contrast stretch
+    let stretched = contrast_stretch(grey);
     if let Some(text) = try_decode_greyscale(&stretched, width, height) {
         return text;
     }
 
-    // Strategy 5: Local contrast normalization — handles specular hotspots from glossy surface
-    let normalized = local_normalize(&grey, width, height, 64);
-    if let Some(text) = try_decode_greyscale(&normalized, width, height) {
+    // 9: Adaptive threshold (local mean, block=15, bias=8)
+    let adaptive = adaptive_threshold(grey, width, height, 15, 8);
+    if let Some(text) = try_decode_greyscale(&adaptive, width, height) {
         return text;
     }
 
-    // Strategy 6: Downscale 2× — averages out fine texture, widens apparent thin border
-    let (dw, dh) = (width / 2, height / 2);
-    if dw > 0 && dh > 0 {
-        let downscaled = downscale_2x(&grey, width, height);
-        if let Some(text) = try_decode_greyscale(&downscaled, dw, dh) {
+    // 10: Blur σ≈2 + Otsu — smooth texture then clean binarize
+    let blur_otsu = gaussian_blur(grey, width, height, 2);
+    let thresh_bo = otsu_threshold(&blur_otsu);
+    if let Some(text) = try_decode_bitmap(&blur_otsu, width, height, thresh_bo) {
+        return text;
+    }
+
+    // 11: Downscale 2×
+    let (dw2, dh2) = (width / 2, height / 2);
+    if dw2 > 0 && dh2 > 0 {
+        let ds2 = downscale_2x(grey, width, height);
+        if let Some(text) = try_decode_greyscale(&ds2, dw2, dh2) {
             return text;
         }
     }
 
-    // Strategy 7: Otsu binarization — clean threshold for black-on-yellow contrast
-    let threshold = otsu_threshold(&grey);
-    if let Some(text) = try_decode_bitmap(&grey, width, height, threshold) {
+    // 12: Downscale 4× — very aggressive texture averaging
+    let (dw4, dh4) = (width / 4, height / 4);
+    if dw4 > 20 && dh4 > 20 {
+        let ds4 = downscale_4x(grey, width, height);
+        if let Some(text) = try_decode_greyscale(&ds4, dw4, dh4) {
+            return text;
+        }
+    }
+
+    // 13: Morphological closing on Otsu binary — fills texture gaps in QR modules
+    let threshold = otsu_threshold(grey);
+    let binary: Vec<u8> = grey.iter().map(|&p| if p < threshold { 0 } else { 255 }).collect();
+    let closed = morphological_close(&binary, width, height, 1);
+    if let Some(text) = try_decode_greyscale(&closed, width, height) {
+        return text;
+    }
+
+    // 14: Quiet zone padding + raw — helps when QR is near frame edge
+    let (padded, pw, ph) = add_quiet_zone(grey, width, height, 20);
+    if let Some(text) = try_decode_greyscale(&padded, pw, ph) {
+        return text;
+    }
+
+    // 15: Local contrast normalization
+    let normalized = local_normalize(grey, width, height, 64);
+    if let Some(text) = try_decode_greyscale(&normalized, width, height) {
+        return text;
+    }
+
+    // 16: Otsu binarization (global)
+    if let Some(text) = try_decode_bitmap(grey, width, height, threshold) {
         return text;
     }
 
@@ -289,6 +460,155 @@ fn downscale_2x(grey: &[u8], width: usize, height: usize) -> Vec<u8> {
     out
 }
 
+/// Median filter — removes salt-and-pepper texture while preserving edges.
+/// `radius` 1 = 3×3 window, `radius` 2 = 5×5 window.
+fn median_filter(grey: &[u8], width: usize, height: usize, radius: usize) -> Vec<u8> {
+    let w = width;
+    let h = height;
+    let side = 2 * radius + 1;
+    let mut result = Vec::with_capacity(w * h);
+    let mut window = vec![0u8; side * side];
+
+    for y in 0..h {
+        for x in 0..w {
+            let mut count = 0;
+            for dy in 0..side {
+                let sy = (y + dy).saturating_sub(radius).min(h - 1);
+                for dx in 0..side {
+                    let sx = (x + dx).saturating_sub(radius).min(w - 1);
+                    window[count] = grey[sy * w + sx];
+                    count += 1;
+                }
+            }
+            window[..count].sort_unstable();
+            result.push(window[count / 2]);
+        }
+    }
+    result
+}
+
+/// Adaptive threshold — per-pixel threshold based on local mean.
+/// Much better than global Otsu for uneven lighting from glossy surfaces.
+/// `block` is the half-size of the neighborhood window.
+/// `c` is subtracted from the local mean (bias toward dark = QR modules).
+fn adaptive_threshold(grey: &[u8], width: usize, height: usize, block: usize, c: i32) -> Vec<u8> {
+    // Build integral image for fast local mean computation
+    let w = width;
+    let h = height;
+    let mut integral = vec![0i64; (w + 1) * (h + 1)];
+    let iw = w + 1;
+
+    for y in 0..h {
+        let mut row_sum = 0i64;
+        for x in 0..w {
+            row_sum += grey[y * w + x] as i64;
+            integral[(y + 1) * iw + (x + 1)] = row_sum + integral[y * iw + (x + 1)];
+        }
+    }
+
+    let mut result = vec![0u8; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            let y0 = y.saturating_sub(block);
+            let x0 = x.saturating_sub(block);
+            let y1 = (y + block + 1).min(h);
+            let x1 = (x + block + 1).min(w);
+            let area = ((y1 - y0) * (x1 - x0)) as i64;
+            let sum = integral[y1 * iw + x1] - integral[y0 * iw + x1]
+                - integral[y1 * iw + x0]
+                + integral[y0 * iw + x0];
+            let local_mean = sum / area;
+            let thresh = local_mean - c as i64;
+            result[y * w + x] = if (grey[y * w + x] as i64) < thresh { 0 } else { 255 };
+        }
+    }
+    result
+}
+
+/// Morphological closing on a binary image (dilation → erosion).
+/// Fills small gaps in QR modules that texture creates.
+/// `radius` controls the structuring element size.
+fn morphological_close(binary: &[u8], width: usize, height: usize, radius: usize) -> Vec<u8> {
+    // Dilation: pixel is white if ANY neighbor is white
+    let dilated = morph_dilate(binary, width, height, radius);
+    // Erosion: pixel is white only if ALL neighbors are white
+    morph_erode(&dilated, width, height, radius)
+}
+
+fn morph_dilate(img: &[u8], w: usize, h: usize, r: usize) -> Vec<u8> {
+    let mut out = vec![0u8; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            let mut max_val = 0u8;
+            for dy in y.saturating_sub(r)..=(y + r).min(h - 1) {
+                for dx in x.saturating_sub(r)..=(x + r).min(w - 1) {
+                    let v = img[dy * w + dx];
+                    if v > max_val {
+                        max_val = v;
+                    }
+                }
+            }
+            out[y * w + x] = max_val;
+        }
+    }
+    out
+}
+
+fn morph_erode(img: &[u8], w: usize, h: usize, r: usize) -> Vec<u8> {
+    let mut out = vec![255u8; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            let mut min_val = 255u8;
+            for dy in y.saturating_sub(r)..=(y + r).min(h - 1) {
+                for dx in x.saturating_sub(r)..=(x + r).min(w - 1) {
+                    let v = img[dy * w + dx];
+                    if v < min_val {
+                        min_val = v;
+                    }
+                }
+            }
+            out[y * w + x] = min_val;
+        }
+    }
+    out
+}
+
+/// Downscale image by 4× using area averaging.
+fn downscale_4x(grey: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let dw = width / 4;
+    let dh = height / 4;
+    let mut out = Vec::with_capacity(dw * dh);
+
+    for dy in 0..dh {
+        for dx in 0..dw {
+            let sx = dx * 4;
+            let sy = dy * 4;
+            let mut sum = 0u32;
+            for row in sy..(sy + 4).min(height) {
+                for col in sx..(sx + 4).min(width) {
+                    sum += grey[row * width + col] as u32;
+                }
+            }
+            out.push((sum / 16) as u8);
+        }
+    }
+    out
+}
+
+/// Add a white quiet zone border around the image.
+/// Helps finder pattern detection when QR is near the frame edge.
+fn add_quiet_zone(grey: &[u8], width: usize, height: usize, pad: usize) -> (Vec<u8>, usize, usize) {
+    let nw = width + 2 * pad;
+    let nh = height + 2 * pad;
+    let mut out = vec![255u8; nw * nh]; // white background
+    for y in 0..height {
+        for x in 0..width {
+            out[(y + pad) * nw + (x + pad)] = grey[y * width + x];
+        }
+    }
+    (out, nw, nh)
+}
+
 /// Compute Otsu's threshold — the optimal global binarization threshold
 /// that minimizes intra-class variance.
 ///
@@ -468,5 +788,122 @@ mod tests {
         let rgba = vec![0; 10]; // too short for any image
         let result = decode_qr_frame(&rgba, 100, 100);
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn median_filter_preserves_dimensions() {
+        let grey = vec![128; 10 * 10];
+        let filtered = median_filter(&grey, 10, 10, 1);
+        assert_eq!(filtered.len(), 100);
+    }
+
+    #[test]
+    fn median_filter_removes_spike() {
+        let mut grey = vec![100u8; 5 * 5];
+        grey[12] = 255; // single bright spike at center
+        let filtered = median_filter(&grey, 5, 5, 1);
+        assert_eq!(filtered[12], 100, "median should remove the spike");
+    }
+
+    #[test]
+    fn adaptive_threshold_dimensions() {
+        let grey = vec![128; 10 * 10];
+        let result = adaptive_threshold(&grey, 10, 10, 3, 5);
+        assert_eq!(result.len(), 100);
+    }
+
+    #[test]
+    fn adaptive_threshold_separates_bimodal() {
+        // Left half dark (30), right half bright (220)
+        let mut grey = vec![0u8; 10 * 10];
+        for y in 0..10 {
+            for x in 0..10 {
+                grey[y * 10 + x] = if x < 5 { 30 } else { 220 };
+            }
+        }
+        let result = adaptive_threshold(&grey, 10, 10, 3, 5);
+        // At the boundary (x=4→5), the local mean transitions from dark to bright.
+        // Deep in the bright region (x=9) should be 255 since 220 > local_mean - c.
+        assert_eq!(result[0 * 10 + 9], 255); // bright region stays bright
+        // At the boundary, dark side pixel (x=4) should be darker than bright side (x=5)
+        // when the neighborhood straddles both regions
+        assert!(result[5 * 10 + 4] < result[5 * 10 + 5] || result[5 * 10 + 4] == 0);
+    }
+
+    #[test]
+    fn morphological_close_fills_gap() {
+        // 5×5 white image with a single black (0) pixel gap
+        let mut binary = vec![255u8; 5 * 5];
+        binary[12] = 0; // single gap at center
+        let closed = morphological_close(&binary, 5, 5, 1);
+        assert_eq!(closed[12], 255, "closing should fill single-pixel gap");
+    }
+
+    #[test]
+    fn downscale_4x_dimensions() {
+        let grey = vec![100; 40 * 40];
+        let ds = downscale_4x(&grey, 40, 40);
+        assert_eq!(ds.len(), 10 * 10);
+    }
+
+    #[test]
+    fn add_quiet_zone_dimensions() {
+        let grey = vec![100; 10 * 10];
+        let (padded, nw, nh) = add_quiet_zone(&grey, 10, 10, 5);
+        assert_eq!(nw, 20);
+        assert_eq!(nh, 20);
+        assert_eq!(padded.len(), 20 * 20);
+        // Corners should be white (255 = quiet zone)
+        assert_eq!(padded[0], 255);
+        // Original content should be at offset
+        assert_eq!(padded[5 * 20 + 5], 100);
+    }
+
+    #[test]
+    fn frame_buffer_average() {
+        let mut buf = FrameBuffer::new();
+        buf.push(&[100, 200], 2, 1);
+        assert!(buf.average().is_none()); // need at least 2 frames
+        buf.push(&[200, 100], 2, 1);
+        let avg = buf.average().unwrap();
+        assert_eq!(avg, vec![150, 150]);
+    }
+
+    #[test]
+    fn frame_buffer_median() {
+        let mut buf = FrameBuffer::new();
+        buf.push(&[10, 200], 2, 1);
+        buf.push(&[100, 100], 2, 1);
+        buf.push(&[200, 10], 2, 1);
+        let med = buf.median().unwrap();
+        assert_eq!(med, vec![100, 100]);
+    }
+
+    #[test]
+    fn frame_buffer_resets_on_dimension_change() {
+        let mut buf = FrameBuffer::new();
+        buf.push(&[100; 4], 2, 2);
+        buf.push(&[200; 4], 2, 2);
+        assert_eq!(buf.frames.len(), 2);
+        buf.push(&[50; 9], 3, 3); // dimension change
+        assert_eq!(buf.frames.len(), 1); // reset
+    }
+
+    #[test]
+    fn frame_buffer_ring_wraps() {
+        let mut buf = FrameBuffer::new();
+        for i in 0..10 {
+            buf.push(&[i as u8; 4], 2, 2);
+        }
+        assert_eq!(buf.frames.len(), MAX_FRAMES);
+    }
+
+    #[test]
+    fn reset_clears_buffer() {
+        let mut buf = FrameBuffer::new();
+        buf.push(&[100; 4], 2, 2);
+        buf.reset();
+        assert!(buf.frames.is_empty());
+        assert_eq!(buf.count, 0);
     }
 }

@@ -190,6 +190,12 @@
       video.srcObject = null;
     }
 
+    // Reset the rqrr frame accumulator so stale frames don't carry over
+    const worker = globalThis.kipukasWorker;
+    if (worker) {
+      worker.postMessage({ type: 'QR_RESET' });
+    }
+
     console.log('[qr-camera] Camera stopped');
   }
 

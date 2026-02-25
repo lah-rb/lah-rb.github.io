@@ -18,6 +18,7 @@
 import init, {
   decode_qr_frame,
   handle_request,
+  reset_qr_frames,
 } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 
 // ── WASM server init ───────────────────────────────────────────────
@@ -80,6 +81,26 @@ function decodeQR(pixels, width, height) {
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
+  // ── QR config (toggle ZXing on/off for testing) ──
+  // Usage from main thread console:
+  //   kipukasWorker.postMessage({type:'QR_CONFIG', disableZxing: true})
+  //   kipukasWorker.postMessage({type:'QR_CONFIG', disableZxing: false})
+  if (event.data?.type === 'QR_CONFIG') {
+    self._disableZxing = !!event.data.disableZxing;
+    console.log(
+      `[kipukas-worker] ZXing ${
+        self._disableZxing ? 'DISABLED' : 'enabled'
+      } (rqrr-only mode: ${self._disableZxing})`,
+    );
+    return;
+  }
+
+  // ── QR frame buffer reset (when scanner closes) ──
+  if (event.data?.type === 'QR_RESET') {
+    if (initialized) reset_qr_frames();
+    return;
+  }
+
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     const { pixels, width, height } = event.data;
@@ -100,7 +121,8 @@ self.onmessage = async (event) => {
     }
 
     // Fall back to ZXing if rqrr didn't find anything
-    if (!decoded) {
+    // Toggle: sessionStorage.setItem('qr-disable-zxing', 'true') to isolate rqrr
+    if (!decoded && !self._disableZxing) {
       decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
       if (decoded) {
         decoder = 'zxing';
