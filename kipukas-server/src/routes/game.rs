@@ -4,7 +4,7 @@
 //! Phase 3b: Single-player state management via HTMX + WASM.
 //! Phase 4 prep: `/api/game/state` returns JSON for WebRTC sync.
 
-use crate::game::{damage, turns};
+use crate::game::{damage, player_doc, turns};
 use crate::game::state;
 
 /// Parse URL-encoded form body into key-value pairs.
@@ -224,6 +224,86 @@ pub fn handle_import_post(body: &str) -> String {
     }
 }
 
+// ── GET /api/player/state ──────────────────────────────────────────
+
+/// Handle GET /api/player/state
+/// Returns the full PLAYER_DOC as a base64 binary string for persistence.
+/// Called by kipukas-api.js on beforeunload to persist to localStorage.
+pub fn handle_player_state_get(_query: &str) -> String {
+    player_doc::encode_full_state()
+}
+
+// ── POST /api/player/restore ───────────────────────────────────────
+
+/// Handle POST /api/player/restore
+/// Restores the PLAYER_DOC from a base64 binary string.
+/// Called by kipukas-api.js on page load to restore from localStorage.
+pub fn handle_player_restore_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let state_b64 = get_param(&params, "state").unwrap_or(body.trim());
+    match player_doc::restore_from_state(state_b64) {
+        Ok(()) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    }
+}
+
+// ── POST /api/player/migrate ───────────────────────────────────────
+
+/// Handle POST /api/player/migrate
+/// One-time migration from old kipukas_game_state JSON into PLAYER_DOC.
+/// Body is the raw JSON from localStorage.
+pub fn handle_player_migrate_post(body: &str) -> String {
+    match player_doc::migrate_from_game_state(body) {
+        Ok(()) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    }
+}
+
+// ── GET /api/player/export ─────────────────────────────────────────
+
+/// Handle GET /api/player/export
+/// Returns a <script> tag that triggers a file download of the player doc
+/// as a base64 text file.
+pub fn handle_player_export_get(_query: &str) -> String {
+    let state = player_doc::encode_full_state();
+    format!(
+        r#"<script>
+(function() {{
+  var b = new Blob(['{state}'], {{type: 'text/plain'}});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'kipukas-player-data.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  console.log('[kipukas] Player data exported');
+}})();
+</script>"#,
+        state = state
+    )
+}
+
+// ── POST /api/player/import ────────────────────────────────────────
+
+/// Handle POST /api/player/import
+/// Accepts a base64 state string and restores it as the PLAYER_DOC.
+/// Used for importing a previously exported player data file.
+pub fn handle_player_import_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let state_b64 = get_param(&params, "state").unwrap_or(body.trim());
+    match player_doc::restore_from_state(state_b64) {
+        Ok(()) => {
+            r#"<span class="text-emerald-600">Player data imported successfully</span>"#
+                .to_string()
+        }
+        Err(e) => {
+            format!(
+                r#"<span class="text-kip-red">Import failed: {}</span>"#,
+                e
+            )
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,6 +311,7 @@ mod tests {
 
     fn reset_state() {
         replace_state(GameState::default());
+        crate::game::player_doc::init_player_doc();
     }
 
     #[test]

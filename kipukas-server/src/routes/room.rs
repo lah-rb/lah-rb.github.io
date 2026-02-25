@@ -7,7 +7,7 @@ use crate::cards_generated::CARDS;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::room::{self, CombatRole, FistsSubmission};
-use crate::game::state::with_state;
+use crate::game::player_doc;
 use crate::game::turns;
 use crate::typing;
 
@@ -277,23 +277,14 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
     if card.keal_means.is_empty() {
         return false;
     }
-    let mut slot_start: u8 = 1;
-    for km in card.keal_means {
-        if km.count == 0 {
-            continue;
-        }
-        let all_checked = with_state(|state| {
-            if let Some(card_state) = state.cards.get(slug) {
-                (slot_start..slot_start + km.count)
-                    .all(|s| card_state.slots.get(&s).copied().unwrap_or(false))
-            } else {
-                false
-            }
-        });
-        if !all_checked {
+    let total: u8 = card.keal_means.iter().map(|km| km.count).sum();
+    if total == 0 {
+        return false;
+    }
+    for slot in 1..=total {
+        if !player_doc::get_slot(slug, slot) {
             return false;
         }
-        slot_start += km.count;
     }
     true
 }
@@ -400,14 +391,8 @@ fn render_fists_form(slug: &str) -> String {
     for km in card.keal_means {
         // Check if all slots in this keal means group are checked (exhausted)
         let all_checked = if km.count > 0 {
-            with_state(|state| {
-                if let Some(card_state) = state.cards.get(slug) {
-                    (slot_start..slot_start + km.count)
-                        .all(|s| card_state.slots.get(&s).copied().unwrap_or(false))
-                } else {
-                    false
-                }
-            })
+            (slot_start..slot_start + km.count)
+                .all(|s| player_doc::get_slot(slug, s))
         } else {
             false
         };
@@ -783,14 +768,7 @@ fn auto_mark_damage(card_slug: &str, keal_idx: u8) -> bool {
             damage::ensure_card_state(card_slug, total);
 
             for slot in slot_start..slot_end {
-                let is_checked = with_state(|state| {
-                    state
-                        .cards
-                        .get(card_slug)
-                        .and_then(|c| c.slots.get(&slot).copied())
-                        .unwrap_or(false)
-                });
-                if !is_checked {
+                if !player_doc::get_slot(card_slug, slot) {
                     damage::toggle_slot(card_slug, slot);
                     return true;
                 }
@@ -1357,6 +1335,7 @@ mod tests {
 
     fn reset() {
         room::reset_room();
+        crate::game::player_doc::init_player_doc();
     }
 
     #[test]
@@ -1533,11 +1512,8 @@ mod tests {
         assert!(html.contains("Ouch"));
         assert!(html.contains("Damage has been recorded"));
         assert!(html.contains("New Round"));
-        // Verify slot 1 of brox was toggled
-        with_state(|s| {
-            let card = s.cards.get("brox_the_defiant").unwrap();
-            assert!(card.slots.get(&1).copied().unwrap_or(false));
-        });
+        // Verify slot 1 of brox was toggled in PLAYER_DOC
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
         crate::game::state::replace_state(crate::game::state::GameState::default());
         reset();
     }

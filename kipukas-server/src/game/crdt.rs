@@ -35,7 +35,8 @@ use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{Any, Array, Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn};
 
-use crate::game::state::{with_state, with_state_mut, Alarm};
+use crate::game::player_doc;
+use crate::game::state::Alarm;
 
 thread_local! {
     static CRDT_DOC: RefCell<Doc> = RefCell::new(Doc::new());
@@ -271,12 +272,12 @@ pub fn apply_update(update_b64: &str) -> Result<(), String> {
 
 // ── GameState ↔ CRDT bridge ────────────────────────────────────────
 
-/// Seed the CRDT Doc from local `GameState.alarms`.
+/// Seed the CRDT Doc from local PLAYER_DOC alarms.
 /// Called on room create/join so any pre-existing local timers become
 /// shared with the peer. Skips if the Doc already has alarms (e.g.,
 /// restored from sessionStorage on page navigation).
 pub fn seed_from_local() {
-    let local_alarms: Vec<Alarm> = with_state(|state| state.alarms.clone());
+    let local_alarms: Vec<Alarm> = player_doc::get_alarms();
     if local_alarms.is_empty() {
         return;
     }
@@ -291,14 +292,21 @@ pub fn seed_from_local() {
     }
 }
 
-/// Copy the current CRDT alarms back into local `GameState.alarms`.
+/// Copy the current CRDT alarms back into local PLAYER_DOC.
 /// Called on disconnect so shared timers survive as local timers after
 /// the multiplayer session ends.
 pub fn export_to_local() {
     let crdt_alarms = get_alarms();
-    with_state_mut(|state| {
-        state.alarms = crdt_alarms;
-    });
+    // Clear existing local alarms and replace with CRDT alarms
+    // First remove all existing local alarms
+    let existing = player_doc::get_alarms();
+    for i in (0..existing.len()).rev() {
+        player_doc::remove_alarm(i);
+    }
+    // Then add CRDT alarms
+    for alarm in &crdt_alarms {
+        player_doc::add_alarm(alarm.remaining, &alarm.name, &alarm.color_set);
+    }
 }
 
 // ── Internal helpers ───────────────────────────────────────────────
@@ -587,20 +595,10 @@ mod tests {
 
     #[test]
     fn seed_from_local_copies_alarms() {
-        use crate::game::state::{replace_state, GameState};
-        // Set up local GameState with alarms
-        let mut gs = GameState::default();
-        gs.alarms.push(Alarm {
-            remaining: 5,
-            name: "local timer".to_string(),
-            color_set: "green".to_string(),
-        });
-        gs.alarms.push(Alarm {
-            remaining: 2,
-            name: "another".to_string(),
-            color_set: "blue".to_string(),
-        });
-        replace_state(gs);
+        // Set up local PLAYER_DOC with alarms
+        player_doc::init_player_doc();
+        player_doc::add_alarm(5, "local timer", "green");
+        player_doc::add_alarm(2, "another", "blue");
 
         // Fresh CRDT Doc
         reset();
@@ -614,19 +612,13 @@ mod tests {
         assert_eq!(alarms[0].color_set, "green");
         assert_eq!(alarms[1].name, "another");
 
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
     }
 
     #[test]
     fn seed_from_local_skips_when_doc_has_alarms() {
-        use crate::game::state::{replace_state, GameState};
-        let mut gs = GameState::default();
-        gs.alarms.push(Alarm {
-            remaining: 5,
-            name: "local".to_string(),
-            color_set: "red".to_string(),
-        });
-        replace_state(gs);
+        player_doc::init_player_doc();
+        player_doc::add_alarm(5, "local", "red");
 
         // Doc already has alarms (e.g. restored from sessionStorage)
         reset();
@@ -638,62 +630,50 @@ mod tests {
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].name, "existing");
 
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
     }
 
     #[test]
     fn seed_from_local_skips_when_no_local_alarms() {
-        use crate::game::state::{replace_state, GameState};
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
 
         reset();
         seed_from_local();
         assert!(get_alarms().is_empty());
-
-        replace_state(GameState::default());
     }
 
     #[test]
-    fn export_to_local_copies_crdt_to_gamestate() {
-        use crate::game::state::{replace_state, GameState};
-        replace_state(GameState::default());
+    fn export_to_local_copies_crdt_to_player_doc() {
+        player_doc::init_player_doc();
 
         reset();
         add_alarm(7, "shared timer", "yellow");
         add_alarm(1, "quick one", "pink");
 
         export_to_local();
-        with_state(|state| {
-            assert_eq!(state.alarms.len(), 2);
-            assert_eq!(state.alarms[0].name, "shared timer");
-            assert_eq!(state.alarms[0].remaining, 7);
-            assert_eq!(state.alarms[0].color_set, "yellow");
-            assert_eq!(state.alarms[1].name, "quick one");
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 2);
+        assert_eq!(alarms[0].name, "shared timer");
+        assert_eq!(alarms[0].remaining, 7);
+        assert_eq!(alarms[0].color_set, "yellow");
+        assert_eq!(alarms[1].name, "quick one");
 
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
     }
 
     #[test]
     fn export_to_local_replaces_existing_alarms() {
-        use crate::game::state::{replace_state, GameState};
-        let mut gs = GameState::default();
-        gs.alarms.push(Alarm {
-            remaining: 99,
-            name: "old local".to_string(),
-            color_set: "red".to_string(),
-        });
-        replace_state(gs);
+        player_doc::init_player_doc();
+        player_doc::add_alarm(99, "old local", "red");
 
         reset();
         add_alarm(3, "from crdt", "blue");
 
         export_to_local();
-        with_state(|state| {
-            assert_eq!(state.alarms.len(), 1);
-            assert_eq!(state.alarms[0].name, "from crdt");
-        });
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].name, "from crdt");
 
-        replace_state(GameState::default());
+        player_doc::init_player_doc();
     }
 }

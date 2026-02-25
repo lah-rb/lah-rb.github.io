@@ -8,6 +8,7 @@
 
 pub mod crdt;
 pub mod damage;
+pub mod player_doc;
 pub mod room;
 pub mod state;
 pub mod turns;

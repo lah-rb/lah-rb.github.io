@@ -13,6 +13,7 @@
 5. [Development Workflow](#development-workflow)
 6. [Phase History](#phase-history)
 7. [Desired Next Features](#desired-next-features)
+8. [Planned Sprint: Player Document & GameState → Yrs Consolidation](#planned-sprint-player-document--gamestate--yrs-consolidation)
 
 ---
 
@@ -723,6 +724,48 @@ A condensed record of architectural decisions and key lessons from each developm
 
 **WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4) → TBD (Phase 5, +yrs — expect ~500-600KB).
 
+### Phase 6: Player Document & GameState → Yrs Consolidation — Phase A (✅)
+
+**Built:** Persistent `PLAYER_DOC` yrs Doc that replaces `GameState` as the authoritative store for all local player data (damage tracking, alarms, settings). New `player_doc.rs` module with its own `thread_local!` yrs Doc. Five new `/api/player/*` routes for state persistence, restoration, migration, export, and import. Transparent migration path from old `kipukas_game_state` JSON to base64 yrs binary.
+
+**Key decisions:** `PLAYER_DOC` is player-scoped (created once, persisted forever) vs `ROOM_DOC` which is room-scoped (created on join, destroyed on disconnect). Both are independent yrs Doc instances. The old `GameState` struct is kept for backward compatibility (legacy JSON import/export) but is no longer the authoritative data store — `PLAYER_DOC` is. Base64 encoding of yrs binary state for localStorage persistence, matching the pattern proven with `ROOM_DOC` in Phase 5.
+
+**Architecture:**
+
+| Store | Scope | Persistence | Purpose |
+|-------|-------|------------|---------|
+| `PLAYER_DOC` (yrs Doc) | Player | `kipukas_player_doc` in localStorage (base64) | Cards damage, alarms, settings — authoritative |
+| `GameState` (serde) | Player | `kipukas_game_state` in localStorage (JSON) | Legacy backward compat, migration source |
+| `RoomState` (RefCell) | Room | sessionStorage | Room code, fists combat — ephemeral |
+| `ROOM_DOC` (yrs Doc) | Room | `kipukas_crdt_state` in sessionStorage (base64) | Shared turn timers — ephemeral |
+
+**Migration mapping:**
+
+| GameState field | PLAYER_DOC yrs structure |
+|----------------|--------------------------|
+| `cards: HashMap<String, CardDamageState>` | `"cards"` → `YMap<slug, YMap { slots: YArray<bool>, wasted: bool }>` |
+| `alarms: Vec<Alarm>` | `"alarms"` → `YArray<YMap { turns, name, color_set }>` |
+| `show_alarms: bool` | `"settings"` → `YMap { show_alarms: bool }` |
+
+**Files created/modified:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/player_doc.rs` | **New.** `thread_local!` yrs Doc, init/persist/restore, migration from GameState, card damage/alarm/settings accessors. 21 unit tests. |
+| `kipukas-server/src/game/mod.rs` | Added `pub mod player_doc;` |
+| `kipukas-server/src/game/damage.rs` | Rewired all read/write ops from GameState → player_doc accessors. Auto-ensure card state before toggle. |
+| `kipukas-server/src/game/turns.rs` | Rewired all alarm read/write ops from GameState → player_doc accessors. |
+| `kipukas-server/src/game/crdt.rs` | `seed_from_local()` and `export_to_local()` bridge functions updated to use player_doc instead of GameState. |
+| `kipukas-server/src/routes/game.rs` | Added 5 new `/api/player/*` route handlers. |
+| `kipukas-server/src/routes/room.rs` | Replaced `with_state` reads with `player_doc::get_slot` in `all_keal_means_exhausted`, `render_fists_form`, and `auto_mark_damage`. |
+| `kipukas-server/src/lib.rs` | Registered 5 new `/api/player/*` routes. |
+| `assets/js/kipukas-api.js` | Dual persistence: saves both `kipukas_player_doc` (base64) and legacy `kipukas_game_state` (JSON). Restore prefers base64, falls back to JSON with one-time migration. |
+| `assets/js/kipukas-multiplayer.js` | `persistState()` saves both legacy JSON and PLAYER_DOC base64. |
+
+**Lessons:** `damage::toggle_slot` must auto-ensure card state exists in PLAYER_DOC before toggling — without this, the first toggle on a fresh doc silently fails because there's no card entry to toggle. Test isolation requires `player_doc::init_player_doc()` in every test reset function — the old `replace_state(GameState::default())` alone is insufficient since damage/alarms now read from PLAYER_DOC. Dual persistence (both JSON and base64) during the transition period ensures zero data loss for existing users.
+
+**Test count:** 168 tests (21 new in player_doc, rest updated to use player_doc resets).
+
 ---
 
 ## Desired Next Features
@@ -734,73 +777,7 @@ Features are grouped by priority. Items marked *post-launch* require the game to
 #### 1. QR Room Join
 Embed the room code in a QR code so scanning joins the room directly. This connects two existing features (QR scanner + multiplayer) with minimal new code. The flow: Player A creates a room → room code appears as both text and a QR. Player B scans the QR → auto-joins the room. The QR URL format could be `kpks.us/join?code=ABCD#room=myroom` with a redirect that passes the code to the multiplayer module.
 
-#### 2. Decentralized Identity & Authentication (Yrs Foundation)
-**Prerequisite for:** Deck Builder (feature #5), Affinity/Loyalty tracking (feature #7), and cross-device sync.
-
-Implement a serverless identity system using **y-crdt (yrs)** CRDT library and local keypairs. This provides the foundation for persistent player state without requiring a backend database or traditional authentication servers.
-
-**Architecture Overview:**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Identity Layer (Local-First)                                   │
-├─────────────────────────────────────────────────────────────────┤
-│  • Ed25519 keypair generated in WASM (ed25519-dalek)            │
-│  • Private key encrypted in localStorage                        │
-│  • Public key = "Account ID" for cross-device recognition       │
-│  • yrs Document for CRDT-based state (decks, counters, history) │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-        ┌─────────┐     ┌──────────┐     ┌──────────┐
-        │ Storage │     │   Sync   │     │  Backup  │
-        │localStorage   │ WS relay │     │ Optional │
-        │IndexedDB      │ yrs sync │     │ Passkeys │
-        └─────────┘     └──────────┘     └──────────┘
-```
-
-**Implementation Phases:**
-
-**Phase 2a: yrs Integration**
-- Add `yrs` crate to `kipukas-server` (~400-800KB WASM with optimizations)
-- Create `IdentityState` module alongside existing `GameState` and `RoomState`
-- Implement yrs document with `YMap`/`YArray` types for structured data
-- Add `/api/identity/*` routes for keypair generation and document access
-
-**Phase 2b: Local Keypair Identity**
-- Generate Ed25519 keypair on first app launch
-- Store private key in localStorage (AES-encrypted with device-derived key)
-- Display public key as user "ID" (shortened hash for readability)
-- Add identity export/import (QR code for key backup)
-
-**Phase 2c: yrs-Based State Containers**
-Replace simple `serde_json` state with yrs documents for:
-- **Decks**: `YMap<deck_name, YArray<card_slug>>`
-- **Combat History**: `YArray<CombatRecord>`
-- **Counters**: `YMap<card_slug, loyalty_count>`, `YMap<archetype, affinity_count>`
-- Persistence via yrs update events → localStorage/IndexedDB
-
-**Phase 2d: Cross-Device Sync**
-- yrs sync protocol over WebSocket relay (reuses existing multiplayer infrastructure)
-- Device pairing via QR code exchange of public keys
-- Automatic conflict resolution via CRDT merge semantics
-
-**Why This Approach:**
-
-| Requirement | Solution | Benefit |
-|-------------|----------|---------|
-| No backend server | Local keypair + yrs | Zero infrastructure cost |
-| Cross-device identity | Public key recognition | Portable without passwords |
-| Offline-first | yrs CRDT documents | Works without network |
-| Conflict resolution | Automatic CRDT merge | No "last write wins" data loss |
-| Future cloud backup | Passkeys encrypt backup key | Optional, no lock-in |
-
-**Technical Considerations:**
-- **Storage**: yrs binary format is compact; localStorage 5MB limit sufficient for card game data.
-- **Security**: Private key never leaves device unencrypted; cross-device sync uses authenticated encryption.
-
-#### 3. Deck Builder / Hand Management
+#### 2. Deck Builder / Hand Management
 **Requires:** Decentralized Identity & Authentication (feature #4) for persistent deck storage.
 
 Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush") and cycle through cards during a match without page navigation.
@@ -816,15 +793,14 @@ Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush")
 - UI Components: deck sidebar in card grid, deck selector in toolbar, card "add to deck" buttons
 - State stored in yrs `YMap` keyed by deck name; active deck reference in separate yrs root type
 
-#### 4. Combat History Log
+#### 3. Combat History Log
 Persist combat results in yrs document so players can review past rounds across sessions. Each outcome (attacker, defender, keal means used, modifier, who won) stored as a `CombatRecord` in a `YArray`.
 
 **UI**: Scrollable log modal accessible from toolbar, filterable by date range or opponent (if identity known).
 
 **Technical**: Append-only `YArray` in yrs document; automatic synchronization if cross-device sync enabled.
 
-#### 5. Affinity & Loyalty Tracking *(post-Yrs)*
-**Requires:** Decentralized Identity & Authentication (feature #4) with yrs document infrastructure.
+#### 4. Affinity & Loyalty Tracking
 
 Implement long-term gameplay progression as described in the game rules: affinity with archetypes and loyalty with individual soul cards.
 
@@ -843,17 +819,229 @@ Implement long-term gameplay progression as described in the game rules: affinit
 
 ### Long-Term
 
-#### 6. Replace ZXing with Rust QR Decoder
+#### 5. Replace ZXing with Rust QR Decoder
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. **NOTE:** It was also attempted to improve rqrr detection, but the results were overall worse that ZXing with greater complication and dimishing returns on space saved. Many strategies were attempted, but only adaptive_threshold had any effect. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
-#### 7. Infinite Scroll with Content-Visibility
+#### 6. Infinite Scroll with Content-Visibility
 Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
 
-#### 8. Card Trading
+#### 7. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).
 
-#### 9. Spectator Mode
+#### 8. Spectator Mode
 Allow a third peer to observe a match via a read-only WebSocket connection. Architecturally simple (receive-only relay, no submissions) but requires rooms to support >2 peers. Low priority until competitive, streaming, or particularly compelling (active, visual, and exciting) use cases emerge.
 
-#### 10. Provide Kippa Tools
+#### 9. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
+
+---
+
+## Planned Sprint: Player Document & GameState → Yrs Consolidation
+
+> **Goal:** Replace the serde_json `GameState` with a persistent yrs CRDT document (`PLAYER_DOC`) that owns all local player data. This eliminates future migration cost, makes all player state portable and exportable from day one, and sets the foundation for cross-device sync, decentralized identity, and affinity/loyalty tracking.
+>
+> **Philosophy:** Kipukas is not meant to lock down the game after purchase. If Kipukas the company ceases to exist, gameplay experience should be unaffected. A player's progression data (affinity, loyalty, damage, decks) lives on *their* device in a conflict-free, exportable format. When a dedicated store account is available, backup/restore becomes a service — not a requirement.
+
+### Architecture Overview
+
+```
+Current State (Phase 5)                     Target State (this sprint)
+┌─────────────────────────┐                 ┌─────────────────────────────────────┐
+│  thread_local! stores:  │                 │  thread_local! stores:              │
+│                         │                 │                                     │
+│  GameState (RefCell)    │ ──migrate──►    │  PLAYER_DOC (yrs Doc)               │
+│    • cards: HashMap     │                 │    • "cards": YMap<slug, YMap>       │
+│    • alarms: Vec        │                 │    • "alarms": YArray<YMap>          │
+│    • show_alarms: bool  │                 │    • "settings": YMap                │
+│                         │                 │    • "affinity": YMap<arch, YMap>    │
+│  RoomState (RefCell)    │                 │    • "loyalty": YMap<slug, YMap>     │
+│    • code, name, etc.   │                 │                                     │
+│    • fists combat       │                 │  RoomState (RefCell) — unchanged    │
+│                         │                 │    • code, name, fists combat       │
+│  ROOM_DOC (yrs Doc)     │                 │                                     │
+│    • "alarms" (shared)  │                 │  ROOM_DOC (yrs Doc) — unchanged     │
+│                         │                 │    • "alarms" (shared turn timers)  │
+└─────────────────────────┘                 └─────────────────────────────────────┘
+         │                                               │
+    localStorage                                    localStorage
+   "kipukas_game_state"                          "kipukas_player_doc"
+    (serde_json text)                             (base64 yrs binary)
+```
+
+**Key difference from ROOM_DOC:** The `PLAYER_DOC` is **player-scoped** — created once on first visit, persisted forever in localStorage, restored on every page load. The `ROOM_DOC` remains **room-scoped** — created on room join, destroyed on disconnect. They are independent yrs Doc instances.
+
+### Sprint Phases
+
+Each phase is independently shippable. Later phases depend on earlier ones but can be deferred.
+
+#### Phase A: Player Document Infrastructure
+
+**What ships:** A persistent `PLAYER_DOC` yrs Doc that replaces `GameState` as the authoritative store for all local player data. Auto-created on first visit. Persisted to localStorage as base64 binary state. Restored on every page load.
+
+**Architecture decisions:**
+- New module `kipukas-server/src/game/player_doc.rs` with its own `thread_local!` yrs Doc
+- `with_player_doc()` / `with_player_doc_mut()` accessor pattern (mirrors existing `with_state()`)
+- On first load: if `kipukas_player_doc` exists in localStorage → restore; else create fresh Doc and seed from any existing `kipukas_game_state` JSON (one-time migration)
+- Persistence: `kipukas-api.js` calls `GET /api/player/state` on `beforeunload` → returns base64 binary → stored in localStorage
+- The old `kipukas_game_state` JSON key is kept as a read-only fallback for migration, never written to again after initial seed
+
+**GameState migration mapping:**
+
+| GameState field | PLAYER_DOC yrs structure | Notes |
+|----------------|--------------------------|-------|
+| `cards: HashMap<String, CardDamageState>` | `"cards"` → `YMap<slug, YMap { slots: YArray<bool>, wasted: bool }>` | Each card's damage state becomes a nested YMap |
+| `alarms: Vec<Alarm>` | `"alarms"` → `YArray<YMap { turns, name, color_set }>` | Same structure as ROOM_DOC alarms |
+| `show_alarms: bool` | `"settings"` → `YMap { show_alarms: bool, ... }` | General settings bucket |
+
+**Routes to add/modify:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/player/state` | GET | Export PLAYER_DOC as base64 binary (for persistence) |
+| `/api/player/restore` | POST | Restore PLAYER_DOC from base64 binary |
+| `/api/player/migrate` | POST | One-time seed from old GameState JSON |
+| `/api/player/export` | GET | Download full state as base64 file |
+| `/api/player/import` | POST | Upload and merge state from base64 file |
+
+**Existing routes to modify:** All `/api/game/*` routes currently read/write `GameState` — they must be updated to read/write from `PLAYER_DOC` instead. The route signatures and HTML responses stay the same; only the backing store changes.
+
+**Files to review/modify:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/player_doc.rs` | **New.** `thread_local!` yrs Doc, init/persist/restore, migration from GameState, accessors |
+| `kipukas-server/src/game/state.rs` | Mark as deprecated. Keep `GameState` struct for migration deserialization only |
+| `kipukas-server/src/game/damage.rs` | Read/write damage from PLAYER_DOC `"cards"` YMap instead of GameState |
+| `kipukas-server/src/game/turns.rs` | Read/write alarms from PLAYER_DOC `"alarms"` YArray instead of GameState |
+| `kipukas-server/src/game/crdt.rs` | `seed_from_local()` reads from PLAYER_DOC instead of GameState; `export_to_local()` writes to PLAYER_DOC |
+| `kipukas-server/src/game/mod.rs` | Add `pub mod player_doc;` |
+| `kipukas-server/src/routes/game.rs` | Update handlers to use `player_doc` accessors |
+| `kipukas-server/src/lib.rs` | Register new `/api/player/*` routes |
+| `assets/js/kipukas-api.js` | Change persistence from JSON `game_state` to base64 `player_doc` on `beforeunload`; handle one-time migration on load |
+| `assets/js/kipukas-multiplayer.js` | Update `persistState()` to use new player doc endpoint |
+| `scripts/build-card-catalog.ts` | No changes (Card struct is read-only catalog data, unaffected) |
+
+**User-visible result:** Nothing changes in the UI. The migration is transparent. Existing damage/alarm data is preserved. A "Download my data" button could ship here (returns the base64 PLAYER_DOC file).
+
+---
+
+#### Phase B: Affinity Tracking
+
+**What ships:** Players can declare an archetypal affinity at game start. Affinity level grows with each declaration (once per day). The +1 roll bonus for matching cards is displayed on card pages and in the fists tool.
+
+**PLAYER_DOC structure:**
+
+```
+"affinity" → YMap {
+    "Brutal"       → YMap { level: 3, last_declared: "2026-02-25" },
+    "Avian"        → YMap { level: 7, last_declared: "2026-02-24" },
+    ...
+}
+```
+
+**Routes:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/player/affinity` | GET | Render affinity panel (all 15 archetypes, current levels, declare button) |
+| `/api/player/affinity` | POST | Declare affinity for an archetype (increments level, sets date, enforces once-per-day) |
+
+**UI:** New toolbar tool `_includes/affinity_tool.html` following Pattern 11. Shows all 15 archetypal adaptations with visual level bars. "Declare Affinity" button per archetype (disabled/greyed if already declared today). Active affinity highlighted.
+
+**Fists integration:** The fists tool result display already shows die modifiers. Add the affinity +1 bonus to the modifier computation when the card's `genetic_disposition` matches the player's most recently declared affinity archetype.
+
+**Files to create/modify:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/player_doc.rs` | Add `declare_affinity()`, `get_affinity()`, `get_active_affinity()` functions |
+| `kipukas-server/src/routes/player.rs` | **New.** Route handlers for `/api/player/affinity` |
+| `_includes/affinity_tool.html` | **New.** Toolbar component (Pattern 11) |
+| `_includes/toolbar.html` | Add affinity tool include |
+| `_data/header_tools.yml` | Add affinity tool entry if toolbar is data-driven |
+| `kipukas-server/src/routes/room.rs` | Modify fists result rendering to include affinity bonus in modifier display |
+
+**Daily limit:** Compare `last_declared` date string against current local date. No server or timezone handling needed — the WASM module uses the date string passed from JS via the POST body.
+
+---
+
+#### Phase C: Loyalty Tracking
+
+**What ships:** Per-card play counter. Loyalty increments when a soul card is used in fists combat (once per day per card). Loyalty badge/counter displayed on card damage tracker pages.
+
+**PLAYER_DOC structure:**
+
+```
+"loyalty" → YMap {
+    "brox_the_defiant"          → YMap { total_plays: 12, last_played: "2026-02-25" },
+    "frost_tipped_arctic_otter" → YMap { total_plays: 3,  last_played: "2026-02-20" },
+    ...
+}
+```
+
+**Trigger:** When a fists submission is POSTed (`/api/room/fists` or `/api/room/fists/final`), after storing the submission, check the card slug. If the card is a Character or Species (`layout` field), increment loyalty for that slug in PLAYER_DOC (enforcing once-per-day).
+
+**Display:** On the card page damage tracker (`/api/game/damage?card=slug`), append a small loyalty badge: "♥ 12 plays" or similar. On Species cards, show progress toward tameability threshold if tameability data exists.
+
+**Files to create/modify:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/player_doc.rs` | Add `increment_loyalty()`, `get_loyalty()` functions |
+| `kipukas-server/src/game/damage.rs` | Render loyalty badge in damage tracker HTML |
+| `kipukas-server/src/routes/room.rs` | Hook loyalty increment into fists submission handlers |
+
+---
+
+#### Phase D: Tameability Integration
+
+**What ships:** Species cards show a tameability section with threshold, current loyalty + affinity stack, and "Tamed!" indicator.
+
+**Card data changes:**
+- Add `tameability` field to Species card YAML front matter (optional, integer or `"∞"`)
+- Update `scripts/build-card-catalog.ts` to extract `tameability`
+- Update `Card` struct in `cards_generated.rs` template to include `pub tameability: Option<u32>`
+
+**Tamed condition:** `loyalty.total_plays + affinity.level + incubation_bonus ≥ tameability`
+
+**Display:** On Species card pages, below the damage tracker: progress bar showing `current / threshold`, with a "Tamed ✓" badge when met.
+
+**Files to create/modify:**
+
+| File | Changes |
+|------|---------|
+| `_posts/*.html` | Add `tameability:` field to Species card YAML |
+| `scripts/build-card-catalog.ts` | Extract and emit `tameability` field |
+| `kipukas-server/src/cards_generated.rs` | Template updated (auto-generated) |
+| `kipukas-server/src/game/damage.rs` | Render tameability section for Species cards |
+| `kipukas-server/src/game/player_doc.rs` | Add `is_tamed()` function combining loyalty + affinity + bonuses |
+
+---
+
+#### Phase E: Encrypted Export/Import (Future)
+
+**What ships:** Ed25519 keypair generated in WASM. Private key encrypted in localStorage. Encrypted backup file download/upload. QR-based key export for device pairing.
+
+**New crate dependency:** `ed25519-dalek` (or `ring` for broader crypto) — evaluate WASM size impact.
+
+**This phase is deferred until Phases A–D are stable.** The PLAYER_DOC binary format is already suitable for encrypted backup — Phase E adds the encryption layer and identity semantics.
+
+---
+
+#### Phase F: Cross-Device Sync (Future)
+
+**What ships:** yrs sync protocol between devices over the existing WebSocket relay. Device pairing via keypair exchange. Automatic conflict resolution via CRDT merge.
+
+**Reuses:** The same `yrs_sv → yrs_sv_reply → yrs_update` handshake proven in multiplayer turn timer sync. The "room" concept extends to "device pairing room" — two devices join a persistent sync channel authenticated by keypair.
+
+**This phase is deferred until Phase E provides the identity/authentication layer.**
+
+---
+
+### Guiding Constraints
+
+- **No new crate dependencies in Phases A–D.** `yrs`, `base64`, `serde`, `serde_json` are already in the binary. The PLAYER_DOC uses the exact same yrs patterns proven in `crdt.rs`.
+- **Backward compatibility.** Existing `kipukas_game_state` JSON in users' localStorage is migrated on first load. No data loss.
+- **Tests first.** Each phase must include unit tests for the new player_doc functions before wiring routes.
+- **UI is separate from infrastructure.** Phase A ships with zero UI changes. Phases B/C/D add UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
+- **Single-player unaffected.** Affinity/loyalty tracking is purely local. Multiplayer features (ROOM_DOC, fists combat) remain independent. The only cross-cutting concern is the loyalty increment hook in fists submission.

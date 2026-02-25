@@ -63,6 +63,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/turns", "room_turns").ok();
     router.insert("/api/room/state", "room_state").ok();
 
+    // Phase 6: Player document routes
+    router.insert("/api/player/state", "player_state").ok();
+    router.insert("/api/player/restore", "player_restore").ok();
+    router.insert("/api/player/migrate", "player_migrate").ok();
+    router.insert("/api/player/export", "player_export").ok();
+    router.insert("/api/player/import", "player_import").ok();
+
     // Phase 5: Yrs CRDT sync routes
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
     router.insert("/api/room/yrs/diff", "yrs_diff").ok();
@@ -108,6 +115,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
             ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
             ("room_fists_final_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
+
+            // Phase 6: Player document routes
+            ("player_state", "GET") => routes::game::handle_player_state_get(query),
+            ("player_restore", "POST") => routes::game::handle_player_restore_post(body),
+            ("player_migrate", "POST") => routes::game::handle_player_migrate_post(body),
+            ("player_export", "GET") => routes::game::handle_player_export_get(query),
+            ("player_import", "POST") => routes::game::handle_player_import_post(body),
 
             // Phase 5: Yrs CRDT sync routes
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
