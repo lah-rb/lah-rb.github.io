@@ -16,6 +16,114 @@ use rqrr::PreparedImage;
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
+// ── Strategy Constants ─────────────────────────────────────────────
+
+const STRAT_RAW: u8 = 0;
+const STRAT_YELLOW: u8 = 1;
+const STRAT_YELLOW_BLUR: u8 = 2;
+const STRAT_BLUR_LIGHT: u8 = 3;
+const STRAT_BLUR_HEAVY: u8 = 4;
+const STRAT_MED3: u8 = 5;
+const STRAT_MED5: u8 = 6;
+const STRAT_TEMPORAL_AVG: u8 = 7;
+const STRAT_TEMPORAL_AVG_BLUR: u8 = 8;
+const STRAT_TEMPORAL_MED: u8 = 9;
+const STRAT_CLAHE_2: u8 = 10;
+const STRAT_CLAHE_3: u8 = 11;
+const STRAT_CLAHE_BLUR: u8 = 12;
+const STRAT_CONTRAST_STRETCH: u8 = 13;
+const STRAT_ADAPTIVE_THRESH: u8 = 14;
+const STRAT_BLUR_OTSU: u8 = 15;
+const STRAT_DOWNSCALE_2X: u8 = 16;
+const STRAT_DOWNSCALE_4X: u8 = 17;
+const STRAT_MORPH_CLOSE: u8 = 18;
+const STRAT_QUIET_ZONE: u8 = 19;
+const STRAT_LOCAL_NORM: u8 = 20;
+const STRAT_OTSU: u8 = 21;
+
+const NUM_STRATEGIES: usize = 22;
+
+const STRATEGY_NAMES: [&str; NUM_STRATEGIES] = [
+    "raw",
+    "yellow",
+    "yellow_blur",
+    "blur_light",
+    "blur_heavy",
+    "med3x3",
+    "med5x5",
+    "temporal_avg",
+    "temporal_avg_blur",
+    "temporal_med",
+    "clahe_2",
+    "clahe_3",
+    "clahe_blur",
+    "contrast_stretch",
+    "adaptive_thresh",
+    "blur_otsu",
+    "downscale_2x",
+    "downscale_4x",
+    "morph_close",
+    "quiet_zone",
+    "local_norm",
+    "otsu",
+];
+
+const DEFAULT_ORDER: [u8; NUM_STRATEGIES] = [
+    STRAT_RAW,
+    STRAT_YELLOW,
+    STRAT_YELLOW_BLUR,
+    STRAT_BLUR_LIGHT,
+    STRAT_BLUR_HEAVY,
+    STRAT_MED3,
+    STRAT_MED5,
+    STRAT_TEMPORAL_AVG,
+    STRAT_TEMPORAL_AVG_BLUR,
+    STRAT_TEMPORAL_MED,
+    STRAT_CLAHE_2,
+    STRAT_CLAHE_3,
+    STRAT_CLAHE_BLUR,
+    STRAT_CONTRAST_STRETCH,
+    STRAT_ADAPTIVE_THRESH,
+    STRAT_BLUR_OTSU,
+    STRAT_DOWNSCALE_2X,
+    STRAT_DOWNSCALE_4X,
+    STRAT_MORPH_CLOSE,
+    STRAT_QUIET_ZONE,
+    STRAT_LOCAL_NORM,
+    STRAT_OTSU,
+];
+
+/// Number of successful decodes between automatic strategy reordering.
+const AUTO_REORDER_INTERVAL: u32 = 5;
+
+// ── Decode Stats & Strategy Config ─────────────────────────────────
+
+struct DecodeStats {
+    hits: [u32; NUM_STRATEGIES],
+    total_decodes: u32,
+}
+
+impl DecodeStats {
+    fn new() -> Self {
+        Self {
+            hits: [0; NUM_STRATEGIES],
+            total_decodes: 0,
+        }
+    }
+}
+
+struct StrategyConfig {
+    order: Vec<u8>,
+}
+
+impl StrategyConfig {
+    fn new() -> Self {
+        Self {
+            order: DEFAULT_ORDER.to_vec(),
+        }
+    }
+}
+
 // ── Frame Accumulator (ring buffer for temporal averaging) ─────────
 
 const MAX_FRAMES: usize = 4;
@@ -91,6 +199,8 @@ impl FrameBuffer {
 
 thread_local! {
     static FRAME_BUF: RefCell<FrameBuffer> = RefCell::new(FrameBuffer::new());
+    static DECODE_STATS: RefCell<DecodeStats> = RefCell::new(DecodeStats::new());
+    static STRATEGY_CONFIG: RefCell<StrategyConfig> = RefCell::new(StrategyConfig::new());
 }
 
 // ── Public WASM API ────────────────────────────────────────────────
@@ -98,7 +208,9 @@ thread_local! {
 /// Decode a QR code from raw RGBA pixel data using multi-strategy rqrr cascade.
 ///
 /// Called from kipukas-worker.js on each camera frame.
-/// Returns decoded text or empty string if no QR found.
+/// Returns `"strategy_id|strategy_name|decoded_text"` on success, or empty
+/// string if no QR found. The pipe-delimited format lets JS extract telemetry
+/// without adding serde to the WASM boundary.
 #[wasm_bindgen]
 pub fn decode_qr_frame(rgba: &[u8], width: usize, height: usize) -> String {
     if rgba.len() < width * height * 4 {
@@ -106,12 +218,22 @@ pub fn decode_qr_frame(rgba: &[u8], width: usize, height: usize) -> String {
     }
 
     let grey = rgba_to_greyscale(rgba, width, height);
+    let yellow = rgba_to_yellow_aware(rgba, width, height);
 
     // Accumulate frame for temporal strategies
     FRAME_BUF.with(|fb| fb.borrow_mut().push(&grey, width, height));
 
-    // Run single-frame + temporal strategies
-    run_all_strategies(&grey, width, height)
+    // Run configurable strategy cascade
+    if let Some((id, text)) = run_strategies(rgba, &grey, &yellow, width, height) {
+        let name = if (id as usize) < NUM_STRATEGIES {
+            STRATEGY_NAMES[id as usize]
+        } else {
+            "unknown"
+        };
+        format!("{}|{}|{}", id, name, text)
+    } else {
+        String::new()
+    }
 }
 
 /// Reset the frame accumulator (call when scanner closes).
@@ -120,131 +242,236 @@ pub fn reset_qr_frames() {
     FRAME_BUF.with(|fb| fb.borrow_mut().reset());
 }
 
-/// Run all decode strategies on a greyscale buffer.
-fn run_all_strategies(grey: &[u8], width: usize, height: usize) -> String {
-    // ── Single-frame strategies ────────────────────────────────────
-
-    // 1: Raw greyscale
-    if let Some(text) = try_decode_greyscale(grey, width, height) {
-        return text;
-    }
-
-    // 2: Gaussian blur σ≈1.5
-    let blurred_light = gaussian_blur(grey, width, height, 1);
-    if let Some(text) = try_decode_greyscale(&blurred_light, width, height) {
-        return text;
-    }
-
-    // 3: Gaussian blur σ≈3.0
-    let blurred_heavy = gaussian_blur(grey, width, height, 2);
-    if let Some(text) = try_decode_greyscale(&blurred_heavy, width, height) {
-        return text;
-    }
-
-    // 4: Median filter 3×3 — edge-preserving texture removal
-    let med3 = median_filter(grey, width, height, 1);
-    if let Some(text) = try_decode_greyscale(&med3, width, height) {
-        return text;
-    }
-
-    // 5: Median filter 5×5 — heavier edge-preserving smoothing
-    let med5 = median_filter(grey, width, height, 2);
-    if let Some(text) = try_decode_greyscale(&med5, width, height) {
-        return text;
-    }
-
-    // ── Temporal strategies (use accumulated frames) ───────────────
-
-    // 6: Temporal average — reinforces static QR, washes out texture shimmer
-    let temporal_result = FRAME_BUF.with(|fb| {
-        let buf = fb.borrow();
-        if let Some(avg) = buf.average() {
-            if let Some(text) = try_decode_greyscale(&avg, buf.width, buf.height) {
-                return Some(text);
-            }
-            // Also try blur on the averaged frame
-            let blurred_avg = gaussian_blur(&avg, buf.width, buf.height, 1);
-            if let Some(text) = try_decode_greyscale(&blurred_avg, buf.width, buf.height) {
-                return Some(text);
+/// Return JSON with per-strategy hit counts and total decodes.
+/// Example: `{"total":42,"strategies":{"raw":5,"yellow":12,"clahe_2":8}}`
+#[wasm_bindgen]
+pub fn get_qr_stats() -> String {
+    DECODE_STATS.with(|s| {
+        let stats = s.borrow();
+        let mut entries = Vec::new();
+        for (i, &count) in stats.hits.iter().enumerate() {
+            if count > 0 {
+                entries.push(format!("\"{}\":{}", STRATEGY_NAMES[i], count));
             }
         }
-        // 7: Temporal median — even more robust noise elimination
-        if let Some(med) = buf.median() {
-            if let Some(text) = try_decode_greyscale(&med, buf.width, buf.height) {
-                return Some(text);
+        format!(
+            "{{\"total\":{},\"strategies\":{{{}}}}}",
+            stats.total_decodes,
+            entries.join(",")
+        )
+    })
+}
+
+/// Set the strategy execution order. `order_csv` is a comma-separated list
+/// of strategy IDs (e.g. `"1,0,10,3"`). Strategies not listed are appended
+/// in default order. Invalid IDs are skipped.
+#[wasm_bindgen]
+pub fn set_qr_strategy_order(order_csv: &str) {
+    let mut order: Vec<u8> = order_csv
+        .split(',')
+        .filter_map(|s| s.trim().parse::<u8>().ok())
+        .filter(|&id| (id as usize) < NUM_STRATEGIES)
+        .collect();
+    // Append any missing strategies in default order
+    for &id in &DEFAULT_ORDER {
+        if !order.contains(&id) {
+            order.push(id);
+        }
+    }
+    STRATEGY_CONFIG.with(|c| c.borrow_mut().order = order);
+}
+
+/// Reset strategy order to default and clear stats.
+#[wasm_bindgen]
+pub fn reset_qr_strategy_order() {
+    STRATEGY_CONFIG.with(|c| c.borrow_mut().order = DEFAULT_ORDER.to_vec());
+    DECODE_STATS.with(|s| *s.borrow_mut() = DecodeStats::new());
+}
+
+// ── Strategy Execution Engine ──────────────────────────────────────
+
+/// Run the configurable strategy cascade. Returns `(strategy_id, decoded_text)`
+/// on first successful decode, or `None` if all strategies fail.
+fn run_strategies(
+    rgba: &[u8],
+    grey: &[u8],
+    yellow: &[u8],
+    w: usize,
+    h: usize,
+) -> Option<(u8, String)> {
+    let order = STRATEGY_CONFIG.with(|c| c.borrow().order.clone());
+
+    for &id in &order {
+        if let Some(text) = execute_strategy(id, rgba, grey, yellow, w, h) {
+            record_hit(id);
+            return Some((id, text));
+        }
+    }
+    None
+}
+
+/// Execute a single strategy by ID.
+fn execute_strategy(
+    id: u8,
+    _rgba: &[u8],
+    grey: &[u8],
+    yellow: &[u8],
+    w: usize,
+    h: usize,
+) -> Option<String> {
+    match id {
+        STRAT_RAW => try_decode_greyscale(grey, w, h),
+
+        STRAT_YELLOW => try_decode_greyscale(yellow, w, h),
+
+        STRAT_YELLOW_BLUR => {
+            let blurred = gaussian_blur(yellow, w, h, 1);
+            try_decode_greyscale(&blurred, w, h)
+        }
+
+        STRAT_BLUR_LIGHT => {
+            let blurred = gaussian_blur(grey, w, h, 1);
+            try_decode_greyscale(&blurred, w, h)
+        }
+
+        STRAT_BLUR_HEAVY => {
+            let blurred = gaussian_blur(grey, w, h, 2);
+            try_decode_greyscale(&blurred, w, h)
+        }
+
+        STRAT_MED3 => {
+            let med = median_filter(grey, w, h, 1);
+            try_decode_greyscale(&med, w, h)
+        }
+
+        STRAT_MED5 => {
+            let med = median_filter(grey, w, h, 2);
+            try_decode_greyscale(&med, w, h)
+        }
+
+        STRAT_TEMPORAL_AVG => FRAME_BUF.with(|fb| {
+            let buf = fb.borrow();
+            buf.average()
+                .and_then(|avg| try_decode_greyscale(&avg, buf.width, buf.height))
+        }),
+
+        STRAT_TEMPORAL_AVG_BLUR => FRAME_BUF.with(|fb| {
+            let buf = fb.borrow();
+            buf.average().and_then(|avg| {
+                let blurred = gaussian_blur(&avg, buf.width, buf.height, 1);
+                try_decode_greyscale(&blurred, buf.width, buf.height)
+            })
+        }),
+
+        STRAT_TEMPORAL_MED => FRAME_BUF.with(|fb| {
+            let buf = fb.borrow();
+            buf.median()
+                .and_then(|med| try_decode_greyscale(&med, buf.width, buf.height))
+        }),
+
+        STRAT_CLAHE_2 => {
+            let enhanced = clahe(grey, w, h, 8, 8, 2.0);
+            try_decode_greyscale(&enhanced, w, h)
+        }
+
+        STRAT_CLAHE_3 => {
+            let enhanced = clahe(grey, w, h, 8, 8, 3.0);
+            try_decode_greyscale(&enhanced, w, h)
+        }
+
+        STRAT_CLAHE_BLUR => {
+            let enhanced = clahe(grey, w, h, 8, 8, 2.0);
+            let blurred = gaussian_blur(&enhanced, w, h, 1);
+            try_decode_greyscale(&blurred, w, h)
+        }
+
+        STRAT_CONTRAST_STRETCH => {
+            let stretched = contrast_stretch(grey);
+            try_decode_greyscale(&stretched, w, h)
+        }
+
+        STRAT_ADAPTIVE_THRESH => {
+            let adaptive = adaptive_threshold(grey, w, h, 15, 8);
+            try_decode_greyscale(&adaptive, w, h)
+        }
+
+        STRAT_BLUR_OTSU => {
+            let blurred = gaussian_blur(grey, w, h, 2);
+            let thresh = otsu_threshold(&blurred);
+            try_decode_bitmap(&blurred, w, h, thresh)
+        }
+
+        STRAT_DOWNSCALE_2X => {
+            let (dw, dh) = (w / 2, h / 2);
+            if dw > 0 && dh > 0 {
+                let ds = downscale_2x(grey, w, h);
+                try_decode_greyscale(&ds, dw, dh)
+            } else {
+                None
             }
         }
-        None
+
+        STRAT_DOWNSCALE_4X => {
+            let (dw, dh) = (w / 4, h / 4);
+            if dw > 20 && dh > 20 {
+                let ds = downscale_4x(grey, w, h);
+                try_decode_greyscale(&ds, dw, dh)
+            } else {
+                None
+            }
+        }
+
+        STRAT_MORPH_CLOSE => {
+            let threshold = otsu_threshold(grey);
+            let binary: Vec<u8> = grey
+                .iter()
+                .map(|&p| if p < threshold { 0 } else { 255 })
+                .collect();
+            let closed = morphological_close(&binary, w, h, 1);
+            try_decode_greyscale(&closed, w, h)
+        }
+
+        STRAT_QUIET_ZONE => {
+            let (padded, pw, ph) = add_quiet_zone(grey, w, h, 20);
+            try_decode_greyscale(&padded, pw, ph)
+        }
+
+        STRAT_LOCAL_NORM => {
+            let normalized = local_normalize(grey, w, h, 64);
+            try_decode_greyscale(&normalized, w, h)
+        }
+
+        STRAT_OTSU => {
+            let threshold = otsu_threshold(grey);
+            try_decode_bitmap(grey, w, h, threshold)
+        }
+
+        _ => None,
+    }
+}
+
+/// Record a successful decode hit and trigger auto-reorder if threshold reached.
+fn record_hit(id: u8) {
+    let should_reorder = DECODE_STATS.with(|s| {
+        let mut stats = s.borrow_mut();
+        stats.hits[id as usize] += 1;
+        stats.total_decodes += 1;
+        stats.total_decodes % AUTO_REORDER_INTERVAL == 0
     });
-    if let Some(text) = temporal_result {
-        return text;
+
+    if should_reorder {
+        reorder_strategies();
     }
+}
 
-    // ── More single-frame strategies ──────────────────────────────
-
-    // 8: Contrast stretch
-    let stretched = contrast_stretch(grey);
-    if let Some(text) = try_decode_greyscale(&stretched, width, height) {
-        return text;
-    }
-
-    // 9: Adaptive threshold (local mean, block=15, bias=8)
-    let adaptive = adaptive_threshold(grey, width, height, 15, 8);
-    if let Some(text) = try_decode_greyscale(&adaptive, width, height) {
-        return text;
-    }
-
-    // 10: Blur σ≈2 + Otsu — smooth texture then clean binarize
-    let blur_otsu = gaussian_blur(grey, width, height, 2);
-    let thresh_bo = otsu_threshold(&blur_otsu);
-    if let Some(text) = try_decode_bitmap(&blur_otsu, width, height, thresh_bo) {
-        return text;
-    }
-
-    // 11: Downscale 2×
-    let (dw2, dh2) = (width / 2, height / 2);
-    if dw2 > 0 && dh2 > 0 {
-        let ds2 = downscale_2x(grey, width, height);
-        if let Some(text) = try_decode_greyscale(&ds2, dw2, dh2) {
-            return text;
-        }
-    }
-
-    // 12: Downscale 4× — very aggressive texture averaging
-    let (dw4, dh4) = (width / 4, height / 4);
-    if dw4 > 20 && dh4 > 20 {
-        let ds4 = downscale_4x(grey, width, height);
-        if let Some(text) = try_decode_greyscale(&ds4, dw4, dh4) {
-            return text;
-        }
-    }
-
-    // 13: Morphological closing on Otsu binary — fills texture gaps in QR modules
-    let threshold = otsu_threshold(grey);
-    let binary: Vec<u8> = grey.iter().map(|&p| if p < threshold { 0 } else { 255 }).collect();
-    let closed = morphological_close(&binary, width, height, 1);
-    if let Some(text) = try_decode_greyscale(&closed, width, height) {
-        return text;
-    }
-
-    // 14: Quiet zone padding + raw — helps when QR is near frame edge
-    let (padded, pw, ph) = add_quiet_zone(grey, width, height, 20);
-    if let Some(text) = try_decode_greyscale(&padded, pw, ph) {
-        return text;
-    }
-
-    // 15: Local contrast normalization
-    let normalized = local_normalize(grey, width, height, 64);
-    if let Some(text) = try_decode_greyscale(&normalized, width, height) {
-        return text;
-    }
-
-    // 16: Otsu binarization (global)
-    if let Some(text) = try_decode_bitmap(grey, width, height, threshold) {
-        return text;
-    }
-
-    String::new()
+/// Sort strategies by hit count descending. Strategies with equal hits
+/// preserve their relative default order (stable sort).
+fn reorder_strategies() {
+    let hits = DECODE_STATS.with(|s| s.borrow().hits);
+    STRATEGY_CONFIG.with(|c| {
+        let mut config = c.borrow_mut();
+        config.order.sort_by(|a, b| hits[*b as usize].cmp(&hits[*a as usize]));
+    });
 }
 
 // ── rqrr decode wrappers ──────────────────────────────────────────
@@ -657,6 +884,133 @@ fn otsu_threshold(grey: &[u8]) -> u8 {
     best_threshold
 }
 
+// ── Yellow-aware & CLAHE preprocessing ────────────────────────────
+
+/// Convert RGBA to yellow-aware greyscale optimized for black-on-yellow QR codes.
+/// Uses `max(R,G) - B` which gives: black→0, yellow(255,255,0)→255,
+/// white/blue glare→0. Immune to blue-tinted specular reflections.
+fn rgba_to_yellow_aware(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let len = width * height;
+    let mut out = Vec::with_capacity(len);
+    for i in 0..len {
+        let base = i * 4;
+        let r = rgba[base];
+        let g = rgba[base + 1];
+        let b = rgba[base + 2];
+        let max_rg = r.max(g);
+        out.push(max_rg.saturating_sub(b));
+    }
+    out
+}
+
+/// CLAHE — Contrast Limited Adaptive Histogram Equalization.
+/// Better than `local_normalize` for glossy surface glare: limits contrast
+/// amplification via `clip_limit` and bilinearly interpolates between tile
+/// mappings to avoid block boundary artifacts.
+fn clahe(grey: &[u8], w: usize, h: usize, tiles_x: usize, tiles_y: usize, clip_limit: f32) -> Vec<u8> {
+    if w == 0 || h == 0 || tiles_x == 0 || tiles_y == 0 {
+        return grey.to_vec();
+    }
+    let tile_w = w / tiles_x;
+    let tile_h = h / tiles_y;
+    if tile_w == 0 || tile_h == 0 {
+        return grey.to_vec();
+    }
+
+    // 1. Compute clipped histogram + CDF mapping for each tile
+    let mut maps = vec![[0u8; 256]; tiles_x * tiles_y];
+
+    for ty in 0..tiles_y {
+        for tx in 0..tiles_x {
+            let x0 = tx * tile_w;
+            let y0 = ty * tile_h;
+            let x1 = if tx == tiles_x - 1 { w } else { x0 + tile_w };
+            let y1 = if ty == tiles_y - 1 { h } else { y0 + tile_h };
+            let tile_pixels = (x1 - x0) * (y1 - y0);
+
+            let mut hist = [0u32; 256];
+            for row in y0..y1 {
+                for col in x0..x1 {
+                    hist[grey[row * w + col] as usize] += 1;
+                }
+            }
+
+            // Clip and redistribute
+            let clip = (clip_limit * tile_pixels as f32 / 256.0) as u32;
+            let clip = clip.max(1);
+            let mut excess = 0u32;
+            for bin in hist.iter_mut() {
+                if *bin > clip {
+                    excess += *bin - clip;
+                    *bin = clip;
+                }
+            }
+            let per_bin = excess / 256;
+            let remainder = (excess % 256) as usize;
+            for (i, bin) in hist.iter_mut().enumerate() {
+                *bin += per_bin;
+                if i < remainder {
+                    *bin += 1;
+                }
+            }
+
+            // Build CDF → mapping LUT
+            let mut cdf = [0u32; 256];
+            cdf[0] = hist[0];
+            for i in 1..256 {
+                cdf[i] = cdf[i - 1] + hist[i];
+            }
+            let cdf_min = *cdf.iter().find(|&&v| v > 0).unwrap_or(&0);
+            let denom = cdf[255].saturating_sub(cdf_min);
+
+            let idx = ty * tiles_x + tx;
+            for i in 0..256 {
+                if denom == 0 {
+                    maps[idx][i] = i as u8;
+                } else {
+                    let val = ((cdf[i].saturating_sub(cdf_min) as f32 / denom as f32) * 255.0) as u32;
+                    maps[idx][i] = val.min(255) as u8;
+                }
+            }
+        }
+    }
+
+    // 2. Map each pixel with bilinear interpolation between 4 nearest tiles
+    let mut result = vec![0u8; w * h];
+    let tw_f = tile_w as f32;
+    let th_f = tile_h as f32;
+
+    for y in 0..h {
+        for x in 0..w {
+            let pixel = grey[y * w + x] as usize;
+
+            let fx = (x as f32 + 0.5) / tw_f - 0.5;
+            let fy = (y as f32 + 0.5) / th_f - 0.5;
+
+            let tx0 = (fx.floor() as i32).max(0).min(tiles_x as i32 - 1) as usize;
+            let tx1 = (fx.floor() as i32 + 1).max(0).min(tiles_x as i32 - 1) as usize;
+            let ty0 = (fy.floor() as i32).max(0).min(tiles_y as i32 - 1) as usize;
+            let ty1 = (fy.floor() as i32 + 1).max(0).min(tiles_y as i32 - 1) as usize;
+
+            let ax = fx - fx.floor();
+            let ay = fy - fy.floor();
+
+            let v00 = maps[ty0 * tiles_x + tx0][pixel] as f32;
+            let v10 = maps[ty0 * tiles_x + tx1][pixel] as f32;
+            let v01 = maps[ty1 * tiles_x + tx0][pixel] as f32;
+            let v11 = maps[ty1 * tiles_x + tx1][pixel] as f32;
+
+            let top = v00 * (1.0 - ax) + v10 * ax;
+            let bot = v01 * (1.0 - ax) + v11 * ax;
+            let val = top * (1.0 - ay) + bot * ay;
+
+            result[y * w + x] = val.round().min(255.0).max(0.0) as u8;
+        }
+    }
+
+    result
+}
+
 // ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -905,5 +1259,129 @@ mod tests {
         buf.reset();
         assert!(buf.frames.is_empty());
         assert_eq!(buf.count, 0);
+    }
+
+    // ── Yellow-aware tests ─────────────────────────────────────────
+
+    #[test]
+    fn yellow_aware_black_is_zero() {
+        let rgba = vec![0, 0, 0, 255];
+        let y = rgba_to_yellow_aware(&rgba, 1, 1);
+        assert_eq!(y[0], 0);
+    }
+
+    #[test]
+    fn yellow_aware_yellow_is_max() {
+        let rgba = vec![255, 255, 0, 255];
+        let y = rgba_to_yellow_aware(&rgba, 1, 1);
+        assert_eq!(y[0], 255);
+    }
+
+    #[test]
+    fn yellow_aware_white_glare_is_zero() {
+        // White (255,255,255): max(255,255) - 255 = 0
+        let rgba = vec![255, 255, 255, 255];
+        let y = rgba_to_yellow_aware(&rgba, 1, 1);
+        assert_eq!(y[0], 0);
+    }
+
+    #[test]
+    fn yellow_aware_blue_glare_is_zero() {
+        // Blue-ish glare (100,100,255): max(100,100) - 255 = 0 (saturating)
+        let rgba = vec![100, 100, 255, 255];
+        let y = rgba_to_yellow_aware(&rgba, 1, 1);
+        assert_eq!(y[0], 0);
+    }
+
+    #[test]
+    fn yellow_aware_red_is_high() {
+        // Red (255,0,0): max(255,0) - 0 = 255
+        let rgba = vec![255, 0, 0, 255];
+        let y = rgba_to_yellow_aware(&rgba, 1, 1);
+        assert_eq!(y[0], 255);
+    }
+
+    // ── CLAHE tests ────────────────────────────────────────────────
+
+    #[test]
+    fn clahe_preserves_dimensions() {
+        let grey = vec![128; 80 * 60];
+        let result = clahe(&grey, 80, 60, 8, 8, 2.0);
+        assert_eq!(result.len(), 80 * 60);
+    }
+
+    #[test]
+    fn clahe_uniform_image_stays_uniform() {
+        let grey = vec![128; 64 * 64];
+        let result = clahe(&grey, 64, 64, 8, 8, 2.0);
+        // Uniform input → all pixels map to same value
+        let first = result[0];
+        assert!(result.iter().all(|&v| v == first));
+    }
+
+    #[test]
+    fn clahe_zero_dimensions_returns_copy() {
+        let grey = vec![128; 4];
+        assert_eq!(clahe(&grey, 0, 0, 8, 8, 2.0), grey);
+    }
+
+    // ── Stats & strategy order tests ───────────────────────────────
+
+    #[test]
+    fn get_qr_stats_returns_valid_json() {
+        // Reset first
+        reset_qr_strategy_order();
+        let json = get_qr_stats();
+        assert!(json.starts_with('{'));
+        assert!(json.contains("\"total\""));
+        assert!(json.contains("\"strategies\""));
+    }
+
+    #[test]
+    fn set_strategy_order_accepts_csv() {
+        reset_qr_strategy_order();
+        set_qr_strategy_order("10,1,0");
+        let order = STRATEGY_CONFIG.with(|c| c.borrow().order.clone());
+        // First 3 should be the ones we specified
+        assert_eq!(order[0], 10);
+        assert_eq!(order[1], 1);
+        assert_eq!(order[2], 0);
+        // All strategies should still be present
+        assert_eq!(order.len(), NUM_STRATEGIES);
+        reset_qr_strategy_order();
+    }
+
+    #[test]
+    fn set_strategy_order_ignores_invalid_ids() {
+        reset_qr_strategy_order();
+        set_qr_strategy_order("0,99,1");
+        let order = STRATEGY_CONFIG.with(|c| c.borrow().order.clone());
+        assert_eq!(order[0], 0);
+        assert_eq!(order[1], 1); // 99 was skipped
+        assert_eq!(order.len(), NUM_STRATEGIES);
+        reset_qr_strategy_order();
+    }
+
+    #[test]
+    fn reset_strategy_order_restores_default() {
+        set_qr_strategy_order("21,20,19");
+        reset_qr_strategy_order();
+        let order = STRATEGY_CONFIG.with(|c| c.borrow().order.clone());
+        assert_eq!(order, DEFAULT_ORDER.to_vec());
+    }
+
+    #[test]
+    fn record_hit_increments_stats() {
+        reset_qr_strategy_order();
+        record_hit(STRAT_YELLOW);
+        record_hit(STRAT_YELLOW);
+        record_hit(STRAT_CLAHE_2);
+        let stats = DECODE_STATS.with(|s| {
+            let s = s.borrow();
+            (s.hits[STRAT_YELLOW as usize], s.hits[STRAT_CLAHE_2 as usize], s.total_decodes)
+        });
+        assert!(stats.0 >= 2);
+        assert!(stats.1 >= 1);
+        reset_qr_strategy_order(); // clears stats
     }
 }

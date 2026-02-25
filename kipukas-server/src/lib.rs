@@ -39,6 +39,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/cards", "cards").ok();
     router.insert("/api/qr/status", "qr_status").ok();
     router.insert("/api/qr/found", "qr_found").ok();
+    router.insert("/api/qr/stats", "qr_stats").ok();
 
     // Phase 3b: Game state routes
     router.insert("/api/game/damage", "game_damage").ok();
@@ -84,6 +85,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("cards", "GET") => routes::cards::handle(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
             ("qr_found", "GET") => routes::qr::handle_found(query),
+            ("qr_stats", "GET") => routes::qr::handle_stats(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
             ("game_state", "GET") => routes::game::handle_state_get(query),
