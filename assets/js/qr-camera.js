@@ -111,9 +111,9 @@
                 [imageData.data.buffer], // Transfer ownership (zero-copy)
               );
             }
-          }, 250); // 4 fps — faster scan rate catches tilt sweet spots
+          }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
 
-          console.log('[qr-camera] Camera started, scanning at 4 fps');
+          console.log('[qr-camera] Camera started, scanning at 2 fps');
         })
         .catch((err) => {
           console.error('[qr-camera] Camera access error:', err);
@@ -190,12 +190,6 @@
       video.srcObject = null;
     }
 
-    // Reset the rqrr frame accumulator so stale frames don't carry over
-    const worker = globalThis.kipukasWorker;
-    if (worker) {
-      worker.postMessage({ type: 'QR_RESET' });
-    }
-
     console.log('[qr-camera] Camera stopped');
   }
 
@@ -239,42 +233,6 @@
 
     worker.addEventListener('message', (event) => {
       if (event.data?.type === 'QR_FOUND') {
-        // Persist decoder info before redirect wipes the page
-        const decoder = event.data.decoder || 'unknown';
-        const strategyName = event.data.strategyName || null;
-        const strategyId = event.data.strategyId || null;
-        sessionStorage.setItem('qr-last-decoder', decoder);
-        sessionStorage.setItem('qr-last-url', event.data.url || '');
-        if (strategyName) {
-          sessionStorage.setItem('qr-last-strategy', strategyName);
-        }
-
-        // Update cumulative decode stats (survives across scans within session)
-        // Format: {"rqrr":{"total":5,"strategies":{"yellow":3,"clahe_2":2}},"zxing":1}
-        const stats = JSON.parse(
-          sessionStorage.getItem('qr-decode-stats') ||
-            '{"rqrr":{"total":0,"strategies":{}},"zxing":0}',
-        );
-        if (decoder === 'rqrr') {
-          if (typeof stats.rqrr !== 'object') {
-            stats.rqrr = { total: stats.rqrr || 0, strategies: {} };
-          }
-          stats.rqrr.total = (stats.rqrr.total || 0) + 1;
-          if (strategyName) {
-            stats.rqrr.strategies[strategyName] = (stats.rqrr.strategies[strategyName] || 0) + 1;
-          }
-        } else {
-          stats[decoder] = (stats[decoder] || 0) + 1;
-        }
-        sessionStorage.setItem('qr-decode-stats', JSON.stringify(stats));
-
-        console.log(
-          `[qr-camera] Decoded by ${decoder}${
-            strategyName ? `/${strategyName} (strategy ${strategyId})` : ''
-          } | stats:`,
-          stats,
-        );
-
         // Stop scanning immediately
         stop();
 
