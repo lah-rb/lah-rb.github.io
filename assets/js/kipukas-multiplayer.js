@@ -684,11 +684,11 @@ const kipukasMultiplayer = {
     }
     roomCode = '';
     roomName = '';
-    // POST disconnect runs export_to_local() in WASM, copying shared
-    // CRDT alarms back to local GameState. After it completes, refresh
-    // the alarm display in local mode so exported timers appear.
+    // POST disconnect clears local alarms in PLAYER_DOC and resets
+    // room/CRDT state. Clear the alarm display so no stale timers show.
     postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
-      refreshAlarms(false);
+      const alarms = document.getElementById('turn-alarms');
+      if (alarms) alarms.innerHTML = '';
     });
     // Notify UI that room is disconnected
     globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
