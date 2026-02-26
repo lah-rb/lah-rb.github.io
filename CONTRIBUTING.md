@@ -31,16 +31,17 @@ Game logic runs **100% client-side** in WebAssembly. There is no backend server 
 
 Instead of React, Vue, or Svelte, the project uses **HTMX** to add dynamic behavior to server-rendered HTML. The "server" happens to be a Rust WASM module running in a Web Worker inside the browser — but HTMX doesn't know or care. This fits naturally with Jekyll's static HTML model: just add `hx-*` attributes to existing markup.
 
-### Alpine.js + HTMX: Highly flexible and browser friendly
+### Alpine.js + HTMX: DOM Residency Determines the Tool
 
-Alpine.js and HTMX coexist throughout the codebase. The guiding principle:
+Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **DOM residency** — whether content always lives in the DOM or comes and goes:
 
 | Layer | Technology | Examples |
 |-------|-----------|----------|
-| **UI chrome** (visual-only) | Alpine.js | Modal open/close, hamburger menu, visibility toggles, animations |
-| **Data & logic** | HTMX + WASM | Card filtering, damage tracking, type matchups, combat resolution |
+| **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
+| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, damage trackers, combat forms, fists tool |
+| **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
-A feature migrates from Alpine to HTMX when it involves data processing, complex state machines, or cross-player synchronization. A feature stays in Alpine when it's purely visual and can rely on side effect data reflected from WASM state.
+A feature belongs to HTMX when its content doesn't always need to live in the DOM — modals, long scrollable lists, tool panels that are hidden most of the time. HTMX fetches that content from Rust and swaps it in on demand. A feature stays in Alpine when it's an always-present DOM element that just needs reactive class/style changes. Rust is the single source of truth for all game state — anytime a component needs to know game state, it consults Rust directly via HTMX or the Worker messaging API.
 
 ### Type Safety via Rust
 
@@ -50,16 +51,19 @@ Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust t
 
 Card metadata is extracted from Jekyll `_posts/*.html` YAML front matter at build time by a Deno script (`scripts/build-card-catalog.ts`). This generates a Rust source file (`kipukas-server/src/cards_generated.rs`) containing a static array of `Card` structs compiled directly into the WASM binary. No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
 
-### Two-Scope State Model
+### Three-Store State Model
 
-All data is tracked in two distinct scopes:
+All data is tracked across three distinct stores. Rust is the single source of truth — components always consult Rust (via HTMX or Worker messaging) rather than reading state from JavaScript or the DOM:
 
-| Scope | Storage | Synced via WebSocket relay? | Examples |
-|-------|---------|----------------------------|----------|
-| **Local User** | WASM `GameState` + localStorage | No | Damage tracking, turn alarms, card browsing |
-| **Global (Room)** | WASM `RoomState` + WebSocket relay | Yes | Fists combat submissions, combat results, outcome damage |
+| Scope | Store | Persistence | Synced? | Examples |
+|-------|-------|-------------|---------|----------|
+| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | No | Card damage, turn alarms, settings, affinity, loyalty |
+| **Room** (ephemeral state) | `RoomState` (RefCell) | `kipukas_room` in sessionStorage (JSON bootstrap) | Partially — fists combat via relay | Room code, player name, fists submissions, combat role |
+| **Room** (ephemeral CRDT) | `ROOM_DOC` (yrs Doc) | `kipukas_crdt_state` in sessionStorage (base64) | Yes — yrs sync protocol | Shared turn timers (converges via `yrs_update` messages) |
 
-A feature defaults to local user state unless it explicitly requires cross-player visibility. Single-player behavior is completely unaffected by multiplayer code.
+`GameState` (serde struct) is retained as a legacy backward-compatibility layer for migration from older `kipukas_game_state` JSON — it is no longer the authoritative data store.
+
+A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Single-player behavior is completely unaffected by multiplayer code. The JavaScript persistence layer (kipukas-api.js) handles the localStorage/sessionStorage read/write because WASM runs in a Web Worker that cannot access browser storage APIs directly — Rust owns the state, JS owns the I/O bridge.
 
 ### Minimal Infrastructure
 
@@ -149,7 +153,8 @@ The relay server handles room management (create/join/rejoin) and message forwar
 |------|------|
 | `kipukas-server/src/lib.rs` | WASM entry point + route registration |
 | `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room) |
-| `kipukas-server/src/game/*.rs` | Game state, damage tracking, turns, room/combat state |
+| `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings |
+| `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room/combat state, CRDT sync |
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
@@ -193,9 +198,11 @@ These are patterns that have been tested and work well. Understanding **why** th
 
 **The bridge function:** `kipukasRefreshCards()` reads Alpine's reactive `filter` and `searchQuery` state, builds a URL, and calls `htmx.ajax()`. This bridges Alpine UI state to HTMX data fetching without coupling them.
 
-**When to use Alpine:** show/hide toggles, CSS class switching, animations, modal open/close — anything purely visual with no data dependencies.
+**When to use Alpine:** Elements that always live in the DOM but need reactive appearance changes — show/hide toggles, CSS class switching, animations, transition states. Alpine never fetches data or reads game state.
 
-**When to use HTMX + WASM:** data computation, state management, anything that touches game logic or needs cross-player sync.
+**When to use HTMX:** Content that doesn't always need to live in the DOM — modal content, paginated lists, damage trackers, tool panels. HTMX fetches from Rust and swaps it in; HTMX also posts user actions (damage toggles, combat submissions) to Rust to update game state.
+
+**When to consult Rust directly:** Any time a component needs game state, it asks Rust via HTMX (`hx-get`) or the Worker messaging API (`postToWasmWithCallback`). Components never read state from localStorage or JavaScript variables — Rust is the single source of truth.
 
 ### Pattern 4: x-effect for Modal Refresh
 
@@ -323,11 +330,11 @@ async function autoReconnect() {
 }
 ```
 
-**Why sessionStorage (not localStorage):** Room connections are ephemeral — they should survive page navigation within a session but not persist across browser restarts. `sessionStorage` provides exactly this lifecycle. Game state (damage, turns) uses `localStorage` for cross-session persistence.
+**Why sessionStorage (not localStorage):** Room connections are ephemeral — they should survive page navigation within a session but not persist across browser restarts. `sessionStorage` provides exactly this lifecycle. Player state (damage, turns, settings) is owned by `PLAYER_DOC` in Rust and persisted to `localStorage` as base64 binary via the kipukas-api.js I/O bridge. Note: `sessionStorage` here stores only the reconnection bootstrap info (code, name, creator) — Rust's `RoomState` owns the actual room state in-memory.
 
-### Pattern 11: Self-Contained Tool Component (Alpine × HTMX × Tailwind × localStorage)
+### Pattern 11: Self-Contained Tool Component (Alpine × HTMX × Tailwind)
 
-**The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state, `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get` for WASM data fetching, Tailwind utilities for all styling, and the existing JSON → localStorage pipeline for persistence. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
+**The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state (always-in-DOM visibility control), `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get`/`hx-post` for fetching content from Rust and posting user actions, Tailwind utilities for all styling, and auto-persistence via the Worker `PERSIST_STATE` message bridge. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
 
 **Reference implementation:** `_includes/multiplayer_fists_tool.html` (also see `turn_tracker.html`, `local_fists_tool.html`).
 
@@ -339,7 +346,7 @@ async function autoReconnect() {
 | **Behavior** | Alpine `@click`, `$watch`, `x-effect` | `@click` toggles visibility; `$watch` handles side effects; `x-effect` bridges to HTMX |
 | **Data fetching** | HTMX `hx-get` + `hx-trigger` | Declarative WASM endpoint on the container div; `x-effect` re-fetches via `htmx.ajax()` on reopen |
 | **Styling** | Tailwind utilities | Layout, theming, spacing, responsiveness — all inline classes, zero custom CSS |
-| **Persistence** | JSON → localStorage (via kipukas-api.js) | WASM state auto-persists on `beforeunload`; component reads fresh state from WASM on each open |
+| **Persistence** | base64 yrs binary → localStorage (via kipukas-api.js) | WASM state auto-persists after every mutation via Worker `PERSIST_STATE` message; component reads fresh state from WASM on each open |
 
 **How the layers connect (annotated from `multiplayer_fists_tool.html`):**
 
@@ -404,7 +411,7 @@ async function autoReconnect() {
 
 - **No global state pollution.** All UI state is scoped to the `x-data` block. External signals arrive via custom window events (`@room-connected.window`), not shared Alpine stores or global variables.
 - **Fresh data on every open.** `hx-trigger="load"` handles the first page load. `x-effect` handles every subsequent open by calling `htmx.ajax()` — this avoids stale DOM from a previous session (see Pattern 4).
-- **WASM is the source of truth.** The component never reads or writes localStorage directly. It asks WASM for current state via HTMX, and WASM's state is auto-persisted to localStorage as JSON by the `kipukas-api.js` bridge on `beforeunload`. On page load the bridge restores JSON → WASM before any component renders.
+- **Rust is the single source of truth.** The component never reads or writes localStorage directly. It asks Rust for current state via HTMX, and Rust's `PLAYER_DOC` state is auto-persisted to localStorage as base64 yrs binary by the `kipukas-api.js` bridge after every game mutation (via Worker `PERSIST_STATE` message). On page load the bridge restores the binary state → Rust before any component renders.
 - **Single-file portability.** Because styling is Tailwind utilities, behavior is Alpine attributes, and data fetching is HTMX attributes, the entire component is one `_includes/*.html` partial with zero dependencies beyond the global Alpine/HTMX/Tailwind setup.
 
 **Template for new tools (e.g., shared turn timer):**
@@ -638,9 +645,10 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 3. Add unit tests in the same file
 4. Rebuild WASM: `deno task build:wasm`
 
-**Alpine vs HTMX decision:**
-- Use **Alpine** for: show/hide toggles, CSS class switching, animations, modal open/close
-- Use **HTMX + WASM** for: data computation, state management, anything that touches game logic
+**Alpine vs HTMX decision (DOM residency model):**
+- Use **Alpine** for: always-in-DOM elements that need reactive appearance changes — visibility toggles, CSS class swaps, animations, transition states
+- Use **HTMX** for: content that comes and goes from the DOM — modal content, paginated lists, tool panels, damage trackers. HTMX fetches from Rust and posts user actions to Rust
+- **Rust is the single source of truth** for all game state — components consult Rust directly, never localStorage or JS variables
 
 **Jekyll exclusions:**
 Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to prevent Jekyll from processing them (especially `kipukas-server/target/` which contains thousands of Rust build files).

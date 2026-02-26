@@ -160,6 +160,11 @@ pub fn replace_room(new_state: RoomState) {
     });
 }
 
+/// Check if a peer is currently connected in the room.
+pub fn is_peer_connected() -> bool {
+    with_room(|r| r.connected)
+}
+
 /// Reset room state to disconnected defaults.
 pub fn reset_room() {
     replace_room(RoomState::default());
