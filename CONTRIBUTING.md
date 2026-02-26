@@ -1,5 +1,5 @@
 # Kipukas — Contributing Guide
-
+## State 
 > Practices, architecture, proven patterns, and workflow for the Kipukas card game platform.
 
 ---
@@ -29,7 +29,7 @@ Game logic runs **100% client-side** in WebAssembly. There is no backend server 
 
 ### HTMX Over SPA Frameworks
 
-Instead of React, Vue, or Svelte, the project uses **HTMX** to add dynamic behavior to server-rendered HTML. The "server" happens to be a Rust WASM module running in a Web Worker inside the browser — but HTMX doesn't know or care. This fits naturally with Jekyll's static HTML model: just add `hx-*` attributes to existing markup.
+Instead of React, Vue, or Svelte, the project uses **HTMX** to add dynamic behavior to server-rendered HTML. The "server" happens to be a Rust WASM module running in a Web Worker inside the browser — but HTMX doesn't know or care. This fits naturally with Jekyll's static HTML model: just add `hx-*` attributes to markup.
 
 ### Alpine.js + HTMX: DOM Residency Determines the Tool
 
@@ -38,7 +38,7 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **D
 | Layer | Technology | Examples |
 |-------|-----------|----------|
 | **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
-| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, damage trackers, combat forms, fists tool |
+| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, QR Scanner interface |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
 A feature belongs to HTMX when its content doesn't always need to live in the DOM — modals, long scrollable lists, tool panels that are hidden most of the time. HTMX fetches that content from Rust and swaps it in on demand. A feature stays in Alpine when it's an always-present DOM element that just needs reactive class/style changes. Rust is the single source of truth for all game state — anytime a component needs to know game state, it consults Rust directly via HTMX or the Worker messaging API.
@@ -57,11 +57,9 @@ All data is tracked across three distinct stores. Rust is the single source of t
 
 | Scope | Store | Persistence | Synced? | Examples |
 |-------|-------|-------------|---------|----------|
-| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | No | Card damage, turn alarms, settings, affinity, loyalty |
+| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | No | Card damage, turn alarms, settings |
 | **Room** (ephemeral state) | `RoomState` (RefCell) | `kipukas_room` in sessionStorage (JSON bootstrap) | Partially — fists combat via relay | Room code, player name, fists submissions, combat role |
 | **Room** (ephemeral CRDT) | `ROOM_DOC` (yrs Doc) | `kipukas_crdt_state` in sessionStorage (base64) | Yes — yrs sync protocol | Shared turn timers (converges via `yrs_update` messages) |
-
-`GameState` (serde struct) is retained as a legacy backward-compatibility layer for migration from older `kipukas_game_state` JSON — it is no longer the authoritative data store.
 
 A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Single-player behavior is completely unaffected by multiplayer code. The JavaScript persistence layer (kipukas-api.js) handles the localStorage/sessionStorage read/write because WASM runs in a Web Worker that cannot access browser storage APIs directly — Rust owns the state, JS owns the I/O bridge.
 
@@ -111,25 +109,6 @@ User clicks a button with hx-get="/api/cards?page=0"
    HTMX swaps the HTML fragment into the DOM
 ```
 
-### Request Flow (Development / First Load)
-
-When the service worker isn't active yet, a fallback path kicks in:
-
-```
-HTMX fires htmx:beforeRequest event
-        │
-        ▼
-   kipukas-api.js intercepts, routes directly to Web Worker
-        │
-        ▼
-   Worker runs WASM, returns HTML
-        │
-        ▼
-   kipukas-api.js swaps HTML into the target element
-```
-
-**Why the dual path matters:** The dev fallback via `htmx:beforeRequest` is essential, not optional. Without it, nothing works on first page load (before the SW installs) or during `jekyll serve` development.
-
 ### Multiplayer Architecture
 
 ```
@@ -152,7 +131,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | File | Role |
 |------|------|
 | `kipukas-server/src/lib.rs` | WASM entry point + route registration |
-| `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room) |
+| `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, shared utils) |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings |
 | `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room/combat state, CRDT sync |
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
@@ -276,21 +255,26 @@ function execScripts(el) {
 
 ### Pattern 8: thread_local! + RefCell for WASM State
 
-**The pattern:** WASM state uses `thread_local!` + `RefCell` for safe mutable globals:
+**The pattern:** WASM state uses `thread_local!` + `RefCell` for safe mutable globals. The three stores each use their own `thread_local!`:
 
 ```rust
+// PLAYER_DOC — persistent player data (yrs CRDT Doc)
 thread_local! {
-    static STATE: RefCell<GameState> = RefCell::new(GameState::default());
+    static PLAYER_DOC: RefCell<Doc> = RefCell::new(new_player_doc());
 }
-pub fn with_state<F, R>(f: F) -> R where F: FnOnce(&GameState) -> R {
-    STATE.with(|s| f(&s.borrow()))
+
+// RoomState — ephemeral multiplayer state (serde struct)
+thread_local! {
+    static ROOM: RefCell<RoomState> = RefCell::new(RoomState::default());
 }
-pub fn with_state_mut<F, R>(f: F) -> R where F: FnOnce(&mut GameState) -> R {
-    STATE.with(|s| f(&mut s.borrow_mut()))
+
+// ROOM_DOC — shared multiplayer CRDT (yrs Doc, synced between peers)
+thread_local! {
+    static CRDT_DOC: RefCell<Doc> = RefCell::new(Doc::new());
 }
 ```
 
-**Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it. Room state and game state use **separate** `thread_local!` stores — room is global (synced), game is local (private).
+**Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it. Each store has its own lifecycle: PLAYER_DOC persists to localStorage forever, RoomState lives in sessionStorage for the browser session, and ROOM_DOC is created/destroyed per multiplayer room.
 
 ### Pattern 9: WebSocket Relay Protocol
 
@@ -540,34 +524,6 @@ bundle install
 # Run a full build to generate all artifacts
 deno task build
 ```
-
-### Daily Development
-
-**Option A: tmuxinator (recommended)**
-
-```bash
-tmuxinator start kpksdev
-```
-
-This opens a tiled tmux layout with four panes:
-1. `jekyll serve --host=0.0.0.0 --livereload --watch` — Local dev server with live reload
-2. `jekyll build --watch` — Continuous Jekyll rebuild on file changes
-3. `deno task dev:css` — Tailwind CSS watch mode
-4. Opens Firefox at `http://localhost:4000`
-
-**Option B: Manual**
-
-```bash
-# Terminal 1: Jekyll dev server
-jekyll serve --host=0.0.0.0 --livereload --watch
-
-# Terminal 2: Tailwind CSS watch
-deno task dev:css
-
-# Terminal 3 (if working on multiplayer): Signaling server
-cd signaling-server && deno task dev
-```
-
 ### Full Build Pipeline
 
 The complete build runs in this order (executed by `deno task build`):
@@ -599,8 +555,6 @@ deno task build:sw         # Rebuild service worker only (after jekyll build)
 ```bash
 cd kipukas-server && cargo test
 ```
-
-Currently 114 tests covering: route dispatch, type matchup tables, QR URL validation, card filtering/pagination, damage tracking, turn management, room state, combat resolution, and outcome processing.
 
 **Browser integration checks** (DevTools console):
 
@@ -659,120 +613,6 @@ Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to preve
 - `assets/js/htmx.min.js` — vendored by `deno task build:htmx`
 - `sw.js` / `sw.js.map` — regenerated by `deno task build:sw`
 - `assets/css/output.css` — regenerated by `deno task build:css`
-
----
-
-## Phase History
-
-A condensed record of architectural decisions and key lessons from each development phase. For the full narrative, see git history.
-
-### Phase 1: Foundation (✅)
-
-**Built:** Rust WASM crate with `matchit` router, type matchup engine ported from JS, SW + Web Worker sidecar bridge, HTMX integration.
-
-**Key decisions:** Option C architecture (SW + Worker sidecar). Module Web Worker for ES imports. `matchit` router for Axum portability. Dual-path execution (SW relay + dev fallback).
-
-**Lessons:** Jekyll processes everything — exclude `target/` and `node_modules/`. SW isn't available on first load — dev fallback is essential. HTMX + Alpine coexist cleanly. Module Workers need `{ type: 'module' }`.
-
-### Phase 2: QR Scanner Migration (✅)
-
-**Built:** Camera + ZXing WASM QR decoder in the shared Web Worker. HTMX-driven state machine replacing Alpine state (`showScanner`, `showFlash`, `videoReady`, `noCamera`, `showQRModal`).
-
-**Key decisions:** Keep ZXing in the same Web Worker (loaded via `eval()` trick for classic scripts in module workers). All scanner state transitions driven by WASM-returned HTML fragments.
-
-**Lessons:** `importScripts()` blocked in module workers — use `fetch()` + `eval()`. ZXing needs `locateFile` when loaded via eval. wasm-pack generates `.gitignore` with `*` — auto-delete it in build. HTMX attributes in dynamic HTML bypass WASM pipeline — use `onclick` + `htmx.ajax()`. `innerHTML` doesn't execute `<script>` tags — need `execScripts()`.
-
-### Phase 3a: Card Grid Infinite Scroll (✅)
-
-**Built:** Build-time card catalog generation (Deno → Rust source). Paginated, filtered card route. HTMX sentinel-based infinite scroll. Native `srcset` replacing Alpine responsive logic.
-
-**Key decisions:** Card metadata compiled into WASM binary (~5KB for 56 cards). Sentinel div with `hx-trigger="revealed"` for native infinite scroll. `kipukasRefreshCards()` as Alpine → HTMX bridge.
-
-**Alpine state removed:** 56 `inView*` variables, ~170 reactive bindings, per-card `x-data` for responsive images. DOM elements on load: ~110+ → ~24.
-
-### Phase 3b: Game State Migration (✅)
-
-**Built:** `GameState` with per-card damage tracking, turn/alarm system, state persistence (localStorage). `thread_local! + RefCell` for safe WASM globals. POST method support. Alpine `$persist` migration script.
-
-**Key decisions:** `serde_json` added (+111KB WASM) as strategic investment for both localStorage and multiplayer sync. Custom `Default` needed for non-zero defaults (`show_alarms: true`). State persistence via `beforeunload` + restore on load.
-
-**Alpine state removed:** `clearDamage: $persist(...)`, per-card `$persist({...})` damage state, `alarms: $persist([])`, `showAlarms: $persist(true)`. Moved `showKealModal` to local scope.
-
-### Phase 4a: WebRTC Multiplayer + Fists Combat (✅)
-
-**Built:** Signaling server (Deno, ~130 lines). WebRTC peer connection with ICE (STUN + Cloudflare TURN). Data channel protocol. Room state module (`RoomState` separate from `GameState`). Fists combat tool: role selection, keal means picker, archetype matchup computation, die modifier display. "Did you win?" outcome flow with auto-damage marking. Session persistence for cross-page navigation.
-
-**Key decisions:** Local User vs Global (Room) state separation. Signaling server is stateless — only brokers connections. Mutual trust sufficient for friend-vs-friend card game. `sessionStorage` for room session (ephemeral), `localStorage` for game state (persistent). TURN credentials fetched dynamically from signaling server (proxies Cloudflare API).
-
-**Lessons:** Sentinel + always-present-DOM pattern is cross-browser reliable for conditional UI (final blows). `x-effect` is the correct trigger for HTMX refresh on Alpine modal open. Explicit JS `refreshKealTracker()` is more reliable than inline scripts for cross-component DOM sync. Custom DOM events (`close-multiplayer`) bridge WASM-rendered HTML to Alpine state.
-
-### Phase 4b: WebSocket Relay Migration (✅)
-
-**Built:** Replaced WebRTC peer-to-peer data channel with WebSocket message relay through the signaling server. Eliminated all STUN/TURN/ICE/SDP complexity.
-
-**Key decisions:** WebSocket relay is the right tradeoff for a turn-based card game. The signaling server already was a hard dependency for room creation — making it also relay game messages removes the entire WebRTC stack while improving reliability. Auto-reconnect with exponential backoff (8 attempts, 5-minute server-side grace period) handles page navigation, mobile browser sleep, and network transitions. `kipukas-api.js` eagerly loads the multiplayer module on any page when a `sessionStorage` room session exists, enabling seamless cross-page reconnection. The `sendToPeer()` pattern routes game messages through WASM before sending, which doesn't fit the `htmx-ext-ws` model of direct HTML-over-WebSocket — so the manual WebSocket approach is the correct choice for this architecture.
-
-**Removed:** `RTCPeerConnection`, `RTCDataChannel`, ICE candidate handling, SDP offer/answer exchange, STUN server configuration, Cloudflare TURN API integration + credential proxying, `/turn-credentials` endpoint, `setupPeerConnection`, `handleSdpOffer`, `handleSdpAnswer`, `handleIceCandidate`, `cleanupPeer`.
-
-**Lessons:** WebRTC is overkill for turn-based games with ~1-2 messages per combat round. The operational burden (STUN/TURN external deps, ICE negotiation fragility, mobile browser sleep killing connections) far outweighed the theoretical P2P benefits. WebSocket relay works everywhere, reconnects automatically, and reduced multiplayer code from ~500 lines to ~330 lines across server and client. The only architecturally superior solution — peer-to-peer WebSocket connections between browser WASM instances — remains impossible due to browser security restrictions (browsers cannot listen on sockets). Verify this constraint before future architecture changes.
-
-**WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4a) → ~185KB (Phase 4b, no WASM changes).
-
-### Phase 5: Yrs CRDT Integration + Shared Turn Timer (✅)
-
-**Built:** `yrs` (Yjs Rust port) CRDT library integrated into the WASM crate. Multiplayer turn timer sync replaced with yrs-backed state that converges automatically via binary update exchange. New `crdt.rs` module with `thread_local!` yrs `Doc` alongside existing `GameState` and `RoomState`. Six new `/api/room/yrs/*` routes for CRDT sync operations (state vector exchange, diff computation, update application, alarm mutations). Multiplayer JS updated with 3-message yrs sync handshake (`yrs_sv` → `yrs_sv_reply` → `yrs_update`) triggered on peer connect/reconnect.
-
-**Key decisions:** yrs chosen over Automerge (300-400KB vs 828KB WASM). Turn timer used as proof-of-concept — the yrs Doc structure (`"alarms"` ArrayRef of MapRef entries) is extensible for future features (decks, combat history, identity). Multiplayer `render_alarm_list(true)` reads from the yrs Doc; local `render_alarm_list(false)` continues reading from `GameState`. Base64 encoding for yrs binary updates over the JSON WebSocket relay — keeps the existing relay protocol intact without requiring binary WebSocket frames. CRDT Doc initialized on room create/join and reset on disconnect, matching the room lifecycle.
-
-**Removed:** Old turn timer message-based sync (`turn_add`, `turn_tick`, `turn_remove` relay messages). These are replaced by `yrs_update` messages carrying the full CRDT binary diff, which handles concurrent edits, reconnection convergence, and deduplication automatically. Dead functions `merge_alarms()` and `export_alarms_json()` from `turns.rs`, along with `/api/room/turns/sync` and `/api/room/turns/export` routes from `room.rs` and `lib.rs`.
-
-**Added:** `yrs` 0.25 crate, `base64` 0.22 crate, `kipukas-server/src/game/crdt.rs` module (19 unit tests covering add/tick/remove/sync/convergence/concurrent edits/seed/export). `seed_from_local()` copies local `GameState.alarms` into the CRDT Doc on room create/join so pre-existing timers become shared. `export_to_local()` copies CRDT alarms back to `GameState` on disconnect so shared timers survive as local timers. `refreshAlarms(multiplayer)` JS helper switches the alarm display between CRDT-backed (multiplayer) and GameState-backed (local) rendering on connect/disconnect.
-
-**Lessons:** yrs `WriteTxn` trait must be imported explicitly for `get_or_insert_array` on `TransactionMut`. The state vector exchange handshake requires both directions — each peer computes the diff the other needs. Multiplayer alarm rendering must read from the CRDT Doc, not `GameState`, since mutations go through yrs routes. Existing tests that checked multiplayer alarm rendering needed updating to add alarms via `crdt::add_alarm()` instead of `turns::add_alarm()`. Seeding the CRDT Doc from local alarms on room create/join (not on peer connect) avoids race conditions with the sync handshake — the Doc has local timers before the first state vector exchange. The `yrs_update` handler in JS already refreshes the alarm display, so the sync handshake naturally updates both peers' UIs after convergence.
-
-**WASM binary size progression:** 69KB (Phase 1) → 72KB (3a) → 183KB (3b, +serde) → ~185KB (Phase 4) → TBD (Phase 5, +yrs — expect ~500-600KB).
-
-### Phase 6: Player Document & GameState → Yrs Consolidation — Phase A (✅)
-
-**Built:** Persistent `PLAYER_DOC` yrs Doc that replaces `GameState` as the authoritative store for all local player data (damage tracking, alarms, settings). New `player_doc.rs` module with its own `thread_local!` yrs Doc. Five new `/api/player/*` routes for state persistence, restoration, migration, export, and import. Transparent migration path from old `kipukas_game_state` JSON to base64 yrs binary.
-
-**Key decisions:** `PLAYER_DOC` is player-scoped (created once, persisted forever) vs `ROOM_DOC` which is room-scoped (created on join, destroyed on disconnect). Both are independent yrs Doc instances. The old `GameState` struct is kept for backward compatibility (legacy JSON import/export) but is no longer the authoritative data store — `PLAYER_DOC` is. Base64 encoding of yrs binary state for localStorage persistence, matching the pattern proven with `ROOM_DOC` in Phase 5.
-
-**Architecture:**
-
-| Store | Scope | Persistence | Purpose |
-|-------|-------|------------|---------|
-| `PLAYER_DOC` (yrs Doc) | Player | `kipukas_player_doc` in localStorage (base64) | Cards damage, alarms, settings — authoritative |
-| `GameState` (serde) | Player | `kipukas_game_state` in localStorage (JSON) | Legacy backward compat, migration source |
-| `RoomState` (RefCell) | Room | sessionStorage | Room code, fists combat — ephemeral |
-| `ROOM_DOC` (yrs Doc) | Room | `kipukas_crdt_state` in sessionStorage (base64) | Shared turn timers — ephemeral |
-
-**Migration mapping:**
-
-| GameState field | PLAYER_DOC yrs structure |
-|----------------|--------------------------|
-| `cards: HashMap<String, CardDamageState>` | `"cards"` → `YMap<slug, YMap { slots: YArray<bool>, wasted: bool }>` |
-| `alarms: Vec<Alarm>` | `"alarms"` → `YArray<YMap { turns, name, color_set }>` |
-| `show_alarms: bool` | `"settings"` → `YMap { show_alarms: bool }` |
-
-**Files created/modified:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | **New.** `thread_local!` yrs Doc, init/persist/restore, migration from GameState, card damage/alarm/settings accessors. 21 unit tests. |
-| `kipukas-server/src/game/mod.rs` | Added `pub mod player_doc;` |
-| `kipukas-server/src/game/damage.rs` | Rewired all read/write ops from GameState → player_doc accessors. Auto-ensure card state before toggle. |
-| `kipukas-server/src/game/turns.rs` | Rewired all alarm read/write ops from GameState → player_doc accessors. |
-| `kipukas-server/src/game/crdt.rs` | `seed_from_local()` and `export_to_local()` bridge functions updated to use player_doc instead of GameState. |
-| `kipukas-server/src/routes/game.rs` | Added 5 new `/api/player/*` route handlers. |
-| `kipukas-server/src/routes/room.rs` | Replaced `with_state` reads with `player_doc::get_slot` in `all_keal_means_exhausted`, `render_fists_form`, and `auto_mark_damage`. |
-| `kipukas-server/src/lib.rs` | Registered 5 new `/api/player/*` routes. |
-| `assets/js/kipukas-api.js` | Dual persistence: saves both `kipukas_player_doc` (base64) and legacy `kipukas_game_state` (JSON). Restore prefers base64, falls back to JSON with one-time migration. |
-| `assets/js/kipukas-multiplayer.js` | `persistState()` saves both legacy JSON and PLAYER_DOC base64. |
-
-**Lessons:** `damage::toggle_slot` must auto-ensure card state exists in PLAYER_DOC before toggling — without this, the first toggle on a fresh doc silently fails because there's no card entry to toggle. Test isolation requires `player_doc::init_player_doc()` in every test reset function — the old `replace_state(GameState::default())` alone is insufficient since damage/alarms now read from PLAYER_DOC. Dual persistence (both JSON and base64) during the transition period ensures zero data loss for existing users.
-
-**Test count:** 168 tests (21 new in player_doc, rest updated to use player_doc resets).
 
 ---
 
@@ -836,83 +676,56 @@ Expand Kippa's understanding of the game by allowing it to assist users in using
 ### Architecture Overview
 
 ```
-Current State (Phase 5)                     Target State (this sprint)
-┌─────────────────────────┐                 ┌─────────────────────────────────────┐
-│  thread_local! stores:  │                 │  thread_local! stores:              │
-│                         │                 │                                     │
-│  GameState (RefCell)    │ ──migrate──►    │  PLAYER_DOC (yrs Doc)               │
-│    • cards: HashMap     │                 │    • "cards": YMap<slug, YMap>       │
-│    • alarms: Vec        │                 │    • "alarms": YArray<YMap>          │
-│    • show_alarms: bool  │                 │    • "settings": YMap                │
-│                         │                 │    • "affinity": YMap<arch, YMap>    │
-│  RoomState (RefCell)    │                 │    • "loyalty": YMap<slug, YMap>     │
-│    • code, name, etc.   │                 │                                     │
-│    • fists combat       │                 │  RoomState (RefCell) — unchanged    │
-│                         │                 │    • code, name, fists combat       │
-│  ROOM_DOC (yrs Doc)     │                 │                                     │
-│    • "alarms" (shared)  │                 │  ROOM_DOC (yrs Doc) — unchanged     │
-│                         │                 │    • "alarms" (shared turn timers)  │
-└─────────────────────────┘                 └─────────────────────────────────────┘
-         │                                               │
-    localStorage                                    localStorage
-   "kipukas_game_state"                          "kipukas_player_doc"
-    (serde_json text)                             (base64 yrs binary)
+Current State (Phase A complete)
+┌─────────────────────────────────────┐
+│  thread_local! stores:              │
+│                                     │
+│  PLAYER_DOC (yrs Doc)               │
+│    • "cards": YMap<slug, YMap>       │
+│    • "alarms": YArray<YMap>          │
+│    • "settings": YMap                │
+│    (future: "affinity", "loyalty")   │
+│                                     │
+│  RoomState (RefCell)                │
+│    • code, name, fists combat       │
+│                                     │
+│  ROOM_DOC (yrs Doc)                 │
+│    • "alarms" (shared turn timers)  │
+└─────────────────────────────────────┘
+              │
+         localStorage
+      "kipukas_player_doc"
+       (base64 yrs binary)
 ```
 
 **Key difference from ROOM_DOC:** The `PLAYER_DOC` is **player-scoped** — created once on first visit, persisted forever in localStorage, restored on every page load. The `ROOM_DOC` remains **room-scoped** — created on room join, destroyed on disconnect. They are independent yrs Doc instances.
+
+**Legacy cleanup (complete):** The old `GameState` serde struct and its `kipukas_game_state` JSON localStorage key have been fully removed. `state.rs` now contains only the shared `Alarm` struct. Migration code has been deleted from `player_doc.rs`, `kipukas-api.js`, and `kipukas-worker.js`. The `routes/util.rs` module provides shared URL/form parsing used by all route handlers.
 
 ### Sprint Phases
 
 Each phase is independently shippable. Later phases depend on earlier ones but can be deferred.
 
-#### Phase A: Player Document Infrastructure
+#### Phase A: Player Document Infrastructure ✅ Complete
 
-**What ships:** A persistent `PLAYER_DOC` yrs Doc that replaces `GameState` as the authoritative store for all local player data. Auto-created on first visit. Persisted to localStorage as base64 binary state. Restored on every page load.
+**Status:** Shipped and legacy fully cleaned up. `PLAYER_DOC` (yrs CRDT Doc) is the sole authoritative store for all local player data. The old `GameState` serde struct, its `kipukas_game_state` localStorage key, migration code, and dead routes have all been removed. `state.rs` retains only the shared `Alarm` struct. A shared `routes/util.rs` module provides URL/form parsing for all route handlers.
 
-**Architecture decisions:**
-- New module `kipukas-server/src/game/player_doc.rs` with its own `thread_local!` yrs Doc
-- `with_player_doc()` / `with_player_doc_mut()` accessor pattern (mirrors existing `with_state()`)
-- On first load: if `kipukas_player_doc` exists in localStorage → restore; else create fresh Doc and seed from any existing `kipukas_game_state` JSON (one-time migration)
-- Persistence: `kipukas-api.js` calls `GET /api/player/state` on `beforeunload` → returns base64 binary → stored in localStorage
-- The old `kipukas_game_state` JSON key is kept as a read-only fallback for migration, never written to again after initial seed
-
-**GameState migration mapping:**
-
-| GameState field | PLAYER_DOC yrs structure | Notes |
-|----------------|--------------------------|-------|
-| `cards: HashMap<String, CardDamageState>` | `"cards"` → `YMap<slug, YMap { slots: YArray<bool>, wasted: bool }>` | Each card's damage state becomes a nested YMap |
-| `alarms: Vec<Alarm>` | `"alarms"` → `YArray<YMap { turns, name, color_set }>` | Same structure as ROOM_DOC alarms |
-| `show_alarms: bool` | `"settings"` → `YMap { show_alarms: bool, ... }` | General settings bucket |
-
-**Routes to add/modify:**
+**Active routes:**
 
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/player/state` | GET | Export PLAYER_DOC as base64 binary (for persistence) |
 | `/api/player/restore` | POST | Restore PLAYER_DOC from base64 binary |
-| `/api/player/migrate` | POST | One-time seed from old GameState JSON |
 | `/api/player/export` | GET | Download full state as base64 file |
 | `/api/player/import` | POST | Upload and merge state from base64 file |
 
-**Existing routes to modify:** All `/api/game/*` routes currently read/write `GameState` — they must be updated to read/write from `PLAYER_DOC` instead. The route signatures and HTML responses stay the same; only the backing store changes.
+**PLAYER_DOC structure:**
 
-**Files to review/modify:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | **New.** `thread_local!` yrs Doc, init/persist/restore, migration from GameState, accessors |
-| `kipukas-server/src/game/state.rs` | Mark as deprecated. Keep `GameState` struct for migration deserialization only |
-| `kipukas-server/src/game/damage.rs` | Read/write damage from PLAYER_DOC `"cards"` YMap instead of GameState |
-| `kipukas-server/src/game/turns.rs` | Read/write alarms from PLAYER_DOC `"alarms"` YArray instead of GameState |
-| `kipukas-server/src/game/crdt.rs` | `seed_from_local()` reads from PLAYER_DOC instead of GameState; `export_to_local()` writes to PLAYER_DOC |
-| `kipukas-server/src/game/mod.rs` | Add `pub mod player_doc;` |
-| `kipukas-server/src/routes/game.rs` | Update handlers to use `player_doc` accessors |
-| `kipukas-server/src/lib.rs` | Register new `/api/player/*` routes |
-| `assets/js/kipukas-api.js` | Change persistence from JSON `game_state` to base64 `player_doc` on `beforeunload`; handle one-time migration on load |
-| `assets/js/kipukas-multiplayer.js` | Update `persistState()` to use new player doc endpoint |
-| `scripts/build-card-catalog.ts` | No changes (Card struct is read-only catalog data, unaffected) |
-
-**User-visible result:** Nothing changes in the UI. The migration is transparent. Existing damage/alarm data is preserved. A "Download my data" button could ship here (returns the base64 PLAYER_DOC file).
+| Root key | yrs type | Contents |
+|----------|----------|----------|
+| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool }` per card |
+| `"alarms"` | `YArray<YMap>` | `{ remaining: i32, name: String, color_set: String }` |
+| `"settings"` | `YMap` | `{ show_alarms: bool }` |
 
 ---
 
@@ -1031,8 +844,7 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 
 ### Guiding Constraints
 
-- **No new crate dependencies in Phases A–D.** `yrs`, `base64`, `serde`, `serde_json` are already in the binary. The PLAYER_DOC uses the exact same yrs patterns proven in `crdt.rs`.
-- **Backward compatibility.** Existing `kipukas_game_state` JSON in users' localStorage is migrated on first load. No data loss.
-- **Tests first.** Each phase must include unit tests for the new player_doc functions before wiring routes.
-- **UI is separate from infrastructure.** Phase A ships with zero UI changes. Phases B/C/D add UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
+- **No new crate dependencies in Phases B–D.** `yrs`, `base64`, `serde`, `serde_json` are already in the binary. The PLAYER_DOC uses the exact same yrs patterns proven in `crdt.rs`.
+- **Tests first.** Each phase must include unit tests for new player_doc functions before wiring routes.
+- **UI is separate from infrastructure.** Phases B/C/D add UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
 - **Single-player unaffected.** Affinity/loyalty tracking is purely local. Multiplayer features (ROOM_DOC, fists combat) remain independent. The only cross-cutting concern is the loyalty increment hook in fists submission.

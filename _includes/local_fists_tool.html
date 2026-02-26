@@ -1,5 +1,5 @@
 <!-- Local Fists Tool — archetype/motivation matchup calculator (WASM: /api/type-matchup) -->
-<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, atkClick:[], defClick:[], atkMot:'', defMot:'', roomConnected: false }"
+<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, atkCount:0, defCount:0, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
      @room-disconnected.window="roomConnected = false">
@@ -51,13 +51,13 @@
           <div x-show="showKeal" >
             <span><b>Attacker</b></span>
             {% for type in site.data.types.Archetypes %}
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="atkClick.length == 3 && !checked" name="atk" value="{{ type }}" id="{{ type | append: 'Atk' }}" @click="checked = !checked, atkClick.includes('{{ type }}') ? atkClick = atkClick.filter((atk) => atk !== '{{ type }}') : atkClick.push('{{ type }}'), htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'Atk' }}">{{ type }}</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="atkCount >= 3 && !checked" name="atk" value="{{ type }}" id="{{ type | append: 'Atk' }}" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'Atk' }}">{{ type }}</label></div>
             {% endfor %}
           </div>
           <div x-show="showKeal">
             <span><b>Defender</b></span>
             {% for type in site.data.types.Archetypes %}
-              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="defClick.length == 3 && !checked" name="def" value="{{ type }}" id="{{ type | append: 'Def' }}" @click="checked = !checked, defClick.includes('{{ type }}') ? defClick = defClick.filter((def) => def !== '{{ type }}') : defClick.push('{{ type }}'), htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'Def' }}">{{ type }}</label></div>
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="{{ site.data.templates.checkbox }}" :disabled="defCount >= 3 && !checked" name="def" value="{{ type }}" id="{{ type | append: 'Def' }}" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'Def' }}">{{ type }}</label></div>
             {% endfor %}
           </div>
         </div>
@@ -73,13 +73,13 @@
           <div x-show="showMot">
             <span><b>Attacker</b></span>
             {% for type in site.data.types.Motivations %}
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="motAtk" value="{{ type }}" id="{{ type | append: 'AtkMot' }}" @click="checked = !checked, checked ? atkMot = '{{ type }}' : atkMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'AtkMot' }}">{{ type }}</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="motAtk" value="{{ type }}" id="{{ type | append: 'AtkMot' }}" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'AtkMot' }}">{{ type }}</label></div>
             {% endfor %}
           </div>
           <div x-show="showMot">
             <span><b>Defender</b></span>
             {% for type in site.data.types.Motivations %}
-              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="motDef" value="{{ type }}" id="{{ type | append: 'DefMot' }}" @click="checked = !checked, checked ? defMot = '{{ type }}' : defMot = '', htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'DefMot' }}">{{ type }}</label></div>
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="{{ site.data.templates.checkbox }}" name="motDef" value="{{ type }}" id="{{ type | append: 'DefMot' }}" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="{{ type | append: 'DefMot' }}">{{ type }}</label></div>
             {% endfor %}
           </div>
         </div>
