@@ -103,7 +103,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     };
 
     format!(
-        r#"<div class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{}ms">
+        r#"<div class="animate-card-fade-in relative w-40 h-63 lg:w-50 lg:h-68" style="animation-delay:{}ms">
   <a href="{url}"
     class="block w-full h-full pt-4 bg-amber-50 active:shadow-inner active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
   >
