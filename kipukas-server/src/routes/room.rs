@@ -802,9 +802,9 @@ pub fn handle_room_turns_get(query: &str) -> String {
     let params = parse_query(query);
     let display = get_param(&params, "display").unwrap_or("");
     if display == "alarms" {
-        turns::render_alarm_list(true)
+        turns::render_alarm_list()
     } else {
-        turns::render_turn_panel(true)
+        turns::render_turn_panel()
     }
 }
 
@@ -838,7 +838,7 @@ pub fn handle_yrs_apply_post(body: &str) -> String {
     let params = parse_form_body(body);
     let update = get_param(&params, "update").unwrap_or(body.trim());
     match crdt::apply_update(update) {
-        Ok(()) => turns::render_alarm_list(true),
+        Ok(()) => turns::render_alarm_list(),
         Err(e) => format!(
             r#"<span class="text-kip-red text-sm">CRDT apply error: {}</span>"#,
             e
@@ -859,7 +859,7 @@ pub fn handle_yrs_alarm_add_post(body: &str) -> String {
     // Keep PLAYER_DOC in sync so page navigation shows correct alarms
     // (the #turn-alarms hx-trigger="load" reads from PLAYER_DOC).
     crdt::export_to_local();
-    let html = turns::render_alarm_list(true);
+    let html = turns::render_alarm_list();
 
     format!(
         r#"{{"update":"{}","html":{}}}"#,
@@ -874,7 +874,7 @@ pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
     let update = crdt::tick_alarms();
     // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
     crdt::export_to_local();
-    let html = turns::render_alarm_list(true);
+    let html = turns::render_alarm_list();
 
     format!(
         r#"{{"update":"{}","html":{}}}"#,
@@ -887,7 +887,7 @@ pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
 /// Returns the multiplayer alarm list HTML (reads from CRDT Doc).
 pub fn handle_yrs_alarm_toggle_post(_body: &str) -> String {
     turns::toggle_alarms_visibility();
-    turns::render_alarm_list(true)
+    turns::render_alarm_list()
 }
 
 /// GET /api/room/yrs/state — return the full CRDT Doc state as URL-safe base64.
@@ -918,7 +918,7 @@ pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
     let update = crdt::remove_alarm(idx);
     // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
     crdt::export_to_local();
-    let html = turns::render_alarm_list(true);
+    let html = turns::render_alarm_list();
 
     format!(
         r#"{{"update":"{}","html":{}}}"#,

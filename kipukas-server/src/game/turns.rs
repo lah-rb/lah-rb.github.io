@@ -9,6 +9,7 @@
 
 use crate::game::crdt;
 use crate::game::player_doc;
+use crate::game::room;
 
 /// Add a new alarm with the given number of diel cycles, optional name, and color set.
 pub fn add_alarm(turns: i32, name: &str, color_set: &str) {
@@ -57,9 +58,11 @@ fn color_dot(color_set: &str) -> &str {
 /// This is the content inside the turn tracker popover — includes
 /// the number input, name field, color picker, and "New Timer" button.
 ///
-/// If `multiplayer` is true, the submit button routes through the
-/// multiplayer sync path instead of the local-only path.
-pub fn render_turn_panel(multiplayer: bool) -> String {
+/// Automatically detects multiplayer mode via `room::is_peer_connected()`.
+/// When multiplayer, the submit button routes through the multiplayer
+/// sync path; otherwise it uses the local HTMX path.
+pub fn render_turn_panel() -> String {
+    let multiplayer = room::is_peer_connected();
     let mut html = String::with_capacity(2048);
 
     html.push_str(r#"<div class="p-3 text-kip-drk-sienna">"#);
@@ -125,9 +128,11 @@ pub fn render_turn_panel(multiplayer: bool) -> String {
 /// Render the alarm list HTML.
 /// This is the floating alarm display in the top-left corner.
 ///
-/// If `multiplayer` is true, the advance and remove buttons route through
-/// the multiplayer sync path so both peers are updated.
-pub fn render_alarm_list(multiplayer: bool) -> String {
+/// Automatically detects multiplayer mode via `room::is_peer_connected()`.
+/// When multiplayer, reads alarms from the yrs CRDT Doc (synced between peers)
+/// and renders multiplayer sync buttons. Otherwise reads from PLAYER_DOC.
+pub fn render_alarm_list() -> String {
+    let multiplayer = room::is_peer_connected();
     // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
     // When local, read from PLAYER_DOC (persisted to localStorage).
     let (alarms, show_alarms) = if multiplayer {
@@ -240,6 +245,7 @@ mod tests {
 
     fn reset_state() {
         player_doc::init_player_doc();
+        room::reset_room();
     }
 
     #[test]
@@ -328,7 +334,8 @@ mod tests {
     #[test]
     fn render_alarm_list_empty_when_no_alarms() {
         reset_state();
-        let html = render_alarm_list(false);
+        // room disconnected → local mode
+        let html = render_alarm_list();
         assert!(html.is_empty());
         reset_state();
     }
@@ -338,7 +345,8 @@ mod tests {
         reset_state();
         add_alarm(5, "Dragon siege", "green");
         add_alarm(0, "", "red");
-        let html = render_alarm_list(false);
+        // room disconnected → local mode (reads from PLAYER_DOC)
+        let html = render_alarm_list();
         assert!(html.contains("Dragon siege"));
         assert!(html.contains("5")); // shown in "name — 5" format
         assert!(html.contains("Complete!"));
@@ -351,10 +359,11 @@ mod tests {
     #[test]
     fn render_alarm_list_multiplayer_uses_sync_buttons() {
         reset_state();
-        // Multiplayer mode reads from the yrs CRDT Doc, not PLAYER_DOC
+        // Set room as connected so render_alarm_list detects multiplayer
+        room::with_room_mut(|r| r.connected = true);
         crdt::init_doc();
         crdt::add_alarm(3, "", "blue");
-        let html = render_alarm_list(true);
+        let html = render_alarm_list();
         assert!(html.contains("kipukasMultiplayer.tickTurns()"));
         assert!(html.contains("kipukasMultiplayer.removeTurn(0)"));
         assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
@@ -364,7 +373,9 @@ mod tests {
 
     #[test]
     fn render_turn_panel_has_controls() {
-        let html = render_turn_panel(false);
+        reset_state();
+        // room disconnected → local mode
+        let html = render_turn_panel();
         assert!(html.contains("turnsSelector"));
         assert!(html.contains("timerName"));
         assert!(html.contains("New Timer"));
@@ -375,13 +386,18 @@ mod tests {
         assert!(html.contains("blue color"));
         assert!(html.contains("yellow color"));
         assert!(html.contains("pink color"));
+        reset_state();
     }
 
     #[test]
     fn render_turn_panel_multiplayer_uses_sync() {
-        let html = render_turn_panel(true);
+        reset_state();
+        // Set room as connected so render_turn_panel detects multiplayer
+        room::with_room_mut(|r| r.connected = true);
+        let html = render_turn_panel();
         assert!(html.contains("kipukasMultiplayer.addTurn"));
         assert!(!html.contains("htmx.ajax")); // multiplayer routes through JS
+        reset_state();
     }
 
     #[test]

@@ -130,15 +130,14 @@ pub fn handle_damage_post(body: &str) -> String {
 /// Handle GET /api/game/turns
 /// Returns the turn tracker panel HTML (timer creation form),
 /// or the alarm list if `?display=alarms` is specified.
-/// Pass `?multiplayer=true` to render with multiplayer sync buttons.
+/// Multiplayer mode is auto-detected via room::is_peer_connected().
 pub fn handle_turns_get(query: &str) -> String {
     let params = parse_query(query);
     let display = get_param(&params, "display").unwrap_or("");
-    let multiplayer = get_param(&params, "multiplayer").unwrap_or("") == "true";
     if display == "alarms" {
-        turns::render_alarm_list(multiplayer)
+        turns::render_alarm_list()
     } else {
-        turns::render_turn_panel(multiplayer)
+        turns::render_turn_panel()
     }
 }
 
@@ -155,8 +154,6 @@ pub fn handle_turns_get(query: &str) -> String {
 pub fn handle_turns_post(body: &str) -> String {
     let params = parse_form_body(body);
     let action = get_param(&params, "action").unwrap_or("");
-
-    let multiplayer = get_param(&params, "multiplayer").unwrap_or("") == "true";
 
     match action {
         "add" => {
@@ -183,7 +180,7 @@ pub fn handle_turns_post(body: &str) -> String {
         _ => {}
     }
 
-    turns::render_alarm_list(multiplayer)
+    turns::render_alarm_list()
 }
 
 // ── GET /api/game/state ────────────────────────────────────────────
@@ -307,11 +304,13 @@ pub fn handle_player_import_post(body: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::room;
     use crate::game::state::{replace_state, GameState};
 
     fn reset_state() {
         replace_state(GameState::default());
         crate::game::player_doc::init_player_doc();
+        room::reset_room();
     }
 
     #[test]
@@ -378,7 +377,7 @@ mod tests {
     fn turns_post_add_and_tick() {
         reset_state();
         handle_turns_post("action=add&turns=3&name=test&color_set=green");
-        let html = turns::render_alarm_list(false);
+        let html = turns::render_alarm_list();
         assert!(html.contains("test")); // named alarm: "test — 3"
         assert!(html.contains("3"));
 
@@ -392,7 +391,7 @@ mod tests {
     fn turns_post_add_with_name_and_color() {
         reset_state();
         handle_turns_post("action=add&turns=5&name=Dragon+siege&color_set=blue");
-        let html = turns::render_alarm_list(false);
+        let html = turns::render_alarm_list();
         assert!(html.contains("Dragon siege"));
         assert!(html.contains("bg-blue-100"));
         reset_state();
@@ -403,7 +402,7 @@ mod tests {
         reset_state();
         turns::add_alarm(5, "", "red");
         handle_turns_post("action=toggle_visibility");
-        let html = turns::render_alarm_list(false);
+        let html = turns::render_alarm_list();
         assert!(html.contains("hidden"));
         reset_state();
     }

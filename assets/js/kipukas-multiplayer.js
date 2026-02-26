@@ -265,7 +265,7 @@ function onPeerConnected() {
   // Switch alarm display to multiplayer mode (reads from CRDT Doc,
   // shows sync buttons). Seeded alarms from local GameState are
   // already in the Doc via seed_from_local() on room create/join.
-  refreshAlarms(true);
+  refreshAlarms();
 
   // Initiate yrs CRDT sync handshake — exchange state vectors so both
   // peers converge on the same Doc state after (re)connect.
@@ -545,13 +545,10 @@ function execScripts(el) {
 }
 
 /** Refresh the alarm display in #turn-alarms.
- *  @param {boolean} multiplayer — if true, fetch from /api/room/turns (CRDT);
- *                                 if false, fetch from /api/game/turns (local). */
-function refreshAlarms(multiplayer) {
-  const endpoint = multiplayer
-    ? '/api/room/turns?display=alarms'
-    : '/api/game/turns?display=alarms';
-  wasmRequest('GET', endpoint.split('?')[0], '?' + endpoint.split('?')[1], '', (html) => {
+ *  Rust auto-detects multiplayer via is_peer_connected() and reads from
+ *  CRDT Doc (multiplayer) or PLAYER_DOC (local) accordingly. */
+function refreshAlarms() {
+  wasmRequest('GET', '/api/game/turns', '?display=alarms', '', (html) => {
     const alarms = document.getElementById('turn-alarms');
     if (alarms && html != null) {
       alarms.innerHTML = html;
@@ -688,7 +685,7 @@ const kipukasMultiplayer = {
     // CRDT alarms back to local GameState. After it completes, refresh
     // the alarm display in local mode so exported timers appear.
     postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
-      refreshAlarms(false);
+      refreshAlarms();
     });
     // Notify UI that room is disconnected
     globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
