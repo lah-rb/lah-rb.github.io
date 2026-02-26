@@ -290,6 +290,13 @@ pub fn seed_from_local() {
     for alarm in &local_alarms {
         add_alarm(alarm.remaining, &alarm.name, &alarm.color_set);
     }
+    // Clear local alarms — they now live in the CRDT Doc. The yrs alarm
+    // mutation routes call export_to_local() after each mutation to keep
+    // PLAYER_DOC in sync, and export_to_local() re-populates PLAYER_DOC
+    // on disconnect before the CRDT Doc is reset.
+    for i in (0..local_alarms.len()).rev() {
+        player_doc::remove_alarm(i);
+    }
 }
 
 /// Copy the current CRDT alarms back into local PLAYER_DOC.
@@ -594,7 +601,7 @@ mod tests {
     }
 
     #[test]
-    fn seed_from_local_copies_alarms() {
+    fn seed_from_local_copies_alarms_and_clears_local() {
         // Set up local PLAYER_DOC with alarms
         player_doc::init_player_doc();
         player_doc::add_alarm(5, "local timer", "green");
@@ -605,12 +612,17 @@ mod tests {
         assert!(get_alarms().is_empty());
 
         seed_from_local();
+        // CRDT Doc now has the alarms
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].name, "local timer");
         assert_eq!(alarms[0].remaining, 5);
         assert_eq!(alarms[0].color_set, "green");
         assert_eq!(alarms[1].name, "another");
+
+        // Local PLAYER_DOC alarms should be cleared after seeding
+        let local_alarms = player_doc::get_alarms();
+        assert!(local_alarms.is_empty());
 
         player_doc::init_player_doc();
     }
@@ -673,6 +685,39 @@ mod tests {
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].name, "from crdt");
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn seed_then_disconnect_round_trip() {
+        // Simulate: local alarms → seed into CRDT → disconnect → export back
+        player_doc::init_player_doc();
+        player_doc::add_alarm(5, "round trip", "green");
+        player_doc::add_alarm(2, "also round trip", "pink");
+
+        // Room create: seed local → CRDT (clears local)
+        reset();
+        seed_from_local();
+        assert_eq!(get_alarms().len(), 2);
+        assert!(player_doc::get_alarms().is_empty());
+
+        // Simulate a CRDT mutation during the session
+        add_alarm(1, "shared new", "blue");
+        assert_eq!(get_alarms().len(), 3);
+
+        // Disconnect: export CRDT → local, then reset CRDT
+        export_to_local();
+        reset_doc();
+
+        // CRDT is empty after reset
+        assert!(get_alarms().is_empty());
+        // Local PLAYER_DOC has all three alarms (original + new)
+        let local = player_doc::get_alarms();
+        assert_eq!(local.len(), 3);
+        assert_eq!(local[0].name, "round trip");
+        assert_eq!(local[1].name, "also round trip");
+        assert_eq!(local[2].name, "shared new");
 
         player_doc::init_player_doc();
     }
