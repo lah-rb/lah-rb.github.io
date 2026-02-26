@@ -106,8 +106,11 @@ pub fn render_damage_tracker(slug: &str) -> String {
     let mut html = String::with_capacity(2048);
     html.push_str(&format!("<!-- [kipukas-debug] {} {} -->", slug, slot_debug));
 
-    // Container
-    html.push_str(r#"<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center">"#);
+    // Container — hx-target and hx-swap are inherited by all child buttons
+    html.push_str(&format!(
+        r##"<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" hx-target="#keal-damage-{}" hx-swap="innerHTML">"##,
+        slug
+    ));
 
     // Section header
     html.push_str(r#"<p class="capitalize">Combat</p>"#);
@@ -149,14 +152,14 @@ pub fn render_damage_tracker(slug: &str) -> String {
             } else if checked {
                 // Checked state — filled red circle, clickable to toggle off
                 html.push_str(&format!(
-                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","slot":"{slot}"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
             } else {
                 // Unchecked state — green border, white fill, clickable to toggle on
                 html.push_str(&format!(
-                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', slot: '{slot}'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-white border-emerald-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","slot":"{slot}"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-white border-emerald-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
                     slug = slug,
                     slot = slot_idx,
                 ));
@@ -213,7 +216,7 @@ pub fn render_damage_tracker(slug: &str) -> String {
             "bg-white border-emerald-600"
         };
         html.push_str(&format!(
-            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" onclick="htmx.ajax('POST', '/api/game/damage', {{values: {{card: '{slug}', action: 'wasted'}}, target: '#keal-damage-{slug}', swap: 'innerHTML'}})"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {static_cls}" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
+            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","action":"wasted"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {static_cls}" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
             on = wasted_on,
             slug = slug,
             static_cls = wasted_static,
