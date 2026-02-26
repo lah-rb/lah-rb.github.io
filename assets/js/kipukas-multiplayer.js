@@ -29,6 +29,7 @@ let peerPresent = false; // Whether the other peer is in the room
 // ── Reconnection ───────────────────────────────────────────────────
 
 let reconnectAttempts = 0;
+let reconnecting = false; // Set during autoReconnect to prevent duplicate WASM init
 const MAX_RECONNECT_ATTEMPTS = 8;
 const BASE_RECONNECT_DELAY_MS = 1000;
 
@@ -181,12 +182,18 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || '';
       console.log('[multiplayer] Room created:', roomCode);
       saveSession();
-      // Update WASM state
-      postToWasm(
-        'POST',
-        '/api/room/create',
-        `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
-      );
+      // Skip WASM init during auto-reconnect — autoReconnect() already
+      // called /api/room/create with skip_seed=true and restored the
+      // CRDT Doc from sessionStorage. Re-calling without skip_seed would
+      // wipe the restored Doc and re-seed stale local timers.
+      if (!reconnecting) {
+        postToWasm(
+          'POST',
+          '/api/room/create',
+          `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+        );
+      }
+      reconnecting = false;
       refreshRoomStatus();
       break;
 
@@ -195,12 +202,15 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Update WASM state so it knows we're in a room
-      postToWasm(
-        'POST',
-        '/api/room/join',
-        `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
-      );
+      // Skip WASM init during auto-reconnect — see room_created comment.
+      if (!reconnecting) {
+        postToWasm(
+          'POST',
+          '/api/room/join',
+          `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+        );
+      }
+      reconnecting = false;
       refreshRoomStatus();
       break;
 
@@ -586,6 +596,7 @@ async function autoReconnect() {
   roomCode = session.code;
   roomName = session.name || '';
   isCreator = session.creator || false;
+  reconnecting = true;
 
   // Tell WASM we're in a room (waiting for peer) — this calls init_doc().
   // Pass skip_seed=true so seed_from_local() is NOT called: the correct

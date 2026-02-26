@@ -31,14 +31,6 @@ pub fn toggle_alarms_visibility() {
     player_doc::set_show_alarms(!current);
 }
 
-/// Validate color set, defaulting to "red" if invalid.
-fn validate_color_set(color: &str) -> &str {
-    match color {
-        "red" | "green" | "blue" | "yellow" | "pink" => color,
-        _ => "red",
-    }
-}
-
 /// Get Tailwind CSS classes for a given color set.
 fn color_classes(color_set: &str) -> (&str, &str, &str) {
     match color_set {
@@ -393,13 +385,25 @@ mod tests {
     }
 
     #[test]
-    fn validate_color_set_works() {
-        assert_eq!(validate_color_set("red"), "red");
-        assert_eq!(validate_color_set("green"), "green");
-        assert_eq!(validate_color_set("blue"), "blue");
-        assert_eq!(validate_color_set("yellow"), "yellow");
-        assert_eq!(validate_color_set("pink"), "pink");
-        assert_eq!(validate_color_set("invalid"), "red");
-        assert_eq!(validate_color_set(""), "red");
+    fn add_alarm_validates_all_colors() {
+        reset_state();
+        // Valid colors stored as-is
+        add_alarm(1, "", "red");
+        add_alarm(1, "", "green");
+        add_alarm(1, "", "blue");
+        add_alarm(1, "", "yellow");
+        add_alarm(1, "", "pink");
+        // Invalid colors default to red
+        add_alarm(1, "", "invalid");
+        add_alarm(1, "", "");
+        let alarms = player_doc::get_alarms();
+        assert_eq!(alarms[0].color_set, "red");
+        assert_eq!(alarms[1].color_set, "green");
+        assert_eq!(alarms[2].color_set, "blue");
+        assert_eq!(alarms[3].color_set, "yellow");
+        assert_eq!(alarms[4].color_set, "pink");
+        assert_eq!(alarms[5].color_set, "red"); // "invalid" → "red"
+        assert_eq!(alarms[6].color_set, "red"); // "" → "red"
+        reset_state();
     }
 }
