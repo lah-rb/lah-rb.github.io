@@ -20,9 +20,15 @@
     <div x-show="showTurnTracker && !roomConnected" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
+    x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
+      }
+    })"
     class="{{ include.menuClass }} grid grid-cols-1 h-fit w-56"
+    id="turn-tracker-panel"
     hx-get="/api/game/turns"
-    hx-trigger="intersect once"
+    hx-trigger="load"
     hx-swap="innerHTML">
     </div>
 </div>
