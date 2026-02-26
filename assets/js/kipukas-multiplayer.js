@@ -587,11 +587,16 @@ async function autoReconnect() {
   roomName = session.name || '';
   isCreator = session.creator || false;
 
-  // Tell WASM we're in a room (waiting for peer) — this calls init_doc()
+  // Tell WASM we're in a room (waiting for peer) — this calls init_doc().
+  // Pass skip_seed=true so seed_from_local() is NOT called: the correct
+  // CRDT state will be restored from sessionStorage below. Without this,
+  // stale PLAYER_DOC alarms get seeded into a fresh Doc and survive the
+  // sessionStorage restore (different yrs client IDs), causing timers to
+  // reappear or duplicate after page navigation.
   postToWasm(
     'POST',
     '/api/room/create',
-    `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+    `code=${roomCode}&name=${encodeURIComponent(roomName)}&skip_seed=true`,
   );
 
   // Restore CRDT Doc from sessionStorage (must happen after init_doc via
@@ -806,9 +811,9 @@ const kipukasMultiplayer = {
       (response) => {
         try {
           const result = JSON.parse(response);
-          // Swap the alarm list HTML
+          // Swap the alarm list HTML (use != null so empty string still clears DOM)
           const alarms = document.getElementById('turn-alarms');
-          if (alarms && result.html) {
+          if (alarms && result.html != null) {
             alarms.innerHTML = result.html;
             if (typeof htmx !== 'undefined') htmx.process(alarms);
           }
@@ -831,7 +836,8 @@ const kipukasMultiplayer = {
       try {
         const result = JSON.parse(response);
         const alarms = document.getElementById('turn-alarms');
-        if (alarms && result.html) {
+        // Use != null so empty string (all alarms removed) still clears DOM
+        if (alarms && result.html != null) {
           alarms.innerHTML = result.html;
           if (typeof htmx !== 'undefined') htmx.process(alarms);
         }
@@ -856,7 +862,8 @@ const kipukasMultiplayer = {
         try {
           const result = JSON.parse(response);
           const alarms = document.getElementById('turn-alarms');
-          if (alarms && result.html) {
+          // Use != null so empty string (all alarms removed) still clears DOM
+          if (alarms && result.html != null) {
             alarms.innerHTML = result.html;
             if (typeof htmx !== 'undefined') htmx.process(alarms);
           }

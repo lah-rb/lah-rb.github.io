@@ -149,6 +149,7 @@ pub fn handle_create_post(body: &str) -> String {
     let params = parse_form_body(body);
     let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
+    let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
 
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
@@ -157,10 +158,16 @@ pub fn handle_create_post(body: &str) -> String {
         r.fists.reset();
     });
 
-    // Initialize yrs CRDT Doc for this multiplayer session and seed
-    // with any pre-existing local alarms so they become shared.
+    // Initialize yrs CRDT Doc for this multiplayer session.
+    // On fresh room creation, seed with pre-existing local alarms so
+    // they become shared. On reconnect (skip_seed=true), the CRDT Doc
+    // will be restored from sessionStorage instead — seeding here would
+    // introduce stale alarms with new yrs client IDs that survive the
+    // restore merge, causing timers to reappear or duplicate.
     crdt::init_doc();
-    crdt::seed_from_local();
+    if !skip_seed {
+        crdt::seed_from_local();
+    }
 
     r#"<span class="text-emerald-600 text-sm">Room created. Waiting for peer...</span>"#
         .to_string()
@@ -172,6 +179,7 @@ pub fn handle_join_post(body: &str) -> String {
     let params = parse_form_body(body);
     let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
+    let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
 
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
@@ -182,10 +190,12 @@ pub fn handle_join_post(body: &str) -> String {
         r.fists.reset();
     });
 
-    // Initialize yrs CRDT Doc for this multiplayer session and seed
-    // with any pre-existing local alarms so they become shared.
+    // Initialize yrs CRDT Doc for this multiplayer session.
+    // See handle_create_post for skip_seed rationale.
     crdt::init_doc();
-    crdt::seed_from_local();
+    if !skip_seed {
+        crdt::seed_from_local();
+    }
 
     room::with_room(|r| render_waiting_status(r))
 }
@@ -844,6 +854,9 @@ pub fn handle_yrs_alarm_add_post(body: &str) -> String {
     let turns_val: i32 = turns_str.parse().unwrap_or(1).max(1).min(99);
 
     let update = crdt::add_alarm(turns_val, name, color_set);
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms
+    // (the #turn-alarms hx-trigger="load" reads from PLAYER_DOC).
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(
@@ -857,6 +870,8 @@ pub fn handle_yrs_alarm_add_post(body: &str) -> String {
 /// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
 pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
     let update = crdt::tick_alarms();
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(
@@ -899,6 +914,8 @@ pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
     let idx: u32 = idx_str.parse().unwrap_or(0);
 
     let update = crdt::remove_alarm(idx);
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(

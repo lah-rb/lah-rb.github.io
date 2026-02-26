@@ -800,43 +800,26 @@ Persist combat results in yrs document so players can review past rounds across 
 
 **Technical**: Append-only `YArray` in yrs document; automatic synchronization if cross-device sync enabled.
 
-#### 4. Affinity & Loyalty Tracking
-
-Implement long-term gameplay progression as described in the game rules: affinity with archetypes and loyalty with individual soul cards.
-
-**Core Mechanics:**
-- **Affinity**: Increases when declaring archetypes at match start
-- **Loyalty**: Increases per play of a specific soul card (once per day)
-- **Taming Threshold**: When loyalty + affinity + play bonuses exceed a card's tameability, the card becomes "tamed" (unlocking special abilities)
-
-**Implementation:**
-- `YMap<archetype, counter>` for affinity tracking
-- `YMap<card_slug, LoyaltyRecord>` with fields: `plays_today`, `total_plays`, `incubation_bonus`
-- Daily reset via local timestamp comparison (no server required)
-- Tameability section added to all species cards
-
-**Progression Visibility**: Profile modal showing affinity levels (visual bars) and loyalty milestones (badges/frames on cards).
-
 ### Long-Term
 
-#### 5. Replace ZXing with Rust QR Decoder
+#### 4. Replace ZXing with Rust QR Decoder
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. **NOTE:** It was also attempted to improve rqrr detection, but the results were overall worse that ZXing with greater complication and dimishing returns on space saved. Many strategies were attempted, but only adaptive_threshold had any effect. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
-#### 6. Infinite Scroll with Content-Visibility
+#### 5. Infinite Scroll with Content-Visibility
 Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
 
-#### 7. Card Trading
+#### 6. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).
 
-#### 8. Spectator Mode
+#### 7. Spectator Mode
 Allow a third peer to observe a match via a read-only WebSocket connection. Architecturally simple (receive-only relay, no submissions) but requires rooms to support >2 peers. Low priority until competitive, streaming, or particularly compelling (active, visual, and exciting) use cases emerge.
 
-#### 9. Provide Kippa Tools
+#### 8. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
 
 ---
 
-## Planned Sprint: Player Document & GameState → Yrs Consolidation
+## Current Sprint: Player Document & GameState → Yrs Consolidation
 
 > **Goal:** Replace the serde_json `GameState` with a persistent yrs CRDT document (`PLAYER_DOC`) that owns all local player data. This eliminates future migration cost, makes all player state portable and exportable from day one, and sets the foundation for cross-device sync, decentralized identity, and affinity/loyalty tracking.
 >
