@@ -368,20 +368,6 @@ pub fn remove_alarm(index: usize) {
     });
 }
 
-/// Clear all alarms from the player doc.
-pub fn clear_all_alarms() {
-    PLAYER_DOC.with(|cell| {
-        let doc = cell.borrow();
-        let alarms = doc.get_or_insert_array("alarms");
-        let mut txn = doc.transact_mut();
-        let len = alarms.len(&txn);
-        // Remove in reverse order to preserve indices
-        for i in (0..len).rev() {
-            alarms.remove(&mut txn, i);
-        }
-    });
-}
-
 /// Read the current alarms as a Vec<Alarm>.
 pub fn get_alarms() -> Vec<Alarm> {
     PLAYER_DOC.with(|cell| {

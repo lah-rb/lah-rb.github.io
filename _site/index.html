@@ -611,15 +611,12 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </div>
 </div>
 
-<!-- Floating alarm display — loaded from WASM, positioned top-left.
-     Skips initial load when a multiplayer room session exists in sessionStorage;
-     the multiplayer module's refreshAlarms(true) will populate it after reconnect. -->
+<!-- Floating alarm display — loaded from WASM, positioned top-left -->
 <div id="turn-alarms" class="fixed top-0 left-0 m-6 grid grid-cols-1"
      hx-get="/api/game/turns?display=alarms"
+     hx-trigger="load"
      hx-swap="innerHTML"
-     hx-target="this"
-     x-data
-     x-init="if (!sessionStorage.getItem('kipukas_room')) htmx.ajax('GET', '/api/game/turns?display=alarms', {target:'#turn-alarms', swap:'innerHTML'})">
+     hx-target="this">
 </div>
 
     

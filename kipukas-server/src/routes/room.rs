@@ -223,9 +223,9 @@ pub fn handle_connected_post(body: &str) -> String {
 // ── POST /api/room/disconnect ──────────────────────────────────────
 
 pub fn handle_disconnect_post(_body: &str) -> String {
-    // Clear local alarms so timers that were seeded into the CRDT Doc
-    // don't reappear as local timers after leaving multiplayer.
-    player_doc::clear_all_alarms();
+    // Copy shared CRDT alarms back to local GameState before clearing
+    // so timers survive the transition out of multiplayer.
+    crdt::export_to_local();
     room::reset_room();
     crdt::reset_doc();
     render_disconnected_status()
@@ -854,6 +854,9 @@ pub fn handle_yrs_alarm_add_post(body: &str) -> String {
     let turns_val: i32 = turns_str.parse().unwrap_or(1).max(1).min(99);
 
     let update = crdt::add_alarm(turns_val, name, color_set);
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms
+    // (the #turn-alarms hx-trigger="load" reads from PLAYER_DOC).
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(
@@ -867,6 +870,8 @@ pub fn handle_yrs_alarm_add_post(body: &str) -> String {
 /// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
 pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
     let update = crdt::tick_alarms();
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(
@@ -909,6 +914,8 @@ pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
     let idx: u32 = idx_str.parse().unwrap_or(0);
 
     let update = crdt::remove_alarm(idx);
+    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
+    crdt::export_to_local();
     let html = turns::render_alarm_list(true);
 
     format!(
