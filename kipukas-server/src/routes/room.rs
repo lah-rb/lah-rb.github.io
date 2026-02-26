@@ -223,9 +223,11 @@ pub fn handle_connected_post(body: &str) -> String {
 // ── POST /api/room/disconnect ──────────────────────────────────────
 
 pub fn handle_disconnect_post(_body: &str) -> String {
-    // Copy shared CRDT alarms back to local GameState before clearing
-    // so timers survive the transition out of multiplayer.
-    crdt::export_to_local();
+    // PLAYER_DOC is already kept in sync with the CRDT Doc by the yrs
+    // alarm mutation routes (add/tick/remove each call export_to_local()
+    // after every mutation). No need to export again here — doing so
+    // would undo the seed_from_local() clear when no mutations occurred
+    // during the session, causing the original alarms to ghost back.
     room::reset_room();
     crdt::reset_doc();
     render_disconnected_status()

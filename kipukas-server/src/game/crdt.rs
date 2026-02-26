@@ -690,8 +690,10 @@ mod tests {
     }
 
     #[test]
-    fn seed_then_disconnect_round_trip() {
-        // Simulate: local alarms → seed into CRDT → disconnect → export back
+    fn seed_then_disconnect_no_mutations_leaves_local_empty() {
+        // Simulate: local alarms → seed into CRDT → disconnect (no mutations)
+        // Disconnect no longer calls export_to_local(), so PLAYER_DOC stays
+        // empty after seeding. The mutation routes export during the session.
         player_doc::init_player_doc();
         player_doc::add_alarm(5, "round trip", "green");
         player_doc::add_alarm(2, "also round trip", "pink");
@@ -702,22 +704,47 @@ mod tests {
         assert_eq!(get_alarms().len(), 2);
         assert!(player_doc::get_alarms().is_empty());
 
-        // Simulate a CRDT mutation during the session
-        add_alarm(1, "shared new", "blue");
-        assert_eq!(get_alarms().len(), 3);
-
-        // Disconnect: export CRDT → local, then reset CRDT
-        export_to_local();
+        // Disconnect: just reset, no export_to_local()
         reset_doc();
 
         // CRDT is empty after reset
         assert!(get_alarms().is_empty());
-        // Local PLAYER_DOC has all three alarms (original + new)
+        // Local PLAYER_DOC remains empty — no ghost
+        assert!(player_doc::get_alarms().is_empty());
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn seed_then_mutate_then_disconnect_preserves_mutations() {
+        // Simulate: local alarms → seed → mutation (exports to local) → disconnect
+        // The mutation route's export_to_local() keeps PLAYER_DOC in sync.
+        player_doc::init_player_doc();
+        player_doc::add_alarm(5, "original", "green");
+
+        // Room create: seed local → CRDT (clears local)
+        reset();
+        seed_from_local();
+        assert_eq!(get_alarms().len(), 1);
+        assert!(player_doc::get_alarms().is_empty());
+
+        // Simulate a CRDT mutation during the session — the mutation route
+        // calls export_to_local() after each mutation to keep PLAYER_DOC in sync.
+        add_alarm(1, "shared new", "blue");
+        export_to_local(); // This is what the mutation routes do
+        assert_eq!(get_alarms().len(), 2);
+        assert_eq!(player_doc::get_alarms().len(), 2);
+
+        // Disconnect: just reset, no export_to_local()
+        reset_doc();
+
+        // CRDT is empty after reset
+        assert!(get_alarms().is_empty());
+        // Local PLAYER_DOC has the state from the last mutation export
         let local = player_doc::get_alarms();
-        assert_eq!(local.len(), 3);
-        assert_eq!(local[0].name, "round trip");
-        assert_eq!(local[1].name, "also round trip");
-        assert_eq!(local[2].name, "shared new");
+        assert_eq!(local.len(), 2);
+        assert_eq!(local[0].name, "original");
+        assert_eq!(local[1].name, "shared new");
 
         player_doc::init_player_doc();
     }
