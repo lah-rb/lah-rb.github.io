@@ -122,7 +122,7 @@ wasmWorker.onerror = (err) => {
 };
 
 // ============================================
-// Phase 6: PERSIST_STATE listener — auto-save PLAYER_DOC after every game mutation
+// PERSIST_STATE listener — auto-save PLAYER_DOC after every game mutation
 // ============================================
 // The WASM worker sends { type: 'PERSIST_STATE' } after every POST to /api/game/*.
 // We fetch the full PLAYER_DOC as base64 from WASM and save to localStorage.
@@ -142,71 +142,32 @@ wasmWorker.addEventListener('message', (event) => {
 });
 
 // ============================================
-// Phase 6: RESTORE PLAYER_DOC from localStorage on load
+// RESTORE PLAYER_DOC from localStorage on load
 // ============================================
-// Prefer kipukas_player_doc (base64 yrs binary) if it exists.
-// Fall back to kipukas_game_state (JSON) with one-time migration.
+// Restore kipukas_player_doc (base64 yrs binary) if it exists.
 // Messages are queued by the worker and gated on `await wasmReady`,
 // so they are processed before any HTMX `hx-trigger="load"` requests.
 (function restorePersistedState() {
   const playerDoc = localStorage.getItem('kipukas_player_doc');
-  if (playerDoc) {
-    // Restore from base64 PLAYER_DOC (preferred path)
-    console.log('[kipukas-api] Restoring PLAYER_DOC from localStorage');
-    const ch = new MessageChannel();
-    ch.port1.onmessage = (msg) => {
-      if (msg.data.html === 'ok') {
-        console.log('[kipukas-api] PLAYER_DOC restored from localStorage');
-      } else {
-        console.warn('[kipukas-api] PLAYER_DOC restore issue:', msg.data.html);
-      }
-    };
-    wasmWorker.postMessage(
-      { method: 'POST', pathname: '/api/player/restore', search: '', body: playerDoc },
-      [ch.port2],
-    );
-    return;
-  }
+  if (!playerDoc) return;
 
-  // No PLAYER_DOC yet — check for legacy JSON and migrate
-  const saved = localStorage.getItem('kipukas_game_state');
-  if (saved) {
-    console.log('[kipukas-api] Migrating kipukas_game_state JSON → PLAYER_DOC');
-    // First restore legacy GameState
-    wasmWorker.postMessage(
-      { method: 'POST', pathname: '/api/game/import', search: '', body: saved },
-      [new MessageChannel().port2],
-    );
-    // Then migrate into PLAYER_DOC
-    const ch = new MessageChannel();
-    ch.port1.onmessage = (msg) => {
-      if (msg.data.html === 'ok') {
-        console.log('[kipukas-api] Migration to PLAYER_DOC complete');
-        // Persist the new PLAYER_DOC immediately
-        const ch2 = new MessageChannel();
-        ch2.port1.onmessage = (msg2) => {
-          if (msg2.data.html) {
-            localStorage.setItem('kipukas_player_doc', msg2.data.html);
-            console.log('[kipukas-api] PLAYER_DOC persisted after migration');
-          }
-        };
-        wasmWorker.postMessage(
-          { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
-          [ch2.port2],
-        );
-      } else {
-        console.warn('[kipukas-api] PLAYER_DOC migration failed:', msg.data.html);
-      }
-    };
-    wasmWorker.postMessage(
-      { method: 'POST', pathname: '/api/player/migrate', search: '', body: saved },
-      [ch.port2],
-    );
-  }
+  console.log('[kipukas-api] Restoring PLAYER_DOC from localStorage');
+  const ch = new MessageChannel();
+  ch.port1.onmessage = (msg) => {
+    if (msg.data.html === 'ok') {
+      console.log('[kipukas-api] PLAYER_DOC restored from localStorage');
+    } else {
+      console.warn('[kipukas-api] PLAYER_DOC restore issue:', msg.data.html);
+    }
+  };
+  wasmWorker.postMessage(
+    { method: 'POST', pathname: '/api/player/restore', search: '', body: playerDoc },
+    [ch.port2],
+  );
 })();
 
 // ============================================
-// Phase 4b: AUTO-LOAD multiplayer module if room session exists
+// AUTO-LOAD multiplayer module if room session exists
 // ============================================
 // kipukas-multiplayer.js is normally lazy-loaded when the user clicks
 // the multiplayer button. But if there's a saved room session from a

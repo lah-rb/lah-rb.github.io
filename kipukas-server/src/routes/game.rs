@@ -1,68 +1,10 @@
 //! `/api/game/*` routes — game state management for damage tracking,
-//! turn tracking, and state persistence/import.
+//! turn tracking, and player document persistence.
 //!
-//! Phase 3b: Single-player state management via HTMX + WASM.
-//! Phase 4 prep: `/api/game/state` returns JSON for WebRTC sync.
+//! All game state is stored in PLAYER_DOC (yrs CRDT document).
 
 use crate::game::{damage, player_doc, turns};
-use crate::game::state;
-
-/// Parse URL-encoded form body into key-value pairs.
-/// Handles `key=value&key2=value2` format (from HTMX POST bodies).
-fn parse_form_body(body: &str) -> Vec<(String, String)> {
-    if body.is_empty() {
-        return Vec::new();
-    }
-    body.split('&')
-        .filter_map(|pair| {
-            let mut parts = pair.splitn(2, '=');
-            let key = parts.next()?;
-            let val = parts.next().unwrap_or("");
-            Some((
-                percent_decode(key),
-                percent_decode(val),
-            ))
-        })
-        .collect()
-}
-
-/// Percent-decode a URL-encoded value.
-fn percent_decode(input: &str) -> String {
-    let mut result = String::with_capacity(input.len());
-    let mut chars = input.bytes();
-    while let Some(b) = chars.next() {
-        if b == b'%' {
-            let hi = chars.next().unwrap_or(b'0');
-            let lo = chars.next().unwrap_or(b'0');
-            let hex = [hi, lo];
-            if let Ok(s) = core::str::from_utf8(&hex) {
-                if let Ok(val) = u8::from_str_radix(s, 16) {
-                    result.push(val as char);
-                    continue;
-                }
-            }
-            result.push('%');
-            result.push(hi as char);
-            result.push(lo as char);
-        } else if b == b'+' {
-            result.push(' ');
-        } else {
-            result.push(b as char);
-        }
-    }
-    result
-}
-
-/// Parse a query string into key-value pairs.
-fn parse_query(query: &str) -> Vec<(String, String)> {
-    let q = query.strip_prefix('?').unwrap_or(query);
-    parse_form_body(q)
-}
-
-/// Helper to get a value by key from a list of key-value pairs.
-fn get_param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a str> {
-    params.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
-}
+use crate::routes::util::{get_param, parse_form_body, parse_query};
 
 // ── GET /api/game/damage ───────────────────────────────────────────
 
@@ -187,49 +129,11 @@ pub fn handle_turns_post(body: &str) -> String {
     turns::render_alarm_list()
 }
 
-// ── GET /api/game/state ────────────────────────────────────────────
-
-/// Handle GET /api/game/state
-/// Returns the full game state as JSON (for multiplayer prep / debugging).
-pub fn handle_state_get(_query: &str) -> String {
-    state::export_state_json()
-}
-
-// ── POST /api/game/persist ─────────────────────────────────────────
-
-/// Handle POST /api/game/persist
-/// Serializes current game state and returns a <script> tag that
-/// writes it to localStorage.
-pub fn handle_persist_post(_body: &str) -> String {
-    let json = state::export_state_json();
-    // Escape for embedding in a JS string literal
-    let escaped = json.replace('\\', "\\\\").replace('\'', "\\'");
-    format!(
-        r#"<script>localStorage.setItem('kipukas_game_state', '{}'); console.log('[kipukas] Game state persisted to localStorage');</script>"#,
-        escaped
-    )
-}
-
-// ── POST /api/game/import ──────────────────────────────────────────
-
-/// Handle POST /api/game/import
-/// Accepts JSON body and imports it as the game state.
-pub fn handle_import_post(body: &str) -> String {
-    match state::import_state_json(body) {
-        Ok(()) => {
-            r#"<span class="text-emerald-600">Game state imported successfully</span>"#.to_string()
-        }
-        Err(e) => {
-            format!(r#"<span class="text-kip-red">Import failed: {}</span>"#, e)
-        }
-    }
-}
-
 // ── GET /api/player/state ──────────────────────────────────────────
 
 /// Handle GET /api/player/state
 /// Returns the full PLAYER_DOC as a base64 binary string for persistence.
-/// Called by kipukas-api.js on beforeunload to persist to localStorage.
+/// Called by kipukas-api.js on PERSIST_STATE to save to localStorage.
 pub fn handle_player_state_get(_query: &str) -> String {
     player_doc::encode_full_state()
 }
@@ -243,18 +147,6 @@ pub fn handle_player_restore_post(body: &str) -> String {
     let params = parse_form_body(body);
     let state_b64 = get_param(&params, "state").unwrap_or(body.trim());
     match player_doc::restore_from_state(state_b64) {
-        Ok(()) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    }
-}
-
-// ── POST /api/player/migrate ───────────────────────────────────────
-
-/// Handle POST /api/player/migrate
-/// One-time migration from old kipukas_game_state JSON into PLAYER_DOC.
-/// Body is the raw JSON from localStorage.
-pub fn handle_player_migrate_post(body: &str) -> String {
-    match player_doc::migrate_from_game_state(body) {
         Ok(()) => "ok".to_string(),
         Err(e) => format!("error: {}", e),
     }
@@ -309,26 +201,10 @@ pub fn handle_player_import_post(body: &str) -> String {
 mod tests {
     use super::*;
     use crate::game::room;
-    use crate::game::state::{replace_state, GameState};
 
     fn reset_state() {
-        replace_state(GameState::default());
         crate::game::player_doc::init_player_doc();
         room::reset_room();
-    }
-
-    #[test]
-    fn parse_form_body_works() {
-        let pairs = parse_form_body("card=brox&slot=2&action=toggle");
-        assert_eq!(pairs.len(), 3);
-        assert_eq!(get_param(&pairs, "card"), Some("brox"));
-        assert_eq!(get_param(&pairs, "slot"), Some("2"));
-    }
-
-    #[test]
-    fn parse_form_body_empty() {
-        let pairs = parse_form_body("");
-        assert!(pairs.is_empty());
     }
 
     #[test]
@@ -412,39 +288,27 @@ mod tests {
     }
 
     #[test]
-    fn state_get_returns_json() {
+    fn player_state_roundtrip() {
         reset_state();
-        let json = handle_state_get("");
-        assert!(json.contains("cards"));
-        assert!(json.contains("alarms"));
-        reset_state();
-    }
+        // Set some state
+        crate::game::player_doc::add_alarm(5, "test", "green");
+        crate::game::player_doc::ensure_card_state("test_card", 3);
+        crate::game::player_doc::toggle_slot("test_card", 1);
 
-    #[test]
-    fn persist_returns_script() {
-        reset_state();
-        let html = handle_persist_post("");
-        assert!(html.contains("<script>"));
-        assert!(html.contains("localStorage.setItem"));
-        assert!(html.contains("kipukas_game_state"));
-        reset_state();
-    }
+        // Export
+        let b64 = handle_player_state_get("");
+        assert!(!b64.is_empty());
 
-    #[test]
-    fn import_valid_json() {
-        reset_state();
-        let html = handle_import_post(r#"{"cards":{},"alarms":[{"remaining":5}],"show_alarms":true}"#);
-        assert!(html.contains("successfully"));
-        crate::game::state::with_state(|s| {
-            assert_eq!(s.alarms.len(), 1);
-            assert_eq!(s.alarms[0].remaining, 5);
-        });
-        reset_state();
-    }
+        // Reset and restore
+        crate::game::player_doc::init_player_doc();
+        let result = handle_player_restore_post(&b64);
+        assert_eq!(result, "ok");
 
-    #[test]
-    fn import_invalid_json() {
-        let html = handle_import_post("not json");
-        assert!(html.contains("Import failed"));
+        // Verify state was restored
+        assert!(crate::game::player_doc::get_slot("test_card", 1));
+        let alarms = crate::game::player_doc::get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].name, "test");
+        reset_state();
     }
 }

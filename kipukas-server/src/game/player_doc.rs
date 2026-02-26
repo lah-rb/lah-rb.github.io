@@ -20,7 +20,7 @@
 //!
 //! ## Lifecycle
 //!
-//! - **First visit:** Fresh Doc created, seeded from any existing `kipukas_game_state` JSON
+//! - **First visit:** Fresh Doc created with empty defaults
 //! - **Every page load:** Restored from `kipukas_player_doc` localStorage key (base64 binary)
 //! - **Every mutation:** Auto-persisted to localStorage via worker → main thread message
 //! - **Multiplayer:** Independent of ROOM_DOC; alarms bridge via `crdt.rs` seed/export
@@ -428,56 +428,6 @@ pub fn set_show_alarms(val: bool) {
     });
 }
 
-// ── Migration from GameState JSON ──────────────────────────────────
-
-/// One-time migration from old `kipukas_game_state` JSON into the player doc.
-/// Parses the JSON, walks cards/alarms/show_alarms, writes into the yrs Doc.
-pub fn migrate_from_game_state(json: &str) -> Result<(), String> {
-    let gs: crate::game::state::GameState =
-        serde_json::from_str(json).map_err(|e| format!("Invalid GameState JSON: {}", e))?;
-
-    PLAYER_DOC.with(|cell| {
-        let doc = cell.borrow();
-        let cards = doc.get_or_insert_map("cards");
-        let alarms = doc.get_or_insert_array("alarms");
-        let settings = doc.get_or_insert_map("settings");
-        let mut txn = doc.transact_mut();
-
-        // Migrate cards
-        for (slug, card_state) in &gs.cards {
-            // Find max slot index to determine array size
-            let max_slot = card_state.slots.keys().copied().max().unwrap_or(0);
-            let bools: Vec<Any> = (1..=max_slot)
-                .map(|i| Any::from(card_state.slots.get(&i).copied().unwrap_or(false)))
-                .collect();
-
-            let card_map = MapPrelim::from([
-                ("wasted".to_string(), Any::from(card_state.wasted)),
-            ]);
-            cards.insert(&mut txn, slug.as_str(), card_map);
-            if let Some(yrs::Out::YMap(map_ref)) = cards.get(&txn, slug.as_str()) {
-                map_ref.insert(&mut txn, "slots", ArrayPrelim::from(bools));
-            }
-        }
-
-        // Migrate alarms
-        for alarm in &gs.alarms {
-            let alarm_map = MapPrelim::from([
-                ("remaining".to_string(), Any::from(alarm.remaining as f64)),
-                ("name".to_string(), Any::from(alarm.name.clone())),
-                ("color_set".to_string(), Any::from(alarm.color_set.clone())),
-            ]);
-            let len = alarms.len(&txn);
-            alarms.insert(&mut txn, len, alarm_map);
-        }
-
-        // Migrate settings
-        settings.insert(&mut txn, "show_alarms", Any::from(gs.show_alarms));
-    });
-
-    Ok(())
-}
-
 // ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -691,61 +641,4 @@ mod tests {
         assert_eq!(get_alarms().len(), 1);
     }
 
-    // ── Migration tests ────────────────────────────────────────────
-
-    #[test]
-    fn migrate_from_game_state_json() {
-        reset();
-        let json = r#"{
-            "cards": {
-                "brox_the_defiant": {
-                    "slots": {"1": true, "2": false, "3": true},
-                    "wasted": false
-                }
-            },
-            "alarms": [
-                {"remaining": 5, "name": "test timer", "color_set": "green"},
-                {"remaining": 2, "name": "", "color_set": "red"}
-            ],
-            "show_alarms": false
-        }"#;
-
-        let result = migrate_from_game_state(json);
-        assert!(result.is_ok());
-
-        // Check cards
-        assert!(has_card_state("brox_the_defiant"));
-        assert!(get_slot("brox_the_defiant", 1));
-        assert!(!get_slot("brox_the_defiant", 2));
-        assert!(get_slot("brox_the_defiant", 3));
-        assert!(!is_wasted("brox_the_defiant"));
-
-        // Check alarms
-        let alarms = get_alarms();
-        assert_eq!(alarms.len(), 2);
-        assert_eq!(alarms[0].remaining, 5);
-        assert_eq!(alarms[0].name, "test timer");
-        assert_eq!(alarms[0].color_set, "green");
-        assert_eq!(alarms[1].remaining, 2);
-
-        // Check settings
-        assert!(!get_show_alarms());
-    }
-
-    #[test]
-    fn migrate_invalid_json_returns_error() {
-        reset();
-        let result = migrate_from_game_state("not valid json {{{");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn migrate_empty_state() {
-        reset();
-        let json = r#"{"cards":{},"alarms":[],"show_alarms":true}"#;
-        let result = migrate_from_game_state(json);
-        assert!(result.is_ok());
-        assert!(get_alarms().is_empty());
-        assert!(get_show_alarms());
-    }
 }

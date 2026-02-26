@@ -6,60 +6,11 @@
 use crate::cards_generated::CARDS;
 use crate::game::crdt;
 use crate::game::damage;
-use crate::game::room::{self, CombatRole, FistsSubmission};
 use crate::game::player_doc;
+use crate::game::room::{self, CombatRole, FistsSubmission};
 use crate::game::turns;
+use crate::routes::util::{get_param, parse_form_body, parse_query};
 use crate::typing;
-
-/// Parse URL-encoded form body into key-value pairs.
-fn parse_form_body(body: &str) -> Vec<(String, String)> {
-    if body.is_empty() {
-        return Vec::new();
-    }
-    body.split('&')
-        .filter_map(|pair| {
-            let mut parts = pair.splitn(2, '=');
-            let key = parts.next()?;
-            let val = parts.next().unwrap_or("");
-            Some((percent_decode(key), percent_decode(val)))
-        })
-        .collect()
-}
-
-fn percent_decode(input: &str) -> String {
-    let mut result = String::with_capacity(input.len());
-    let mut chars = input.bytes();
-    while let Some(b) = chars.next() {
-        if b == b'%' {
-            let hi = chars.next().unwrap_or(b'0');
-            let lo = chars.next().unwrap_or(b'0');
-            let hex = [hi, lo];
-            if let Ok(s) = core::str::from_utf8(&hex) {
-                if let Ok(val) = u8::from_str_radix(s, 16) {
-                    result.push(val as char);
-                    continue;
-                }
-            }
-            result.push('%');
-            result.push(hi as char);
-            result.push(lo as char);
-        } else if b == b'+' {
-            result.push(' ');
-        } else {
-            result.push(b as char);
-        }
-    }
-    result
-}
-
-fn parse_query(query: &str) -> Vec<(String, String)> {
-    let q = query.strip_prefix('?').unwrap_or(query);
-    parse_form_body(q)
-}
-
-fn get_param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a str> {
-    params.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
-}
 
 fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
     CARDS.iter().find(|c| c.slug == slug)
@@ -1513,7 +1464,7 @@ mod tests {
     #[test]
     fn fists_outcome_attacker_wins_marks_defender_damage() {
         reset();
-        crate::game::state::replace_state(crate::game::state::GameState::default());
+        crate::game::player_doc::init_player_doc();
         room::with_room_mut(|r| {
             r.connected = true;
             r.fists.local = Some(FistsSubmission {
@@ -1533,7 +1484,6 @@ mod tests {
         assert!(html.contains("New Round"));
         // Verify slot 1 of brox was toggled in PLAYER_DOC
         assert!(player_doc::get_slot("brox_the_defiant", 1));
-        crate::game::state::replace_state(crate::game::state::GameState::default());
         reset();
     }
 
@@ -1630,7 +1580,6 @@ mod tests {
     #[test]
     fn fists_form_shows_final_blows_when_all_keal_exhausted() {
         reset();
-        crate::game::state::replace_state(crate::game::state::GameState::default());
         room::with_room_mut(|r| r.connected = true);
         // Brox has keal means — mark ALL slots as checked
         let card = find_card("brox_the_defiant").unwrap();
@@ -1647,20 +1596,17 @@ mod tests {
         // Should NOT contain the normal role selector
         assert!(!html.contains("Your Role"));
         assert!(!html.contains("Lock In Choice"));
-        crate::game::state::replace_state(crate::game::state::GameState::default());
         reset();
     }
 
     #[test]
     fn fists_form_normal_when_keal_not_exhausted() {
         reset();
-        crate::game::state::replace_state(crate::game::state::GameState::default());
         room::with_room_mut(|r| r.connected = true);
         let html = handle_fists_get("?card=brox_the_defiant");
         assert!(!html.contains("Final Blows"));
         assert!(html.contains("Your Role"));
         assert!(html.contains("Lock In Choice"));
-        crate::game::state::replace_state(crate::game::state::GameState::default());
         reset();
     }
 

@@ -3,11 +3,6 @@
 //! Exports `handle_request(method, path, query, body)` for the Service Worker
 //! bridge to call. Uses `matchit` for URL routing — the same router
 //! engine that powers Axum.
-//!
-//! Phase 3b: Added `/api/game/*` routes for damage tracking, turn tracking,
-//! and game state persistence. POST method support enabled.
-//! Phase 4: Added `/api/room/*` routes for multiplayer room management
-//! and fists combat. Room state is global (shared via WebRTC).
 
 use wasm_bindgen::prelude::*;
 
@@ -39,14 +34,11 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/qr/status", "qr_status").ok();
     router.insert("/api/qr/found", "qr_found").ok();
 
-    // Phase 3b: Game state routes
+    // Game state routes (PLAYER_DOC backed)
     router.insert("/api/game/damage", "game_damage").ok();
     router.insert("/api/game/turns", "game_turns").ok();
-    router.insert("/api/game/state", "game_state").ok();
-    router.insert("/api/game/persist", "game_persist").ok();
-    router.insert("/api/game/import", "game_import").ok();
 
-    // Phase 4: Room/multiplayer routes
+    // Room/multiplayer routes
     router.insert("/api/room/status", "room_status").ok();
     router.insert("/api/room/create", "room_create").ok();
     router.insert("/api/room/join", "room_join").ok();
@@ -63,14 +55,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/turns", "room_turns").ok();
     router.insert("/api/room/state", "room_state").ok();
 
-    // Phase 6: Player document routes
+    // Player document routes
     router.insert("/api/player/state", "player_state").ok();
     router.insert("/api/player/restore", "player_restore").ok();
-    router.insert("/api/player/migrate", "player_migrate").ok();
     router.insert("/api/player/export", "player_export").ok();
     router.insert("/api/player/import", "player_import").ok();
 
-    // Phase 5: Yrs CRDT sync routes
+    // Yrs CRDT sync routes
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
     router.insert("/api/room/yrs/diff", "yrs_diff").ok();
     router.insert("/api/room/yrs/apply", "yrs_apply").ok();
@@ -90,15 +81,11 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("qr_found", "GET") => routes::qr::handle_found(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
-            ("game_state", "GET") => routes::game::handle_state_get(query),
 
-            // POST routes (Phase 3b)
             ("game_damage", "POST") => routes::game::handle_damage_post(body),
             ("game_turns", "POST") => routes::game::handle_turns_post(body),
-            ("game_persist", "POST") => routes::game::handle_persist_post(body),
-            ("game_import", "POST") => routes::game::handle_import_post(body),
 
-            // Phase 4: Room/multiplayer routes
+            // Room/multiplayer routes
             ("room_status", "GET") => routes::room::handle_status_get(query),
             ("room_fists", "GET") => routes::room::handle_fists_get(query),
             ("room_fists_poll", "GET") => routes::room::handle_fists_poll_get(query),
@@ -116,14 +103,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
             ("room_fists_final_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
 
-            // Phase 6: Player document routes
+            // Player document routes
             ("player_state", "GET") => routes::game::handle_player_state_get(query),
             ("player_restore", "POST") => routes::game::handle_player_restore_post(body),
-            ("player_migrate", "POST") => routes::game::handle_player_migrate_post(body),
             ("player_export", "GET") => routes::game::handle_player_export_get(query),
             ("player_import", "POST") => routes::game::handle_player_import_post(body),
 
-            // Phase 5: Yrs CRDT sync routes
+            // Yrs CRDT sync routes
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
             ("yrs_diff", "POST") => routes::room::handle_yrs_diff_post(body),
             ("yrs_apply", "POST") => routes::room::handle_yrs_apply_post(body),
@@ -190,22 +176,20 @@ mod tests {
         assert_eq!(card_count, 4);
     }
 
-    // Phase 3b route tests
-
     #[test]
     fn routes_game_damage_get() {
-        game::state::replace_state(game::state::GameState::default());
+        game::player_doc::init_player_doc();
         let html = handle_request("GET", "/api/game/damage", "?card=brox_the_defiant", "");
         assert!(html.contains("Crushing Hope"));
-        game::state::replace_state(game::state::GameState::default());
+        game::player_doc::init_player_doc();
     }
 
     #[test]
     fn routes_game_damage_post() {
-        game::state::replace_state(game::state::GameState::default());
+        game::player_doc::init_player_doc();
         let html = handle_request("POST", "/api/game/damage", "", "card=brox_the_defiant&slot=1");
         assert!(html.contains("checked"));
-        game::state::replace_state(game::state::GameState::default());
+        game::player_doc::init_player_doc();
     }
 
     #[test]
@@ -216,45 +200,9 @@ mod tests {
 
     #[test]
     fn routes_game_turns_post() {
-        game::state::replace_state(game::state::GameState::default());
+        game::player_doc::init_player_doc();
         let html = handle_request("POST", "/api/game/turns", "", "action=add&turns=5");
         assert!(html.contains("Turns to Alarm"));
-        game::state::replace_state(game::state::GameState::default());
-    }
-
-    #[test]
-    fn routes_game_state_get() {
-        game::state::replace_state(game::state::GameState::default());
-        let json = handle_request("GET", "/api/game/state", "", "");
-        assert!(json.contains("cards"));
-        assert!(json.contains("alarms"));
-        game::state::replace_state(game::state::GameState::default());
-    }
-
-    #[test]
-    fn routes_game_persist_post() {
-        game::state::replace_state(game::state::GameState::default());
-        let html = handle_request("POST", "/api/game/persist", "", "");
-        assert!(html.contains("localStorage.setItem"));
-        game::state::replace_state(game::state::GameState::default());
-    }
-
-    #[test]
-    fn routes_game_import_post() {
-        game::state::replace_state(game::state::GameState::default());
-        let html = handle_request(
-            "POST",
-            "/api/game/import",
-            "",
-            r#"{"cards":{},"alarms":[],"show_alarms":true}"#,
-        );
-        assert!(html.contains("successfully"));
-        game::state::replace_state(game::state::GameState::default());
-    }
-
-    #[test]
-    fn game_damage_get_returns_405_for_post_on_state() {
-        let html = handle_request("POST", "/api/game/state", "", "");
-        assert!(html.contains("405"));
+        game::player_doc::init_player_doc();
     }
 }
