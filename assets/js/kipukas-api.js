@@ -126,14 +126,8 @@ wasmWorker.onerror = (err) => {
 // ============================================
 // The WASM worker sends { type: 'PERSIST_STATE' } after every POST to /api/game/*.
 // We fetch the full PLAYER_DOC as base64 from WASM and save to localStorage.
-// Also supports legacy JSON persistence for backward compatibility during migration.
 wasmWorker.addEventListener('message', (event) => {
   if (event.data?.type === 'PERSIST_STATE') {
-    // Legacy: also save JSON if present (for old kipukas_game_state key)
-    if (event.data.json) {
-      localStorage.setItem('kipukas_game_state', event.data.json);
-    }
-    // New: fetch PLAYER_DOC binary state and save as base64
     const ch = new MessageChannel();
     ch.port1.onmessage = (msg) => {
       if (msg.data.html) {
@@ -146,114 +140,6 @@ wasmWorker.addEventListener('message', (event) => {
     );
   }
 });
-
-// ============================================
-// Phase 3b: MIGRATE Alpine $persist data to WASM game state
-// ============================================
-// On first load after Phase 3b update, reads existing localStorage keys
-// from Alpine's $persist plugin ({cardSlug}_damage, alarms, etc.) and
-// imports them into the WASM game state via /api/game/import.
-// After successful import, sets a flag to skip on subsequent loads.
-(function migrateAlpineState() {
-  if (localStorage.getItem('kipukas_state_migrated')) return;
-
-  // Wait a tick for the DOM to settle, then attempt migration
-  setTimeout(() => {
-    const gameState = { cards: {}, alarms: [], show_alarms: true };
-    let foundData = false;
-
-    // Scan for Alpine $persist damage keys: _x_{cardSlug}_damage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-
-      // Match damage keys: _x_{slug}_damage
-      const damageMatch = key.match(/^_x_(.+)_damage$/);
-      if (damageMatch) {
-        const slug = damageMatch[1];
-        // Skip the global clearDamage token
-        if (slug === 'clear') continue;
-
-        try {
-          const val = JSON.parse(localStorage.getItem(key));
-          if (val && typeof val === 'object') {
-            const slots = {};
-            const wasted = !!val.wasted;
-            // Convert numeric keys to slot map
-            for (const [k, v] of Object.entries(val)) {
-              if (k !== 'wasted') {
-                const num = parseInt(k, 10);
-                if (!isNaN(num)) {
-                  slots[num] = !!v;
-                }
-              }
-            }
-            // Only import if there's actual damage state
-            if (Object.values(slots).some((v) => v) || wasted) {
-              gameState.cards[slug] = { slots, wasted };
-              foundData = true;
-            }
-          }
-        } catch (_e) {
-          // Skip unparseable entries
-        }
-      }
-
-      // Match alarm key: _x_alarms
-      if (key === '_x_alarms') {
-        try {
-          const alarms = JSON.parse(localStorage.getItem(key));
-          if (Array.isArray(alarms)) {
-            gameState.alarms = alarms
-              .filter((a) => typeof a === 'number' && a >= 0)
-              .map((remaining) => ({ remaining }));
-            if (gameState.alarms.length > 0) foundData = true;
-          }
-        } catch (_e) {
-          // Skip
-        }
-      }
-
-      // Match show alarms key: _x_showAlarms
-      if (key === '_x_showAlarms') {
-        try {
-          const val = JSON.parse(localStorage.getItem(key));
-          if (typeof val === 'boolean') {
-            gameState.show_alarms = val;
-          }
-        } catch (_e) {
-          // Skip
-        }
-      }
-    }
-
-    if (foundData) {
-      console.log('[kipukas-api] Migrating Alpine $persist state to WASM:', gameState);
-      const json = JSON.stringify(gameState);
-      const channel = new MessageChannel();
-      channel.port1.onmessage = (msg) => {
-        if (msg.data.ok) {
-          console.log('[kipukas-api] State migration complete');
-          localStorage.setItem('kipukas_state_migrated', 'true');
-        } else {
-          console.warn('[kipukas-api] State migration failed:', msg.data.html);
-        }
-      };
-      wasmWorker.postMessage(
-        {
-          method: 'POST',
-          pathname: '/api/game/import',
-          search: '',
-          body: json,
-        },
-        [channel.port2],
-      );
-    } else {
-      // No old data to migrate — mark as done
-      localStorage.setItem('kipukas_state_migrated', 'true');
-    }
-  }, 500); // Small delay to let WASM worker initialize
-})();
 
 // ============================================
 // Phase 6: RESTORE PLAYER_DOC from localStorage on load
@@ -279,14 +165,6 @@ wasmWorker.addEventListener('message', (event) => {
       { method: 'POST', pathname: '/api/player/restore', search: '', body: playerDoc },
       [ch.port2],
     );
-    // Also restore legacy GameState for backward compatibility of old routes
-    const legacyJson = localStorage.getItem('kipukas_game_state');
-    if (legacyJson) {
-      wasmWorker.postMessage(
-        { method: 'POST', pathname: '/api/game/import', search: '', body: legacyJson },
-        [new MessageChannel().port2],
-      );
-    }
     return;
   }
 

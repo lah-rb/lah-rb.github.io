@@ -602,11 +602,17 @@ If you have not already installed our pwa, check if your browser (and launcher i
     <div x-show="showTurnTracker && !roomConnected" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
+    x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
+      }
+    })"
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
    grid grid-cols-1 h-fit w-56"
+    id="turn-tracker-panel"
     hx-get="/api/game/turns"
-    hx-trigger="intersect once"
+    hx-trigger="load"
     hx-swap="innerHTML">
     </div>
 </div>

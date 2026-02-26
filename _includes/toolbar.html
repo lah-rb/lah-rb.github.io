@@ -144,20 +144,14 @@ background_color
           </svg>    
         </button>
 
-        <!-- Phase 3b: Clear damage modal — showKealModal is now local x-data scope.
-             Accept action POSTs to WASM clear_all route, then refreshes current card's tracker.
-             Complex JS extracted to named function because Jekyll include params can't contain {} -->
+        <!-- Clear damage — single WASM POST returns re-rendered tracker directly.
+             Named function required because Jekyll include params can't contain {} -->
         <script>
           function kipukasClearAllDamage() {
             htmx.ajax('POST', '/api/game/damage', {
-              values: {action: 'clear_all'},
+              values: {action: 'clear_all', card: '{{ cardSlug }}'},
               target: '#keal-damage-{{ cardSlug }}',
               swap: 'innerHTML'
-            }).then(function() {
-              htmx.ajax('GET', '/api/game/damage?card={{ cardSlug }}', {
-                target: '#keal-damage-{{ cardSlug }}',
-                swap: 'innerHTML'
-              });
             });
           }
         </script>

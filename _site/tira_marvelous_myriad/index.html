@@ -479,11 +479,17 @@ background_color
     <div x-show="showTurnTracker && !roomConnected" x-cloak
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
+    x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
+      }
+    })"
     class="
     z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
    grid grid-cols-1 h-fit w-56"
+    id="turn-tracker-panel"
     hx-get="/api/game/turns"
-    hx-trigger="intersect once"
+    hx-trigger="load"
     hx-swap="innerHTML">
     </div>
 </div>
@@ -634,20 +640,14 @@ background_color
           </svg>    
         </button>
 
-        <!-- Phase 3b: Clear damage modal — showKealModal is now local x-data scope.
-             Accept action POSTs to WASM clear_all route, then refreshes current card's tracker.
-             Complex JS extracted to named function because Jekyll include params can't contain {} -->
+        <!-- Clear damage — single WASM POST returns re-rendered tracker directly.
+             Named function required because Jekyll include params can't contain {} -->
         <script>
           function kipukasClearAllDamage() {
             htmx.ajax('POST', '/api/game/damage', {
-              values: {action: 'clear_all'},
+              values: {action: 'clear_all', card: 'tira_marvelous_myriad'},
               target: '#keal-damage-tira_marvelous_myriad',
               swap: 'innerHTML'
-            }).then(function() {
-              htmx.ajax('GET', '/api/game/damage?card=tira_marvelous_myriad', {
-                target: '#keal-damage-tira_marvelous_myriad',
-                swap: 'innerHTML'
-              });
             });
           }
         </script>

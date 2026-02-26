@@ -95,9 +95,13 @@ pub fn handle_damage_post(body: &str) -> String {
     match action {
         "clear_all" => {
             damage::clear_all();
-            // Return a centered confirmation message as fallback — the toolbar JS
-            // chains a GET to immediately re-render the damage tracker after this.
-            r#"<div class="w-full text-center"><span class="text-emerald-600">All damage cleared. Please reload the page.</span></div>"#.to_string()
+            // If a card slug is provided, return re-rendered tracker for that card.
+            // This eliminates the need for a chained GET request from the toolbar JS.
+            if !card.is_empty() {
+                damage::render_damage_tracker(card)
+            } else {
+                r#"<div class="w-full text-center"><span class="text-emerald-600">All damage cleared.</span></div>"#.to_string()
+            }
         }
         "clear" if !card.is_empty() => {
             damage::clear_card(card);
