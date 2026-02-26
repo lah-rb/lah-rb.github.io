@@ -163,7 +163,7 @@ fn scanning_ui() -> String {
        @click="showFlash = false"></div>
   
   <!-- Video container - higher z-index to stay above flash -->
-  <div class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 -translate-y-1/2 top-3/4 lg:top-1/2 left-1/2 rounded-lg transition delay-150">
+  <div class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-4 lg:bottom-auto lg:top-1/2 left-1/2 rounded-lg transition delay-150">
     <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
             width="640" height="480"></canvas>
     
