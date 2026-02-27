@@ -7,6 +7,7 @@
 //! All structs derive Serialize/Deserialize for WebRTC diffs.
 
 pub mod crdt;
+pub mod crypto;
 pub mod damage;
 pub mod player_doc;
 pub mod room;
