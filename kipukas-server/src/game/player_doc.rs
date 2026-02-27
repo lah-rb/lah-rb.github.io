@@ -474,35 +474,17 @@ pub fn declare_affinity(archetype: &str, today: &str) -> Result<(u32, String), S
         return Err("Missing today date".to_string());
     }
 
+    // Enforce one affinity per game: if any affinity has already been declared, reject.
+    if get_active_affinity().is_some() {
+        return Err("Affinity already declared for this game. Start a New Game to choose again.".to_string());
+    }
+
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let affinity = doc.get_or_insert_map("affinity");
         let mut txn = doc.transact_mut();
 
-        let (current_level, last_declared) = match affinity.get(&txn, archetype) {
-            Some(yrs::Out::YMap(entry)) => {
-                let level = match entry.get(&txn, "level") {
-                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
-                    _ => 0,
-                };
-                let last = match entry.get(&txn, "last_declared") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                };
-                (level, last)
-            }
-            _ => (0, String::new()),
-        };
-
-        // Enforce once-per-day
-        if last_declared == today {
-            return Err(format!(
-                "Already declared {} today ({})",
-                archetype, today
-            ));
-        }
-
-        let new_level = current_level + 1;
+        let new_level: u32 = 1;
 
         // Upsert: create or update the archetype entry
         match affinity.get(&txn, archetype) {
@@ -579,6 +561,32 @@ pub fn get_all_affinities() -> Vec<(String, u32, String)> {
 
         result
     })
+}
+
+/// Clear all affinity data (used by "New Game" reset).
+pub fn clear_affinity() {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let affinity = doc.get_or_insert_map("affinity");
+        let mut txn = doc.transact_mut();
+        let keys: Vec<String> = affinity.keys(&txn).map(|k| k.to_string()).collect();
+        for key in keys {
+            affinity.remove(&mut txn, &key);
+        }
+    });
+}
+
+/// Clear all alarms (used by "New Game" reset).
+pub fn clear_alarms() {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let alarms = doc.get_or_insert_array("alarms");
+        let mut txn = doc.transact_mut();
+        let len = alarms.len(&txn);
+        for _ in 0..len {
+            alarms.remove(&mut txn, 0);
+        }
+    });
 }
 
 /// Get the active affinity — the archetype with the most recent `last_declared`
@@ -845,26 +853,16 @@ mod tests {
     }
 
     #[test]
-    fn declare_affinity_increments_level() {
-        reset();
-        declare_affinity("Avian", "2026-02-24").unwrap();
-        let result = declare_affinity("Avian", "2026-02-25");
-        assert!(result.is_ok());
-        let (level, _) = result.unwrap();
-        assert_eq!(level, 2);
-
-        let (lvl, last) = get_affinity("Avian").unwrap();
-        assert_eq!(lvl, 2);
-        assert_eq!(last, "2026-02-25");
-    }
-
-    #[test]
-    fn declare_affinity_rejects_same_day() {
+    fn declare_affinity_rejects_second_declaration() {
         reset();
         declare_affinity("Brutal", "2026-02-25").unwrap();
-        let result = declare_affinity("Brutal", "2026-02-25");
+        // Second declaration (same or different archetype) rejected — one per game
+        let result = declare_affinity("Brutal", "2026-02-26");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Already declared"));
+        assert!(result.unwrap_err().contains("already declared"));
+
+        let result2 = declare_affinity("Avian", "2026-02-25");
+        assert!(result2.is_err());
 
         // Level should still be 1
         let (lvl, _) = get_affinity("Brutal").unwrap();
@@ -872,11 +870,29 @@ mod tests {
     }
 
     #[test]
-    fn declare_affinity_allows_different_archetype_same_day() {
+    fn clear_affinity_allows_new_declaration() {
         reset();
         declare_affinity("Brutal", "2026-02-25").unwrap();
-        let result = declare_affinity("Avian", "2026-02-25");
+        assert!(get_active_affinity().is_some());
+
+        clear_affinity();
+        assert!(get_active_affinity().is_none());
+        assert!(get_all_affinities().is_empty());
+
+        // Can declare again after clearing
+        let result = declare_affinity("Avian", "2026-02-26");
         assert!(result.is_ok());
+        assert_eq!(get_active_affinity().unwrap().0, "Avian");
+    }
+
+    #[test]
+    fn clear_alarms_removes_all() {
+        reset();
+        add_alarm(5, "first", "red");
+        add_alarm(3, "second", "green");
+        assert_eq!(get_alarms().len(), 2);
+        clear_alarms();
+        assert!(get_alarms().is_empty());
     }
 
     #[test]
@@ -896,54 +912,23 @@ mod tests {
     }
 
     #[test]
-    fn get_all_affinities_returns_declared() {
+    fn get_active_affinity_after_clear_and_redeclare() {
         reset();
         declare_affinity("Brutal", "2026-02-24").unwrap();
-        declare_affinity("Avian", "2026-02-25").unwrap();
-
-        let all = get_all_affinities();
-        assert_eq!(all.len(), 2);
-        // Both should be present (order not guaranteed by YMap)
-        let names: Vec<&str> = all.iter().map(|(n, _, _)| n.as_str()).collect();
-        assert!(names.contains(&"Brutal"));
-        assert!(names.contains(&"Avian"));
-    }
-
-    #[test]
-    fn get_active_affinity_returns_most_recent() {
-        reset();
-        declare_affinity("Brutal", "2026-02-24").unwrap();
-        declare_affinity("Avian", "2026-02-25").unwrap();
-
-        let active = get_active_affinity();
-        assert!(active.is_some());
-        let (name, level) = active.unwrap();
-        assert_eq!(name, "Avian");
-        assert_eq!(level, 1);
-    }
-
-    #[test]
-    fn get_active_affinity_updates_on_new_declaration() {
-        reset();
-        declare_affinity("Avian", "2026-02-24").unwrap();
-        assert_eq!(get_active_affinity().unwrap().0, "Avian");
-
-        declare_affinity("Brutal", "2026-02-25").unwrap();
         assert_eq!(get_active_affinity().unwrap().0, "Brutal");
 
-        // Re-declare Avian on a later day — it becomes active again
-        declare_affinity("Avian", "2026-02-26").unwrap();
+        // Clear and pick a different one
+        clear_affinity();
+        declare_affinity("Avian", "2026-02-25").unwrap();
         let (name, level) = get_active_affinity().unwrap();
         assert_eq!(name, "Avian");
-        assert_eq!(level, 2);
+        assert_eq!(level, 1);
     }
 
     #[test]
     fn affinity_persists_across_roundtrip() {
         reset();
         declare_affinity("Brutal", "2026-02-24").unwrap();
-        declare_affinity("Brutal", "2026-02-25").unwrap();
-        declare_affinity("Avian", "2026-02-25").unwrap();
 
         let state = encode_full_state();
 
@@ -955,12 +940,8 @@ mod tests {
         assert!(result.is_ok());
 
         let (brutal_lvl, brutal_last) = get_affinity("Brutal").unwrap();
-        assert_eq!(brutal_lvl, 2);
-        assert_eq!(brutal_last, "2026-02-25");
-
-        let (avian_lvl, avian_last) = get_affinity("Avian").unwrap();
-        assert_eq!(avian_lvl, 1);
-        assert_eq!(avian_last, "2026-02-25");
+        assert_eq!(brutal_lvl, 1);
+        assert_eq!(brutal_last, "2026-02-24");
     }
 
     #[test]

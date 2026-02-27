@@ -26,7 +26,7 @@ pub fn handle_damage_get(query: &str) -> String {
 ///   - card={slug}&slot={n}     → toggle a damage slot
 ///   - card={slug}&action=wasted → toggle wasted state
 ///   - card={slug}&action=clear  → clear damage for one card
-///   - action=clear_all          → clear ALL card damage
+///   - action=new_game           → New Game: clear ALL damage, affinity, and alarms
 ///
 /// Returns updated damage tracker HTML for the affected card.
 pub fn handle_damage_post(body: &str) -> String {
@@ -35,14 +35,16 @@ pub fn handle_damage_post(body: &str) -> String {
     let card = get_param(&params, "card").unwrap_or("");
 
     match action {
-        "clear_all" => {
+        "new_game" => {
             damage::clear_all();
+            player_doc::clear_affinity();
+            player_doc::clear_alarms();
             // If a card slug is provided, return re-rendered tracker for that card.
             // This eliminates the need for a chained GET request from the toolbar JS.
             if !card.is_empty() {
                 damage::render_damage_tracker(card)
             } else {
-                r#"<div class="w-full text-center"><span class="text-emerald-600">All damage cleared.</span></div>"#.to_string()
+                r#"<div class="w-full text-center"><span class="text-emerald-600">New game started. All state reset.</span></div>"#.to_string()
             }
         }
         "clear" if !card.is_empty() => {
@@ -247,11 +249,19 @@ mod tests {
     }
 
     #[test]
-    fn damage_post_clear_all() {
+    fn damage_post_new_game() {
         reset_state();
         handle_damage_post("card=brox_the_defiant&slot=1");
-        let html = handle_damage_post("action=clear_all");
-        assert!(html.contains("All damage cleared"));
+        player_doc::declare_affinity("Brutal", "2026-02-25").unwrap();
+        player_doc::add_alarm(5, "timer", "red");
+
+        let html = handle_damage_post("action=new_game");
+        assert!(html.contains("New game started"));
+
+        // Verify everything was cleared
+        assert!(!player_doc::has_card_state("brox_the_defiant"));
+        assert!(player_doc::get_active_affinity().is_none());
+        assert!(player_doc::get_alarms().is_empty());
         reset_state();
     }
 
