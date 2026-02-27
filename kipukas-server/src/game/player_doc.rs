@@ -37,6 +37,25 @@ thread_local! {
     static PLAYER_DOC: RefCell<Doc> = RefCell::new(new_player_doc());
 }
 
+/// The 15 valid archetypal adaptation names.
+const VALID_ARCHETYPES: &[&str] = &[
+    "Cenozoic",
+    "Decrepit",
+    "Angelic",
+    "Brutal",
+    "Arboreal",
+    "Astral",
+    "Telekinetic",
+    "Glitch",
+    "Magic",
+    "Endothermic",
+    "Avian",
+    "Mechanical",
+    "Algorithmic",
+    "Energetic",
+    "Entropic",
+];
+
 /// Create a fresh player Doc with all root types pre-created.
 fn new_player_doc() -> Doc {
     let doc = Doc::new();
@@ -44,6 +63,7 @@ fn new_player_doc() -> Doc {
         let mut txn = doc.transact_mut();
         txn.get_or_insert_map("cards");
         txn.get_or_insert_array("alarms");
+        txn.get_or_insert_map("affinity");
         let settings = txn.get_or_insert_map("settings");
         // Default: show_alarms = true
         settings.insert(&mut txn, "show_alarms", Any::from(true));
@@ -89,6 +109,7 @@ pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
             let mut txn = doc.transact_mut();
             txn.get_or_insert_map("cards");
             txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map("affinity");
             txn.get_or_insert_map("settings");
             txn.apply_update(update)
                 .map_err(|e| format!("restore error: {}", e))?;
@@ -428,6 +449,162 @@ pub fn set_show_alarms(val: bool) {
     });
 }
 
+// ── Affinity accessors ─────────────────────────────────────────────
+
+/// Validate an archetype name (case-sensitive, must match one of the 15).
+fn validate_archetype(name: &str) -> bool {
+    VALID_ARCHETYPES.contains(&name)
+}
+
+/// Expose the valid archetypes list for route rendering.
+pub fn valid_archetypes() -> &'static [&'static str] {
+    VALID_ARCHETYPES
+}
+
+/// Declare affinity for an archetype. Increments level by 1 and sets
+/// `last_declared` to `today`. Enforces once-per-day: if `last_declared`
+/// already equals `today`, returns Err.
+///
+/// Returns `Ok((new_level, archetype))` on success.
+pub fn declare_affinity(archetype: &str, today: &str) -> Result<(u32, String), String> {
+    if !validate_archetype(archetype) {
+        return Err(format!("Unknown archetype: {}", archetype));
+    }
+    if today.is_empty() {
+        return Err("Missing today date".to_string());
+    }
+
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let affinity = doc.get_or_insert_map("affinity");
+        let mut txn = doc.transact_mut();
+
+        let (current_level, last_declared) = match affinity.get(&txn, archetype) {
+            Some(yrs::Out::YMap(entry)) => {
+                let level = match entry.get(&txn, "level") {
+                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
+                    _ => 0,
+                };
+                let last = match entry.get(&txn, "last_declared") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
+                (level, last)
+            }
+            _ => (0, String::new()),
+        };
+
+        // Enforce once-per-day
+        if last_declared == today {
+            return Err(format!(
+                "Already declared {} today ({})",
+                archetype, today
+            ));
+        }
+
+        let new_level = current_level + 1;
+
+        // Upsert: create or update the archetype entry
+        match affinity.get(&txn, archetype) {
+            Some(yrs::Out::YMap(entry)) => {
+                entry.insert(&mut txn, "level", Any::from(new_level as f64));
+                entry.insert(
+                    &mut txn,
+                    "last_declared",
+                    Any::from(today.to_string()),
+                );
+            }
+            _ => {
+                let entry = MapPrelim::from([
+                    ("level".to_string(), Any::from(new_level as f64)),
+                    (
+                        "last_declared".to_string(),
+                        Any::from(today.to_string()),
+                    ),
+                ]);
+                affinity.insert(&mut txn, archetype, entry);
+            }
+        }
+
+        Ok((new_level, archetype.to_string()))
+    })
+}
+
+/// Get affinity data for a single archetype.
+/// Returns `Some((level, last_declared))` if the archetype has been declared.
+pub fn get_affinity(archetype: &str) -> Option<(u32, String)> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let affinity = doc.get_or_insert_map("affinity");
+        let txn = doc.transact();
+        match affinity.get(&txn, archetype) {
+            Some(yrs::Out::YMap(entry)) => {
+                let level = match entry.get(&txn, "level") {
+                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
+                    _ => 0,
+                };
+                let last = match entry.get(&txn, "last_declared") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
+                Some((level, last))
+            }
+            _ => None,
+        }
+    })
+}
+
+/// Get all declared affinities as `(archetype, level, last_declared)`.
+/// Only returns archetypes that have been declared at least once.
+pub fn get_all_affinities() -> Vec<(String, u32, String)> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let affinity = doc.get_or_insert_map("affinity");
+        let txn = doc.transact();
+        let mut result = Vec::new();
+
+        for key in affinity.keys(&txn) {
+            if let Some(yrs::Out::YMap(entry)) = affinity.get(&txn, key) {
+                let level = match entry.get(&txn, "level") {
+                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
+                    _ => 0,
+                };
+                let last = match entry.get(&txn, "last_declared") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
+                result.push((key.to_string(), level, last));
+            }
+        }
+
+        result
+    })
+}
+
+/// Get the active affinity — the archetype with the most recent `last_declared`
+/// date. If multiple share the same date, the first found wins.
+/// Returns `Some((archetype_name, level))`.
+pub fn get_active_affinity() -> Option<(String, u32)> {
+    let all = get_all_affinities();
+    if all.is_empty() {
+        return None;
+    }
+
+    let mut best: Option<(String, u32, String)> = None;
+    for (name, level, last) in all {
+        match &best {
+            None => best = Some((name, level, last)),
+            Some((_, _, best_last)) => {
+                if last > *best_last {
+                    best = Some((name, level, last));
+                }
+            }
+        }
+    }
+
+    best.map(|(name, level, _)| (name, level))
+}
+
 // ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -641,4 +818,155 @@ mod tests {
         assert_eq!(get_alarms().len(), 1);
     }
 
+    // ── Affinity tests ─────────────────────────────────────────────
+
+    #[test]
+    fn init_has_no_affinities() {
+        reset();
+        assert!(get_all_affinities().is_empty());
+        assert!(get_active_affinity().is_none());
+        assert!(get_affinity("Brutal").is_none());
+    }
+
+    #[test]
+    fn declare_affinity_creates_entry() {
+        reset();
+        let result = declare_affinity("Brutal", "2026-02-25");
+        assert!(result.is_ok());
+        let (level, name) = result.unwrap();
+        assert_eq!(level, 1);
+        assert_eq!(name, "Brutal");
+
+        let aff = get_affinity("Brutal");
+        assert!(aff.is_some());
+        let (lvl, last) = aff.unwrap();
+        assert_eq!(lvl, 1);
+        assert_eq!(last, "2026-02-25");
+    }
+
+    #[test]
+    fn declare_affinity_increments_level() {
+        reset();
+        declare_affinity("Avian", "2026-02-24").unwrap();
+        let result = declare_affinity("Avian", "2026-02-25");
+        assert!(result.is_ok());
+        let (level, _) = result.unwrap();
+        assert_eq!(level, 2);
+
+        let (lvl, last) = get_affinity("Avian").unwrap();
+        assert_eq!(lvl, 2);
+        assert_eq!(last, "2026-02-25");
+    }
+
+    #[test]
+    fn declare_affinity_rejects_same_day() {
+        reset();
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        let result = declare_affinity("Brutal", "2026-02-25");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Already declared"));
+
+        // Level should still be 1
+        let (lvl, _) = get_affinity("Brutal").unwrap();
+        assert_eq!(lvl, 1);
+    }
+
+    #[test]
+    fn declare_affinity_allows_different_archetype_same_day() {
+        reset();
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        let result = declare_affinity("Avian", "2026-02-25");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn declare_affinity_rejects_invalid_archetype() {
+        reset();
+        let result = declare_affinity("FakeType", "2026-02-25");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Unknown archetype"));
+    }
+
+    #[test]
+    fn declare_affinity_rejects_empty_date() {
+        reset();
+        let result = declare_affinity("Brutal", "");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Missing today date"));
+    }
+
+    #[test]
+    fn get_all_affinities_returns_declared() {
+        reset();
+        declare_affinity("Brutal", "2026-02-24").unwrap();
+        declare_affinity("Avian", "2026-02-25").unwrap();
+
+        let all = get_all_affinities();
+        assert_eq!(all.len(), 2);
+        // Both should be present (order not guaranteed by YMap)
+        let names: Vec<&str> = all.iter().map(|(n, _, _)| n.as_str()).collect();
+        assert!(names.contains(&"Brutal"));
+        assert!(names.contains(&"Avian"));
+    }
+
+    #[test]
+    fn get_active_affinity_returns_most_recent() {
+        reset();
+        declare_affinity("Brutal", "2026-02-24").unwrap();
+        declare_affinity("Avian", "2026-02-25").unwrap();
+
+        let active = get_active_affinity();
+        assert!(active.is_some());
+        let (name, level) = active.unwrap();
+        assert_eq!(name, "Avian");
+        assert_eq!(level, 1);
+    }
+
+    #[test]
+    fn get_active_affinity_updates_on_new_declaration() {
+        reset();
+        declare_affinity("Avian", "2026-02-24").unwrap();
+        assert_eq!(get_active_affinity().unwrap().0, "Avian");
+
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        assert_eq!(get_active_affinity().unwrap().0, "Brutal");
+
+        // Re-declare Avian on a later day — it becomes active again
+        declare_affinity("Avian", "2026-02-26").unwrap();
+        let (name, level) = get_active_affinity().unwrap();
+        assert_eq!(name, "Avian");
+        assert_eq!(level, 2);
+    }
+
+    #[test]
+    fn affinity_persists_across_roundtrip() {
+        reset();
+        declare_affinity("Brutal", "2026-02-24").unwrap();
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        declare_affinity("Avian", "2026-02-25").unwrap();
+
+        let state = encode_full_state();
+
+        // Reset and restore
+        init_player_doc();
+        assert!(get_all_affinities().is_empty());
+
+        let result = restore_from_state(&state);
+        assert!(result.is_ok());
+
+        let (brutal_lvl, brutal_last) = get_affinity("Brutal").unwrap();
+        assert_eq!(brutal_lvl, 2);
+        assert_eq!(brutal_last, "2026-02-25");
+
+        let (avian_lvl, avian_last) = get_affinity("Avian").unwrap();
+        assert_eq!(avian_lvl, 1);
+        assert_eq!(avian_last, "2026-02-25");
+    }
+
+    #[test]
+    fn valid_archetypes_returns_15() {
+        assert_eq!(valid_archetypes().len(), 15);
+        assert!(valid_archetypes().contains(&"Brutal"));
+        assert!(valid_archetypes().contains(&"Entropic"));
+    }
 }
