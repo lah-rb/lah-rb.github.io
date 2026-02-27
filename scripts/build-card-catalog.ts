@@ -40,6 +40,8 @@ interface CardMeta {
   movement: number;
   die: string;
   brawl_sequence: string;
+  // Phase C: tamability (Species cards only, optional)
+  tamability: number | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -65,6 +67,11 @@ function escapeRust(s: string): string {
 function optionStr(val: string | undefined | null): string {
   if (!val || String(val).trim() === '') return 'None';
   return `Some("${escapeRust(String(val).trim())}")`;
+}
+
+function optionU32(val: number | null): string {
+  if (val === null || val === undefined) return 'None';
+  return `Some(${val})`;
 }
 
 /**
@@ -128,6 +135,7 @@ async function main() {
       movement: typeof fm.movement === 'number' ? fm.movement : 0,
       die: fm.die ? String(fm.die) : '',
       brawl_sequence: fm.brawl_sequence ? String(fm.brawl_sequence) : '',
+      tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
     });
   }
 
@@ -174,6 +182,8 @@ async function main() {
     '    pub movement: u8,',
     "    pub die: &'static str,",
     "    pub brawl_sequence: &'static str,",
+    '    // Phase C: tamability (Species cards only)',
+    '    pub tamability: Option<u32>,',
     '}',
     '',
   ];
@@ -231,6 +241,7 @@ async function main() {
     lines.push(`        movement: ${card.movement},`);
     lines.push(`        die: "${escapeRust(card.die)}",`);
     lines.push(`        brawl_sequence: "${escapeRust(card.brawl_sequence)}",`);
+    lines.push(`        tamability: ${optionU32(card.tamability)},`);
     lines.push('    },');
   }
 

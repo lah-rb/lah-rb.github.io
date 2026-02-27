@@ -64,6 +64,7 @@ fn new_player_doc() -> Doc {
         txn.get_or_insert_map("cards");
         txn.get_or_insert_array("alarms");
         txn.get_or_insert_map("affinity");
+        txn.get_or_insert_map("loyalty");
         let settings = txn.get_or_insert_map("settings");
         // Default: show_alarms = true
         settings.insert(&mut txn, "show_alarms", Any::from(true));
@@ -110,6 +111,7 @@ pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
             txn.get_or_insert_map("cards");
             txn.get_or_insert_array("alarms");
             txn.get_or_insert_map("affinity");
+            txn.get_or_insert_map("loyalty");
             txn.get_or_insert_map("settings");
             txn.apply_update(update)
                 .map_err(|e| format!("restore error: {}", e))?;
@@ -613,6 +615,93 @@ pub fn get_active_affinity() -> Option<(String, u32)> {
     best.map(|(name, level, _)| (name, level))
 }
 
+// ── Loyalty accessors ──────────────────────────────────────────────
+
+/// Increment loyalty for a card slug. Enforces once-per-day: if `last_played`
+/// already equals `today`, returns Ok but does not increment.
+/// Returns `Ok(new_total_plays)` on success.
+pub fn increment_loyalty(slug: &str, today: &str) -> Result<u32, String> {
+    if slug.is_empty() {
+        return Err("Missing card slug".to_string());
+    }
+    if today.is_empty() {
+        return Err("Missing today date".to_string());
+    }
+
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let loyalty = doc.get_or_insert_map("loyalty");
+        let mut txn = doc.transact_mut();
+
+        match loyalty.get(&txn, slug) {
+            Some(yrs::Out::YMap(entry)) => {
+                // Check once-per-day
+                let last = match entry.get(&txn, "last_played") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
+                let current = match entry.get(&txn, "total_plays") {
+                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
+                    _ => 0,
+                };
+                if last == today {
+                    return Ok(current); // Already played today, no-op
+                }
+                let new_total = current + 1;
+                entry.insert(&mut txn, "total_plays", Any::from(new_total as f64));
+                entry.insert(&mut txn, "last_played", Any::from(today.to_string()));
+                Ok(new_total)
+            }
+            _ => {
+                // First play ever for this card
+                let entry = MapPrelim::from([
+                    ("total_plays".to_string(), Any::from(1.0_f64)),
+                    ("last_played".to_string(), Any::from(today.to_string())),
+                ]);
+                loyalty.insert(&mut txn, slug, entry);
+                Ok(1)
+            }
+        }
+    })
+}
+
+/// Get loyalty data for a single card slug.
+/// Returns `Some((total_plays, last_played))` if the card has loyalty data.
+pub fn get_loyalty(slug: &str) -> Option<(u32, String)> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let loyalty = doc.get_or_insert_map("loyalty");
+        let txn = doc.transact();
+        match loyalty.get(&txn, slug) {
+            Some(yrs::Out::YMap(entry)) => {
+                let total = match entry.get(&txn, "total_plays") {
+                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
+                    _ => 0,
+                };
+                let last = match entry.get(&txn, "last_played") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
+                Some((total, last))
+            }
+            _ => None,
+        }
+    })
+}
+
+/// Clear all loyalty data (used by "New Game" reset).
+pub fn clear_loyalty() {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let loyalty = doc.get_or_insert_map("loyalty");
+        let mut txn = doc.transact_mut();
+        let keys: Vec<String> = loyalty.keys(&txn).map(|k| k.to_string()).collect();
+        for key in keys {
+            loyalty.remove(&mut txn, &key);
+        }
+    });
+}
+
 // ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -949,5 +1038,94 @@ mod tests {
         assert_eq!(valid_archetypes().len(), 15);
         assert!(valid_archetypes().contains(&"Brutal"));
         assert!(valid_archetypes().contains(&"Entropic"));
+    }
+
+    // ── Loyalty tests ──────────────────────────────────────────────
+
+    #[test]
+    fn init_has_no_loyalty() {
+        reset();
+        assert!(get_loyalty("brox_the_defiant").is_none());
+    }
+
+    #[test]
+    fn increment_loyalty_creates_entry() {
+        reset();
+        let result = increment_loyalty("brox_the_defiant", "2026-02-25");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+
+        let (total, last) = get_loyalty("brox_the_defiant").unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(last, "2026-02-25");
+    }
+
+    #[test]
+    fn increment_loyalty_once_per_day() {
+        reset();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        // Same day — should no-op, return current total
+        let result = increment_loyalty("brox", "2026-02-25").unwrap();
+        assert_eq!(result, 1);
+
+        // Different day — should increment
+        let result = increment_loyalty("brox", "2026-02-26").unwrap();
+        assert_eq!(result, 2);
+
+        let (total, last) = get_loyalty("brox").unwrap();
+        assert_eq!(total, 2);
+        assert_eq!(last, "2026-02-26");
+    }
+
+    #[test]
+    fn increment_loyalty_multiple_cards() {
+        reset();
+        increment_loyalty("card_a", "2026-02-25").unwrap();
+        increment_loyalty("card_b", "2026-02-25").unwrap();
+        increment_loyalty("card_a", "2026-02-26").unwrap();
+
+        assert_eq!(get_loyalty("card_a").unwrap().0, 2);
+        assert_eq!(get_loyalty("card_b").unwrap().0, 1);
+    }
+
+    #[test]
+    fn increment_loyalty_rejects_empty_slug() {
+        reset();
+        let result = increment_loyalty("", "2026-02-25");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn increment_loyalty_rejects_empty_date() {
+        reset();
+        let result = increment_loyalty("brox", "");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn clear_loyalty_removes_all() {
+        reset();
+        increment_loyalty("card_a", "2026-02-25").unwrap();
+        increment_loyalty("card_b", "2026-02-25").unwrap();
+        clear_loyalty();
+        assert!(get_loyalty("card_a").is_none());
+        assert!(get_loyalty("card_b").is_none());
+    }
+
+    #[test]
+    fn loyalty_persists_across_roundtrip() {
+        reset();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        increment_loyalty("brox", "2026-02-26").unwrap();
+
+        let state = encode_full_state();
+
+        init_player_doc();
+        assert!(get_loyalty("brox").is_none());
+
+        restore_from_state(&state).unwrap();
+        let (total, last) = get_loyalty("brox").unwrap();
+        assert_eq!(total, 2);
+        assert_eq!(last, "2026-02-26");
     }
 }

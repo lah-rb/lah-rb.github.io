@@ -428,6 +428,7 @@ pub fn handle_fists_post(body: &str) -> String {
     let role_str = get_param(&params, "role").unwrap_or("");
     let card = get_param(&params, "card").unwrap_or("");
     let keal_str = get_param(&params, "keal").unwrap_or("1");
+    let today = get_param(&params, "today").unwrap_or("");
 
     let role = match role_str {
         "attacking" => CombatRole::Attacking,
@@ -441,6 +442,15 @@ pub fn handle_fists_post(body: &str) -> String {
 
     if card.is_empty() {
         return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+    }
+
+    // Phase C: Increment loyalty for Character/Species cards used in combat
+    if !today.is_empty() {
+        if let Some(c) = find_card(card) {
+            if c.layout == "Character" || c.layout == "Species" {
+                let _ = player_doc::increment_loyalty(card, today);
+            }
+        }
     }
 
     room::with_room_mut(|r| {
@@ -522,9 +532,19 @@ pub fn handle_fists_poll_get(_query: &str) -> String {
 pub fn handle_final_blows_post(body: &str) -> String {
     let params = parse_form_body(body);
     let card = get_param(&params, "card").unwrap_or("");
+    let today = get_param(&params, "today").unwrap_or("");
 
     if card.is_empty() {
         return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+    }
+
+    // Phase C: Increment loyalty for Character/Species cards used in Final Blows
+    if !today.is_empty() {
+        if let Some(c) = find_card(card) {
+            if c.layout == "Character" || c.layout == "Species" {
+                let _ = player_doc::increment_loyalty(card, today);
+            }
+        }
     }
 
     room::with_room_mut(|r| {

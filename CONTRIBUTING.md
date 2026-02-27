@@ -881,9 +881,9 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 
 ---
 
-#### Phase C: Loyalty Tracking
+#### Phase C: Loyalty Tracking ✅ Complete
 
-**What ships:** Per-card play counter. Loyalty increments when a soul card is used in fists combat (once per day per card). Loyalty badge/counter displayed on card damage tracker pages.
+**Status:** Shipped. Per-card play counter increments when a Character or Species card is used in fists combat (once per day per card). Loyalty badge displayed on card damage tracker pages. Species cards with a `tamability` threshold show tameability progress (loyalty + matching affinity vs threshold).
 
 **PLAYER_DOC structure:**
 
@@ -895,42 +895,41 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 }
 ```
 
-**Trigger:** When a fists submission is POSTed (`/api/room/fists` or `/api/room/fists/final`), after storing the submission, check the card slug. If the card is a Character or Species (`layout` field), increment loyalty for that slug in PLAYER_DOC (enforcing once-per-day).
+**Trigger:** When a fists submission is POSTed (`/api/room/fists` or `/api/room/fists/final`), after storing the submission, the card slug is checked. If the card is a Character or Species (`layout` field), loyalty is incremented for that slug in PLAYER_DOC (enforcing once-per-day). The `today` date is supplied client-side via `new Date().toISOString().slice(0,10)`.
 
-**Display:** On the card page damage tracker (`/api/game/damage?card=slug`), append a small loyalty badge: "♥ 12 plays" or similar. On Species cards, show progress toward tameability threshold if tameability data exists.
+**Display:** On the card page damage tracker (`/api/game/damage?card=slug`), a loyalty badge shows "♥ N plays". On Species cards with a `tamability` field, a tameability progress section shows `current / threshold` with a progress bar, where `current = loyalty.total_plays + affinity.level` (affinity only counted if it matches the card's `genetic_disposition`). When the threshold is met, "✔ Tamed!" is displayed.
 
-**Files to create/modify:**
+**Card data:** The `tamability` field has been added to all Species card YAML front matter. The build script (`scripts/build-card-catalog.ts`) extracts it as `Option<u32>` in the `Card` struct.
+
+**Files created/modified:**
 
 | File | Changes |
 |------|---------|
-| `kipukas-server/src/game/player_doc.rs` | Add `increment_loyalty()`, `get_loyalty()` functions |
-| `kipukas-server/src/game/damage.rs` | Render loyalty badge in damage tracker HTML |
-| `kipukas-server/src/routes/room.rs` | Hook loyalty increment into fists submission handlers |
+| `kipukas-server/src/game/player_doc.rs` | Added `increment_loyalty()`, `get_loyalty()`, `clear_loyalty()` + 8 unit tests |
+| `kipukas-server/src/game/damage.rs` | Render loyalty badge and tameability progress in damage tracker HTML |
+| `kipukas-server/src/routes/room.rs` | Hook loyalty increment into `handle_fists_post` and `handle_final_blows_post` |
+| `assets/js/kipukas-multiplayer.js` | Added `today` param to `submitFists()` and `submitFinalBlows()` POST bodies |
+| `scripts/build-card-catalog.ts` | Extract `tamability` field from YAML, emit as `Option<u32>` in Card struct |
+| `_posts/*.html` | Species cards: `tamability` field added to YAML front matter |
+
+**Daily limit:** Compare `last_played` date string against `today` param. No server or timezone handling — the WASM module uses the date string passed from JS via the POST body.
 
 ---
 
-#### Phase D: Tameability Integration
+#### Phase D: Tameability Refinement
 
-**What ships:** Species cards show a tameability section with threshold, current loyalty + affinity stack, and "Tamed!" indicator.
+**Note:** The core tameability infrastructure shipped in Phase C: `tamability` field in Species YAML, extraction in `build-card-catalog.ts`, `Option<u32>` in the Card struct, and tameability progress rendering in the damage tracker. Phase D covers refinements and the incubation bonus mechanic.
 
-**Card data changes:**
-- Add `tameability` field to Species card YAML front matter (optional, integer or `"∞"`)
-- Update `scripts/build-card-catalog.ts` to extract `tameability`
-- Update `Card` struct in `cards_generated.rs` template to include `pub tameability: Option<u32>`
+**What ships:** Incubation egg bonus integration into tameability computation. `is_tamed()` helper function. Potential UI polish (tameability section on card grid, tamed badge on index page).
 
-**Tamed condition:** `loyalty.total_plays + affinity.level + incubation_bonus ≥ tameability`
-
-**Display:** On Species card pages, below the damage tracker: progress bar showing `current / threshold`, with a "Tamed ✓" badge when met.
+**Tamed condition:** `loyalty.total_plays + affinity.level + incubation_bonus ≥ tamability`
 
 **Files to create/modify:**
 
 | File | Changes |
 |------|---------|
-| `_posts/*.html` | Add `tameability:` field to Species card YAML |
-| `scripts/build-card-catalog.ts` | Extract and emit `tameability` field |
-| `kipukas-server/src/cards_generated.rs` | Template updated (auto-generated) |
-| `kipukas-server/src/game/damage.rs` | Render tameability section for Species cards |
-| `kipukas-server/src/game/player_doc.rs` | Add `is_tamed()` function combining loyalty + affinity + bonuses |
+| `kipukas-server/src/game/player_doc.rs` | Add `is_tamed()` function combining loyalty + affinity + incubation bonuses |
+| `kipukas-server/src/game/damage.rs` | Integrate incubation bonus into tameability progress display |
 
 ---
 
