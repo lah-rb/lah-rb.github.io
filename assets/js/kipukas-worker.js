@@ -99,8 +99,22 @@ self.onmessage = async (event) => {
   const { method, pathname, search, body } = event.data;
   const port = event.ports[0];
 
+  // Fire-and-forget: no MessagePort means caller doesn't need a response.
+  // Process the request, trigger PERSIST_STATE for localStorage sync, and return.
+  // Used by Alpine damage tracker buttons (kipukasWorker.postMessage with no port).
   if (!port) {
-    console.error('[kipukas-worker] No MessagePort received');
+    try {
+      if (!initialized) await wasmReady;
+      handle_request(method, pathname, search || '', body || '');
+      if (
+        method === 'POST' &&
+        (pathname.startsWith('/api/game/') || pathname.startsWith('/api/room/'))
+      ) {
+        self.postMessage({ type: 'PERSIST_STATE' });
+      }
+    } catch (err) {
+      console.error('[kipukas-worker] Fire-and-forget error:', err);
+    }
     return;
   }
 
