@@ -11,21 +11,6 @@ use crate::game::crdt;
 use crate::game::player_doc;
 use crate::game::room;
 
-/// Add a new alarm with the given number of diel cycles, optional name, and color set.
-pub fn add_alarm(turns: i32, name: &str, color_set: &str) {
-    player_doc::add_alarm(turns, name, color_set);
-}
-
-/// Tick all alarms: decrement by 1, remove any that went below 0.
-pub fn tick_alarms() {
-    player_doc::tick_alarms();
-}
-
-/// Remove a specific alarm by index.
-pub fn remove_alarm(index: usize) {
-    player_doc::remove_alarm(index);
-}
-
 /// Toggle alarm panel visibility.
 pub fn toggle_alarms_visibility() {
     let current = player_doc::get_show_alarms();
@@ -251,8 +236,8 @@ mod tests {
     #[test]
     fn add_alarm_works() {
         reset_state();
-        add_alarm(5, "Scout patrol", "green");
-        add_alarm(3, "", "red");
+        player_doc::add_alarm(5, "Scout patrol", "green");
+        player_doc::add_alarm(3, "", "red");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -267,7 +252,7 @@ mod tests {
     #[test]
     fn add_alarm_validates_color() {
         reset_state();
-        add_alarm(1, "", "invalid");
+        player_doc::add_alarm(1, "", "invalid");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms[0].color_set, "red"); // defaults to red
         reset_state();
@@ -276,21 +261,21 @@ mod tests {
     #[test]
     fn tick_decrements_and_removes_expired() {
         reset_state();
-        add_alarm(2, "", "red");
-        add_alarm(1, "", "blue");
+        player_doc::add_alarm(2, "", "red");
+        player_doc::add_alarm(1, "", "blue");
 
-        tick_alarms();
+        player_doc::tick_alarms();
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 1);
         assert_eq!(alarms[1].remaining, 0); // complete
 
-        tick_alarms();
+        player_doc::tick_alarms();
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 1); // 0→-1 removed
         assert_eq!(alarms[0].remaining, 0); // 1→0 complete
 
-        tick_alarms();
+        player_doc::tick_alarms();
         let alarms = player_doc::get_alarms();
         assert!(alarms.is_empty()); // all removed
 
@@ -300,10 +285,10 @@ mod tests {
     #[test]
     fn remove_alarm_by_index() {
         reset_state();
-        add_alarm(5, "first", "red");
-        add_alarm(3, "second", "green");
-        add_alarm(1, "third", "blue");
-        remove_alarm(1); // remove the 3-turn alarm
+        player_doc::add_alarm(5, "first", "red");
+        player_doc::add_alarm(3, "second", "green");
+        player_doc::add_alarm(1, "third", "blue");
+        player_doc::remove_alarm(1); // remove the 3-turn alarm
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -314,8 +299,8 @@ mod tests {
     #[test]
     fn remove_alarm_out_of_bounds_is_noop() {
         reset_state();
-        add_alarm(5, "", "red");
-        remove_alarm(99);
+        player_doc::add_alarm(5, "", "red");
+        player_doc::remove_alarm(99);
         assert_eq!(player_doc::get_alarms().len(), 1);
         reset_state();
     }
@@ -343,8 +328,8 @@ mod tests {
     #[test]
     fn render_alarm_list_shows_alarms_with_colors() {
         reset_state();
-        add_alarm(5, "Dragon siege", "green");
-        add_alarm(0, "", "red");
+        player_doc::add_alarm(5, "Dragon siege", "green");
+        player_doc::add_alarm(0, "", "red");
         // room disconnected → local mode (reads from PLAYER_DOC)
         let html = render_alarm_list();
         assert!(html.contains("Dragon siege"));
@@ -404,14 +389,14 @@ mod tests {
     fn add_alarm_validates_all_colors() {
         reset_state();
         // Valid colors stored as-is
-        add_alarm(1, "", "red");
-        add_alarm(1, "", "green");
-        add_alarm(1, "", "blue");
-        add_alarm(1, "", "yellow");
-        add_alarm(1, "", "pink");
+        player_doc::add_alarm(1, "", "red");
+        player_doc::add_alarm(1, "", "green");
+        player_doc::add_alarm(1, "", "blue");
+        player_doc::add_alarm(1, "", "yellow");
+        player_doc::add_alarm(1, "", "pink");
         // Invalid colors default to red
-        add_alarm(1, "", "invalid");
-        add_alarm(1, "", "");
+        player_doc::add_alarm(1, "", "invalid");
+        player_doc::add_alarm(1, "", "");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms[0].color_set, "red");
         assert_eq!(alarms[1].color_set, "green");

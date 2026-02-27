@@ -1,5 +1,9 @@
 # Kipukas — Contributing Guide
-## State 
+
+## State of Project
+This project is in purly alpha state. As such, keeping the code base as clean/lean and agile to adaptation as possible is crucial. When working on the project do not plan on user migration steps. We have no users yet and we would rather embrace new constructs fully than mitigate breakage.
+
+
 > Practices, architecture, proven patterns, and workflow for the Kipukas card game platform.
 
 ---

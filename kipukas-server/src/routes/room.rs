@@ -174,11 +174,11 @@ pub fn handle_connected_post(body: &str) -> String {
 // ── POST /api/room/disconnect ──────────────────────────────────────
 
 pub fn handle_disconnect_post(_body: &str) -> String {
-    // PLAYER_DOC is already kept in sync with the CRDT Doc by the yrs
-    // alarm mutation routes (add/tick/remove each call export_to_local()
-    // after every mutation). No need to export again here — doing so
-    // would undo the seed_from_local() clear when no mutations occurred
-    // during the session, causing the original alarms to ghost back.
+    // Export shared CRDT alarms back to local PLAYER_DOC before reset.
+    // The PERSIST_STATE message (triggered by the worker for /api/room/*
+    // POSTs) ensures this change is saved to localStorage, preventing
+    // stale timer data from ghosting back on the next page load.
+    crdt::export_to_local();
     room::reset_room();
     crdt::reset_doc();
     render_disconnected_status()
@@ -742,21 +742,6 @@ fn auto_mark_damage(card_slug: &str, keal_idx: u8) -> bool {
     }
 
     false
-}
-
-// ── GET /api/room/turns ────────────────────────────────────────────
-
-/// Handle GET /api/room/turns
-/// Returns the multiplayer turn tracker panel (creation form + alarm list).
-/// Renders with multiplayer sync buttons so mutations broadcast to peer.
-pub fn handle_room_turns_get(query: &str) -> String {
-    let params = parse_query(query);
-    let display = get_param(&params, "display").unwrap_or("");
-    if display == "alarms" {
-        turns::render_alarm_list()
-    } else {
-        turns::render_turn_panel()
-    }
 }
 
 // ── GET /api/room/state ────────────────────────────────────────────

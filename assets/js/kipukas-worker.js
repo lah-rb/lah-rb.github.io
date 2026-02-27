@@ -112,9 +112,17 @@ self.onmessage = async (event) => {
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
 
-    // Auto-persist: after any POST to /api/game/*, notify main thread
-    // so it can fetch PLAYER_DOC base64 and save to localStorage
-    if (method === 'POST' && pathname.startsWith('/api/game/')) {
+    // Auto-persist: after any POST to /api/game/* or /api/room/*, notify
+    // main thread so it can fetch PLAYER_DOC base64 and save to localStorage.
+    // Room routes are included because multiplayer alarm mutations
+    // (yrs/alarm/add, yrs/alarm/tick, yrs/alarm/remove) call
+    // export_to_local() which updates PLAYER_DOC, and room lifecycle
+    // routes (create, join, disconnect) call seed_from_local() or
+    // export_to_local() which also modify PLAYER_DOC.
+    if (
+      method === 'POST' &&
+      (pathname.startsWith('/api/game/') || pathname.startsWith('/api/room/'))
+    ) {
       self.postMessage({ type: 'PERSIST_STATE' });
     }
   } catch (err) {

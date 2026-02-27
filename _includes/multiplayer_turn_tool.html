@@ -1,4 +1,4 @@
-<!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+<!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
 <div x-data="{ showTurnMenu: false, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
@@ -25,7 +25,7 @@
         x-effect="if (showTurnMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
             }
         })">
 
@@ -41,7 +41,7 @@
 
             <!-- Turn timer section -->
             <div id="turn-container"
-              hx-get="/api/room/turns"
+              hx-get="/api/game/turns"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
