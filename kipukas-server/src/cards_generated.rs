@@ -26,6 +26,8 @@ pub struct Card {
     pub movement: u8,
     pub die: &'static str,
     pub brawl_sequence: &'static str,
+    // Phase C: tamability (Species cards only)
+    pub tamability: Option<u32>,
 }
 
 static GENETICS_0: &[&str] = &["Glitch", "Magic"];
@@ -130,6 +132,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "",
         brawl_sequence: "RrDC",
+        tamability: Some(3),
     },
     Card {
         slug: "arctechnic_wonderer",
@@ -147,6 +150,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6",
         brawl_sequence: "AnxM",
+        tamability: Some(2),
     },
     Card {
         slug: "artificer_of_the_salt_chancel",
@@ -164,6 +168,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D20",
         brawl_sequence: "FuOw",
+        tamability: Some(8),
     },
     Card {
         slug: "avian_keepers_den",
@@ -181,6 +186,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "balanced_inline_processing_colony",
@@ -198,6 +204,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "n/a ( D6 in capital )",
         brawl_sequence: "Hh2Y",
+        tamability: Some(0),
     },
     Card {
         slug: "branwen_mantillusion_practitioner",
@@ -215,6 +222,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "D20",
         brawl_sequence: "IR2B",
+        tamability: None,
     },
     Card {
         slug: "brox_the_defiant",
@@ -232,6 +240,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D20",
         brawl_sequence: "FOFE",
+        tamability: None,
     },
     Card {
         slug: "cartesian_sea",
@@ -249,6 +258,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "cloth",
@@ -266,6 +276,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "enchantress_of_cats",
@@ -283,6 +294,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "feathers",
@@ -300,6 +312,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "feeding_the_piffions",
@@ -317,6 +330,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "freezing_of_the_heart",
@@ -334,6 +348,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "frost_tipped_arctic_otter",
@@ -351,6 +366,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6",
         brawl_sequence: "nqTG",
+        tamability: Some(1),
     },
     Card {
         slug: "gray_wolf_harbinger_of_night",
@@ -368,6 +384,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6",
         brawl_sequence: "SWyA",
+        tamability: Some(4),
     },
     Card {
         slug: "hidden_portal_of_lower_dreadmont_cave",
@@ -385,6 +402,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "hilbert_king_of_avian_frogs",
@@ -402,6 +420,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 2,
         die: "D6-D6",
         brawl_sequence: "HMPU",
+        tamability: None,
     },
     Card {
         slug: "honey",
@@ -419,6 +438,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "illia_and_dorsay_the_buck_skull",
@@ -436,6 +456,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WCA9",
+        tamability: None,
     },
     Card {
         slug: "incubation_egg",
@@ -453,6 +474,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "knightsoul_of_binding_time",
@@ -470,6 +492,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 2,
         die: "D20-D6-D6",
         brawl_sequence: "Eppu",
+        tamability: Some(5),
     },
     Card {
         slug: "liliel_healing_fairy",
@@ -487,6 +510,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "",
         brawl_sequence: "H8wj",
+        tamability: None,
     },
     Card {
         slug: "little_charm",
@@ -504,6 +528,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "D6-(+6)",
         brawl_sequence: "YRkt",
+        tamability: Some(6),
     },
     Card {
         slug: "location_of_the_deep_apothecary_shop",
@@ -521,6 +546,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "losetany_steppes",
@@ -538,6 +564,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "meteor_shower",
@@ -555,6 +582,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "mihela_cleanser_of_fields",
@@ -572,6 +600,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "",
         brawl_sequence: "pVLu",
+        tamability: None,
     },
     Card {
         slug: "mutant_hide_and_seek",
@@ -589,6 +618,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "myrthvither_raven",
@@ -606,6 +636,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 2,
         die: "Base 3",
         brawl_sequence: "ZrrD",
+        tamability: Some(2),
     },
     Card {
         slug: "neural_network_synapse_virus",
@@ -623,6 +654,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "D6",
         brawl_sequence: "ojod",
+        tamability: Some(0),
     },
     Card {
         slug: "onironauta",
@@ -640,6 +672,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "orbs_trail",
@@ -657,6 +690,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 2,
         die: "Base 3",
         brawl_sequence: "brOL",
+        tamability: Some(3),
     },
     Card {
         slug: "oshliath_and_osileth",
@@ -674,6 +708,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D20-D6",
         brawl_sequence: "KVph",
+        tamability: None,
     },
     Card {
         slug: "palace_of_the_allele_sect",
@@ -691,6 +726,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "parched_traveler",
@@ -708,6 +744,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "oOnN",
+        tamability: Some(1),
     },
     Card {
         slug: "passage_among_maples",
@@ -725,6 +762,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "plane_table_joker",
@@ -742,6 +780,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6",
         brawl_sequence: "hLwQ",
+        tamability: Some(5),
     },
     Card {
         slug: "pyrostegia_dragon",
@@ -759,6 +798,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "D20",
         brawl_sequence: "G8OO",
+        tamability: None,
     },
     Card {
         slug: "rooster_calling_of_light",
@@ -776,6 +816,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "",
         brawl_sequence: "BB5S",
+        tamability: Some(1),
     },
     Card {
         slug: "sboi_threat_plus_plus",
@@ -793,6 +834,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "",
         brawl_sequence: "J7a0",
+        tamability: Some(9),
     },
     Card {
         slug: "self_care",
@@ -810,6 +852,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "D6",
         brawl_sequence: "P2IR",
+        tamability: Some(3),
     },
     Card {
         slug: "shards_desert",
@@ -827,6 +870,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "spectral_lands_decree_and_hearing",
@@ -844,6 +888,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "sprite_of_wilds_spirit",
@@ -861,6 +906,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "(without bear) D6-D6, (with bear) D20",
         brawl_sequence: "k8on",
+        tamability: Some(7),
     },
     Card {
         slug: "sticks",
@@ -878,6 +924,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "string",
@@ -895,6 +942,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "suspended_animation",
@@ -912,6 +960,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "tears_for_oly",
@@ -929,6 +978,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 3,
         die: "D6",
         brawl_sequence: "F3GW",
+        tamability: None,
     },
     Card {
         slug: "tejas_curious_mech",
@@ -946,6 +996,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WWpl",
+        tamability: None,
     },
     Card {
         slug: "the_causal_sophist",
@@ -963,6 +1014,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "Base 2 + D6",
         brawl_sequence: "bSGc",
+        tamability: None,
     },
     Card {
         slug: "timebattle",
@@ -980,6 +1032,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "tira_marvelous_myriad",
@@ -997,6 +1050,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6-D6 (Option to Re-roll)",
         brawl_sequence: "KCW4",
+        tamability: None,
     },
     Card {
         slug: "to_catch_a_spirit",
@@ -1014,6 +1068,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "unburdened_central",
@@ -1031,6 +1086,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 1,
         die: "D6",
         brawl_sequence: "L-E7",
+        tamability: None,
     },
     Card {
         slug: "ushered_through_sabina_emporium",
@@ -1048,6 +1104,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
     Card {
         slug: "what_do_you_see_in_the_breach",
@@ -1065,5 +1122,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         movement: 0,
         die: "",
         brawl_sequence: "",
+        tamability: None,
     },
 ];

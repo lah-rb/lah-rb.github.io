@@ -204,6 +204,53 @@ pub fn render_damage_tracker(slug: &str) -> String {
     );
     html.push_str(r#"<div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>"#);
 
+    // Phase C: Loyalty badge
+    if let Some((total_plays, _last)) = player_doc::get_loyalty(slug) {
+        html.push_str(r#"<div class="flex items-center mt-2 mb-1">"#);
+        html.push_str(&format!(
+            r#"<p class="text-xs text-kip-drk-sienna">&#x2665; {} play{}</p>"#,
+            total_plays,
+            if total_plays == 1 { "" } else { "s" }
+        ));
+        html.push_str(r#"</div>"#);
+    }
+
+    // Phase C: Tameability progress (Species cards only)
+    if card.layout == "Species" {
+        if let Some(threshold) = card.tamability {
+            let loyalty_plays = player_doc::get_loyalty(slug).map(|(t, _)| t).unwrap_or(0);
+            let affinity_level = player_doc::get_active_affinity()
+                .and_then(|(name, level)| {
+                    // Only count affinity if it matches the card's genetic_disposition
+                    card.genetic_disposition.and_then(|gd| {
+                        if gd == name { Some(level) } else { None }
+                    })
+                })
+                .unwrap_or(0);
+            let current = loyalty_plays + affinity_level;
+            let tamed = current >= threshold;
+
+            html.push_str(r#"<div class="mt-1 mb-2">"#);
+            if tamed {
+                html.push_str(r#"<p class="text-xs font-bold text-emerald-600">&#x2714; Tamed!</p>"#);
+            } else {
+                html.push_str(&format!(
+                    r#"<p class="text-xs text-kip-drk-sienna">Tame: {} / {}</p>"#,
+                    current, threshold
+                ));
+                // Progress bar
+                let pct = ((current as f64 / threshold as f64) * 100.0).min(100.0) as u32;
+                html.push_str(r#"<div class="w-full bg-slate-200 rounded-full h-1.5 mt-0.5">"#);
+                html.push_str(&format!(
+                    r#"<div class="bg-emerald-500 h-1.5 rounded-full" style="width: {}%"></div>"#,
+                    pct
+                ));
+                html.push_str(r#"</div>"#);
+            }
+            html.push_str(r#"</div>"#);
+        }
+    }
+
     // Keal Means header
     html.push_str(r#"<div class="flex w-full my-4"><div class="w-1/2">"#);
     html.push_str(r#"<p>Keal Means</p>"#);

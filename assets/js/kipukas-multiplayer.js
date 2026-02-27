@@ -698,8 +698,9 @@ const kipukasMultiplayer = {
     const role = roleEl.value;
     const keal = kealEl.value;
 
-    // POST to WASM to store local submission
-    const body = `role=${role}&card=${cardSlug}&keal=${keal}`;
+    // POST to WASM to store local submission (include today for loyalty tracking)
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `role=${role}&card=${cardSlug}&keal=${keal}&today=${today}`;
     postToWasmWithCallback('POST', '/api/room/fists', body, (html) => {
       const container = document.getElementById('fists-container');
       if (container) {
@@ -718,7 +719,8 @@ const kipukasMultiplayer = {
 
   /** Submit Final Blows for a card with exhausted keal means. */
   submitFinalBlows(cardSlug) {
-    const body = `card=${cardSlug}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `card=${cardSlug}&today=${today}`;
     postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
       const container = document.getElementById('fists-container');
       if (container) {
