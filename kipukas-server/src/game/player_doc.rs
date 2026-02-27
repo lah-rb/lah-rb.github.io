@@ -29,6 +29,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use std::cell::RefCell;
 use yrs::updates::decoder::Decode;
+use yrs::updates::encoder::Encode;
 use yrs::{Any, Array, ArrayPrelim, Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn};
 
 use crate::game::state::Alarm;
@@ -702,6 +703,52 @@ pub fn clear_loyalty() {
     });
 }
 
+// ── Sync protocol (Cross-Device Sync — Phase E) ───────────────────
+
+/// Encode the PLAYER_DOC state vector as a URL-safe base64 string.
+/// Used for sync handshake step 1 (exchange SVs with peer device).
+pub fn encode_state_vector() -> String {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let sv = doc.transact().state_vector().encode_v1();
+        URL_SAFE_NO_PAD.encode(&sv)
+    })
+}
+
+/// Given a remote device's state vector (URL-safe base64), compute the diff
+/// update containing all local changes they haven't seen.
+/// Returns URL-safe base64 update. Used for sync handshake step 2.
+pub fn encode_diff(remote_sv_b64: &str) -> Result<String, String> {
+    let sv_bytes = URL_SAFE_NO_PAD
+        .decode(remote_sv_b64)
+        .map_err(|e| format!("base64 decode error: {}", e))?;
+    let remote_sv = StateVector::decode_v1(&sv_bytes)
+        .map_err(|e| format!("state vector decode error: {}", e))?;
+
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let update = doc.transact().encode_diff_v1(&remote_sv);
+        Ok(URL_SAFE_NO_PAD.encode(&update))
+    })
+}
+
+/// Apply a URL-safe base64-encoded yrs update from a remote device.
+/// Used during sync handshake and live sync to merge remote changes.
+pub fn apply_update(update_b64: &str) -> Result<(), String> {
+    let update_bytes = URL_SAFE_NO_PAD
+        .decode(update_b64)
+        .map_err(|e| format!("base64 decode error: {}", e))?;
+    let update = Update::decode_v1(&update_bytes)
+        .map_err(|e| format!("update decode error: {}", e))?;
+
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let mut txn = doc.transact_mut();
+        txn.apply_update(update)
+            .map_err(|e| format!("apply update error: {}", e))
+    })
+}
+
 // ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1127,5 +1174,141 @@ mod tests {
         let (total, last) = get_loyalty("brox").unwrap();
         assert_eq!(total, 2);
         assert_eq!(last, "2026-02-26");
+    }
+
+    // ── Sync protocol tests (Phase E) ──────────────────────────────
+
+    #[test]
+    fn state_vector_is_valid_base64() {
+        reset();
+        add_alarm(3, "test", "blue");
+        let sv = encode_state_vector();
+        assert!(!sv.is_empty());
+        let decoded = URL_SAFE_NO_PAD.decode(&sv);
+        assert!(decoded.is_ok());
+    }
+
+    #[test]
+    fn encode_diff_returns_valid_update() {
+        use yrs::updates::encoder::Encode;
+        reset();
+        add_alarm(5, "local timer", "green");
+
+        // Create a separate Doc to simulate the remote device
+        let remote_doc = Doc::new();
+        {
+            let mut txn = remote_doc.transact_mut();
+            txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map("cards");
+            txn.get_or_insert_map("affinity");
+            txn.get_or_insert_map("loyalty");
+            txn.get_or_insert_map("settings");
+        }
+
+        // Get remote SV
+        let remote_sv = remote_doc.transact().state_vector().encode_v1();
+        let remote_sv_b64 = URL_SAFE_NO_PAD.encode(&remote_sv);
+
+        // Compute diff for remote
+        let diff = encode_diff(&remote_sv_b64);
+        assert!(diff.is_ok());
+        let diff_b64 = diff.unwrap();
+        assert!(!diff_b64.is_empty());
+
+        // Apply diff to remote — should get our alarm
+        let diff_bytes = URL_SAFE_NO_PAD.decode(&diff_b64).unwrap();
+        let update = Update::decode_v1(&diff_bytes).unwrap();
+        remote_doc.transact_mut().apply_update(update).unwrap();
+
+        let arr = remote_doc.get_or_insert_array("alarms");
+        let txn = remote_doc.transact();
+        assert_eq!(arr.len(&txn), 1);
+    }
+
+    #[test]
+    fn apply_update_merges_remote_changes() {
+        reset();
+        add_alarm(5, "local", "red");
+
+        // Create a separate Doc to simulate remote device
+        let remote_doc = Doc::new();
+        {
+            let mut txn = remote_doc.transact_mut();
+            txn.get_or_insert_map("cards");
+            let alarms = txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map("affinity");
+            txn.get_or_insert_map("loyalty");
+            txn.get_or_insert_map("settings");
+            let alarm_map = yrs::MapPrelim::from([
+                ("remaining".to_string(), Any::from(3_f64)),
+                ("name".to_string(), Any::from("remote".to_string())),
+                ("color_set".to_string(), Any::from("blue".to_string())),
+            ]);
+            alarms.insert(&mut txn, 0, alarm_map);
+        }
+
+        // Encode the remote Doc changes as an update
+        let remote_update = remote_doc
+            .transact()
+            .encode_diff_v1(&StateVector::default());
+        let remote_update_b64 = URL_SAFE_NO_PAD.encode(&remote_update);
+
+        // Apply the remote update to our PLAYER_DOC
+        let result = apply_update(&remote_update_b64);
+        assert!(result.is_ok());
+
+        // Both local and remote alarms should exist
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 2);
+    }
+
+    #[test]
+    fn apply_update_rejects_invalid_base64() {
+        reset();
+        let result = apply_update("not_valid_base64!!!");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn sync_encode_diff_and_apply_roundtrip() {
+        use yrs::updates::encoder::Encode;
+        // Verify that encode_diff → apply_update merges remote data into PLAYER_DOC
+        reset();
+        add_alarm(5, "local_timer", "green");
+
+        // Create a remote doc with different data
+        let remote = Doc::new();
+        {
+            let mut txn = remote.transact_mut();
+            txn.get_or_insert_map("cards");
+            txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map("affinity");
+            txn.get_or_insert_map("loyalty");
+            txn.get_or_insert_map("settings");
+        }
+
+        // Get local SV, compute remote diff against it (empty remote → full local diff)
+        let local_sv = encode_state_vector();
+        let local_sv_bytes = URL_SAFE_NO_PAD.decode(&local_sv).unwrap();
+        let sv = StateVector::decode_v1(&local_sv_bytes).unwrap();
+
+        // Remote encodes its diff for us (nothing new from remote)
+        let remote_diff = remote.transact().encode_diff_v1(&sv);
+        let remote_diff_b64 = URL_SAFE_NO_PAD.encode(&remote_diff);
+
+        // Apply remote diff — should not break local state
+        apply_update(&remote_diff_b64).unwrap();
+
+        // Local alarm should still be there
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].name, "local_timer");
+    }
+
+    #[test]
+    fn encode_diff_rejects_invalid_sv() {
+        reset();
+        let result = encode_diff("not_valid_base64!!!");
+        assert!(result.is_err());
     }
 }

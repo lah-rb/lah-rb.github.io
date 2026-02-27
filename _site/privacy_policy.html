@@ -213,7 +213,8 @@ background_color
     <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
     <div><a href="/game_rules/index.html" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
     <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>
-    <div><button @click="$dispatch('open-player-data'); showHamburger = false" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Player Data</button></div>
+    <div><button @click="$dispatch('open-player-data'); showHamburger = false" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Manage Player Data</button></div>
+    <div><button @click="$dispatch('open-device-sync'); showHamburger = false" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Sync Devices</button></div>
     <div><a href="/privacy_policy" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Privacy Policy</a></div>
     <div><a href="/about_articles" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About Kipukas</a></div>
 </div>
@@ -435,6 +436,187 @@ background_color
       </button>
     </div>
   </div>
+</div>
+
+    <!-- _includes/device_sync_tool.html — Cross-device sync modal (Phase E, Pattern 11) -->
+<div x-data="{
+  showSync: false,
+  screen: 'menu',
+  passphrase: '',
+  joinCode: '',
+  roomCode: '',
+  status: '',
+  error: '',
+  syncing: false,
+  syncDone: false,
+
+  async createRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    this.error = '';
+    this.status = 'Creating sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.createRoom(this.passphrase);
+  },
+
+  async joinRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    if (this.joinCode.trim().length !== 4) { this.error = 'Enter a 4-character room code'; return; }
+    this.error = '';
+    this.status = 'Joining sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.joinRoom(this.joinCode, this.passphrase);
+  },
+
+  cleanup() {
+    if (window.kipukasSync) kipukasSync.disconnect();
+    this.screen = 'menu';
+    this.passphrase = '';
+    this.joinCode = '';
+    this.roomCode = '';
+    this.status = '';
+    this.error = '';
+    this.syncing = false;
+    this.syncDone = false;
+    this.showSync = false;
+  }
+}"
+     class="relative"
+     @open-device-sync.window="showSync = true; screen = 'menu'; error = ''; status = ''; syncDone = false"
+
+     @sync-room-created.window="roomCode = $event.detail.code; status = 'Room created! Share this code with your other device:'; screen = 'paired'"
+     @sync-room-joined.window="roomCode = $event.detail.code; status = 'Joined room. Waiting for authentication…'; screen = 'paired'"
+     @sync-peer-joined.window="status = 'Peer device connected. Authenticating…'"
+     @sync-authenticated.window="status = 'Authenticated! Syncing player data…'; syncing = true"
+     @sync-updated.window="status = '✓ Sync complete! Player data merged.'; syncing = false; syncDone = true"
+     @sync-peer-left.window="if (!syncDone) { status = 'Peer device disconnected.'; syncing = false; }"
+     @sync-auth-failed.window="error = $event.detail.message || 'Authentication failed'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-error.window="error = $event.detail.message || 'Connection error'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-disconnected.window="if (syncing) { status = 'Disconnected during sync'; syncing = false; }">
+
+    <!-- Modal -->
+    <div x-show="showSync" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
+
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="cleanup()"></div>
+
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-4 text-kip-drk-sienna">
+                <p class="text-lg font-bold text-center mb-1">🔄 Sync Devices</p>
+                <p class="text-xs text-slate-500 text-center mb-3">
+                    Merge your player data between two devices
+                </p>
+
+                <!-- Error display -->
+                <template x-if="error">
+                    <div class="bg-red-50 border border-red-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-kip-red" x-text="error"></p>
+                    </div>
+                </template>
+
+                <!-- Status display -->
+                <template x-if="status && !error">
+                    <div class="bg-blue-50 border border-blue-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-blue-700" x-text="status"></p>
+                    </div>
+                </template>
+
+                <!-- ── Screen: Menu ── -->
+                <div x-show="screen === 'menu'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Shared Passphrase</label>
+                        <input type="password" x-model="passphrase"
+                            placeholder="Same passphrase on both devices"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white">
+                        <p class="text-xs text-slate-400 mt-0.5">Both devices must use the same passphrase</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="createRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Create Room
+                        </button>
+                        <button @click="screen = 'join'"
+                            class="bg-slate-600 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-700 active:bg-slate-800">
+                            Join Room
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-slate-400 text-center">
+                        <p>Create a room on one device, then join from the other.</p>
+                        <p class="mt-1">Data merges using conflict-free replication (CRDT).</p>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Join ── -->
+                <div x-show="screen === 'join'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Room Code</label>
+                        <input type="text" x-model="joinCode"
+                            placeholder="4-letter code" maxlength="4"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 bg-white uppercase text-center font-mono text-lg tracking-widest"
+                            @keyup.enter="joinRoom()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="screen = 'menu'; error = ''"
+                            class="bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500">
+                            ← Back
+                        </button>
+                        <button @click="joinRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Join
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Paired / Waiting ── -->
+                <div x-show="screen === 'paired' || screen === 'waiting'">
+                    <!-- Room code display -->
+                    <template x-if="roomCode">
+                        <div class="bg-white border-2 border-slate-300 rounded-lg p-3 mb-3 text-center">
+                            <p class="text-xs text-slate-500 mb-1">Room Code</p>
+                            <p class="text-3xl font-mono font-bold tracking-widest text-kip-drk-sienna" x-text="roomCode"></p>
+                        </div>
+                    </template>
+
+                    <!-- Sync progress -->
+                    <template x-if="syncing">
+                        <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="animate-spin h-4 w-4 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="text-xs text-slate-600">Syncing…</span>
+                        </div>
+                    </template>
+
+                    <!-- Sync complete -->
+                    <template x-if="syncDone">
+                        <div class="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3 text-center">
+                            <p class="text-sm font-bold text-emerald-700">✓ Sync Complete</p>
+                            <p class="text-xs text-emerald-600 mt-1">Player data has been merged on both devices.</p>
+                            <p class="text-xs text-slate-400 mt-1">Reload the page to see updated data.</p>
+                        </div>
+                    </template>
+
+                    <button @click="cleanup()"
+                        class="w-full bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500"
+                        x-text="syncDone ? 'Done' : 'Cancel'">
+                    </button>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button @click="cleanup()"
+                class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm"
+                x-show="screen === 'menu' || screen === 'join'">
+                Close
+            </button>
+        </div>
+    </div>
 </div>
 
   

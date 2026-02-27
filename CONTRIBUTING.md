@@ -1039,13 +1039,86 @@ If invalid: "Verification failed — wrong passphrase or tampered data"
 
 ---
 
-#### Phase E: Cross-Device Sync (Future)
+#### Phase E: Cross-Device Sync ✅ Complete
 
-**What ships:** yrs sync protocol between devices over the existing WebSocket relay. Device pairing via keypair exchange. Automatic conflict resolution via CRDT merge.
+**Status:** Shipped. Players can sync their PLAYER_DOC between two devices using the existing WebSocket relay server. Device pairing via room codes with mutual HMAC-SHA256 authentication. Automatic conflict resolution via yrs CRDT merge. Accessible from hamburger menu → "Sync Devices".
 
-**Reuses:** The same `yrs_sv → yrs_sv_reply → yrs_update` handshake proven in multiplayer turn timer sync. The "room" concept extends to "device pairing room" — two devices join a persistent sync channel authenticated by keypair.
+**Architecture — Sync Protocol:**
 
-**This phase is deferred until Phase D provides the identity/authentication layer.**
+The sync protocol reuses the proven `yrs_sv → yrs_sv_reply → yrs_update` handshake from multiplayer turn timer sync, extended to PLAYER_DOC. The "room" concept extends to "device pairing room" — two devices join a temporary sync channel authenticated by shared passphrase.
+
+```
+Device A                          Relay Server                     Device B
+   │                                  │                               │
+   │ create room                      │                               │
+   │─────────────────────────────────>│                               │
+   │ room_created (code: ABCD)        │                               │
+   │<─────────────────────────────────│                               │
+   │                                  │              join room (ABCD) │
+   │                                  │<──────────────────────────────│
+   │              peer_joined         │         peer_joined           │
+   │<─────────────────────────────────│──────────────────────────────>│
+   │                                  │                               │
+   │ ── Mutual authentication ─────────────────────────────────────── │
+   │ relay: sync_auth (MAC)           │                               │
+   │─────────────────────────────────>│──────────────────────────────>│
+   │                                  │      relay: sync_auth (MAC)   │
+   │<─────────────────────────────────│<──────────────────────────────│
+   │ verify HMAC ✓                    │              verify HMAC ✓    │
+   │                                  │                               │
+   │ ── yrs sync handshake ──────────────────────────────────────── │
+   │ relay: player_sv                 │                               │
+   │─────────────────────────────────>│──────────────────────────────>│
+   │                                  │   relay: player_update + sv   │
+   │<─────────────────────────────────│<──────────────────────────────│
+   │ relay: player_update             │                               │
+   │─────────────────────────────────>│──────────────────────────────>│
+   │                                  │                               │
+   │ ✓ Both devices converged         │        ✓ Both devices converged│
+```
+
+**Two-phase security:**
+
+| Phase | Technology | Purpose |
+|-------|-----------|---------|
+| **Authentication** | HMAC-SHA256 (`hmac-sha256` crate, reused from Phase D) | Both devices prove they know the shared passphrase before any data exchange |
+| **Transport** | WebSocket relay (existing signaling server) | Room-scoped message forwarding — server never inspects payloads |
+
+**Relay message protocol (new sync message types):**
+
+| Message Type | Direction | Payload | Purpose |
+|-------------|-----------|---------|---------|
+| `sync_auth` | Both → peer | `{ mac: hex }` | HMAC proof for mutual authentication |
+| `player_sv` | Both → peer | `{ sv: base64 }` | PLAYER_DOC state vector (sync handshake step 1) |
+| `player_sv_reply` | Both → peer | `{ sv: base64 }` | PLAYER_DOC state vector reply (sync handshake step 2) |
+| `player_update` | Both → peer | `{ update: base64 }` | PLAYER_DOC yrs binary update (diff) |
+
+**Live sync:** When a sync session is active and authenticated, every `PERSIST_STATE` event in `kipukas-api.js` triggers a `broadcastUpdate()` call via `kipukas-sync.js`. This re-initiates the SV exchange so both devices converge after each local mutation.
+
+**Active routes:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/player/sync/sv` | GET | Encode PLAYER_DOC state vector as base64 |
+| `/api/player/sync/diff` | POST | Compute diff update given remote state vector |
+| `/api/player/sync/apply` | POST | Apply a remote yrs update to PLAYER_DOC |
+| `/api/player/sync/auth` | POST | Compute HMAC(passphrase, room_code) for auth proof |
+| `/api/player/sync/verify` | POST | Verify peer's HMAC proof |
+
+**UI:** Hamburger menu → "Sync Devices" dispatches `open-device-sync` window event → `_includes/device_sync_tool.html` modal. Three-screen flow: menu (passphrase + Create/Join), join (room code entry), paired (room code display + sync status). `kipukas-sync.js` is lazy-loaded on first use.
+
+**Files created/modified:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/player_doc.rs` | Added `encode_state_vector()`, `encode_diff()`, `apply_update()` + 6 unit tests |
+| `kipukas-server/src/routes/player.rs` | Added `handle_sync_sv_get()`, `handle_sync_diff_post()`, `handle_sync_apply_post()`, `handle_sync_auth_post()`, `handle_sync_verify_post()` + 8 unit tests |
+| `kipukas-server/src/lib.rs` | Registered 5 sync routes + dispatch |
+| `assets/js/kipukas-sync.js` | **New.** Cross-device sync module — signaling, auth, yrs handshake, live broadcast (lazy-loaded) |
+| `assets/js/kipukas-api.js` | Added sync broadcast hook in PERSIST_STATE handler |
+| `_includes/device_sync_tool.html` | **New.** Sync modal component (Pattern 11) with multi-screen flow |
+| `_includes/hamburger_menu.html` | Added "Sync Devices" menu item with `$dispatch('open-device-sync')` |
+| `_includes/toolbar.html` | Added `device_sync_tool.html` include alongside hamburger menu |
 
 ---
 

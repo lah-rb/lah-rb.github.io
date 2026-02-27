@@ -63,6 +63,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/player/export/signed", "player_export_signed").ok();
     router.insert("/api/player/import/signed", "player_import_signed").ok();
 
+    // Cross-device sync routes (Phase E)
+    router.insert("/api/player/sync/sv", "player_sync_sv").ok();
+    router.insert("/api/player/sync/diff", "player_sync_diff").ok();
+    router.insert("/api/player/sync/apply", "player_sync_apply").ok();
+    router.insert("/api/player/sync/auth", "player_sync_auth").ok();
+    router.insert("/api/player/sync/verify", "player_sync_verify").ok();
+
     // Yrs CRDT sync routes
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
     router.insert("/api/room/yrs/diff", "yrs_diff").ok();
@@ -113,6 +120,13 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("player_affinity", "POST") => routes::player::handle_affinity_post(body),
             ("player_export_signed", "POST") => routes::player::handle_export_signed_post(body),
             ("player_import_signed", "POST") => routes::player::handle_import_signed_post(body),
+
+            // Cross-device sync routes (Phase E)
+            ("player_sync_sv", "GET") => routes::player::handle_sync_sv_get(query),
+            ("player_sync_diff", "POST") => routes::player::handle_sync_diff_post(body),
+            ("player_sync_apply", "POST") => routes::player::handle_sync_apply_post(body),
+            ("player_sync_auth", "POST") => routes::player::handle_sync_auth_post(body),
+            ("player_sync_verify", "POST") => routes::player::handle_sync_verify_post(body),
 
             // Yrs CRDT sync routes
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),

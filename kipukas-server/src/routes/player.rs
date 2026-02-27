@@ -256,6 +256,104 @@ pub fn handle_import_signed_post(body: &str) -> String {
     }
 }
 
+// ── GET /api/player/sync/sv ────────────────────────────────────────
+
+/// Handle GET /api/player/sync/sv
+/// Returns the PLAYER_DOC state vector as URL-safe base64 string.
+/// Used for sync handshake step 1.
+pub fn handle_sync_sv_get(_query: &str) -> String {
+    player_doc::encode_state_vector()
+}
+
+// ── POST /api/player/sync/diff ─────────────────────────────────────
+
+/// Handle POST /api/player/sync/diff
+/// Body: sv={base64 state vector}
+/// Computes the PLAYER_DOC diff for a remote device given its state vector.
+/// Returns the diff as URL-safe base64 update.
+pub fn handle_sync_diff_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let sv = get_param(&params, "sv").unwrap_or("");
+
+    if sv.is_empty() {
+        return r#"{"error":"Missing sv parameter"}"#.to_string();
+    }
+
+    match player_doc::encode_diff(sv) {
+        Ok(diff) => diff,
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    }
+}
+
+// ── POST /api/player/sync/apply ────────────────────────────────────
+
+/// Handle POST /api/player/sync/apply
+/// Body: update={base64 yrs update}
+/// Applies a remote yrs update to PLAYER_DOC.
+/// Returns "ok" on success or an error HTML fragment.
+pub fn handle_sync_apply_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let update = get_param(&params, "update").unwrap_or("");
+
+    if update.is_empty() {
+        return r#"<span class="text-kip-red">Missing update parameter</span>"#.to_string();
+    }
+
+    match player_doc::apply_update(update) {
+        Ok(()) => "ok".to_string(),
+        Err(e) => format!(
+            r#"<span class="text-kip-red">Sync apply error: {}</span>"#,
+            e
+        ),
+    }
+}
+
+// ── POST /api/player/sync/auth ─────────────────────────────────────
+
+/// Handle POST /api/player/sync/auth
+/// Body: passphrase={...}&room_code={...}
+/// Computes HMAC-SHA256(passphrase, room_code) for mutual authentication.
+/// Returns the MAC as a 64-char hex string.
+pub fn handle_sync_auth_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let passphrase = get_param(&params, "passphrase").unwrap_or("");
+    let room_code = get_param(&params, "room_code").unwrap_or("");
+
+    if passphrase.is_empty() {
+        return r#"{"error":"Missing passphrase"}"#.to_string();
+    }
+    if room_code.is_empty() {
+        return r#"{"error":"Missing room_code"}"#.to_string();
+    }
+
+    match crypto::sign_export(passphrase, room_code) {
+        Ok(mac) => mac,
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    }
+}
+
+// ── POST /api/player/sync/verify ───────────────────────────────────
+
+/// Handle POST /api/player/sync/verify
+/// Body: passphrase={...}&room_code={...}&mac={hex}
+/// Verifies the peer's HMAC matches our computation.
+/// Returns "ok" or "fail".
+pub fn handle_sync_verify_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let passphrase = get_param(&params, "passphrase").unwrap_or("");
+    let room_code = get_param(&params, "room_code").unwrap_or("");
+    let mac = get_param(&params, "mac").unwrap_or("");
+
+    if passphrase.is_empty() || room_code.is_empty() || mac.is_empty() {
+        return "fail".to_string();
+    }
+
+    match crypto::verify_export(passphrase, room_code, mac) {
+        Ok(true) => "ok".to_string(),
+        _ => "fail".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -468,6 +566,134 @@ mod tests {
         reset();
         let result = handle_import_signed_post("passphrase=test&payload=not-json");
         assert!(result.contains("Invalid payload format"));
+        reset();
+    }
+
+    // ── Sync route tests (Phase E) ─────────────────────────────────
+
+    #[test]
+    fn sync_sv_get_returns_nonempty_base64() {
+        reset();
+        player_doc::add_alarm(3, "test", "red");
+        let sv = handle_sync_sv_get("");
+        assert!(!sv.is_empty());
+        assert!(!sv.contains("error"));
+        reset();
+    }
+
+    #[test]
+    fn sync_diff_post_returns_update() {
+        reset();
+        player_doc::add_alarm(5, "local timer", "green");
+        // Use an empty SV (fresh device) — encoded as URL-safe base64
+        let empty_sv = {
+            use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+            use base64::Engine;
+            use yrs::updates::encoder::Encode;
+            use yrs::{Doc, ReadTxn, Transact};
+            let doc = Doc::new();
+            let sv = doc.transact().state_vector().encode_v1();
+            URL_SAFE_NO_PAD.encode(&sv)
+        };
+        let diff = handle_sync_diff_post(&format!("sv={}", empty_sv));
+        assert!(!diff.is_empty());
+        assert!(!diff.contains("error"));
+        reset();
+    }
+
+    #[test]
+    fn sync_diff_post_rejects_empty_sv() {
+        reset();
+        let result = handle_sync_diff_post("sv=");
+        assert!(result.contains("error"));
+        reset();
+    }
+
+    #[test]
+    fn sync_apply_post_returns_ok() {
+        reset();
+        // Create a remote update to apply
+        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+        use base64::Engine;
+        use yrs::{Any, Doc, Map, ReadTxn, Transact, WriteTxn};
+        let remote = Doc::new();
+        {
+            let mut txn = remote.transact_mut();
+            txn.get_or_insert_map("cards");
+            txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map("affinity");
+            txn.get_or_insert_map("loyalty");
+            let settings = txn.get_or_insert_map("settings");
+            settings.insert(&mut txn, "show_alarms", Any::from(false));
+        }
+        let update = remote
+            .transact()
+            .encode_diff_v1(&yrs::StateVector::default());
+        let update_b64 = URL_SAFE_NO_PAD.encode(&update);
+
+        let result = handle_sync_apply_post(&format!("update={}", update_b64));
+        assert_eq!(result, "ok");
+        reset();
+    }
+
+    #[test]
+    fn sync_apply_post_rejects_empty_update() {
+        reset();
+        let result = handle_sync_apply_post("update=");
+        assert!(result.contains("Missing update"));
+        reset();
+    }
+
+    #[test]
+    fn sync_auth_roundtrip() {
+        reset();
+        let mac = handle_sync_auth_post("passphrase=secret&room_code=ABCD");
+        assert_eq!(mac.len(), 64); // 32 bytes = 64 hex chars
+        assert!(!mac.contains("error"));
+
+        let verify = handle_sync_verify_post(&format!(
+            "passphrase=secret&room_code=ABCD&mac={}",
+            mac
+        ));
+        assert_eq!(verify, "ok");
+        reset();
+    }
+
+    #[test]
+    fn sync_auth_rejects_wrong_passphrase() {
+        reset();
+        let mac = handle_sync_auth_post("passphrase=correct&room_code=ABCD");
+        let verify = handle_sync_verify_post(&format!(
+            "passphrase=wrong&room_code=ABCD&mac={}",
+            mac
+        ));
+        assert_eq!(verify, "fail");
+        reset();
+    }
+
+    #[test]
+    fn sync_auth_rejects_wrong_room_code() {
+        reset();
+        let mac = handle_sync_auth_post("passphrase=secret&room_code=ABCD");
+        let verify = handle_sync_verify_post(&format!(
+            "passphrase=secret&room_code=WXYZ&mac={}",
+            mac
+        ));
+        assert_eq!(verify, "fail");
+        reset();
+    }
+
+    #[test]
+    fn sync_auth_rejects_empty_params() {
+        reset();
+        let result = handle_sync_auth_post("passphrase=&room_code=ABCD");
+        assert!(result.contains("error"));
+
+        let result2 = handle_sync_auth_post("passphrase=secret&room_code=");
+        assert!(result2.contains("error"));
+
+        let verify = handle_sync_verify_post("passphrase=&room_code=&mac=");
+        assert_eq!(verify, "fail");
         reset();
     }
 }

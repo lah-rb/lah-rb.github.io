@@ -132,6 +132,10 @@ wasmWorker.addEventListener('message', (event) => {
     ch.port1.onmessage = (msg) => {
       if (msg.data.html) {
         localStorage.setItem('kipukas_player_doc', msg.data.html);
+        // Phase E: broadcast to sync peer if a sync session is active
+        if (globalThis.kipukasSync && kipukasSync.isConnected()) {
+          kipukasSync.broadcastUpdate();
+        }
       }
     };
     wasmWorker.postMessage(
