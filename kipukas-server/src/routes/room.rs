@@ -1171,21 +1171,37 @@ fn build_result_html(
     }
     h.push_str(r#"</div>"#);
 
-    // Modifier result
-    let mod_color = if result.modifier > 0 {
+    // Compute affinity bonus: +1 if attacker's genetic_disposition matches active affinity
+    let affinity_bonus: i32 = match player_doc::get_active_affinity() {
+        Some((ref active_name, _)) => {
+            match atk_card.genetic_disposition {
+                Some(gd) if gd == active_name => 1,
+                _ => 0,
+            }
+        }
+        None => 0,
+    };
+    let total_modifier = result.modifier + affinity_bonus;
+    let total_color = if total_modifier > 0 {
         "text-emerald-600"
-    } else if result.modifier < 0 {
+    } else if total_modifier < 0 {
         "text-kip-red"
     } else {
         "text-slate-600"
     };
-    let mod_sign = if result.modifier > 0 { "+" } else { "" };
+    let total_sign = if total_modifier > 0 { "+" } else { "" };
 
     h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">"#);
     h.push_str(&format!(
         r#"<p class="text-sm font-bold">Attack Die Modifier</p><p class="text-3xl font-bold {}">{}{}</p>"#,
-        mod_color, mod_sign, result.modifier
+        total_color, total_sign, total_modifier
     ));
+    if affinity_bonus > 0 {
+        h.push_str(&format!(
+            r#"<p class="text-xs text-amber-600 mt-1">+1 from Affinity ({})</p>"#,
+            player_doc::get_active_affinity().map(|(n, _)| n).unwrap_or_default()
+        ));
+    }
 
     h.push_str(r#"</div>"#);
 

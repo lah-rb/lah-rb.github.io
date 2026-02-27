@@ -90,6 +90,13 @@ background_color
       %}
     {% endif %}
 
+    {% if include.affinity_tool %}
+      {% include affinity_tool.html
+          svgClass='h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna'
+          base_stroke=base_stroke
+      %}
+    {% endif %}
+
     {% if include.turn_tracker %}
         {% include turn_tracker.html
           svgClass='h-12 w-12 z-auto fill-transparent stroke stroke-2 hover:stroke-kip-red active:stroke-kip-drk-sienna'

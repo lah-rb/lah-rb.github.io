@@ -59,6 +59,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/player/restore", "player_restore").ok();
     router.insert("/api/player/export", "player_export").ok();
     router.insert("/api/player/import", "player_import").ok();
+    router.insert("/api/player/affinity", "player_affinity").ok();
 
     // Yrs CRDT sync routes
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
@@ -106,6 +107,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("player_restore", "POST") => routes::game::handle_player_restore_post(body),
             ("player_export", "GET") => routes::game::handle_player_export_get(query),
             ("player_import", "POST") => routes::game::handle_player_import_post(body),
+            ("player_affinity", "GET") => routes::player::handle_affinity_get(query),
+            ("player_affinity", "POST") => routes::player::handle_affinity_post(body),
 
             // Yrs CRDT sync routes
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
