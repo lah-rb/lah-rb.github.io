@@ -774,6 +774,9 @@ Allow a third peer to observe a match via a read-only WebSocket connection. Arch
 #### 8. Provide Kippa Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
 
+#### 9. Incubation Bonus & Tameability Refinement
+Integrate the incubation egg card bonus into the tameability computation. Add an `is_tamed()` helper function combining loyalty + affinity + incubation bonuses. Potential UI polish: tameability progress on card grid, tamed badge on index page. The core tameability infrastructure (tamability field, progress bar, tamed indicator) already shipped in Phase C — this feature adds the incubation mechanic layer.
+
 ---
 
 ## Current Sprint: Player Document & GameState → Yrs Consolidation
@@ -916,24 +919,7 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 
 ---
 
-#### Phase D: Tameability Refinement
-
-**Note:** The core tameability infrastructure shipped in Phase C: `tamability` field in Species YAML, extraction in `build-card-catalog.ts`, `Option<u32>` in the Card struct, and tameability progress rendering in the damage tracker. Phase D covers refinements and the incubation bonus mechanic.
-
-**What ships:** Incubation egg bonus integration into tameability computation. `is_tamed()` helper function. Potential UI polish (tameability section on card grid, tamed badge on index page).
-
-**Tamed condition:** `loyalty.total_plays + affinity.level + incubation_bonus ≥ tamability`
-
-**Files to create/modify:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | Add `is_tamed()` function combining loyalty + affinity + incubation bonuses |
-| `kipukas-server/src/game/damage.rs` | Integrate incubation bonus into tameability progress display |
-
----
-
-#### Phase E: Obfuscated/Encrypted Export/Import
+#### Phase D: Obfuscated/Encrypted Export/Import
 
 **Goal** Provide users a 'hardcopy' of their data state which is difficult to modify for cheating (maximizing affinity for type as an example).
 
@@ -941,23 +927,22 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 
 **New crate dependency:** `ed25519-dalek` (or `ring` for broader crypto) — evaluate WASM size impact.
 
-**This phase is deferred until Phases A–D are stable.** The PLAYER_DOC binary format is already suitable for encrypted backup — Phase E adds the encryption layer and identity semantics.
+**This phase is deferred until Phases A–C are stable.** The PLAYER_DOC binary format is already suitable for encrypted backup — Phase D adds the encryption layer and identity semantics.
 
 ---
 
-#### Phase F: Cross-Device Sync (Future)
+#### Phase E: Cross-Device Sync (Future)
 
 **What ships:** yrs sync protocol between devices over the existing WebSocket relay. Device pairing via keypair exchange. Automatic conflict resolution via CRDT merge.
 
 **Reuses:** The same `yrs_sv → yrs_sv_reply → yrs_update` handshake proven in multiplayer turn timer sync. The "room" concept extends to "device pairing room" — two devices join a persistent sync channel authenticated by keypair.
 
-**This phase is deferred until Phase E provides the identity/authentication layer.**
+**This phase is deferred until Phase D provides the identity/authentication layer.**
 
 ---
 
 ### Guiding Constraints
 
-- **No new crate dependencies in Phases B–D.** `yrs`, `base64`, `serde`, `serde_json` are already in the binary. The PLAYER_DOC uses the exact same yrs patterns proven in `crdt.rs`.
 - **Tests first.** Each phase must include unit tests for new player_doc functions before wiring routes.
 - **UI is separate from infrastructure.** Phases B/C/D add UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
 - **Single-player unaffected.** Affinity/loyalty tracking is purely local. Multiplayer features (ROOM_DOC, fists combat) remain independent. The only cross-cutting concern is the loyalty increment hook in fists submission.

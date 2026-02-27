@@ -206,13 +206,11 @@ pub fn render_damage_tracker(slug: &str) -> String {
 
     // Phase C: Loyalty badge
     if let Some((total_plays, _last)) = player_doc::get_loyalty(slug) {
-        html.push_str(r#"<div class="flex items-center mt-2 mb-1">"#);
         html.push_str(&format!(
-            r#"<p class="text-xs text-kip-drk-sienna">&#x2665; {} play{}</p>"#,
+            r#"<p class="text-center">&#x2665; {} play{}</p>"#,
             total_plays,
             if total_plays == 1 { "" } else { "s" }
         ));
-        html.push_str(r#"</div>"#);
     }
 
     // Phase C: Tameability progress (Species cards only)
@@ -230,12 +228,13 @@ pub fn render_damage_tracker(slug: &str) -> String {
             let current = loyalty_plays + affinity_level;
             let tamed = current >= threshold;
 
-            html.push_str(r#"<div class="mt-1 mb-2">"#);
             if tamed {
-                html.push_str(r#"<p class="text-xs font-bold text-emerald-600">&#x2714; Tamed!</p>"#);
+                html.push_str(
+                    r#"<p class="text-center font-bold text-emerald-600">&#x2714; Tamed!</p>"#,
+                );
             } else {
                 html.push_str(&format!(
-                    r#"<p class="text-xs text-kip-drk-sienna">Tame: {} / {}</p>"#,
+                    r#"<p class="text-center">Tame: {} / {}</p>"#,
                     current, threshold
                 ));
                 // Progress bar
@@ -247,7 +246,6 @@ pub fn render_damage_tracker(slug: &str) -> String {
                 ));
                 html.push_str(r#"</div>"#);
             }
-            html.push_str(r#"</div>"#);
         }
     }
 
