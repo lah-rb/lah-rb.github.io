@@ -142,6 +142,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
 | `assets/js/kipukas-multiplayer.js` | WebSocket relay multiplayer manager + game message protocol |
+| `assets/js/kipukas-crypto.js` | AES-GCM encryption/decryption for signed exports (lazy-loaded) |
 | `assets/js/qr-camera.js` | Camera + ZXing QR scan loop |
 | `sw-src.js` | Service worker source (Workbox injectManifest) |
 | `signaling-server/main.ts` | WebSocket relay server — room management + message forwarding |
@@ -582,6 +583,7 @@ if (!port) {
 | [serde](https://serde.rs/) + serde_json | 1.x | MIT / Apache-2.0 | State serialization (localStorage + WebSocket relay) |
 | [yrs](https://crates.io/crates/yrs) | 0.25 | MIT | Yjs CRDT port — conflict-free replicated data types for multiplayer sync |
 | [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
+| [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports |
 
 ### Server & Runtime
 
@@ -919,15 +921,121 @@ Each phase is independently shippable. Later phases depend on earlier ones but c
 
 ---
 
-#### Phase D: Obfuscated/Encrypted Export/Import
+#### Phase D: Signed & Encrypted Export/Import ✅ Complete
 
-**Goal** Provide users a 'hardcopy' of their data state which is difficult to modify for cheating (maximizing affinity for type as an example).
+**Status:** Shipped. Players can export/import encrypted, tamper-resistant backups of their PLAYER_DOC via the hamburger menu → "Player Data". Two-layer protection: Rust HMAC-SHA256 for integrity, JS AES-GCM (Web Crypto API) for confidentiality. File format: `.kipukas`.
 
-**What ships:** Ed25519 keypair generated in WASM. Private key encrypted in localStorage. Encrypted backup file download/upload. QR-based key export for device pairing.
+**Goal:** Provide users a hardcopy of their data state that is difficult to modify for cheating (e.g., maximizing affinity levels or loyalty counts).
 
-**New crate dependency:** `ed25519-dalek` (or `ring` for broader crypto) — evaluate WASM size impact.
+**Architecture — Two-Layer Protection:**
 
-**This phase is deferred until Phases A–C are stable.** The PLAYER_DOC binary format is already suitable for encrypted backup — Phase D adds the encryption layer and identity semantics.
+| Layer | Technology | Owner | Purpose |
+|-------|-----------|-------|---------|
+| **Integrity** | HMAC-SHA256 (`hmac-sha256` crate) | Rust WASM | Signs PLAYER_DOC base64 with passphrase. Detects tampering or wrong passphrase on import. |
+| **Confidentiality** | AES-256-GCM via Web Crypto API (PBKDF2 key derivation) | JavaScript | Encrypts the signed payload. Prevents reading exported data without the passphrase. |
+
+**Why two layers instead of one?** AES-GCM provides authenticated encryption (confidentiality + integrity), but Rust must verify the data *before* restoring it into PLAYER_DOC. Splitting the layers means: JS handles encryption/decryption (Web Crypto is async, unavailable in WASM Workers), Rust verifies the HMAC before touching state. This avoids an `unsafe` or complex async bridge — each layer does what it's best at.
+
+**New crate dependency:** `hmac-sha256` v1.1 — ~10KB, pure Rust, no-std compatible. Chosen over `ed25519-dalek` or `ring` because the threat model is casual tampering prevention, not cryptographic identity. Minimal WASM size impact.
+
+**Export flow:**
+
+```
+User clicks Export → enters passphrase → confirms passphrase
+  │
+  ▼
+JS sends POST /api/player/export/signed (passphrase + exported_at)
+  │
+  ▼
+Rust: HMAC-SHA256(passphrase, PLAYER_DOC base64) → { player_doc, mac, exported_at } JSON
+  │
+  ▼
+JS: lazy-imports kipukas-crypto.js → PBKDF2(passphrase, salt) → AES-GCM encrypt
+  │
+  ▼
+Browser downloads .kipukas file (JSON envelope: version, format, salt, iv, ciphertext)
+```
+
+**Import flow:**
+
+```
+User selects .kipukas file → enters passphrase
+  │
+  ▼
+JS: reads file → lazy-imports kipukas-crypto.js → PBKDF2 → AES-GCM decrypt
+  │
+  ▼
+JS sends POST /api/player/import/signed (passphrase + decrypted inner JSON)
+  │
+  ▼
+Rust: verify HMAC-SHA256(passphrase, player_doc) == mac
+  │
+  ▼
+If valid: restore_from_state(player_doc base64) → persist → reload page
+If invalid: "Verification failed — wrong passphrase or tampered data"
+```
+
+**Export file format (.kipukas):**
+
+```json
+{
+  "version": 1,
+  "format": "kipukas-player-export",
+  "salt": "<base64 16-byte PBKDF2 salt>",
+  "iv": "<base64 12-byte AES-GCM IV>",
+  "data": "<base64 AES-GCM ciphertext of inner signed payload>"
+}
+```
+
+**Inner signed payload (before encryption):**
+
+```json
+{
+  "player_doc": "<base64 yrs binary>",
+  "mac": "<64-char hex HMAC-SHA256>",
+  "exported_at": "<ISO 8601 timestamp>"
+}
+```
+
+**PLAYER_DOC structure** (unchanged from Phase C):
+
+| Root key | yrs type | Contents |
+|----------|----------|----------|
+| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool }` per card |
+| `"alarms"` | `YArray<YMap>` | `{ remaining: i32, name: String, color_set: String }` |
+| `"settings"` | `YMap` | `{ show_alarms: bool }` |
+| `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
+| `"loyalty"` | `YMap<slug, YMap>` | `{ total_plays: i64, last_played: String }` |
+
+**Active routes:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/player/export/signed` | POST | HMAC-sign PLAYER_DOC with passphrase → return inner JSON payload |
+| `/api/player/import/signed` | POST | Verify HMAC, restore PLAYER_DOC if valid → return HTML status |
+
+**UI:** Hamburger menu → "Player Data" button dispatches `open-player-data` window event → `_includes/player_data_tool.html` modal. Three-screen flow: menu (Export/Import), export form (passphrase + confirm), import form (file picker + passphrase). Uses Pattern 6 (postToWasmWithCallback) for the WASM→JS→encrypt→download chain.
+
+**Files created/modified:**
+
+| File | Changes |
+|------|---------|
+| `kipukas-server/src/game/crypto.rs` | **New.** `sign_export()`, `verify_export()`, constant-time `ct_eq()`, hex encode/decode + 10 unit tests |
+| `kipukas-server/src/game/mod.rs` | Added `pub mod crypto` |
+| `kipukas-server/src/routes/player.rs` | Added `handle_export_signed_post()`, `handle_import_signed_post()` + 6 unit tests |
+| `kipukas-server/src/lib.rs` | Registered `/api/player/export/signed` and `/api/player/import/signed` routes |
+| `kipukas-server/Cargo.toml` | Added `hmac-sha256 = "1.1"` dependency |
+| `assets/js/kipukas-crypto.js` | **New.** AES-GCM encrypt/decrypt via Web Crypto API (lazy-loaded ES module) |
+| `_includes/player_data_tool.html` | **New.** Export/import modal component (Pattern 11) |
+| `_includes/hamburger_menu.html` | Added "Player Data" menu item with `$dispatch('open-player-data')` |
+| `_includes/toolbar.html` | Added `player_data_tool.html` include alongside hamburger menu |
+
+**Security notes:**
+- PBKDF2 with 100,000 iterations for key derivation (OWASP recommended minimum)
+- Fresh random salt (16 bytes) and IV (12 bytes) per export — no nonce reuse
+- Passphrase minimum 4 characters enforced in UI
+- `kipukas-crypto.js` is lazy-loaded only when the export/import modal is used
+- Constant-time HMAC comparison in Rust prevents timing attacks
 
 ---
 
