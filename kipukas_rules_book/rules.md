@@ -5,16 +5,7 @@
 **Warnings before play:** 
 Kipukas uses many small game pieces to keep track of play. All pieces should be treated as **CHOKING HAZARDS and the game content is for people 13+ years of age.** Do not let children under or pets play with the pieces. At all times, it is the responsibility of the legal guardians to keep all pieces out of reach of children and pets.
 
-The included chat bot (Kippa) is an **alpha** feature to assist players in learning the rules. It has limitations including, but not limited to:
-
-**No conversation memory** — Each message is independent. Previous context is not remembered.
-**Conversation history limited** - Once the page refreshes the conversation history is wiped.
-**Expect delays** — Limited hardware capacity means requests may queue when busy (30 s timeout).
-**Check facts** — Kippa can hallucinate and produce inaccurate results. The rules text is the canonical source.
-**Offensive information** - While unlikely, Kippa may produce offensive/biased content. This does not reflect the views of Kipukas as a company.  
-**Context limits** — Text input amount is limited as is Kippa's output length.
-**Interactions may be logged** — Prompts and responses may be saved for debugging/improvement. By using the chat you agree to have your chat stored (no other personal data is collected, and no identifying data is ever collected)
-**Topic Limits** - Kippa is trained to only respond to questions relevent to the rules, itself, and Kipukas. It knows the rules quite well, it mostly knows itself, and has only a little broader Kipukas info at the moment.
+The included chat bot (Kippa) is an **alpha** feature to assist players in learning the rules. Kippa can hallucinate — the rules text is always the canonical source. Interactions may be anonymously logged for debugging and improvement; no personal or identifying data is ever collected. For the full list of limitations see [Using the Binder](/using_the_binder#kippa).
   
 By continuing to play with our products, you acknowledge that Kipukas accepts no liability for damages incurred by the misuse of our products.
 
@@ -111,13 +102,7 @@ Kipukas relies on oversized cards, 3d printed game pieces and game boards, and a
 
 ### QR Codes {#qr}
 
-In order to make this process as user-friendly as possible, we have included a private QR scanner which runs locally on your device through our web app. We, nor any other interested party, will be able to see footage caught on the QR scanner because it is never stored and never touches the internet. The same cannot be said about that random QR app you installed on your phone... If you prefer to install an app we recommend the open source Android app called Binary Eye as is uses the same code library as we do and is tested to work as well with some default settings changed. Cognex bar code scanner is OK for iphones.  
-  
-From now on we will assume that you trust us and use the QR scanner on kipukas.cards. Here, click the QR button in the tool bar, accept the privacy statement, then a camera will pop up. Give the beautiful face presented a gracious smile and show a card to the scanner. It will take you to that card's play data page. If for some reason you need to cancel scanning, you can click the eye icon on the top left of the scanner to close it. This scanner only works for QR codes which pattern match against Kipukas playing cards. The scanner will work best during a game if your device does not sleep during the play through. It is optional, but recommended to use or install a caffine mode app for this purpose. I hope you don't mind terrible selfies, because on the following page I screenshot one to show how this works. BTW I am holding the card way too far away on purpose for the shot. The QR code should take up most of the camera frame.
-
-![QR modal](./images/QR_modal.png) ![QR scanner](./images/QR_scanner.png)
-
-The QR scanner on hilbert's kipukas.cards page running on a 1080p laptop. If you are curious, I am scanning "Shard's Desert"; the first card commissioned for Kipukas.
+Each card has a unique QR code on its back. Scan it with the **QR scanner** in the toolbar on kipukas.cards to view that card's play data. The scanner runs entirely on your device — the camera feed is never stored or transmitted. For step-by-step instructions, screenshots, and alternative app recommendations see [Using the Binder](/using_the_binder#qr-scanner).
 
 ### Design {#design}
 
@@ -407,14 +392,14 @@ This shows the bonuses on the previous page overlayed on the additional attack b
 
 ### Fists Tool {#fists_tool}
 
-Use the fists tool on kipukas.cards to determine the typing match-ups for KEAL means and Archetypal Gene. It can be accessed on the side tool bar on the home page or on any card page.
-
-![fists open pic](./images/fists_open.png)![fists closed pic](./images/fists_closed.png)
+Use the **fists tool** on kipukas.cards to determine the typing match-ups for KEAL means and Archetypal Gene. Click the fists icon in the toolbar to open it. It works in both **local (single-player)** and **multiplayer** modes — in multiplayer, both players submit their choices simultaneously and the tool reveals the result with all applicable modifiers. For detailed instructions on both modes see [Using the Binder](/using_the_binder#fists-tool).
 
 
 ## Tameability {#tameability}
 
 **α mechanic** that applies only to species cards. Some species are easy to work with while others are quite persnickety. The tameability scale represents this phenomenon. Other souls and equipment may need to be played in order to wrangle these species. ∞ means the species is untameable (no amount of bonuses will tame them), those with 10 are the most difficult to tame, while 0 means the species does not require taming. A species becomes tame once player affinity and card effects stack equally with the species tameability. At this point, the soul will be under the full control of the player. If the player chooses to play the creature untamed or the opponent reduces your control of the creature below its tameability then the creature becomes under its own influence, [rouge](#rouge). Additionally, some cards will specify an ability to be played at a lower tameability rating without going rouge. In exchange, certain KEAL means or play effects will be unavaliable. These can be made avaliable by staking effects equal to the tameability after the species enters play.
+
+> Tameability progress is tracked on kipukas.cards. See [Using the Binder](/using_the_binder#tameability-progress) for details on the web app feature.
 
 
 ### Rouge Species {#rouge}
@@ -438,7 +423,17 @@ In certain circumstances, i.e. loitering (more than 1 day) in your opponent's ca
 
 ### Affinity and Loyalty {#affinity}
 
-The ultimate goal of affinity is to be a long term game play strategy alongside loyalties attached to the soul cards. When we attach a game server to the Kipukas binder , you will be able to track your affinity for playing with [Archeptypal Adaptations](#adaptation_overview). As you declare them at the start of a game, your affinity for them will grow. Likewise, loyalty will increase a with the number of times that you play the specific card soul card. (Both will be limited to once per day, except at tournaments, which will be once per match.) Loyalty will also increase if you came to own the card through an incubation card. When loyalty, affinity, and play effect bonuses stack greater than the species card's tameability, the card will be tamed. Until our webapp is further developed, there will not be a loyalty or affinity tracker. In its place, players will add 1 to attack and defense rolls made for their declaired Archetypal Affinity.
+**α feature — playable but rough, subject to refinement.**
+
+Affinity and loyalty are long term game play strategies that build over time. Both are now tracked on kipukas.cards, though the feature is still in early development and may change.
+
+**Affinity:** Your affinity for an [Archetypal Adaptation](#adaptation_overview) grows each time you declare it at the start of a game (once per day on kipukas.cards). When a soul card's archetypal adaptation matches your declared affinity, you receive a **+1 bonus to attack and defense rolls** made for that card.
+
+**Loyalty:** Each time you play a specific Character or Species card in combat, that card's loyalty counter increases (once per day per card). Loyalty also increases if you came to own the card through an incubation card. Both affinity and loyalty are limited to once per day, except at tournaments, which will be once per match.
+
+**Tameability interaction:** When loyalty, affinity, and play effect bonuses stack greater than the species card's tameability, the card will be tamed. See [Tameability](#tameability) for the full rules on taming and [rouge](#rouge) species.
+
+For details on using the affinity, loyalty, and tameability tools on kipukas.cards see [Using the Binder](/using_the_binder#affinity-tool).
 
 
 ## Attack, Defense, Retreat, and Healing {#ADRH}
@@ -454,13 +449,7 @@ As souls accrue injuries (lose KEAL means), their tolerance for new injuries bec
   
 Souls can be healed by other souls, terrain features, or items with a healing ability. The soul must be within the same territory as the healing entity or within its specified healing range. Healers can only heal a certain number of KEAL means with in a certain number of diel cycles. Most healers have the ability to heal themselves under the same conditions mentioned above, unless they are downed.
 
-![healthy keal](./images/healthy_keal_means.png)![injured keal](./images/injured_keal_means.png)
-
-KEAL means tracker on kipukas.cards
-
-![keal clean](./images/keal_means_clean.png)
-
-Toolbar option to reset the KEAL state of the cards (use after your game is complete)
+Track injuries using the **damage tracker** on each card's page on kipukas.cards. After your game, use the reset option in the toolbar to clear all KEAL state. For screenshots and details see [Using the Binder](/using_the_binder#damage-tracker).
 
 
 ### Methods of Attack Against KEAL Means {#attack}
@@ -633,9 +622,7 @@ Items are often able to equip to a soul to increase some aspect of the card's ab
 ### Recipes {#recipes}
 
 Crafting recipes must be discovered and kept for reference later. In competition, recipes maybe guessed and confirmed by event refs or competitors. If confirmed, you may use the recipe in the match. Only one recipe can be used in this fashion. Normally, you present the recipe from your recipe deck to the other player to prove you can play the item combo.  
-During our founders period, we have released all recipe combinations that are possible to make with the founder's deck items. Additionally, we have made a page on kipukas.cards to demonstrate how this mechanic works. You can find it under the menu in the tool bar. In the future, we plan on making these into recipe cards as well for players to incorperate into their broader recipe deck. However, these recipes will always be accepted a competitions as open use and the online demonstration will always reside on the kipukas binder.
-
-![recipe lookup](./images/recipe_lookup.png)
+During our founders period, we have released all recipe combinations that are possible to make with the founder's deck items. You can find the recipe lookup tool under the menu in the toolbar on kipukas.cards. In the future, we plan on making these into recipe cards as well for players to incorporate into their broader recipe deck. However, these recipes will always be accepted at competitions as open use and the online lookup will always reside on the kipukas binder. See [Using the Binder](/using_the_binder#recipes-lookup) for a screenshot and details.
 
 
 ## Personal Effect Cards {#personal_effects}
