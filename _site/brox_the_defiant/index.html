@@ -505,7 +505,7 @@ background_color
     
 
     
-        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
 <div x-data="{ showTurnMenu: false, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
@@ -534,7 +534,7 @@ background_color
         x-effect="if (showTurnMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
             }
         })">
 
@@ -550,7 +550,7 @@ background_color
 
             <!-- Turn timer section -->
             <div id="turn-container"
-              hx-get="/api/room/turns"
+              hx-get="/api/game/turns"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
@@ -782,104 +782,6 @@ background_color
 </div>
 
 
-<!-- 
-
-
-
-
-<div class="grid grid-cols-5 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ brox_the_defiant_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), brox_the_defiant_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track1"
-        :checked="brox_the_defiant_damage[1]"
-        :disabled="brox_the_defiant_damage[0] == false || brox_the_defiant_damage[2] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_1"  
-        @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false), $watch('clearDamage', value => brox_the_defiant_damage[1] = false)">
-        <label for="brox_the_defiant_damage_slot_1" x-anchor.bottom.start="$refs.brox_the_defiant_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track2"
-        :checked="brox_the_defiant_damage[2]"
-        :disabled="brox_the_defiant_damage[1] == false || brox_the_defiant_damage[3] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_2"  
-        @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false), $watch('clearDamage', value => brox_the_defiant_damage[2] = false)">
-        <label for="brox_the_defiant_damage_slot_2" x-anchor.bottom.start="$refs.brox_the_defiant_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track3"
-        :checked="brox_the_defiant_damage[3]"
-        :disabled="brox_the_defiant_damage[2] == false || brox_the_defiant_damage[4] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_3"  
-        @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false), $watch('clearDamage', value => brox_the_defiant_damage[3] = false)">
-        <label for="brox_the_defiant_damage_slot_3" x-anchor.bottom.start="$refs.brox_the_defiant_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track4"
-        :checked="brox_the_defiant_damage[4]"
-        :disabled="brox_the_defiant_damage[3] == false || brox_the_defiant_damage[5] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_4"  
-        @click="brox_the_defiant_damage[4] = !brox_the_defiant_damage[4]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[4] = false), $watch('clearDamage', value => brox_the_defiant_damage[4] = false)">
-        <label for="brox_the_defiant_damage_slot_4" x-anchor.bottom.start="$refs.brox_the_defiant_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track5"
-        :checked="brox_the_defiant_damage[5]"
-        :disabled="brox_the_defiant_damage[4] == false || brox_the_defiant_damage[6] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_5"  
-        @click="brox_the_defiant_damage[5] = !brox_the_defiant_damage[5]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[5] = false), $watch('clearDamage', value => brox_the_defiant_damage[5] = false)">
-        <label for="brox_the_defiant_damage_slot_5" x-anchor.bottom.start="$refs.brox_the_defiant_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="brox_the_defiant_track_wasted"
-    :checked="brox_the_defiant_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="brox_the_defiant_damage[3] == false" 
-    name="damageTrack" id="brox_the_defiant_wasted"  
-    @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']" 
-    x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false), $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)">
-    <label for="brox_the_defiant_wasted" x-anchor.bottom.start="$refs.brox_the_defiant_track_wasted"> wasted </label>
-  </div>
-</div> -->
-
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1070,104 +972,6 @@ background_color
   </p>
 </div>
 
-
-<!-- 
-
-
-
-
-<div class="grid grid-cols-5 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ brox_the_defiant_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), brox_the_defiant_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track1"
-        :checked="brox_the_defiant_damage[1]"
-        :disabled="brox_the_defiant_damage[0] == false || brox_the_defiant_damage[2] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_1"  
-        @click="brox_the_defiant_damage[1] = !brox_the_defiant_damage[1]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[1] = false), $watch('clearDamage', value => brox_the_defiant_damage[1] = false)">
-        <label for="brox_the_defiant_damage_slot_1" x-anchor.bottom.start="$refs.brox_the_defiant_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track2"
-        :checked="brox_the_defiant_damage[2]"
-        :disabled="brox_the_defiant_damage[1] == false || brox_the_defiant_damage[3] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_2"  
-        @click="brox_the_defiant_damage[2] = !brox_the_defiant_damage[2]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[2] = false), $watch('clearDamage', value => brox_the_defiant_damage[2] = false)">
-        <label for="brox_the_defiant_damage_slot_2" x-anchor.bottom.start="$refs.brox_the_defiant_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track3"
-        :checked="brox_the_defiant_damage[3]"
-        :disabled="brox_the_defiant_damage[2] == false || brox_the_defiant_damage[4] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_3"  
-        @click="brox_the_defiant_damage[3] = !brox_the_defiant_damage[3]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[3] = false), $watch('clearDamage', value => brox_the_defiant_damage[3] = false)">
-        <label for="brox_the_defiant_damage_slot_3" x-anchor.bottom.start="$refs.brox_the_defiant_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track4"
-        :checked="brox_the_defiant_damage[4]"
-        :disabled="brox_the_defiant_damage[3] == false || brox_the_defiant_damage[5] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_4"  
-        @click="brox_the_defiant_damage[4] = !brox_the_defiant_damage[4]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[4] = false), $watch('clearDamage', value => brox_the_defiant_damage[4] = false)">
-        <label for="brox_the_defiant_damage_slot_4" x-anchor.bottom.start="$refs.brox_the_defiant_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="3 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="brox_the_defiant_track5"
-        :checked="brox_the_defiant_damage[5]"
-        :disabled="brox_the_defiant_damage[4] == false || brox_the_defiant_damage[6] == true || brox_the_defiant_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="brox_the_defiant_damage_slot_5"  
-        @click="brox_the_defiant_damage[5] = !brox_the_defiant_damage[5]" 
-        x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage[5] = false), $watch('clearDamage', value => brox_the_defiant_damage[5] = false)">
-        <label for="brox_the_defiant_damage_slot_5" x-anchor.bottom.start="$refs.brox_the_defiant_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="brox_the_defiant_track_wasted"
-    :checked="brox_the_defiant_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="brox_the_defiant_damage[3] == false" 
-    name="damageTrack" id="brox_the_defiant_wasted"  
-    @click="brox_the_defiant_damage['wasted'] = !brox_the_defiant_damage['wasted']" 
-    x-init="clearDamage == brox_the_defiant_clear || (brox_the_defiant_damage['wasted'] = false), $watch('clearDamage', value => brox_the_defiant_damage['wasted'] = false)">
-    <label for="brox_the_defiant_wasted" x-anchor.bottom.start="$refs.brox_the_defiant_track_wasted"> wasted </label>
-  </div>
-</div> -->
 
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">

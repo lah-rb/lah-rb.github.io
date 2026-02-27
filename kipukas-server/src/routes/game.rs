@@ -109,16 +109,16 @@ pub fn handle_turns_post(body: &str) -> String {
             let clamped = t.clamp(1, 99);
             let name = get_param(&params, "name").unwrap_or("");
             let color_set = get_param(&params, "color_set").unwrap_or("red");
-            turns::add_alarm(clamped, name, color_set);
+            player_doc::add_alarm(clamped, name, color_set);
         }
         "tick" => {
-            turns::tick_alarms();
+            player_doc::tick_alarms();
         }
         "remove" => {
             let idx: usize = get_param(&params, "index")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
-            turns::remove_alarm(idx);
+            player_doc::remove_alarm(idx);
         }
         "toggle_visibility" => {
             turns::toggle_alarms_visibility();
@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn turns_post_toggle_visibility() {
         reset_state();
-        turns::add_alarm(5, "", "red");
+        player_doc::add_alarm(5, "", "red");
         handle_turns_post("action=toggle_visibility");
         let html = turns::render_alarm_list();
         assert!(html.contains("hidden"));

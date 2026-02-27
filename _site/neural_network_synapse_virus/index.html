@@ -497,7 +497,7 @@ background_color
     
 
     
-        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
 <div x-data="{ showTurnMenu: false, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
@@ -524,7 +524,7 @@ background_color
         x-effect="if (showTurnMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
             }
         })">
 
@@ -540,7 +540,7 @@ background_color
 
             <!-- Turn timer section -->
             <div id="turn-container"
-              hx-get="/api/room/turns"
+              hx-get="/api/game/turns"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
@@ -760,103 +760,6 @@ background_color
 </div>
 
 
-<!-- 
-
-
-
-
-<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ neural_network_synapse_virus_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), neural_network_synapse_virus_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="neural_network_synapse_virus_track1"
-        :checked="neural_network_synapse_virus_damage[1]"
-        :disabled="neural_network_synapse_virus_damage[0] == false || neural_network_synapse_virus_damage[2] == true || neural_network_synapse_virus_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="neural_network_synapse_virus_damage_slot_1"  
-        @click="neural_network_synapse_virus_damage[1] = !neural_network_synapse_virus_damage[1]" 
-        x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[1] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage[1] = false)">
-        <label for="neural_network_synapse_virus_damage_slot_1" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="neural_network_synapse_virus_track2"
-        :checked="neural_network_synapse_virus_damage[2]"
-        :disabled="neural_network_synapse_virus_damage[1] == false || neural_network_synapse_virus_damage[3] == true || neural_network_synapse_virus_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="neural_network_synapse_virus_damage_slot_2"  
-        @click="neural_network_synapse_virus_damage[2] = !neural_network_synapse_virus_damage[2]" 
-        x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[2] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage[2] = false)">
-        <label for="neural_network_synapse_virus_damage_slot_2" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="neural_network_synapse_virus_track3"
-        :checked="neural_network_synapse_virus_damage[3]"
-        :disabled="neural_network_synapse_virus_damage[2] == false || neural_network_synapse_virus_damage[4] == true || neural_network_synapse_virus_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="neural_network_synapse_virus_damage_slot_3"  
-        @click="neural_network_synapse_virus_damage[3] = !neural_network_synapse_virus_damage[3]" 
-        x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[3] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage[3] = false)">
-        <label for="neural_network_synapse_virus_damage_slot_3" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="neural_network_synapse_virus_track4"
-        :checked="neural_network_synapse_virus_damage[4]"
-        :disabled="neural_network_synapse_virus_damage[3] == false || neural_network_synapse_virus_damage[5] == true || neural_network_synapse_virus_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="neural_network_synapse_virus_damage_slot_4"  
-        @click="neural_network_synapse_virus_damage[4] = !neural_network_synapse_virus_damage[4]" 
-        x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[4] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage[4] = false)">
-        <label for="neural_network_synapse_virus_damage_slot_4" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="neural_network_synapse_virus_track5"
-        :checked="neural_network_synapse_virus_damage[5]"
-        :disabled="neural_network_synapse_virus_damage[4] == false || neural_network_synapse_virus_damage[6] == true || neural_network_synapse_virus_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="neural_network_synapse_virus_damage_slot_5"  
-        @click="neural_network_synapse_virus_damage[5] = !neural_network_synapse_virus_damage[5]" 
-        x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage[5] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage[5] = false)">
-        <label for="neural_network_synapse_virus_damage_slot_5" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="neural_network_synapse_virus_track_wasted"
-    :checked="neural_network_synapse_virus_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="neural_network_synapse_virus_damage[2] == false" 
-    name="damageTrack" id="neural_network_synapse_virus_wasted"  
-    @click="neural_network_synapse_virus_damage['wasted'] = !neural_network_synapse_virus_damage['wasted']" 
-    x-init="clearDamage == neural_network_synapse_virus_clear || (neural_network_synapse_virus_damage['wasted'] = false), $watch('clearDamage', value => neural_network_synapse_virus_damage['wasted'] = false)">
-    <label for="neural_network_synapse_virus_wasted" x-anchor.bottom.start="$refs.neural_network_synapse_virus_track_wasted"> wasted </label>
-  </div>
-</div> -->
 <!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >

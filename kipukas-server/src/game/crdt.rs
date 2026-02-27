@@ -690,10 +690,11 @@ mod tests {
     }
 
     #[test]
-    fn seed_then_disconnect_no_mutations_leaves_local_empty() {
-        // Simulate: local alarms → seed into CRDT → disconnect (no mutations)
-        // Disconnect no longer calls export_to_local(), so PLAYER_DOC stays
-        // empty after seeding. The mutation routes export during the session.
+    fn seed_then_disconnect_no_mutations_roundtrips_alarms() {
+        // Simulate: local alarms → seed into CRDT → disconnect (no mutations).
+        // Disconnect calls export_to_local() before reset, so PLAYER_DOC
+        // gets the CRDT alarms back. The worker's PERSIST_STATE message
+        // ensures this is saved to localStorage, preventing ghost timers.
         player_doc::init_player_doc();
         player_doc::add_alarm(5, "round trip", "green");
         player_doc::add_alarm(2, "also round trip", "pink");
@@ -704,13 +705,17 @@ mod tests {
         assert_eq!(get_alarms().len(), 2);
         assert!(player_doc::get_alarms().is_empty());
 
-        // Disconnect: just reset, no export_to_local()
+        // Disconnect: export CRDT → local, then reset CRDT
+        export_to_local();
         reset_doc();
 
         // CRDT is empty after reset
         assert!(get_alarms().is_empty());
-        // Local PLAYER_DOC remains empty — no ghost
-        assert!(player_doc::get_alarms().is_empty());
+        // Local PLAYER_DOC has the alarms back from the roundtrip
+        let local = player_doc::get_alarms();
+        assert_eq!(local.len(), 2);
+        assert_eq!(local[0].name, "round trip");
+        assert_eq!(local[1].name, "also round trip");
 
         player_doc::init_player_doc();
     }

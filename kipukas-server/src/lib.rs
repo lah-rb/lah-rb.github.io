@@ -52,7 +52,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
     router.insert("/api/room/fists/final", "room_fists_final").ok();
     router.insert("/api/room/fists/final/sync", "room_fists_final_sync").ok();
-    router.insert("/api/room/turns", "room_turns").ok();
     router.insert("/api/room/state", "room_state").ok();
 
     // Player document routes
@@ -89,7 +88,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_status", "GET") => routes::room::handle_status_get(query),
             ("room_fists", "GET") => routes::room::handle_fists_get(query),
             ("room_fists_poll", "GET") => routes::room::handle_fists_poll_get(query),
-            ("room_turns", "GET") => routes::room::handle_room_turns_get(query),
             ("room_state", "GET") => routes::room::handle_room_state_get(query),
             ("room_create", "POST") => routes::room::handle_create_post(body),
             ("room_join", "POST") => routes::room::handle_join_post(body),

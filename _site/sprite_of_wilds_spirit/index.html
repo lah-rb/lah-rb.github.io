@@ -505,7 +505,7 @@ background_color
     
 
     
-        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
 <div x-data="{ showTurnMenu: false, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
@@ -534,7 +534,7 @@ background_color
         x-effect="if (showTurnMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
             }
         })">
 
@@ -550,7 +550,7 @@ background_color
 
             <!-- Turn timer section -->
             <div id="turn-container"
-              hx-get="/api/room/turns"
+              hx-get="/api/game/turns"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
@@ -783,103 +783,6 @@ background_color
 
 
 <!-- 
-
-
-
-
-<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ sprite_of_wilds_spirit_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), sprite_of_wilds_spirit_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track1"
-        :checked="sprite_of_wilds_spirit_damage[1]"
-        :disabled="sprite_of_wilds_spirit_damage[0] == false || sprite_of_wilds_spirit_damage[2] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_1"  
-        @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[1] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[1] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_1" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track2"
-        :checked="sprite_of_wilds_spirit_damage[2]"
-        :disabled="sprite_of_wilds_spirit_damage[1] == false || sprite_of_wilds_spirit_damage[3] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_2"  
-        @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[2] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[2] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_2" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track3"
-        :checked="sprite_of_wilds_spirit_damage[3]"
-        :disabled="sprite_of_wilds_spirit_damage[2] == false || sprite_of_wilds_spirit_damage[4] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_3"  
-        @click="sprite_of_wilds_spirit_damage[3] = !sprite_of_wilds_spirit_damage[3]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[3] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[3] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_3" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track4"
-        :checked="sprite_of_wilds_spirit_damage[4]"
-        :disabled="sprite_of_wilds_spirit_damage[3] == false || sprite_of_wilds_spirit_damage[5] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_4"  
-        @click="sprite_of_wilds_spirit_damage[4] = !sprite_of_wilds_spirit_damage[4]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[4] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[4] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_4" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track5"
-        :checked="sprite_of_wilds_spirit_damage[5]"
-        :disabled="sprite_of_wilds_spirit_damage[4] == false || sprite_of_wilds_spirit_damage[6] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_5"  
-        @click="sprite_of_wilds_spirit_damage[5] = !sprite_of_wilds_spirit_damage[5]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[5] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[5] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_5" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="sprite_of_wilds_spirit_track_wasted"
-    :checked="sprite_of_wilds_spirit_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="sprite_of_wilds_spirit_damage[2] == false" 
-    name="damageTrack" id="sprite_of_wilds_spirit_wasted"  
-    @click="sprite_of_wilds_spirit_damage['wasted'] = !sprite_of_wilds_spirit_damage['wasted']" 
-    x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage['wasted'] = false)">
-    <label for="sprite_of_wilds_spirit_wasted" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track_wasted"> wasted </label>
-  </div>
-</div> -->
-<!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     
@@ -1084,103 +987,6 @@ background_color
 </div>
 
 
-<!-- 
-
-
-
-
-<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ sprite_of_wilds_spirit_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), sprite_of_wilds_spirit_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track1"
-        :checked="sprite_of_wilds_spirit_damage[1]"
-        :disabled="sprite_of_wilds_spirit_damage[0] == false || sprite_of_wilds_spirit_damage[2] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_1"  
-        @click="sprite_of_wilds_spirit_damage[1] = !sprite_of_wilds_spirit_damage[1]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[1] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[1] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_1" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track2"
-        :checked="sprite_of_wilds_spirit_damage[2]"
-        :disabled="sprite_of_wilds_spirit_damage[1] == false || sprite_of_wilds_spirit_damage[3] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_2"  
-        @click="sprite_of_wilds_spirit_damage[2] = !sprite_of_wilds_spirit_damage[2]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[2] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[2] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_2" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track3"
-        :checked="sprite_of_wilds_spirit_damage[3]"
-        :disabled="sprite_of_wilds_spirit_damage[2] == false || sprite_of_wilds_spirit_damage[4] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_3"  
-        @click="sprite_of_wilds_spirit_damage[3] = !sprite_of_wilds_spirit_damage[3]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[3] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[3] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_3" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track4"
-        :checked="sprite_of_wilds_spirit_damage[4]"
-        :disabled="sprite_of_wilds_spirit_damage[3] == false || sprite_of_wilds_spirit_damage[5] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_4"  
-        @click="sprite_of_wilds_spirit_damage[4] = !sprite_of_wilds_spirit_damage[4]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[4] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[4] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_4" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="sprite_of_wilds_spirit_track5"
-        :checked="sprite_of_wilds_spirit_damage[5]"
-        :disabled="sprite_of_wilds_spirit_damage[4] == false || sprite_of_wilds_spirit_damage[6] == true || sprite_of_wilds_spirit_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="sprite_of_wilds_spirit_damage_slot_5"  
-        @click="sprite_of_wilds_spirit_damage[5] = !sprite_of_wilds_spirit_damage[5]" 
-        x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage[5] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage[5] = false)">
-        <label for="sprite_of_wilds_spirit_damage_slot_5" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="sprite_of_wilds_spirit_track_wasted"
-    :checked="sprite_of_wilds_spirit_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="sprite_of_wilds_spirit_damage[2] == false" 
-    name="damageTrack" id="sprite_of_wilds_spirit_wasted"  
-    @click="sprite_of_wilds_spirit_damage['wasted'] = !sprite_of_wilds_spirit_damage['wasted']" 
-    x-init="clearDamage == sprite_of_wilds_spirit_clear || (sprite_of_wilds_spirit_damage['wasted'] = false), $watch('clearDamage', value => sprite_of_wilds_spirit_damage['wasted'] = false)">
-    <label for="sprite_of_wilds_spirit_wasted" x-anchor.bottom.start="$refs.sprite_of_wilds_spirit_track_wasted"> wasted </label>
-  </div>
-</div> -->
 <!-- 
 <div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >

@@ -505,7 +505,7 @@ background_color
     
 
     
-        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/room/turns) -->
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
 <div x-data="{ showTurnMenu: false, roomConnected: false }"
      class="relative place-content-center"
      @room-connected.window="roomConnected = true"
@@ -534,7 +534,7 @@ background_color
         x-effect="if (showTurnMenu) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
                 var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/room/turns', {target:'#turn-container', swap:'innerHTML'});
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
             }
         })">
 
@@ -550,7 +550,7 @@ background_color
 
             <!-- Turn timer section -->
             <div id="turn-container"
-              hx-get="/api/room/turns"
+              hx-get="/api/game/turns"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
@@ -782,104 +782,6 @@ background_color
 </div>
 
 
-<!-- 
-
-
-
-
-<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ mihela_cleanser_of_fields_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), mihela_cleanser_of_fields_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track1"
-        :checked="mihela_cleanser_of_fields_damage[1]"
-        :disabled="mihela_cleanser_of_fields_damage[0] == false || mihela_cleanser_of_fields_damage[2] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_1"  
-        @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[1] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[1] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_1" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track2"
-        :checked="mihela_cleanser_of_fields_damage[2]"
-        :disabled="mihela_cleanser_of_fields_damage[1] == false || mihela_cleanser_of_fields_damage[3] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_2"  
-        @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[2] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[2] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_2" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track3"
-        :checked="mihela_cleanser_of_fields_damage[3]"
-        :disabled="mihela_cleanser_of_fields_damage[2] == false || mihela_cleanser_of_fields_damage[4] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_3"  
-        @click="mihela_cleanser_of_fields_damage[3] = !mihela_cleanser_of_fields_damage[3]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[3] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[3] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_3" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track4"
-        :checked="mihela_cleanser_of_fields_damage[4]"
-        :disabled="mihela_cleanser_of_fields_damage[3] == false || mihela_cleanser_of_fields_damage[5] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_4"  
-        @click="mihela_cleanser_of_fields_damage[4] = !mihela_cleanser_of_fields_damage[4]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[4] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[4] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_4" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track5"
-        :checked="mihela_cleanser_of_fields_damage[5]"
-        :disabled="mihela_cleanser_of_fields_damage[4] == false || mihela_cleanser_of_fields_damage[6] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_5"  
-        @click="mihela_cleanser_of_fields_damage[5] = !mihela_cleanser_of_fields_damage[5]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[5] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[5] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_5" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="mihela_cleanser_of_fields_track_wasted"
-    :checked="mihela_cleanser_of_fields_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="mihela_cleanser_of_fields_damage[2] == false" 
-    name="damageTrack" id="mihela_cleanser_of_fields_wasted"  
-    @click="mihela_cleanser_of_fields_damage['wasted'] = !mihela_cleanser_of_fields_damage['wasted']" 
-    x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage['wasted'] = false)">
-    <label for="mihela_cleanser_of_fields_wasted" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track_wasted"> wasted </label>
-  </div>
-</div> -->
-
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
@@ -1068,104 +970,6 @@ background_color
   </p>
 </div>
 
-
-<!-- 
-
-
-
-
-<div class="grid grid-cols-4 z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" x-cloak x-data="{ mihela_cleanser_of_fields_damage: $persist({1: false, 2: false, 3: false, 4: false, 5: false, wasted: false}), mihela_cleanser_of_fields_clear: $persist([]) }">
-  <p class="text-left">Card Status:</p>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 1">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track1"
-        :checked="mihela_cleanser_of_fields_damage[1]"
-        :disabled="mihela_cleanser_of_fields_damage[0] == false || mihela_cleanser_of_fields_damage[2] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_1"  
-        @click="mihela_cleanser_of_fields_damage[1] = !mihela_cleanser_of_fields_damage[1]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[1] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[1] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_1" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track1"> 1 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 2">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track2"
-        :checked="mihela_cleanser_of_fields_damage[2]"
-        :disabled="mihela_cleanser_of_fields_damage[1] == false || mihela_cleanser_of_fields_damage[3] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_2"  
-        @click="mihela_cleanser_of_fields_damage[2] = !mihela_cleanser_of_fields_damage[2]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[2] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[2] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_2" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track2"> 2 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 3">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track3"
-        :checked="mihela_cleanser_of_fields_damage[3]"
-        :disabled="mihela_cleanser_of_fields_damage[2] == false || mihela_cleanser_of_fields_damage[4] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_3"  
-        @click="mihela_cleanser_of_fields_damage[3] = !mihela_cleanser_of_fields_damage[3]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[3] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[3] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_3" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track3"> 3 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 4">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track4"
-        :checked="mihela_cleanser_of_fields_damage[4]"
-        :disabled="mihela_cleanser_of_fields_damage[3] == false || mihela_cleanser_of_fields_damage[5] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_4"  
-        @click="mihela_cleanser_of_fields_damage[4] = !mihela_cleanser_of_fields_damage[4]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[4] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[4] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_4" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track4"> 4 </label>
-    </div>
-  
-    
-    <div class="mx-2 place-self-center align-items-start" x-show="2 >= 5">
-      <input 
-        type="checkbox" 
-        x-ref="mihela_cleanser_of_fields_track5"
-        :checked="mihela_cleanser_of_fields_damage[5]"
-        :disabled="mihela_cleanser_of_fields_damage[4] == false || mihela_cleanser_of_fields_damage[6] == true || mihela_cleanser_of_fields_damage['wasted'] == true" 
-        class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-        name="damageTrack" 
-        id="mihela_cleanser_of_fields_damage_slot_5"  
-        @click="mihela_cleanser_of_fields_damage[5] = !mihela_cleanser_of_fields_damage[5]" 
-        x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage[5] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage[5] = false)">
-        <label for="mihela_cleanser_of_fields_damage_slot_5" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track5"> 5 </label>
-    </div>
-  
-  
-  <div class="mx-2 place-self-center">
-    <input 
-    type="checkbox" 
-    x-ref="mihela_cleanser_of_fields_track_wasted"
-    :checked="mihela_cleanser_of_fields_damage['wasted']" 
-    class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" 
-    :disabled="mihela_cleanser_of_fields_damage[2] == false" 
-    name="damageTrack" id="mihela_cleanser_of_fields_wasted"  
-    @click="mihela_cleanser_of_fields_damage['wasted'] = !mihela_cleanser_of_fields_damage['wasted']" 
-    x-init="clearDamage == mihela_cleanser_of_fields_clear || (mihela_cleanser_of_fields_damage['wasted'] = false), $watch('clearDamage', value => mihela_cleanser_of_fields_damage['wasted'] = false)">
-    <label for="mihela_cleanser_of_fields_wasted" x-anchor.bottom.start="$refs.mihela_cleanser_of_fields_track_wasted"> wasted </label>
-  </div>
-</div> -->
 
 
 <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
