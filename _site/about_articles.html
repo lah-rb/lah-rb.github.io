@@ -723,6 +723,10 @@ If you have not already installed our pwa, check if your browser (and launcher i
   
   inViewmechanics_development: true,
   
+  inViewopen_stack: true,
+  
+  inViewusing_the_binder: true,
+  
   }
   " 
   class="flex flex-wrap gap-x-5 content-auto place-content-center">
@@ -773,6 +777,54 @@ If you have not already installed our pwa, check if your browser (and launcher i
         
         </div>  
         <div class="text-center text-wrap">Game Mechanics Dev</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewopen_stack = true" x-intersect:leave="inViewopen_stack = false">
+      <a href="/open_stack"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewopen_stack
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Open Stack &amp; Licenses</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewusing_the_binder = true" x-intersect:leave="inViewusing_the_binder = false">
+      <a href="/using_the_binder"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewusing_the_binder
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Using the Binder</div>
       </a>
     </div>
     
