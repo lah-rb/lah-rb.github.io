@@ -5,6 +5,13 @@
 //! where the wasted checkbox appears.
 //!
 //! State is stored in the PLAYER_DOC yrs CRDT document (thread_local WASM memory).
+//!
+//! **DOM Residency Model:** The damage circles are always-in-DOM elements on
+//! card pages. Alpine.js owns the reactive visual state (slot toggles, wasted,
+//! Final Blows visibility). Clicks fire-and-forget to the WASM worker via
+//! `kipukasWorker.postMessage()` to update authoritative state and trigger
+//! PERSIST_STATE → localStorage. HTMX is only used for the initial load
+//! (`hx-trigger="load"` on the container in `keal_damage_tracker.html`).
 
 use crate::cards_generated::CARDS;
 use crate::game::player_doc;
@@ -71,8 +78,73 @@ fn all_slots_checked(slug: &str, total: u8) -> bool {
     true
 }
 
+/// Build the Alpine.js `x-data` object string for the damage tracker.
+///
+/// Contains reactive state (`slots`, `wasted`) initialized from PLAYER_DOC,
+/// computed helpers (`allChecked`, `slotClass`), and fire-and-forget methods
+/// (`toggleSlot`, `toggleWasted`) that update Alpine state immediately and
+/// send the mutation to the WASM worker for authoritative persistence.
+fn build_alpine_x_data(slug: &str, total: u8, is_wasted: bool) -> String {
+    // Build slots object: { 1: false, 2: true, 3: false, ... }
+    let mut slots_entries: Vec<String> = Vec::with_capacity(total as usize);
+    for i in 1..=total {
+        let checked = player_doc::get_slot(slug, i);
+        slots_entries.push(format!("{}: {}", i, checked));
+    }
+    let slots_obj = format!("{{{}}}", slots_entries.join(", "));
+
+    let mut xd = String::with_capacity(512);
+    xd.push_str("{ slots: ");
+    xd.push_str(&slots_obj);
+    xd.push_str(", wasted: ");
+    xd.push_str(if is_wasted { "true" } else { "false" });
+
+    // allChecked() — computed from Alpine reactive slots state
+    xd.push_str(
+        ", allChecked() { return Object.values(this.slots).every(function(v) { return v }) }",
+    );
+
+    // slotClass(n) — returns Tailwind classes based on slot + wasted state
+    xd.push_str(", slotClass(n) { ");
+    xd.push_str("if (this.wasted) return this.slots[n] ? ");
+    xd.push_str("'bg-slate-400 border-slate-400' : 'bg-transparent border-slate-400'; ");
+    xd.push_str(
+        "return this.slots[n] ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'",
+    );
+    xd.push_str(" }");
+
+    // fire(body) — fire-and-forget to WASM worker (no MessageChannel, no response)
+    xd.push_str(", fire(body) { kipukasWorker.postMessage(");
+    xd.push_str("{method:'POST',pathname:'/api/game/damage',search:'',body:body}");
+    xd.push_str(") }");
+
+    // toggleSlot(n) — Alpine reactive toggle + fire-and-forget
+    xd.push_str(", toggleSlot(n) { ");
+    xd.push_str("if (this.wasted) return; ");
+    xd.push_str("this.slots[n] = !this.slots[n]; ");
+    xd.push_str("this.fire('card=");
+    xd.push_str(slug);
+    xd.push_str("&slot='+n)");
+    xd.push_str(" }");
+
+    // toggleWasted() — Alpine reactive toggle + fire-and-forget
+    xd.push_str(", toggleWasted() { ");
+    xd.push_str("this.wasted = !this.wasted; ");
+    xd.push_str("this.fire('card=");
+    xd.push_str(slug);
+    xd.push_str("&action=wasted')");
+    xd.push_str(" }");
+
+    xd.push_str(" }");
+    xd
+}
+
 /// Render the keal damage tracker HTML for a specific card.
-/// This replaces the Jekyll/Alpine `keal_damage_tracker.html` include.
+///
+/// Returns an HTML fragment with a single Alpine `x-data` scope at the
+/// container level. All slot/wasted visual state is driven by Alpine's
+/// reactive `:class` bindings. Clicks fire-and-forget to the WASM worker.
+/// HTMX is NOT used for per-click swaps — only for the initial load.
 pub fn render_damage_tracker(slug: &str) -> String {
     let card = match find_card(slug) {
         Some(c) => c,
@@ -100,17 +172,30 @@ pub fn render_damage_tracker(slug: &str) -> String {
         let pairs: Vec<String> = (1..=total)
             .map(|i| format!("{}:{}", i, player_doc::get_slot(slug, i)))
             .collect();
-        format!("slots=[{}] all_checked={} wasted={}", pairs.join(","), all_checked, is_wasted)
+        format!(
+            "slots=[{}] all_checked={} wasted={}",
+            pairs.join(","),
+            all_checked,
+            is_wasted
+        )
     };
 
-    let mut html = String::with_capacity(2048);
-    html.push_str(&format!("<!-- [kipukas-debug] {} {} -->", slug, slot_debug));
+    let x_data = build_alpine_x_data(slug, total, is_wasted);
 
-    // Container — hx-target and hx-swap are inherited by all child buttons
+    let mut html = String::with_capacity(2048);
     html.push_str(&format!(
-        r##"<div class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center" hx-target="#keal-damage-{}" hx-swap="innerHTML">"##,
-        slug
+        "<!-- [kipukas-debug] {} {} -->",
+        slug, slot_debug
     ));
+
+    // Container — Alpine x-data scope owns all reactive state.
+    // :class drives Final Blows visibility (replaces sentinel div pattern).
+    // No hx-target/hx-swap — buttons don't trigger HTMX swaps.
+    html.push_str(r#"<div x-data=""#);
+    html.push_str(&x_data);
+    html.push_str(
+        r#"" :class="{ 'show-final-blows': allChecked() || wasted }" class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center">"#,
+    );
 
     // Section header
     html.push_str(r#"<p class="capitalize">Combat</p>"#);
@@ -140,30 +225,17 @@ pub fn render_damage_tracker(slug: &str) -> String {
         ));
 
         for _ in 0..km.count {
-            let checked = player_doc::get_slot(slug, slot_idx);
-
-            if is_wasted {
-                // Disabled state — greyed out, non-clickable
-                let bg = if checked { "bg-slate-400" } else { "bg-transparent" };
-                html.push_str(&format!(
-                    r##"<span class="mr-1 opacity-40"><div class="w-5 h-5 rounded-full border-2 {bg} border-slate-400"></div></span>"##,
-                    bg = bg,
-                ));
-            } else if checked {
-                // Checked state — filled red circle, clickable to toggle off
-                html.push_str(&format!(
-                    r##"<button x-data="{{ on: true }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","slot":"{slot}"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
-                    slug = slug,
-                    slot = slot_idx,
-                ));
-            } else {
-                // Unchecked state — green border, white fill, clickable to toggle on
-                html.push_str(&format!(
-                    r##"<button x-data="{{ on: false }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","slot":"{slot}"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-white border-emerald-600" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
-                    slug = slug,
-                    slot = slot_idx,
-                ));
-            }
+            // Every slot renders as a button with Alpine @click and :class.
+            // No hx-post — Alpine handles the visual toggle, fire-and-forget
+            // handles persistence. :class is the ONLY source of bg/border
+            // classes, eliminating the CSS specificity conflict.
+            html.push_str(r#"<button class="mr-1 damage-slot" @click="toggleSlot("#);
+            html.push_str(&slot_idx.to_string());
+            html.push_str(
+                r#")" :class="{'opacity-40 pointer-events-none': wasted}"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="slotClass("#,
+            );
+            html.push_str(&slot_idx.to_string());
+            html.push_str(r#")"></div></button>"#);
 
             slot_idx += 1;
         }
@@ -180,12 +252,10 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"</div></div><br>"#);
     }
 
-    // Sentinel div: present when all keal means slots are checked (or wasted).
-    if all_checked || is_wasted {
-        html.push_str(r#"<div class="keal-all-checked hidden"></div>"#);
-    }
-
-    // Final Blows section — always in the DOM, visibility controlled by Alpine
+    // Final Blows section — always in the DOM, visibility controlled by
+    // Alpine :class="{ 'show-final-blows': allChecked() || wasted }" on
+    // the container. CSS rule: .final-blows-section { display: none; }
+    // .show-final-blows .final-blows-section { display: block; }
     {
         html.push_str(r#"<div class="final-blows-section">"#);
 
@@ -206,21 +276,12 @@ pub fn render_damage_tracker(slug: &str) -> String {
             html.push_str(&format!(r#"<p>Archetypal Adaptation: {}</p>"#, gd));
         }
 
-        // Wasted indicator
+        // Wasted toggle — Alpine @click + :class, no hx-post
         html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
-        let wasted_on = if is_wasted { "true" } else { "false" };
-        let wasted_static = if is_wasted {
-            "bg-red-600 border-red-600"
-        } else {
-            "bg-white border-emerald-600"
-        };
-        html.push_str(&format!(
-            r##"<button x-data="{{ on: {on} }}" class="mr-1 damage-slot" @click="on = !on" hx-post="/api/game/damage" hx-vals='{{"card":"{slug}","action":"wasted"}}'><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {static_cls}" :class="on ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"##,
-            on = wasted_on,
-            slug = slug,
-            static_cls = wasted_static,
-        ));
+        html.push_str(
+            r#"<button class="mr-1 damage-slot" @click="toggleWasted()"><div class="w-5 h-5 rounded-full border-2 transition-colors duration-300" :class="wasted ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div></button>"#,
+        );
         html.push_str(r#"</div>"#);
 
         html.push_str(r#"</div></div>"#);
@@ -310,30 +371,80 @@ mod tests {
         assert!(html.contains("Chain Raid"));
         assert!(html.contains("damage-slot")); // Alpine-driven circle buttons
         assert!(html.contains("rounded-full")); // div circles with Tailwind classes
-        assert!(html.contains("border-emerald-600")); // green unchecked state
+        assert!(html.contains("slotClass(")); // Alpine :class binding
+        assert!(html.contains("toggleSlot(")); // Alpine @click handler
         assert!(html.contains("Combat"));
-        // Final Blows section is always in the DOM (hidden by CSS via Alpine),
-        // but the sentinel div should NOT be present when slots aren't all checked.
+        // Final Blows section is always in the DOM (hidden by CSS via Alpine).
+        // Alpine drives visibility via :class="{ 'show-final-blows': allChecked() || wasted }"
         assert!(html.contains("final-blows-section"));
-        assert!(!html.contains("keal-all-checked"));
+        assert!(html.contains("show-final-blows"));
+        // Initial unchecked state: border-emerald-600 in Alpine slotClass
+        assert!(html.contains("border-emerald-600"));
         reset_state();
     }
 
     #[test]
-    fn final_blows_appear_when_all_checked() {
+    fn render_has_alpine_x_data_with_slots() {
         reset_state();
-        // Brox has 3 keal slots (Crushing Hope: 1, Chain Raid: 2)
+        let html = render_damage_tracker("brox_the_defiant");
+        // x-data should contain slots object with 3 entries (all false initially)
+        assert!(html.contains("slots: {1: false, 2: false, 3: false}"));
+        assert!(html.contains("wasted: false"));
+        assert!(html.contains("allChecked()"));
+        assert!(html.contains("kipukasWorker.postMessage"));
+        reset_state();
+    }
+
+    #[test]
+    fn render_reflects_toggled_slot_in_x_data() {
+        reset_state();
+        ensure_card_state("brox_the_defiant", 3);
+        toggle_slot("brox_the_defiant", 1);
+        let html = render_damage_tracker("brox_the_defiant");
+        // Slot 1 toggled on, 2 and 3 still off
+        assert!(html.contains("slots: {1: true, 2: false, 3: false}"));
+        reset_state();
+    }
+
+    #[test]
+    fn render_reflects_wasted_in_x_data() {
+        reset_state();
+        ensure_card_state("brox_the_defiant", 3);
+        toggle_slot("brox_the_defiant", 1);
+        toggle_slot("brox_the_defiant", 2);
+        toggle_slot("brox_the_defiant", 3);
+        toggle_wasted("brox_the_defiant");
+        let html = render_damage_tracker("brox_the_defiant");
+        assert!(html.contains("wasted: true"));
+        assert!(html.contains("Final Blows"));
+        assert!(html.contains("Wasted"));
+        assert!(html.contains("Brutal")); // genetic_disposition
+        assert!(html.contains("Service")); // motivation
+        reset_state();
+    }
+
+    #[test]
+    fn render_no_hx_post_on_buttons() {
+        reset_state();
+        let html = render_damage_tracker("brox_the_defiant");
+        // Buttons should NOT have hx-post (Alpine handles clicks, not HTMX)
+        assert!(!html.contains("hx-post"));
+        assert!(!html.contains("hx-vals"));
+        assert!(!html.contains("hx-target"));
+        assert!(!html.contains("hx-swap"));
+        reset_state();
+    }
+
+    #[test]
+    fn render_no_sentinel_div() {
+        reset_state();
         ensure_card_state("brox_the_defiant", 3);
         toggle_slot("brox_the_defiant", 1);
         toggle_slot("brox_the_defiant", 2);
         toggle_slot("brox_the_defiant", 3);
         let html = render_damage_tracker("brox_the_defiant");
-        assert!(html.contains("Final Blows"));
-        assert!(html.contains("Wasted"));
-        assert!(html.contains("Brutal")); // genetic_disposition
-        assert!(html.contains("Service")); // motivation
-        // Sentinel div should be present so Alpine shows the section
-        assert!(html.contains("keal-all-checked"));
+        // No sentinel div — Alpine computes allChecked() reactively
+        assert!(!html.contains("keal-all-checked"));
         reset_state();
     }
 }

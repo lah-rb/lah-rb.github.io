@@ -226,8 +226,10 @@ mod tests {
     fn damage_post_toggle_slot() {
         reset_state();
         let html = handle_damage_post("card=brox_the_defiant&slot=1");
-        assert!(html.contains("on: true")); // slot 1 Alpine state should be checked
-        assert!(html.contains("bg-red-600")); // checked slot shows red via Tailwind class
+        // Slot 1 toggled on — Alpine x-data reflects true in slots object
+        assert!(html.contains("1: true"));
+        // Alpine slotClass returns red classes for checked slots
+        assert!(html.contains("bg-red-600 border-red-600"));
         reset_state();
     }
 
@@ -240,7 +242,7 @@ mod tests {
         handle_damage_post("card=brox_the_defiant&slot=3");
         let html = handle_damage_post("card=brox_the_defiant&action=wasted");
         assert!(html.contains("Final Blows"));
-        assert!(html.contains("bg-red-600")); // wasted indicator shows red via Tailwind class
+        assert!(html.contains("wasted: true")); // Alpine x-data reflects wasted state
         reset_state();
     }
 

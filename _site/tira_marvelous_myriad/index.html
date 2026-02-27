@@ -815,28 +815,32 @@ background_color
 
 
 
-<!-- Phase 3b: Keal damage tracker loaded from WASM via HTMX.
-     Replaces Alpine $persist pattern with server-driven HTML fragments.
-     State lives in WASM memory, persisted to localStorage via /api/game/persist.
+<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
+     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
 
-     Alpine watches for the `.keal-all-checked` sentinel div injected by WASM
-     when all keal means slots are checked. This drives the visibility of the
-     Final Blows section via CSS, avoiding browser reflow/repaint issues that
-     occur with conditional innerHTML swaps on some browsers. -->
-<div x-data="{ allChecked: false }"
-     :class="{ 'show-final-blows': allChecked }"
-     @htmx:after-swap.camel.window="$nextTick(() => { allChecked = !!document.querySelector('#keal-damage-tira_marvelous_myriad .keal-all-checked') })">
-  <style>
-    .final-blows-section { display: none; }
-    .show-final-blows .final-blows-section { display: block; }
-  </style>
-  <div id="keal-damage-tira_marvelous_myriad"
-       class="w-full grid grid-cols-1 place-self-center"
-       hx-get="/api/game/damage?card=tira_marvelous_myriad"
-       hx-trigger="load"
-       hx-swap="innerHTML">
-  </div>
+     DOM Residency Model:
+     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
+     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
+       via a single x-data scope rendered by WASM inside the tracker HTML
+     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
+       with no HTMX swap — Alpine handles the immediate visual update
+
+     The WASM-rendered HTML contains:
+     - x-data with slots state, wasted state, and helper methods
+     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
+     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
+     - :class="slotClass(n)" for reactive circle color transitions -->
+<style>
+  .final-blows-section { display: none; }
+  .show-final-blows .final-blows-section { display: block; }
+</style>
+<div id="keal-damage-tira_marvelous_myriad"
+     class="w-full grid grid-cols-1 place-self-center"
+     hx-get="/api/game/damage?card=tira_marvelous_myriad"
+     hx-trigger="load"
+     hx-swap="innerHTML">
 </div>
+
 <!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
@@ -1006,28 +1010,32 @@ background_color
 
 
 
-<!-- Phase 3b: Keal damage tracker loaded from WASM via HTMX.
-     Replaces Alpine $persist pattern with server-driven HTML fragments.
-     State lives in WASM memory, persisted to localStorage via /api/game/persist.
+<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
+     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
 
-     Alpine watches for the `.keal-all-checked` sentinel div injected by WASM
-     when all keal means slots are checked. This drives the visibility of the
-     Final Blows section via CSS, avoiding browser reflow/repaint issues that
-     occur with conditional innerHTML swaps on some browsers. -->
-<div x-data="{ allChecked: false }"
-     :class="{ 'show-final-blows': allChecked }"
-     @htmx:after-swap.camel.window="$nextTick(() => { allChecked = !!document.querySelector('#keal-damage-tira_marvelous_myriad .keal-all-checked') })">
-  <style>
-    .final-blows-section { display: none; }
-    .show-final-blows .final-blows-section { display: block; }
-  </style>
-  <div id="keal-damage-tira_marvelous_myriad"
-       class="w-full grid grid-cols-1 place-self-center"
-       hx-get="/api/game/damage?card=tira_marvelous_myriad"
-       hx-trigger="load"
-       hx-swap="innerHTML">
-  </div>
+     DOM Residency Model:
+     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
+     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
+       via a single x-data scope rendered by WASM inside the tracker HTML
+     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
+       with no HTMX swap — Alpine handles the immediate visual update
+
+     The WASM-rendered HTML contains:
+     - x-data with slots state, wasted state, and helper methods
+     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
+     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
+     - :class="slotClass(n)" for reactive circle color transitions -->
+<style>
+  .final-blows-section { display: none; }
+  .show-final-blows .final-blows-section { display: block; }
+</style>
+<div id="keal-damage-tira_marvelous_myriad"
+     class="w-full grid grid-cols-1 place-self-center"
+     hx-get="/api/game/damage?card=tira_marvelous_myriad"
+     hx-trigger="load"
+     hx-swap="innerHTML">
 </div>
+
 <!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
   <p class="capitalize" >
     keal means
