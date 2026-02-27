@@ -108,7 +108,9 @@ self.onmessage = async (event) => {
       handle_request(method, pathname, search || '', body || '');
       if (
         method === 'POST' &&
-        (pathname.startsWith('/api/game/') || pathname.startsWith('/api/room/'))
+        (pathname.startsWith('/api/game/') ||
+          pathname.startsWith('/api/room/') ||
+          pathname.startsWith('/api/player/'))
       ) {
         self.postMessage({ type: 'PERSIST_STATE' });
       }
@@ -126,16 +128,17 @@ self.onmessage = async (event) => {
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
 
-    // Auto-persist: after any POST to /api/game/* or /api/room/*, notify
-    // main thread so it can fetch PLAYER_DOC base64 and save to localStorage.
-    // Room routes are included because multiplayer alarm mutations
-    // (yrs/alarm/add, yrs/alarm/tick, yrs/alarm/remove) call
-    // export_to_local() which updates PLAYER_DOC, and room lifecycle
-    // routes (create, join, disconnect) call seed_from_local() or
-    // export_to_local() which also modify PLAYER_DOC.
+    // Auto-persist: after any POST to /api/game/*, /api/room/*, or
+    // /api/player/*, notify main thread so it can fetch PLAYER_DOC base64
+    // and save to localStorage.
+    // Room routes: multiplayer alarm mutations and room lifecycle routes
+    // call export_to_local()/seed_from_local() which modify PLAYER_DOC.
+    // Player routes: affinity declarations modify PLAYER_DOC directly.
     if (
       method === 'POST' &&
-      (pathname.startsWith('/api/game/') || pathname.startsWith('/api/room/'))
+      (pathname.startsWith('/api/game/') ||
+        pathname.startsWith('/api/room/') ||
+        pathname.startsWith('/api/player/'))
     ) {
       self.postMessage({ type: 'PERSIST_STATE' });
     }
