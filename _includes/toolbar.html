@@ -154,20 +154,20 @@ background_color
         <!-- Clear damage — single WASM POST returns re-rendered tracker directly.
              Named function required because Jekyll include params can't contain {} -->
         <script>
-          function kipukasClearAllDamage() {
+          function kipukasNewGame() {
             htmx.ajax('POST', '/api/game/damage', {
-              values: {action: 'clear_all', card: '{{ cardSlug }}'},
+              values: {action: 'new_game', card: '{{ cardSlug }}'},
               target: '#keal-damage-{{ cardSlug }}',
               swap: 'innerHTML'
             });
           }
         </script>
-        {% include modal.html 
-          showCriteria='showKealModal' 
-          modalTitle='Clear Notice' 
-          modalMessage='You are about to reset the card status for the ENTIRE website. This feature is intended for use once a game is completed. Are your sure?'
-          acceptButtonText='Clear All Damage' 
-          acceptClick='kipukasClearAllDamage(); showKealModal = false'
+        {% include modal.html
+          showCriteria='showKealModal'
+          modalTitle='New Game'
+          modalMessage='This will reset ALL game state — card damage, affinity, and turn timers. This is intended for starting a new game. Are you sure?'
+          acceptButtonText='New Game'
+          acceptClick='kipukasNewGame(); showKealModal = false'
           denyButtonText='Cancel'
           denyClick='showKealModal = !showKealModal'
         %}
