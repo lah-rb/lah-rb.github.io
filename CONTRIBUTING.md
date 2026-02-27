@@ -17,7 +17,7 @@ This project is in purly alpha state. As such, keeping the code base as clean/le
 5. [Development Workflow](#development-workflow)
 6. [Phase History](#phase-history)
 7. [Desired Next Features](#desired-next-features)
-8. [Planned Sprint: Player Document & GameState → Yrs Consolidation](#planned-sprint-player-document--gamestate--yrs-consolidation)
+8. [Completed Sprint: Player Document & GameState → Yrs Consolidation](#completed-sprint-player-document--gamestate--yrs-consolidation)
 
 ---
 
@@ -61,7 +61,7 @@ All data is tracked across three distinct stores. Rust is the single source of t
 
 | Scope | Store | Persistence | Synced? | Examples |
 |-------|-------|-------------|---------|----------|
-| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | No | Card damage, turn alarms, settings |
+| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | Yes — opt-in cross-device sync via WebSocket relay (HMAC-authenticated) | Card damage, turn alarms, settings, affinity, loyalty |
 | **Room** (ephemeral state) | `RoomState` (RefCell) | `kipukas_room` in sessionStorage (JSON bootstrap) | Partially — fists combat via relay | Room code, player name, fists submissions, combat role |
 | **Room** (ephemeral CRDT) | `ROOM_DOC` (yrs Doc) | `kipukas_crdt_state` in sessionStorage (base64) | Yes — yrs sync protocol | Shared turn timers (converges via `yrs_update` messages) |
 
@@ -135,14 +135,17 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | File | Role |
 |------|------|
 | `kipukas-server/src/lib.rs` | WASM entry point + route registration |
-| `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, shared utils) |
-| `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings |
+| `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, player, shared utils) |
+| `kipukas-server/src/routes/player.rs` | Player routes — affinity, loyalty, signed export/import, cross-device sync |
+| `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
+| `kipukas-server/src/game/crypto.rs` | HMAC-SHA256 signing/verification for tamper-resistant exports |
 | `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room/combat state, CRDT sync |
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
-| `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence |
+| `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
 | `assets/js/kipukas-multiplayer.js` | WebSocket relay multiplayer manager + game message protocol |
 | `assets/js/kipukas-crypto.js` | AES-GCM encryption/decryption for signed exports (lazy-loaded) |
+| `assets/js/kipukas-sync.js` | Cross-device sync module — signaling, HMAC auth, yrs handshake (lazy-loaded) |
 | `assets/js/qr-camera.js` | Camera + ZXing QR scan loop |
 | `sw-src.js` | Service worker source (Workbox injectManifest) |
 | `signaling-server/main.ts` | WebSocket relay server — room management + message forwarding |
@@ -777,227 +780,17 @@ Allow a third peer to observe a match via a read-only WebSocket connection. Arch
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
 
 #### 9. Incubation Bonus & Tameability Refinement
-Integrate the incubation egg card bonus into the tameability computation. Add an `is_tamed()` helper function combining loyalty + affinity + incubation bonuses. Potential UI polish: tameability progress on card grid, tamed badge on index page. The core tameability infrastructure (tamability field, progress bar, tamed indicator) already shipped in Phase C — this feature adds the incubation mechanic layer.
+The core tameability infrastructure shipped in the Player Document sprint: `tamability` field on all Species cards, loyalty tracking per card, affinity tracking per archetype, and a tameability progress bar on card pages showing `(loyalty + matching affinity) / threshold`. What remains is integrating the **incubation egg card bonus** into the computation, adding an `is_tamed()` helper combining all three bonus sources, and UI polish (tameability progress on card grid, tamed badge on index page).
 
 ---
 
-## Current Sprint: Player Document & GameState → Yrs Consolidation
+## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
-> **Goal:** Replace the serde_json `GameState` with a persistent yrs CRDT document (`PLAYER_DOC`) that owns all local player data. This eliminates future migration cost, makes all player state portable and exportable from day one, and sets the foundation for cross-device sync, decentralized identity, and affinity/loyalty tracking.
->
 > **Philosophy:** Kipukas is not meant to lock down the game after purchase. If Kipukas the company ceases to exist, gameplay experience should be unaffected. A player's progression data (affinity, loyalty, damage, decks) lives on *their* device in a conflict-free, exportable format. When a dedicated store account is available, backup/restore becomes a service — not a requirement.
 
-### Architecture Overview
+**All 5 phases shipped.** The old serde_json `GameState` has been fully replaced by `PLAYER_DOC`, a persistent yrs CRDT document that owns all local player data. Legacy code, migration paths, and dead routes have been removed.
 
-```
-Current State (Phase A complete)
-┌─────────────────────────────────────┐
-│  thread_local! stores:              │
-│                                     │
-│  PLAYER_DOC (yrs Doc)               │
-│    • "cards": YMap<slug, YMap>       │
-│    • "alarms": YArray<YMap>          │
-│    • "settings": YMap                │
-│    (future: "affinity", "loyalty")   │
-│                                     │
-│  RoomState (RefCell)                │
-│    • code, name, fists combat       │
-│                                     │
-│  ROOM_DOC (yrs Doc)                 │
-│    • "alarms" (shared turn timers)  │
-└─────────────────────────────────────┘
-              │
-         localStorage
-      "kipukas_player_doc"
-       (base64 yrs binary)
-```
-
-**Key difference from ROOM_DOC:** The `PLAYER_DOC` is **player-scoped** — created once on first visit, persisted forever in localStorage, restored on every page load. The `ROOM_DOC` remains **room-scoped** — created on room join, destroyed on disconnect. They are independent yrs Doc instances.
-
-**Legacy cleanup (complete):** The old `GameState` serde struct and its `kipukas_game_state` JSON localStorage key have been fully removed. `state.rs` now contains only the shared `Alarm` struct. Migration code has been deleted from `player_doc.rs`, `kipukas-api.js`, and `kipukas-worker.js`. The `routes/util.rs` module provides shared URL/form parsing used by all route handlers.
-
-### Sprint Phases
-
-Each phase is independently shippable. Later phases depend on earlier ones but can be deferred.
-
-#### Phase A: Player Document Infrastructure ✅ Complete
-
-**Status:** Shipped and legacy fully cleaned up. `PLAYER_DOC` (yrs CRDT Doc) is the sole authoritative store for all local player data. The old `GameState` serde struct, its `kipukas_game_state` localStorage key, migration code, and dead routes have all been removed. `state.rs` retains only the shared `Alarm` struct. A shared `routes/util.rs` module provides URL/form parsing for all route handlers.
-
-**Active routes:**
-
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/player/state` | GET | Export PLAYER_DOC as base64 binary (for persistence) |
-| `/api/player/restore` | POST | Restore PLAYER_DOC from base64 binary |
-| `/api/player/export` | GET | Download full state as base64 file |
-| `/api/player/import` | POST | Upload and merge state from base64 file |
-
-**PLAYER_DOC structure:**
-
-| Root key | yrs type | Contents |
-|----------|----------|----------|
-| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool }` per card |
-| `"alarms"` | `YArray<YMap>` | `{ remaining: i32, name: String, color_set: String }` |
-| `"settings"` | `YMap` | `{ show_alarms: bool }` |
-
----
-
-#### Phase B: Affinity Tracking ✅ Complete
-
-**Status:** Shipped. Players can declare archetypal affinity once per day. Affinity level grows with each declaration. The +1 roll bonus for matching cards is displayed in the fists combat result when the attacker's `genetic_disposition` matches the player's active affinity. The affinity panel is accessible from the toolbar on both the home page and card pages.
-
-**PLAYER_DOC structure:**
-
-```
-"affinity" → YMap {
-    "Brutal"       → YMap { level: 3, last_declared: "2026-02-25" },
-    "Avian"        → YMap { level: 7, last_declared: "2026-02-24" },
-    ...
-}
-```
-
-**Active routes:**
-
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/player/affinity` | GET | Render affinity panel (all 15 archetypes, current levels, declare button) |
-| `/api/player/affinity` | POST | Declare affinity for an archetype (increments level, sets date, enforces once-per-day) |
-
-**UI:** Toolbar tool `_includes/affinity_tool.html` following Pattern 11. Shows all 15 archetypal adaptations with visual level dots (up to 10, then `+N`). "Declare" button per archetype (shows "✓ Today" if already declared). Active affinity highlighted with ★ and amber background. Active affinity summary card at top with "+1 roll bonus on matching cards" note.
-
-**Fists integration:** In `build_result_html()` (routes/room.rs), the Attack Die Modifier computation checks `player_doc::get_active_affinity()`. If the attacker's card `genetic_disposition` matches the active affinity archetype, +1 is added to the displayed total modifier with a labeled note: "+1 from Affinity ({archetype})".
-
-**Files created/modified:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | Added `VALID_ARCHETYPES`, `declare_affinity()`, `get_affinity()`, `get_all_affinities()`, `get_active_affinity()`, `valid_archetypes()` + 12 unit tests |
-| `kipukas-server/src/routes/player.rs` | **New.** Route handlers for `/api/player/affinity` GET/POST + 6 unit tests |
-| `kipukas-server/src/routes/mod.rs` | Added `pub mod player` |
-| `kipukas-server/src/lib.rs` | Registered `/api/player/affinity` route + dispatch |
-| `_includes/affinity_tool.html` | **New.** Toolbar component (Pattern 11) with DNA helix icon |
-| `_includes/toolbar.html` | Added `affinity_tool` include slot |
-| `index.html` | Enabled `affinity_tool=true` in toolbar include |
-| `_layouts/card.html` | Enabled `affinity_tool=true` in toolbar include |
-| `kipukas-server/src/routes/room.rs` | Added affinity bonus to `build_result_html()` modifier display |
-
-**Daily limit:** Compare `last_declared` date string against current local date. No server or timezone handling — the WASM module uses the date string passed from JS via the POST body. The `today` param is supplied by client-side `new Date().toISOString().slice(0,10)`.
-
----
-
-#### Phase C: Loyalty Tracking ✅ Complete
-
-**Status:** Shipped. Per-card play counter increments when a Character or Species card is used in fists combat (once per day per card). Loyalty badge displayed on card damage tracker pages. Species cards with a `tamability` threshold show tameability progress (loyalty + matching affinity vs threshold).
-
-**PLAYER_DOC structure:**
-
-```
-"loyalty" → YMap {
-    "brox_the_defiant"          → YMap { total_plays: 12, last_played: "2026-02-25" },
-    "frost_tipped_arctic_otter" → YMap { total_plays: 3,  last_played: "2026-02-20" },
-    ...
-}
-```
-
-**Trigger:** When a fists submission is POSTed (`/api/room/fists` or `/api/room/fists/final`), after storing the submission, the card slug is checked. If the card is a Character or Species (`layout` field), loyalty is incremented for that slug in PLAYER_DOC (enforcing once-per-day). The `today` date is supplied client-side via `new Date().toISOString().slice(0,10)`.
-
-**Display:** On the card page damage tracker (`/api/game/damage?card=slug`), a loyalty badge shows "♥ N plays". On Species cards with a `tamability` field, a tameability progress section shows `current / threshold` with a progress bar, where `current = loyalty.total_plays + affinity.level` (affinity only counted if it matches the card's `genetic_disposition`). When the threshold is met, "✔ Tamed!" is displayed.
-
-**Card data:** The `tamability` field has been added to all Species card YAML front matter. The build script (`scripts/build-card-catalog.ts`) extracts it as `Option<u32>` in the `Card` struct.
-
-**Files created/modified:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | Added `increment_loyalty()`, `get_loyalty()`, `clear_loyalty()` + 8 unit tests |
-| `kipukas-server/src/game/damage.rs` | Render loyalty badge and tameability progress in damage tracker HTML |
-| `kipukas-server/src/routes/room.rs` | Hook loyalty increment into `handle_fists_post` and `handle_final_blows_post` |
-| `assets/js/kipukas-multiplayer.js` | Added `today` param to `submitFists()` and `submitFinalBlows()` POST bodies |
-| `scripts/build-card-catalog.ts` | Extract `tamability` field from YAML, emit as `Option<u32>` in Card struct |
-| `_posts/*.html` | Species cards: `tamability` field added to YAML front matter |
-
-**Daily limit:** Compare `last_played` date string against `today` param. No server or timezone handling — the WASM module uses the date string passed from JS via the POST body.
-
----
-
-#### Phase D: Signed & Encrypted Export/Import ✅ Complete
-
-**Status:** Shipped. Players can export/import encrypted, tamper-resistant backups of their PLAYER_DOC via the hamburger menu → "Player Data". Two-layer protection: Rust HMAC-SHA256 for integrity, JS AES-GCM (Web Crypto API) for confidentiality. File format: `.kipukas`.
-
-**Goal:** Provide users a hardcopy of their data state that is difficult to modify for cheating (e.g., maximizing affinity levels or loyalty counts).
-
-**Architecture — Two-Layer Protection:**
-
-| Layer | Technology | Owner | Purpose |
-|-------|-----------|-------|---------|
-| **Integrity** | HMAC-SHA256 (`hmac-sha256` crate) | Rust WASM | Signs PLAYER_DOC base64 with passphrase. Detects tampering or wrong passphrase on import. |
-| **Confidentiality** | AES-256-GCM via Web Crypto API (PBKDF2 key derivation) | JavaScript | Encrypts the signed payload. Prevents reading exported data without the passphrase. |
-
-**Why two layers instead of one?** AES-GCM provides authenticated encryption (confidentiality + integrity), but Rust must verify the data *before* restoring it into PLAYER_DOC. Splitting the layers means: JS handles encryption/decryption (Web Crypto is async, unavailable in WASM Workers), Rust verifies the HMAC before touching state. This avoids an `unsafe` or complex async bridge — each layer does what it's best at.
-
-**New crate dependency:** `hmac-sha256` v1.1 — ~10KB, pure Rust, no-std compatible. Chosen over `ed25519-dalek` or `ring` because the threat model is casual tampering prevention, not cryptographic identity. Minimal WASM size impact.
-
-**Export flow:**
-
-```
-User clicks Export → enters passphrase → confirms passphrase
-  │
-  ▼
-JS sends POST /api/player/export/signed (passphrase + exported_at)
-  │
-  ▼
-Rust: HMAC-SHA256(passphrase, PLAYER_DOC base64) → { player_doc, mac, exported_at } JSON
-  │
-  ▼
-JS: lazy-imports kipukas-crypto.js → PBKDF2(passphrase, salt) → AES-GCM encrypt
-  │
-  ▼
-Browser downloads .kipukas file (JSON envelope: version, format, salt, iv, ciphertext)
-```
-
-**Import flow:**
-
-```
-User selects .kipukas file → enters passphrase
-  │
-  ▼
-JS: reads file → lazy-imports kipukas-crypto.js → PBKDF2 → AES-GCM decrypt
-  │
-  ▼
-JS sends POST /api/player/import/signed (passphrase + decrypted inner JSON)
-  │
-  ▼
-Rust: verify HMAC-SHA256(passphrase, player_doc) == mac
-  │
-  ▼
-If valid: restore_from_state(player_doc base64) → persist → reload page
-If invalid: "Verification failed — wrong passphrase or tampered data"
-```
-
-**Export file format (.kipukas):**
-
-```json
-{
-  "version": 1,
-  "format": "kipukas-player-export",
-  "salt": "<base64 16-byte PBKDF2 salt>",
-  "iv": "<base64 12-byte AES-GCM IV>",
-  "data": "<base64 AES-GCM ciphertext of inner signed payload>"
-}
-```
-
-**Inner signed payload (before encryption):**
-
-```json
-{
-  "player_doc": "<base64 yrs binary>",
-  "mac": "<64-char hex HMAC-SHA256>",
-  "exported_at": "<ISO 8601 timestamp>"
-}
-```
-
-**PLAYER_DOC structure** (unchanged from Phase C):
+### PLAYER_DOC Structure (Final)
 
 | Root key | yrs type | Contents |
 |----------|----------|----------|
@@ -1007,123 +800,18 @@ If invalid: "Verification failed — wrong passphrase or tampered data"
 | `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
 | `"loyalty"` | `YMap<slug, YMap>` | `{ total_plays: i64, last_played: String }` |
 
-**Active routes:**
+### Phase Summary
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/player/export/signed` | POST | HMAC-sign PLAYER_DOC with passphrase → return inner JSON payload |
-| `/api/player/import/signed` | POST | Verify HMAC, restore PLAYER_DOC if valid → return HTML status |
+| Phase | What Shipped |
+|-------|-------------|
+| **A — Player Document Infrastructure** | `PLAYER_DOC` (yrs CRDT Doc) as sole authoritative store. Routes: `/api/player/state`, `/api/player/restore`, `/api/player/export`, `/api/player/import`. Old `GameState` serde struct and `kipukas_game_state` localStorage key fully removed. |
+| **B — Affinity Tracking** | Declare archetypal affinity once per day via toolbar panel (`_includes/affinity_tool.html`). Level grows with each declaration. +1 roll bonus shown in fists combat result when attacker's `genetic_disposition` matches active affinity. Routes: `/api/player/affinity` GET/POST. |
+| **C — Loyalty Tracking** | Per-card play counter increments on fists combat submission (once per day per card). Loyalty badge on card pages. Species cards show tameability progress bar: `(loyalty + matching affinity) / tamability threshold`. `tamability` field added to all Species card YAML. |
+| **D — Signed & Encrypted Export/Import** | Two-layer protection: Rust HMAC-SHA256 integrity + JS AES-GCM confidentiality. `.kipukas` file format. Hamburger menu → "Player Data" modal. Routes: `/api/player/export/signed`, `/api/player/import/signed`. Lazy-loaded `kipukas-crypto.js`. |
+| **E — Cross-Device Sync** | Sync PLAYER_DOC between two devices via existing WebSocket relay. Mutual HMAC-SHA256 authentication, yrs CRDT merge for conflict resolution. Hamburger menu → "Sync Devices" modal. Live sync broadcasts on every `PERSIST_STATE`. Lazy-loaded `kipukas-sync.js`. 5 new sync routes. |
 
-**UI:** Hamburger menu → "Player Data" button dispatches `open-player-data` window event → `_includes/player_data_tool.html` modal. Three-screen flow: menu (Export/Import), export form (passphrase + confirm), import form (file picker + passphrase). Uses Pattern 6 (postToWasmWithCallback) for the WASM→JS→encrypt→download chain.
+### Guiding Constraints (Retained)
 
-**Files created/modified:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/crypto.rs` | **New.** `sign_export()`, `verify_export()`, constant-time `ct_eq()`, hex encode/decode + 10 unit tests |
-| `kipukas-server/src/game/mod.rs` | Added `pub mod crypto` |
-| `kipukas-server/src/routes/player.rs` | Added `handle_export_signed_post()`, `handle_import_signed_post()` + 6 unit tests |
-| `kipukas-server/src/lib.rs` | Registered `/api/player/export/signed` and `/api/player/import/signed` routes |
-| `kipukas-server/Cargo.toml` | Added `hmac-sha256 = "1.1"` dependency |
-| `assets/js/kipukas-crypto.js` | **New.** AES-GCM encrypt/decrypt via Web Crypto API (lazy-loaded ES module) |
-| `_includes/player_data_tool.html` | **New.** Export/import modal component (Pattern 11) |
-| `_includes/hamburger_menu.html` | Added "Player Data" menu item with `$dispatch('open-player-data')` |
-| `_includes/toolbar.html` | Added `player_data_tool.html` include alongside hamburger menu |
-
-**Security notes:**
-- PBKDF2 with 100,000 iterations for key derivation (OWASP recommended minimum)
-- Fresh random salt (16 bytes) and IV (12 bytes) per export — no nonce reuse
-- Passphrase minimum 4 characters enforced in UI
-- `kipukas-crypto.js` is lazy-loaded only when the export/import modal is used
-- Constant-time HMAC comparison in Rust prevents timing attacks
-
----
-
-#### Phase E: Cross-Device Sync ✅ Complete
-
-**Status:** Shipped. Players can sync their PLAYER_DOC between two devices using the existing WebSocket relay server. Device pairing via room codes with mutual HMAC-SHA256 authentication. Automatic conflict resolution via yrs CRDT merge. Accessible from hamburger menu → "Sync Devices".
-
-**Architecture — Sync Protocol:**
-
-The sync protocol reuses the proven `yrs_sv → yrs_sv_reply → yrs_update` handshake from multiplayer turn timer sync, extended to PLAYER_DOC. The "room" concept extends to "device pairing room" — two devices join a temporary sync channel authenticated by shared passphrase.
-
-```
-Device A                          Relay Server                     Device B
-   │                                  │                               │
-   │ create room                      │                               │
-   │─────────────────────────────────>│                               │
-   │ room_created (code: ABCD)        │                               │
-   │<─────────────────────────────────│                               │
-   │                                  │              join room (ABCD) │
-   │                                  │<──────────────────────────────│
-   │              peer_joined         │         peer_joined           │
-   │<─────────────────────────────────│──────────────────────────────>│
-   │                                  │                               │
-   │ ── Mutual authentication ─────────────────────────────────────── │
-   │ relay: sync_auth (MAC)           │                               │
-   │─────────────────────────────────>│──────────────────────────────>│
-   │                                  │      relay: sync_auth (MAC)   │
-   │<─────────────────────────────────│<──────────────────────────────│
-   │ verify HMAC ✓                    │              verify HMAC ✓    │
-   │                                  │                               │
-   │ ── yrs sync handshake ──────────────────────────────────────── │
-   │ relay: player_sv                 │                               │
-   │─────────────────────────────────>│──────────────────────────────>│
-   │                                  │   relay: player_update + sv   │
-   │<─────────────────────────────────│<──────────────────────────────│
-   │ relay: player_update             │                               │
-   │─────────────────────────────────>│──────────────────────────────>│
-   │                                  │                               │
-   │ ✓ Both devices converged         │        ✓ Both devices converged│
-```
-
-**Two-phase security:**
-
-| Phase | Technology | Purpose |
-|-------|-----------|---------|
-| **Authentication** | HMAC-SHA256 (`hmac-sha256` crate, reused from Phase D) | Both devices prove they know the shared passphrase before any data exchange |
-| **Transport** | WebSocket relay (existing signaling server) | Room-scoped message forwarding — server never inspects payloads |
-
-**Relay message protocol (new sync message types):**
-
-| Message Type | Direction | Payload | Purpose |
-|-------------|-----------|---------|---------|
-| `sync_auth` | Both → peer | `{ mac: hex }` | HMAC proof for mutual authentication |
-| `player_sv` | Both → peer | `{ sv: base64 }` | PLAYER_DOC state vector (sync handshake step 1) |
-| `player_sv_reply` | Both → peer | `{ sv: base64 }` | PLAYER_DOC state vector reply (sync handshake step 2) |
-| `player_update` | Both → peer | `{ update: base64 }` | PLAYER_DOC yrs binary update (diff) |
-
-**Live sync:** When a sync session is active and authenticated, every `PERSIST_STATE` event in `kipukas-api.js` triggers a `broadcastUpdate()` call via `kipukas-sync.js`. This re-initiates the SV exchange so both devices converge after each local mutation.
-
-**Active routes:**
-
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/player/sync/sv` | GET | Encode PLAYER_DOC state vector as base64 |
-| `/api/player/sync/diff` | POST | Compute diff update given remote state vector |
-| `/api/player/sync/apply` | POST | Apply a remote yrs update to PLAYER_DOC |
-| `/api/player/sync/auth` | POST | Compute HMAC(passphrase, room_code) for auth proof |
-| `/api/player/sync/verify` | POST | Verify peer's HMAC proof |
-
-**UI:** Hamburger menu → "Sync Devices" dispatches `open-device-sync` window event → `_includes/device_sync_tool.html` modal. Three-screen flow: menu (passphrase + Create/Join), join (room code entry), paired (room code display + sync status). `kipukas-sync.js` is lazy-loaded on first use.
-
-**Files created/modified:**
-
-| File | Changes |
-|------|---------|
-| `kipukas-server/src/game/player_doc.rs` | Added `encode_state_vector()`, `encode_diff()`, `apply_update()` + 6 unit tests |
-| `kipukas-server/src/routes/player.rs` | Added `handle_sync_sv_get()`, `handle_sync_diff_post()`, `handle_sync_apply_post()`, `handle_sync_auth_post()`, `handle_sync_verify_post()` + 8 unit tests |
-| `kipukas-server/src/lib.rs` | Registered 5 sync routes + dispatch |
-| `assets/js/kipukas-sync.js` | **New.** Cross-device sync module — signaling, auth, yrs handshake, live broadcast (lazy-loaded) |
-| `assets/js/kipukas-api.js` | Added sync broadcast hook in PERSIST_STATE handler |
-| `_includes/device_sync_tool.html` | **New.** Sync modal component (Pattern 11) with multi-screen flow |
-| `_includes/hamburger_menu.html` | Added "Sync Devices" menu item with `$dispatch('open-device-sync')` |
-| `_includes/toolbar.html` | Added `device_sync_tool.html` include alongside hamburger menu |
-
----
-
-### Guiding Constraints
-
-- **Tests first.** Each phase must include unit tests for new player_doc functions before wiring routes.
-- **UI is separate from infrastructure.** Phases B/C/D add UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
+- **Tests first.** Each phase included unit tests for new player_doc functions before wiring routes.
+- **UI is separate from infrastructure.** Each phase added UI incrementally via self-contained `_includes/*.html` components (Pattern 11).
 - **Single-player unaffected.** Affinity/loyalty tracking is purely local. Multiplayer features (ROOM_DOC, fists combat) remain independent. The only cross-cutting concern is the loyalty increment hook in fists submission.

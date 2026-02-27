@@ -1,0 +1,286 @@
+---
+layout: default
+permalink: /open_stack
+title: "Open Stack &amp; Licenses"
+description: "The open-source technologies and licenses that power kipukas.cards."
+bg-terra: "bg-hero-pattern "
+---
+{% include toolbar.html 
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+<template x-if="true">
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-2 md:px-10 w-5/6 h-fit min-h-screen scroll-smooth text-sm md:text-lg">
+
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        {{ page.title }}
+      </h1>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Kipukas is built on open-source software from top to bottom. All game logic runs
+        <b>100% client-side</b> in WebAssembly — there is no backend server, no database, and no paid
+        services beyond static hosting. Below are the technologies and their licenses.
+      </p>
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+
+      <!-- ─── Frontend ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Frontend</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">Version</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://jekyllrb.com/" class="underline">Jekyll</a></td>
+              <td class="py-1 pr-2">~4.3.4</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Static site generator</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://tailwindcss.com/" class="underline">Tailwind CSS</a></td>
+              <td class="py-1 pr-2">v4</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Utility-first CSS framework</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://alpinejs.dev/" class="underline">Alpine.js</a></td>
+              <td class="py-1 pr-2">3.14.9</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Lightweight UI reactivity</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://htmx.org/" class="underline">HTMX</a></td>
+              <td class="py-1 pr-2">2.0.4</td>
+              <td class="py-1 pr-2">BSD 2-Clause</td>
+              <td class="py-1">HTML-over-the-wire data fetching</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://developer.chrome.com/docs/workbox" class="underline">Workbox</a></td>
+              <td class="py-1 pr-2">7.3.0</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Service worker / PWA caching</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── WASM Layer ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">WASM Layer</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">Version</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://www.rust-lang.org/" class="underline">Rust</a></td>
+              <td class="py-1 pr-2">Edition 2024</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Game logic, routing, type safety</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://rustwasm.github.io/wasm-bindgen/" class="underline">wasm-bindgen</a></td>
+              <td class="py-1 pr-2">0.2</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Rust ↔ JavaScript interop</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/matchit" class="underline">matchit</a></td>
+              <td class="py-1 pr-2">0.8</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Radix-tree URL router</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://serde.rs/" class="underline">serde</a></td>
+              <td class="py-1 pr-2">1.x</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">State serialization</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/yrs" class="underline">yrs</a></td>
+              <td class="py-1 pr-2">0.25</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">CRDT for multiplayer sync</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/base64" class="underline">base64</a></td>
+              <td class="py-1 pr-2">0.22</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Binary ↔ base64 encoding</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/hmac-sha256" class="underline">hmac-sha256</a></td>
+              <td class="py-1 pr-2">1.1</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Tamper-resistant data signing</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Server & Runtime ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Server &amp; Runtime</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://deno.land/" class="underline">Deno</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Task runner, build scripts, signaling server</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://www.ruby-lang.org/" class="underline">Ruby</a> + Bundler</td>
+              <td class="py-1 pr-2">BSD 2-Clause / MIT</td>
+              <td class="py-1">Jekyll runtime</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Build Tooling ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Build Tooling</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Tool</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://esbuild.github.io/" class="underline">esbuild</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Bundle Alpine.js + plugins</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://rustwasm.github.io/wasm-pack/" class="underline">wasm-pack</a></td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Compile Rust → WASM</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://developer.chrome.com/docs/workbox/modules/workbox-cli" class="underline">Workbox CLI</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Service worker precache manifest</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://tailwindcss.com/" class="underline">@tailwindcss/cli</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Compile Tailwind CSS</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/tmuxinator/tmuxinator" class="underline">tmuxinator</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Multi-pane dev environment</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Jekyll Plugins ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Jekyll Plugins</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Plugin</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-paginate</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Pagination</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-seo-tag</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">SEO meta tags</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-sitemap</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Sitemap generation</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-redirect-from</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">URL redirects</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-feed</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Atom feed</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Hosting ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Hosting &amp; Infrastructure</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-6">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Service</th>
+              <th class="py-1 pr-2">Cost</th>
+              <th class="py-1">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">GitHub Pages</td>
+              <td class="py-1 pr-2">Free</td>
+              <td class="py-1">Static site hosting</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">Deno Deploy</td>
+              <td class="py-1 pr-2">Free tier</td>
+              <td class="py-1">Stateless WebSocket relay (~120 lines)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">In-browser WASM</td>
+              <td class="py-1 pr-2">Free</td>
+              <td class="py-1">All game logic — zero server cost</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-6 italic">
+        No database. No authentication server. No paid services.
+      </p>
+
+    </div>
+  </div>
+</template>

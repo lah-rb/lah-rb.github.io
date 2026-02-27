@@ -1,0 +1,255 @@
+---
+layout: default
+permalink: /using_the_binder
+title: "Using the Binder"
+description: "A practical guide to the tools and features on kipukas.cards — QR
+scanner, fists tool, damage tracker, affinity, loyalty, recipes, and more."
+bg-terra: "bg-hero-pattern "
+---
+{% include toolbar.html 
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+<template x-if="true">
+  <!-- This fixes the cls issue completely -->
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-2 md:px-10 w-5/6 h-fit min-h-screen scroll-smooth text-sm md:text-lg">
+
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        {{ page.title }}
+      </h1>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        This page walks you through every tool available on
+        <a href="https://www.kipukas.cards" class="underline">kipukas.cards</a>.
+        If you just want to learn the game rules, head to the
+        <a href="/game_rules/" class="underline">Rules</a> instead.
+      </p>
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+
+      <!-- ─── QR Scanner ─── -->
+      <h2 id="qr-scanner" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">QR Scanner</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Every Kipukas card has a unique QR code printed on its back. Scanning it takes you straight to that card's
+        play data page. To make this as user-friendly as possible we include a <b>private QR scanner</b> that
+        runs entirely on your device through our web app. The camera feed is never stored and never touches the
+        internet — we (nor any other interested party) can see footage from the scanner.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>How to scan:</b> Click the <b>QR button</b> in the toolbar, accept the privacy statement, then point
+        your camera at a card's back. The QR code should fill most of the camera frame. When a valid Kipukas QR
+        is detected you will be taken to that card's page automatically. To cancel scanning, click the
+        <b>eye icon</b> on the top left of the scanner overlay.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The scanner only recognises QR codes that pattern-match against Kipukas playing cards. For the best
+        experience during a game, prevent your device from sleeping — a caffeine-mode app is recommended.
+        If you prefer a standalone app, we recommend the open-source Android app
+        <b>Binary Eye</b> (same code library as ours) or <b>Cognex Barcode Scanner</b> on iPhone.
+      </p>
+
+      <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
+        <img src="/kipukas_rules_book/images/QR_modal.png" alt="QR modal screenshot"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/kipukas_rules_book/images/QR_scanner.png" alt="QR scanner screenshot"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+      </div>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 italic text-xs md:text-sm">
+        The QR scanner running on a 1080p laptop. The card being scanned is "Shard's Desert" — the first card
+        commissioned for Kipukas.
+      </p>
+
+      <!-- ─── Fists Tool ─── -->
+      <h2 id="fists-tool" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Fists Tool</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The fists tool determines the typing match-ups for KEAL means and Archetypal Gene interactions. It is
+        accessible from the side toolbar on the home page and on every card page.
+      </p>
+
+      <h3 class="z-20 text-lg md:text-xl pt-4 pb-1 place-self-center">Local (Single-Player) Mode</h3>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Click the fists icon in the toolbar to open the tool without connecting to an opponent. Select the
+        attacker's and defender's archetypal adaptations to instantly see the resulting roll modifier. This is
+        useful for checking type match-ups during play or studying card interactions on your own.
+      </p>
+
+      <h3 class="z-20 text-lg md:text-xl pt-4 pb-1 place-self-center">Multiplayer Mode</h3>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        When two players connect through a multiplayer room, the fists tool enables simultaneous, hidden
+        submissions — mimicking the "write it on your grease board" experience digitally. The flow:
+      </p>
+
+      <ol class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-decimal list-inside space-y-1">
+        <li>One player creates a room and shares the room code with their opponent.</li>
+        <li>The other player joins by entering the code. Once connected, the fists icon appears in both toolbars.</li>
+        <li>Each player opens the fists tool, selects their card and KEAL means (or Archetypal Gene for Final Blows), and submits. Submissions are hidden until both sides submit.</li>
+        <li>Once both players submit, the tool reveals the match-up result with all applicable modifiers (archetypal material interactions, affinity bonus, etc.) and the total Attack Die Modifier.</li>
+        <li>After reviewing the result, either player can report the combat outcome ("Did you win?"). The tool then automatically marks KEAL means damage on the losing defender's card, and both players see a role-appropriate result message.</li>
+        <li>Players can reset and start a new round for the next bout.</li>
+      </ol>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The multiplayer connection persists across page navigation within the same browser session, so you can
+        scan QR codes to navigate between card pages without losing the room connection.
+      </p>
+
+      <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
+        <img src="/kipukas_rules_book/images/fists_open.png" alt="Fists tool open"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/kipukas_rules_book/images/fists_closed.png" alt="Fists tool closed"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+      </div>
+
+      <!-- ─── KEAL Means Damage Tracker ─── -->
+      <h2 id="damage-tracker" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">KEAL Means Damage Tracker</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Each card page on kipukas.cards includes a damage tracker. Mark injuries by checking the box next to the
+        KEAL means name. Once all KEAL means are marked as injured the <b>Final Blows</b> section appears,
+        indicating the card is downed and vulnerable to a final attack. If the card is wasted, mark the wasted
+        checkbox.
+      </p>
+
+      <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
+        <img src="/kipukas_rules_book/images/healthy_keal_means.png" alt="Healthy KEAL means tracker"
+          class="w-full max-w-40 rounded shadow" loading="lazy" />
+        <img src="/kipukas_rules_book/images/injured_keal_means.png" alt="Injured KEAL means tracker"
+          class="w-full max-w-40 rounded shadow" loading="lazy" />
+      </div>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        After your game is complete, use the <b>reset</b> option in the toolbar to clear the KEAL state of all cards.
+      </p>
+
+      <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex justify-center">
+        <img src="/kipukas_rules_book/images/keal_means_clean.png" alt="KEAL means reset toolbar option"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+      </div>
+
+      <!-- ─── Turn Timer ─── -->
+      <h2 id="turn-timer" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Turn Timer</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The turn timer tool helps players keep track of diel cycle turns during a game. Accessible from the
+        toolbar, it lets you set a countdown for each turn. In multiplayer mode the timer syncs between both
+        players so neither side can run the clock without the other knowing.
+      </p>
+
+      <!-- ─── Affinity Tool ─── -->
+      <h2 id="affinity-tool" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Affinity Tool</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Open the affinity tool by clicking the <b>DNA helix icon</b> in the toolbar. Here you declare your
+        affinity for an archetypal adaptation <b>once per day</b>. Your affinity level for that archetype
+        increases with each declaration. When a soul card's archetypal adaptation matches your declared affinity
+        you receive a <b>+1 bonus to attack and defense rolls</b> made for that card. The fists tool
+        automatically includes this bonus in the Attack Die Modifier when applicable.
+      </p>
+
+      <!-- ─── Loyalty Tracking ─── -->
+      <h2 id="loyalty-tracking" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Loyalty Tracking</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Each time you play a specific Character or Species card in fists combat on kipukas.cards, that card's
+        loyalty counter increases (once per day per card). Loyalty is displayed as a <b>"♥ N plays"</b> badge on
+        the card's page. Loyalty also increases if you came to own the card through an incubation card (not yet
+        tracked digitally). Both affinity and loyalty are limited to once per day, except at tournaments which
+        will be once per match.
+      </p>
+
+      <!-- ─── Tameability Progress ─── -->
+      <h2 id="tameability-progress" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Tameability Progress</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Basic tameability tracking is now live on kipukas.cards. Each Species card page shows a
+        <b>progress bar</b> comparing your current affinity level and loyalty plays against the card's
+        tameability threshold. When the threshold is met a <b>"✔ Tamed!"</b> indicator appears. The full taming
+        mechanic (incubation bonuses, rouge control triggers, in-game card effect stacking) remains future work.
+      </p>
+
+      <!-- ─── Recipes Lookup ─── -->
+      <h2 id="recipes-lookup" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Recipes Lookup</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        During our founders period all recipe combinations possible with the founder's deck items have been
+        published. You can find the recipe lookup tool under the <b>menu</b> in the toolbar. In the future these
+        will also be produced as physical recipe cards. The founder's recipes will always be accepted at
+        competitions as open use and the online lookup will always reside on the binder.
+      </p>
+
+      <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex justify-center">
+        <img src="/kipukas_rules_book/images/recipe_lookup.png" alt="Recipe lookup tool"
+          class="w-full max-w-xs rounded shadow" loading="lazy" />
+      </div>
+
+      <!-- ─── Kippa Chatbot ─── -->
+      <h2 id="kippa" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Kippa (Rules Chatbot)</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Kippa is an <b>alpha</b> feature designed to assist players in learning the rules. It lives on the
+        binder and can answer questions about game mechanics, card interactions, and general Kipukas information.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Limitations to be aware of:</b>
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li><b>No conversation memory</b> — each message is independent; previous context is not remembered.</li>
+        <li><b>Conversation history limited</b> — once the page refreshes the history is wiped.</li>
+        <li><b>Expect delays</b> — limited hardware capacity means requests may queue when busy (30 s timeout).</li>
+        <li><b>Check facts</b> — Kippa can hallucinate and produce inaccurate results. The rules text is the canonical source.</li>
+        <li><b>Offensive information</b> — while unlikely, Kippa may produce offensive or biased content. This does not reflect the views of Kipukas as a company.</li>
+        <li><b>Context limits</b> — text input amount is limited, as is Kippa's output length.</li>
+        <li><b>Interactions may be logged</b> — prompts and responses may be saved for debugging and improvement. By using the chat you agree to have your chat stored. No other personal data is collected and no identifying data is ever collected.</li>
+        <li><b>Topic limits</b> — Kippa is trained to only respond to questions relevant to the rules, itself, and Kipukas.</li>
+      </ul>
+
+      <!-- ─── Player Data & Sync ─── -->
+      <h2 id="player-data" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Player Data &amp; Cross-Device Sync</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        All your progression data (card damage, affinity, loyalty, turn alarms, settings) lives on <b>your
+        device only</b>. Nothing is sent to a server. You can export and import your player data as an encrypted
+        <code>.kipukas</code> file via the <b>"Player Data"</b> option in the hamburger menu.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        If you play on multiple devices you can sync your player data between them via the
+        <b>"Sync Devices"</b> option in the hamburger menu. Sync uses a peer-to-peer connection through our
+        relay server and is authenticated with HMAC signatures to prevent tampering.
+      </p>
+
+      <!-- ─── General Tips ─── -->
+      <h2 id="tips" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">General Tips</h2>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li>Use a <b>caffeine-mode app</b> to prevent your device from sleeping during play.</li>
+        <li>A <b>front-facing (selfie) camera</b> works best with the QR scanner and phone stand.</li>
+        <li>The binder works <b>offline</b> after the first load — great for venues with spotty Wi-Fi.</li>
+        <li>A <b>Chromium-based browser</b> (Chrome, Edge, Brave, etc.) provides the best experience.</li>
+        <li>The site is a <b>PWA</b> — you can install it to your home screen for an app-like experience.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-6">
+        For more about the binder's philosophy, privacy stance, and business model see
+        <a href="/about_the_binder" class="underline">About the Binder</a>. For our open-source technology
+        stack and licenses see <a href="/open_stack" class="underline">Open Stack &amp; Licenses</a>.
+      </p>
+
+    </div>
+  </div>
+</template>
