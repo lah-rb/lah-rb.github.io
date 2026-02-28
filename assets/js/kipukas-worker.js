@@ -8,14 +8,16 @@
  *   HTMX fetch → SW intercepts → SW posts to page → page posts to this worker
  *   → WASM processes → responds on port → SW returns Response to HTMX
  *
- * Phase 2 addition: Also loads ZXing WASM for QR code decoding.
- * QR frame messages (type: 'QR_FRAME') are decoded by ZXing in JS,
- * then the result is formatted by the Rust WASM server.
+ * QR detection: YOLO v12n (ONNX Runtime Web) for localization + rqrr (Rust/WASM)
+ * for decode. Replaces the previous ZXing path for improved accuracy on
+ * camouflaged QR codes with low-res front-facing cameras.
  *
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
 
 import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import { initSession, runDetection } from './yolo-inference.js';
+import { parseDetections, cropDetection } from './postprocess.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -29,58 +31,123 @@ wasmReady.then(() => {
   console.error('[kipukas-worker] WASM init failed:', err);
 });
 
-// ── ZXing init (for QR decode) ─────────────────────────────────────
+// ── YOLO + rqrr init (for QR detect + decode) ─────────────────────
 
-let zxing = null;
-let zxingReady = false;
+const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
+const RQRR_WASM_JS = '/assets/js-wasm/rqrr-decode-pkg/rqrr_decode.js';
 
-// ZXing is a classic (non-ES-module) script. Module workers don't support
-// importScripts(), so we fetch the script text and use indirect eval to
-// execute it in the worker's global scope, defining the ZXing factory.
-(async () => {
+let rqrrModule = null;
+let qrReady = false;
+let qrInitializing = false;
+
+async function initQR() {
+  if (qrReady || qrInitializing) return;
+  qrInitializing = true;
+
   try {
-    const resp = await fetch('/assets/js-wasm/zxing_reader.js');
-    const text = await resp.text();
-    (0, eval)(text); // indirect eval — runs in global scope, defines ZXing on globalThis
-    if (typeof ZXing === 'function') {
-      zxing = await ZXing({ locateFile: (file) => `/assets/js-wasm/${file}` });
-      zxingReady = true;
-      console.log('[kipukas-worker] ZXing WASM initialized');
-    }
-  } catch (err) {
-    // ZXing QR decode will be unavailable; camera scanning won't work
-    // but the rest of the app continues fine.
-    console.warn('[kipukas-worker] Could not load ZXing:', err.message);
-  }
-})();
+    const t0 = performance.now();
+    const [backend, rqrr] = await Promise.all([
+      initSession(MODEL_URL),
+      import(RQRR_WASM_JS).then(async (mod) => {
+        if (mod.default && typeof mod.default === 'function') {
+          await mod.default();
+        }
+        return mod;
+      }),
+    ]);
 
-// ── ZXing decode helper ────────────────────────────────────────────
+    rqrrModule = rqrr;
+    qrReady = true;
+    const elapsed = Math.round(performance.now() - t0);
+    console.log(`[kipukas-worker] YOLO+rqrr ready (${backend} backend, ${elapsed}ms)`);
+
+    self.postMessage({
+      type: 'STATUS',
+      status: 'qr-ready',
+      backend,
+    });
+  } catch (err) {
+    console.error('[kipukas-worker] YOLO+rqrr init failed:', err);
+  } finally {
+    qrInitializing = false;
+  }
+}
+
+// ── YOLO+rqrr QR decode pipeline ──────────────────────────────────
 
 /**
- * Decode a QR code from raw RGBA pixel data using ZXing.
- * @param {Uint8ClampedArray} pixels - RGBA pixel buffer
+ * Two-stage QR decode: YOLO detects QR bounding boxes, rqrr decodes content.
+ * @param {Uint8ClampedArray} rgba - RGBA pixel buffer
  * @param {number} width
  * @param {number} height
- * @returns {string|null} Decoded text or null
+ * @returns {Promise<string|null>} Decoded text or null
  */
-function decodeQR(pixels, width, height) {
-  if (!zxingReady || !zxing) return null;
+async function decodeQR(rgba, width, height) {
+  if (!qrReady) {
+    await initQR();
+    if (!qrReady) return null;
+  }
 
-  const buffer = zxing._malloc(pixels.byteLength);
-  zxing.HEAPU8.set(pixels, buffer);
-  const result = zxing.readBarcodeFromPixmap(buffer, width, height, false, 'QRCode');
-  zxing._free(buffer);
+  const t0 = performance.now();
 
-  return result.text || null;
+  // Stage 1: YOLO detection
+  const output = await runDetection(rgba, width, height);
+  const detections = parseDetections(output, width, height);
+
+  const t1 = performance.now();
+
+  if (detections.length === 0) return null;
+
+  // Stage 2: rqrr decode on each detection (highest confidence first)
+  for (const det of detections) {
+    const crop = cropDetection(rgba, width, height, det, 0.15);
+    const result = rqrrModule.decode_qr_crop(
+      crop.rgba,
+      crop.width,
+      crop.height,
+    );
+
+    if (result && result.length > 0) {
+      const t2 = performance.now();
+      // Parse: "strategyIdx|strategyName|decodedText"
+      const parts = result.split('|');
+      const strategy = parts.length >= 3 ? parts[1] : 'unknown';
+      const decodedUrl = parts.length >= 3 ? parts.slice(2).join('|') : result;
+
+      console.log(
+        `[kipukas-worker] QR decoded: ${decodedUrl} ` +
+        `(YOLO: ${(t1 - t0).toFixed(0)}ms, rqrr[${strategy}]: ${(t2 - t1).toFixed(0)}ms, ` +
+        `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`
+      );
+
+      return decodedUrl;
+    }
+  }
+
+  // YOLO found QR-like regions but rqrr couldn't decode — normal for some frames
+  return null;
 }
+
+// ── Frame-drop guard (YOLO is async, unlike ZXing) ─────────────────
+
+let processingFrame = false;
 
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
+    // Drop frame if previous inference is still running
+    if (processingFrame) return;
+    processingFrame = true;
+
     const { pixels, width, height } = event.data;
-    const decoded = decodeQR(new Uint8ClampedArray(pixels), width, height);
+    let decoded;
+    try {
+      decoded = await decodeQR(new Uint8ClampedArray(pixels), width, height);
+    } finally {
+      processingFrame = false;
+    }
     if (decoded) {
       // Format result via WASM, then post back to main thread
       if (!initialized) await wasmReady;

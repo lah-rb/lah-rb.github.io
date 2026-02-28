@@ -23,9 +23,26 @@ setCacheNameDetails({ prefix: 'kipukas-pwa' });
 // Do NOT call self.skipWaiting() automatically.
 // The client (pwa-update-handler.js) will send a SKIP_WAITING message
 // when the user chooses to update, giving them control over the timing.
+
+// Track whether the PWA has been installed (persists for the SW lifetime).
+let pwaInstalled = false;
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  // install_pwa.html notifies us when the user completes a PWA install.
+  if (event.data && event.data.type === 'PWA_INSTALLED') {
+    pwaInstalled = true;
+  }
+
+  // install_pwa.html asks us on page load whether the PWA was already installed.
+  // Responds on the provided MessageChannel port.
+  if (event.data && event.data.type === 'PWA_INSTALL_CHECK') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ installed: pwaInstalled });
+    }
   }
 });
 

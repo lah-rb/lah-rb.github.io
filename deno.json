@@ -57,6 +57,7 @@
       "assets/js/workbox/",
       "assets/js/alpine.bundle.min.js",
       "assets/js/htmx.min.js",
+      "assets/js/idiomorph-ext.min.js",
       "_site/",
       "node_modules/",
       "game_rules/"
