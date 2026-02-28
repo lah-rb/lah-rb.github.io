@@ -1,0 +1,19 @@
+[package]
+name = "rqrr-decode"
+version = "0.1.0"
+edition = "2021"
+description = "QR code decode stage for the YOLO+rqrr two-stage pipeline"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+rqrr = "0.8"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "s"
+lto = true

@@ -1,0 +1,10 @@
+# QR Code Detection Dataset — YOLO format
+# Single class: "qr-code" (matching kolabit/qr-codes dataset labels)
+
+path: /Users/lah-rb/Repos/lah-rb.github.io/YOLO_rqrr/data
+train: images/train
+val: images/val
+
+nc: 1
+names:
+  0: qr-code

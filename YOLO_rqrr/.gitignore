@@ -1,0 +1,25 @@
+# Training data (large, downloaded via fetch_dataset.py)
+data/
+
+# Exported models (large, generated via export_onnx.py)
+models/*.onnx
+models/*.pt
+models/*.safetensors
+
+# Python
+train/__pycache__/
+train/*.pyc
+train/runs/
+train/.venv/
+train/venv/
+
+# Rust
+rqrr-wasm/target/
+rqrr-wasm/pkg/
+
+# Node
+web/node_modules/
+web/dist/
+
+# OS
+.DS_Store

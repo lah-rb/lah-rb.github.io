@@ -1,0 +1,12 @@
+[project]
+name = "yolo-rqrr"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ultralytics>=8.4.19",
+    "onnx>=1.16.0",
+    "onnxruntime>=1.18.0",
+    "onnxslim>=0.1.86",
+]

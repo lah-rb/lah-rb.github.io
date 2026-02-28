@@ -1,0 +1,14 @@
+{
+  "name": "yolo-rqrr-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "YOLO+rqrr two-stage QR detection browser runtime",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "dev": "npx serve . -l 8090 --cors",
+    "copy-ort": "cp node_modules/onnxruntime-web/dist/*.wasm . && cp node_modules/onnxruntime-web/dist/*.mjs ."
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.21.0"
+  }
+}

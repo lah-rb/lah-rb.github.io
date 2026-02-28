@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YOLO+rqrr QR Scanner — Test Harness</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; padding: 1rem; }
+    h1 { font-size: 1.2rem; margin-bottom: 0.5rem; color: #e94560; }
+    .status { padding: 0.5rem; background: #16213e; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .status.ready { border-left: 3px solid #4ecca3; }
+    .status.loading { border-left: 3px solid #e9c46a; }
+    .status.error { border-left: 3px solid #e94560; }
+    .camera-wrap { position: relative; max-width: 640px; margin: 0 auto; }
+    video { width: 100%; border-radius: 8px; background: #000; }
+    canvas { display: none; }
+    .overlay-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .controls { display: flex; gap: 0.5rem; margin: 0.5rem 0; flex-wrap: wrap; }
+    button { padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;
+             background: #e94560; color: white; font-size: 0.9rem; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #16213e; border: 1px solid #4ecca3; color: #4ecca3; }
+    .log { background: #0f3460; border-radius: 4px; padding: 0.5rem; margin-top: 0.5rem;
+           max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; line-height: 1.4; }
+    .log-entry { padding: 2px 0; border-bottom: 1px solid #16213e; }
+    .log-entry.found { color: #4ecca3; font-weight: bold; }
+    .log-entry.detect { color: #e9c46a; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+             gap: 0.5rem; margin: 0.5rem 0; }
+    .stat { background: #16213e; padding: 0.5rem; border-radius: 4px; text-align: center; }
+    .stat-value { font-size: 1.2rem; font-weight: bold; color: #4ecca3; }
+    .stat-label { font-size: 0.7rem; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>🔍 YOLO+rqrr QR Scanner Test Harness</h1>
+
+  <div id="status" class="status loading">Initializing...</div>
+
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay" class="overlay-canvas"></canvas>
+    <canvas id="capture" width="640" height="480"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="btn-start" onclick="startScanning()">▶ Start Scanning</button>
+    <button id="btn-stop" onclick="stopScanning()" disabled>⏹ Stop</button>
+    <button id="btn-switch" class="secondary" onclick="switchCamera()">🔄 Switch Camera</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="stat-yolo">—</div><div class="stat-label">YOLO (ms)</div></div>
+    <div class="stat"><div class="stat-value" id="stat-rqrr">—</div><div class="stat-label">rqrr (ms)</div></div>
+    <div class="stat"><div class="stat-value" id="stat-conf">—</div><div class="stat-label">Confidence</div></div>
+    <div class="stat"><div class="stat-value" id="stat-backend">—</div><div class="stat-label">Backend</div></div>
+    <div class="stat"><div class="stat-value" id="stat-fps">—</div><div class="stat-label">Scan FPS</div></div>
+  </div>
+
+  <div id="log" class="log"></div>
+
+  <script type="module">
+    // ── State ────────────────────────────────────────────────────
+    let worker = null;
+    let stream = null;
+    let scanning = false;
+    let scanTimer = null;
+    let frameCount = 0;
+    let fpsTimer = null;
+    let facingMode = 'environment';
+
+    // ── Worker setup ─────────────────────────────────────────────
+    worker = new Worker('./src/yolo-rqrr-worker.js', { type: 'module' });
+
+    worker.addEventListener('message', (e) => {
+      if (e.data?.type === 'STATUS') {
+        const el = document.getElementById('status');
+        if (e.data.status === 'ready') {
+          el.textContent = `✅ Ready — backend: ${e.data.backend}`;
+          el.className = 'status ready';
+          document.getElementById('stat-backend').textContent = e.data.backend;
+        } else if (e.data.status === 'error') {
+          el.textContent = `❌ Error: ${e.data.error}`;
+          el.className = 'status error';
+        }
+      }
+
+      if (e.data?.type === 'QR_FOUND') {
+        addLog(`✅ FOUND: ${e.data.url}`, 'found');
+        if (e.data.meta) {
+          document.getElementById('stat-yolo').textContent = e.data.meta.yoloMs;
+          document.getElementById('stat-rqrr').textContent = e.data.meta.rqrrMs;
+          document.getElementById('stat-conf').textContent = e.data.meta.confidence.toFixed(2);
+          addLog(`   YOLO: ${e.data.meta.yoloMs}ms, rqrr[${e.data.meta.strategy}]: ${e.data.meta.rqrrMs}ms, crop: ${e.data.meta.cropSize}`, 'detect');
+        }
+        // Don't stop scanning in test harness — keep going for benchmarking
+      }
+    });
+
+    // ── Camera ───────────────────────────────────────────────────
+    window.startScanning = async function() {
+      const video = document.getElementById('video');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-stop').disabled = false;
+        addLog('📷 Camera started');
+
+        // Trigger lazy init
+        worker.postMessage({ type: 'INIT' });
+        document.getElementById('status').textContent = '⏳ Loading YOLO model...';
+        document.getElementById('status').className = 'status loading';
+
+        // Start scan loop
+        const canvas = document.getElementById('capture');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+        const overlay = document.getElementById('overlay');
+
+        frameCount = 0;
+        fpsTimer = setInterval(() => {
+          document.getElementById('stat-fps').textContent = frameCount;
+          frameCount = 0;
+        }, 1000);
+
+        scanTimer = setInterval(() => {
+          if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+          // Match overlay to video dimensions
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          worker.postMessage(
+            { type: 'QR_FRAME', pixels: imageData.data.buffer, width: canvas.width, height: canvas.height },
+            [imageData.data.buffer]
+          );
+          frameCount++;
+        }, 200); // 5 fps for test harness
+
+      } catch (err) {
+        addLog(`❌ Camera error: ${err.message}`, 'error');
+      }
+    };
+
+    window.stopScanning = function() {
+      scanning = false;
+      if (scanTimer) { clearInterval(scanTimer); scanTimer = null; }
+      if (fpsTimer) { clearInterval(fpsTimer); fpsTimer = null; }
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      document.getElementById('video').srcObject = null;
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('btn-stop').disabled = true;
+      addLog('⏹ Scanning stopped');
+    };
+
+    window.switchCamera = function() {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      addLog(`🔄 Switching to ${facingMode} camera`);
+      if (scanning) {
+        window.stopScanning();
+        window.startScanning();
+      }
+    };
+
+    // ── Log ──────────────────────────────────────────────────────
+    function addLog(msg, cls = '') {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${cls}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      log.prepend(entry);
+      // Keep max 100 entries
+      while (log.children.length > 100) log.removeChild(log.lastChild);
+    }
+
+    addLog('Worker created, click Start to begin');
+  </script>
+</body>
+</html>

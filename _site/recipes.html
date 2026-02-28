@@ -166,13 +166,13 @@ background_color
     x-transition.duration.350ms
     x-cloak
     class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
-    <div><a href="/" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Binder Home</a></div>
-    <div><a href="/game_rules/index.html" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">See the Rules</a></div>
-    <div><a href="/recipes" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">View Item Recipes</a></div>
+    <div><a href="/" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+    <div><a href="/game_rules/index.html" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+    <div><a href="/recipes" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
     <div><button @click="$dispatch('open-player-data'); showHamburger = false" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Manage Player Data</button></div>
     <div><button @click="$dispatch('open-device-sync'); showHamburger = false" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Sync Devices</button></div>
-    <div><a href="/privacy_policy" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">Privacy Policy</a></div>
-    <div><a href="/about_articles" class="self-center p-2 text-center text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100">About Kipukas</a></div>
+    <div><a href="/privacy_policy" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+    <div><a href="/about_articles" class="self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
 </div>
 
 <div class="py-3 px-3 flex flex-initial justify-end content-center self-center">
@@ -588,15 +588,59 @@ background_color
     deferredPrompt = e;
     });
 
-    const timer = ms => new Promise(res => setTimeout(res, ms))
+    // ============================================
+    // AUTO-HIDE: detect if the PWA is already installed
+    // ============================================
 
-    async function checkPWAInstallStatus() {
-        let i = 0;
-        while ( i < 10 ){
-            console.log(deferredPrompt);
-            await timer(1000);
-            i++;
+    // Layer 1: If running in standalone / fullscreen mode, the PWA is installed.
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        navigator.standalone === true) {
+      // We need to wait for Alpine to initialise the data stack before setting.
+      document.addEventListener('alpine:init', () => {
+        Alpine.store('__pwaInstalled', true);
+      });
+      // Also set via DOM once body x-data is ready (belt-and-suspenders)
+      document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        if (body && body._x_dataStack) {
+          body._x_dataStack[0].hideInstallButton = true;
         }
+      });
+    }
+
+    // Layer 2: Listen for the appinstalled event (fires when user completes install).
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed — hiding install button');
+      // Set Alpine persisted state so the button stays hidden on future visits
+      const body = document.body;
+      if (body && body._x_dataStack) {
+        body._x_dataStack[0].hideInstallButton = true;
+      }
+      deferredPrompt = null;
+
+      // Notify the Service Worker so it can track install state independently
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'PWA_INSTALLED' });
+      }
+    });
+
+    // Layer 3: Ask the Service Worker if it already knows the PWA was installed.
+    // This covers cases where localStorage was cleared but the SW persists.
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (!registration.active) return;
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (msg) => {
+          if (msg.data && msg.data.installed === true) {
+            const body = document.body;
+            if (body && body._x_dataStack) {
+              body._x_dataStack[0].hideInstallButton = true;
+            }
+          }
+        };
+        registration.active.postMessage({ type: 'PWA_INSTALL_CHECK' }, [ch.port2]);
+      });
     }
 
     // Check if the deferred prompt isn't null, then show the prompt
@@ -606,21 +650,30 @@ background_color
 
         // Wait for the user to make a choice
         deferredPrompt.userChoice.then((choiceResult) => {
-            // Log the choice to our console
-            console.log(choiceResult.outcome);
-
+            console.log('[PWA] Install choice:', choiceResult.outcome);
+            if (choiceResult.outcome === 'accepted') {
+                // The appinstalled event will fire and handle hiding,
+                // but set it here too for immediate feedback.
+                const body = document.body;
+                if (body && body._x_dataStack) {
+                    body._x_dataStack[0].hideInstallButton = true;
+                }
+            }
             // We've used the prompt, and can't use it again, so set this to null
             deferredPrompt = null;
         });
     } else {
         alert(`You are unable to install the Kipukas Binder web app at this time.
         
-If you already installed our app, then great! This is expected because you don't need to install it again. We would have already hidden this, but a pwa can't tell if it is installed or not 😅. Click ok to hide the install button.
+If you already installed our app, then great! This is expected because you don't need to install it again. Click ok to hide the install button.
         
 If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
 
         // Hide the install button
-        alpinel._x_dataStack[0].hideInstallButton = true;
+        const body = document.body;
+        if (body && body._x_dataStack) {
+            body._x_dataStack[0].hideInstallButton = true;
+        }
     }
 }
     
@@ -664,7 +717,6 @@ If you have not already installed our pwa, check if your browser (and launcher i
     </template>
   </div>
 
-    
 
     
 
@@ -693,7 +745,9 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 
     
-      <a :href="previousURL" aria-label="Go to last visited page" class="flex justify-center">
+
+    
+      <a :href="previousURL" aria-label="Go to last visited page" class="justify-center hidden lg:flex">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"

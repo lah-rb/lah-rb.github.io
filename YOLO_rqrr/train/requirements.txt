@@ -1,0 +1,19 @@
+# YOLOv12 training & export
+# Install: pip install -r requirements.txt
+#
+# Note: Use the sunsmarterjie/yolov12 repo (not ultralytics) for
+# correct YOLOv12 implementation. Their repo IS ultralytics-compatible
+# but fixes training stability and memory issues.
+#
+# GPU: FlashAttention is optional. Training works without it.
+# ONNX export does NOT require FlashAttention.
+
+ultralytics>=8.3.0
+torch>=2.2.0
+torchvision>=0.17.0
+onnx>=1.16.0
+onnxruntime>=1.18.0
+kagglehub>=0.3.0
+Pillow>=10.0.0
+matplotlib>=3.8.0
+pyyaml>=6.0
