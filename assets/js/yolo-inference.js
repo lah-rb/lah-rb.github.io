@@ -12,7 +12,7 @@
 
 let session = null;
 let backend = null;
-const INPUT_SIZE = 320; // YOLO input resolution (320 = ~4× faster than 640)
+const INPUT_SIZE = 640; // YOLO input resolution
 
 /**
  * Initialize the ONNX Runtime session.
