@@ -135,6 +135,12 @@ let processingFrame = false;
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
+  // ── Pre-warm YOLO+rqrr (sent by qr-camera.js toggle before camera starts) ──
+  if (event.data?.type === 'INIT_QR') {
+    initQR();
+    return;
+  }
+
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     // Drop frame if previous inference is still running

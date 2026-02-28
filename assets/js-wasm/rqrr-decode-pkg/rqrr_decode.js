@@ -3,11 +3,9 @@
 /**
  * Decode a QR code from a cropped RGBA region provided by YOLO detection.
  *
- * This is the main entry point called from the Web Worker after YOLO
- * has localized the QR bounding box. The crop should be the RGBA pixels
- * of just the QR region (with some padding).
- *
- * Returns the decoded text on success, or empty string if decode fails.
+ * Applies adaptive threshold with three block-size variants (medium, fine,
+ * coarse), first on a quiet-zone-padded version, then on the raw crop.
+ * Returns "strategyIdx|strategyName|decodedText" on success, or empty string.
  * @param {Uint8Array} rgba
  * @param {number} width
  * @param {number} height
