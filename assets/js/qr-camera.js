@@ -111,9 +111,9 @@
                 [imageData.data.buffer], // Transfer ownership (zero-copy)
               );
             }
-          }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+          }, 250); // 4 fps — YOLO+rqrr pipeline handles ~175ms per frame at 320×320
 
-          console.log('[qr-camera] Camera started, scanning at 2 fps');
+          console.log('[qr-camera] Camera started, scanning at 4 fps');
         })
         .catch((err) => {
           console.error('[qr-camera] Camera access error:', err);
@@ -207,6 +207,11 @@
         });
       }
     } else {
+      // Pre-warm YOLO+rqrr session while user interacts with privacy modal / camera init.
+      // This moves the ~1.8s ONNX compile off the critical path of the first frame.
+      const worker = globalThis.kipukasWorker;
+      if (worker) worker.postMessage({ type: 'INIT_QR' });
+
       const privacy = localStorage.getItem('qr-privacy-accepted') === 'true';
       if (typeof htmx !== 'undefined') {
         htmx.ajax('GET', `/api/qr/status?action=open&privacy=${privacy}`, {
