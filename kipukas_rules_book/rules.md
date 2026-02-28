@@ -193,30 +193,14 @@ Take Shelter! If a storm is rolled, any card caught in it (not within a capital 
 
 In Kipukas there are several types of cards that compose a deck which are listed below. Each variation has a section in these rules to describe their role in the game. Click or scan the QR codes to see a representative member of each card type. Every card, regardless of type specifies what variation it is (Card Variation), how it modifies game play (Game Effects), a class associated with the number of cards that were produced (Scarcity), and a flavourful anecdote blending the card into the world (History).
 
-[Character and Species Cards](#character_species) 
-[![Character QR](./images/hilbert_king_of_avian_frogs_qr.jpeg)](https://www.kpks.us/HMPU)
-Take and defend territories. a.k.a. soul cards
-
-[Terrain Feature Cards](#terrain_features)
-[![Terrain QR](./images/palace_of_the_allele_sect_qr.jpeg)](https://www.kpks.us/ioqs)
-Modify play within a territory
-
-[Trap Cards](#traps)
-[![Trap QR](./images/feeding_the_piffions_qr.jpeg)](https://www.kpks.us/K_vJ)
-Act as passive defenses
-
-[Sabotage Cards](#sabotage)
-[![Sabotage QR](./images/onironauta_qr.png)](https://www.kpks.us/fFvj)
-Interfear with your opponent at night
-
-[Item Cards](#items)
-[![Item QR](./images/honey_qr.jpeg)](https://www.kpks.us/ro1A)
-Build or bolster cards
-
-[Personal Effect Cards](#personal_effects)
-[![Personal Effect QR](./images/location_of_the_deep_apothecary_shop_qr.png)](https://www.kpks.us/aS1Q)
-Grant players an effect for the duration of the game
-
+| **Card Type (Rules Section Links)** | **Example Links (QR & clickable)** | **Description** |
+|---------------|------------------|-----------------|
+| [Character and Species Cards](#character_species) | [![Character QR](./images/hilbert_king_of_avian_frogs_qr.jpeg)](https://www.kpks.us/HMPU) | Take and defend territories. a.k.a. soul cards |
+| [Terrain Feature Cards](#terrain_features) | [![Terrain QR](./images/palace_of_the_allele_sect_qr.jpeg)](https://www.kpks.us/ioqs) | Modify play within a territory |
+| [Trap Cards](#traps) | [![Trap QR](./images/feeding_the_piffions_qr.jpeg)](https://www.kpks.us/K_vJ) | Act as passive defenses |
+| [Sabotage Cards](#sabotage) | [![Sabotage QR](./images/onironauta_qr.png)](https://www.kpks.us/fFvj) | Interfear with your opponent at night |
+| [Item Cards](#items) | [![Item QR](./images/honey_qr.jpeg)](https://www.kpks.us/ro1A) | Build or bolster cards |
+| [Personal Effect Cards](#personal_effects) | [![Personal Effect QR](./images/location_of_the_deep_apothecary_shop_qr.png)](https://www.kpks.us/aS1Q) | Grant players an effect for the duration of the game |
 
 ### Allele {#allele}
 
