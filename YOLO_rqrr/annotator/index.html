@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Annotation Tool — Kipukas YOLO Training</title>
+<style>
+  :root {
+    --bg: #1a1a2e; --fg: #e0e0e0; --accent: #e94560;
+    --accent2: #0f3460; --panel: #16213e; --border: #333;
+    --green: #4ecca3; --yellow: #ffd369;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Header bar ─────────────────────────── */
+  header { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem; background: var(--panel); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  header h1 { font-size: 1rem; font-weight: 600; }
+  .badge { background: var(--accent2); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.85rem; }
+  .badge.green { background: var(--green); color: #111; }
+  header button { background: var(--accent); color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+  header button:hover { opacity: 0.85; }
+  #status { margin-left: auto; font-size: 0.8rem; opacity: 0.7; }
+
+  /* ── Main canvas area ───────────────────── */
+  main { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; background: #000; }
+  #videoEl { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+  #overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+  #overlay.drawing { pointer-events: auto; cursor: crosshair; }
+  .frozen #videoEl { display: none; }
+  #frozenCanvas { display: none; max-width: 100%; max-height: 100%; object-fit: contain; }
+  .frozen #frozenCanvas { display: block; }
+
+  /* ── Bottom bar ─────────────────────────── */
+  footer { background: var(--panel); border-top: 1px solid var(--border); padding: 0.5rem 1rem; flex-shrink: 0; }
+  .shortcuts { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; font-size: 0.8rem; opacity: 0.8; }
+  .shortcuts kbd { background: var(--accent2); padding: 0.1rem 0.4rem; border-radius: 3px; font-family: monospace; }
+
+  /* ── Thumbnail strip ────────────────────── */
+  .thumbstrip { display: flex; gap: 0.4rem; padding: 0.5rem 1rem; overflow-x: auto; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; min-height: 60px; }
+  .thumb { width: 56px; height: 42px; border-radius: 3px; object-fit: cover; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; }
+  .thumb:hover { border-color: var(--accent); }
+  .thumb.selected { border-color: var(--green); }
+
+  /* ── Toast ──────────────────────────────── */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--green); color: #111; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>QR Annotator</h1>
+  <span class="badge" id="countBadge">0 captures</span>
+  <span class="badge" id="boxCount">0 boxes</span>
+  <button onclick="switchCamera()">⟲ Camera</button>
+  <button onclick="exportZip()" id="exportBtn">📥 Export ZIP</button>
+  <span id="status">Live</span>
+</header>
+
+<main id="mainArea">
+  <video id="videoEl" autoplay playsinline muted></video>
+  <canvas id="frozenCanvas"></canvas>
+  <canvas id="overlay"></canvas>
+</main>
+
+<div class="thumbstrip" id="thumbstrip"></div>
+
+<footer>
+  <div class="shortcuts">
+    <span><kbd>Space</kbd> Capture</span>
+    <span><kbd>Click</kbd> Place point</span>
+    <span><kbd>Enter</kbd> Close polygon</span>
+    <span><kbd>S</kbd> Save + Next</span>
+    <span><kbd>Esc</kbd> Discard</span>
+    <span><kbd>Z</kbd> Undo point</span>
+    <span><kbd>C</kbd> Switch cam</span>
+    <span><kbd>E</kbd> Export</span>
+    <span><kbd>D</kbd> Delete selected</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ── JSZip from CDN ─────────────────────────────
+const JSZip = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm').then(m => m.default);
+
+// ── State ──────────────────────────────────────
+let stream = null;
+let videoDevices = [];
+let currentDeviceIdx = 0;
+let facingMode = 'environment';
+
+let frozen = false;          // Is frame frozen?
+let frozenImageData = null;  // ImageData of frozen frame
+let frozenWidth = 0;
+let frozenHeight = 0;
+
+let currentPoints = [];      // Points of current polygon being drawn
+let closedPolygons = [];     // Completed polygons for this capture (before save)
+let captures = [];           // Array of {id, jpeg, width, height, labels: [{cx,cy,w,h}]}
+let selectedIdx = -1;        // Selected thumbnail for review
+
+const video = document.getElementById('videoEl');
+const frozenCanvas = document.getElementById('frozenCanvas');
+const overlay = document.getElementById('overlay');
+const mainArea = document.getElementById('mainArea');
+const overlayCtx = overlay.getContext('2d');
+
+// ── IndexedDB ──────────────────────────────────
+const DB_NAME = 'qr-annotations';
+const DB_VERSION = 1;
+const STORE = 'captures';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(record) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.put(record);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const store = tx.objectStore(STORE);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ── Camera ─────────────────────────────────────
+async function enumerateDevices() {
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    videoDevices = devs.filter(d => d.kind === 'videoinput');
+  } catch { videoDevices = []; }
+}
+
+async function startCamera() {
+  await enumerateDevices();
+  const deviceId = videoDevices[currentDeviceIdx]?.deviceId;
+  const hasId = deviceId && deviceId.trim() !== '';
+
+  const constraints = {
+    video: {
+      facingMode: hasId ? undefined : facingMode,
+      deviceId: hasId ? { ideal: deviceId } : undefined,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    audio: false,
+  };
+  if (!constraints.video.facingMode) delete constraints.video.facingMode;
+  if (!constraints.video.deviceId) delete constraints.video.deviceId;
+
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
+    await enumerateDevices(); // re-enumerate for labels
+    setStatus('Live');
+  } catch (err) {
+    setStatus('Camera error: ' + err.message);
+  }
+}
+
+window.switchCamera = function() {
+  if (videoDevices.length > 1) {
+    currentDeviceIdx = (currentDeviceIdx + 1) % videoDevices.length;
+  } else {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  }
+  startCamera();
+};
+
+// ── Freeze / Unfreeze ──────────────────────────
+function freezeFrame() {
+  if (frozen || video.readyState < video.HAVE_ENOUGH_DATA) return;
+
+  frozenWidth = video.videoWidth;
+  frozenHeight = video.videoHeight;
+  frozenCanvas.width = frozenWidth;
+  frozenCanvas.height = frozenHeight;
+  const ctx = frozenCanvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, frozenWidth, frozenHeight);
+  frozenImageData = ctx.getImageData(0, 0, frozenWidth, frozenHeight);
+
+  frozen = true;
+  mainArea.classList.add('frozen');
+  overlay.classList.add('drawing');
+  currentPoints = [];
+  closedPolygons = [];
+  resizeOverlay();
+  setStatus('Frozen — click to annotate');
+}
+
+function unfreezeFrame() {
+  frozen = false;
+  mainArea.classList.remove('frozen');
+  overlay.classList.remove('drawing');
+  currentPoints = [];
+  closedPolygons = [];
+  drawOverlay();
+  setStatus('Live');
+}
+
+// ── Overlay drawing ────────────────────────────
+function resizeOverlay() {
+  // Match overlay to the displayed size of the frozen canvas or video
+  const el = frozen ? frozenCanvas : video;
+  const rect = el.getBoundingClientRect();
+  overlay.width = rect.width;
+  overlay.height = rect.height;
+  overlay.style.width = rect.width + 'px';
+  overlay.style.height = rect.height + 'px';
+  overlay.style.left = rect.left - mainArea.getBoundingClientRect().left + 'px';
+  overlay.style.top = rect.top - mainArea.getBoundingClientRect().top + 'px';
+}
+
+function drawOverlay() {
+  resizeOverlay();
+  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (!frozen) return;
+
+  const sx = overlay.width / frozenWidth;
+  const sy = overlay.height / frozenHeight;
+
+  // Draw closed polygons + their bboxes
+  for (const poly of closedPolygons) {
+    drawPolygon(poly, sx, sy, 'rgba(78, 204, 163, 0.7)', 'rgba(78, 204, 163, 0.15)');
+    drawBbox(poly, sx, sy, 'rgba(78, 204, 163, 0.9)');
+  }
+
+  // Draw current (in-progress) polygon
+  if (currentPoints.length > 0) {
+    drawPolygon(currentPoints, sx, sy, 'rgba(233, 69, 96, 0.9)', null);
+    // Draw points
+    for (const p of currentPoints) {
+      overlayCtx.beginPath();
+      overlayCtx.arc(p.x * sx, p.y * sy, 4, 0, Math.PI * 2);
+      overlayCtx.fillStyle = 'rgba(233, 69, 96, 1)';
+      overlayCtx.fill();
+    }
+  }
+}
+
+function drawPolygon(points, sx, sy, strokeColor, fillColor) {
+  if (points.length < 2) return;
+  overlayCtx.beginPath();
+  overlayCtx.moveTo(points[0].x * sx, points[0].y * sy);
+  for (let i = 1; i < points.length; i++) {
+    overlayCtx.lineTo(points[i].x * sx, points[i].y * sy);
+  }
+  if (fillColor) {
+    overlayCtx.closePath();
+    overlayCtx.fillStyle = fillColor;
+    overlayCtx.fill();
+  }
+  overlayCtx.strokeStyle = strokeColor;
+  overlayCtx.lineWidth = 2;
+  overlayCtx.stroke();
+}
+
+function drawBbox(points, sx, sy, color) {
+  const bbox = polyToBbox(points);
+  overlayCtx.strokeStyle = color;
+  overlayCtx.lineWidth = 2;
+  overlayCtx.setLineDash([4, 4]);
+  overlayCtx.strokeRect(bbox.x * sx, bbox.y * sy, bbox.w * sx, bbox.h * sy);
+  overlayCtx.setLineDash([]);
+
+  // Label
+  overlayCtx.font = '11px monospace';
+  overlayCtx.fillStyle = color;
+  const cx = ((bbox.x + bbox.w / 2) / frozenWidth).toFixed(3);
+  const cy2 = ((bbox.y + bbox.h / 2) / frozenHeight).toFixed(3);
+  overlayCtx.fillText(`qr ${cx} ${cy2}`, bbox.x * sx, bbox.y * sy - 4);
+}
+
+function polyToBbox(points) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of points) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+// ── Click handler ──────────────────────────────
+overlay.addEventListener('click', (e) => {
+  if (!frozen) return;
+  const rect = overlay.getBoundingClientRect();
+  const sx = frozenWidth / overlay.width;
+  const sy = frozenHeight / overlay.height;
+  const x = (e.clientX - rect.left) * sx;
+  const y = (e.clientY - rect.top) * sy;
+  currentPoints.push({ x, y });
+  drawOverlay();
+});
+
+// ── Close polygon ──────────────────────────────
+function closePolygon() {
+  if (currentPoints.length < 3) {
+    toast('Need at least 3 points');
+    return;
+  }
+  closedPolygons.push([...currentPoints]);
+  currentPoints = [];
+  drawOverlay();
+  toast(`Polygon closed (${closedPolygons.length} box${closedPolygons.length > 1 ? 'es' : ''})`);
+}
+
+// ── Save capture ───────────────────────────────
+async function saveCapture() {
+  if (!frozen) { toast('Capture a frame first'); return; }
+  if (closedPolygons.length === 0 && currentPoints.length >= 3) {
+    closePolygon(); // auto-close if they forgot Enter
+  }
+  if (closedPolygons.length === 0) { toast('Draw at least one polygon'); return; }
+
+  // Convert frozen frame to JPEG blob
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = frozenWidth;
+  tempCanvas.height = frozenHeight;
+  tempCanvas.getContext('2d').putImageData(frozenImageData, 0, 0);
+
+  const jpegBlob = await new Promise(r => tempCanvas.toBlob(r, 'image/jpeg', 0.92));
+
+  // Build YOLO labels
+  const labels = closedPolygons.map(poly => {
+    const bbox = polyToBbox(poly);
+    const cx = (bbox.x + bbox.w / 2) / frozenWidth;
+    const cy = (bbox.y + bbox.h / 2) / frozenHeight;
+    const w = bbox.w / frozenWidth;
+    const h = bbox.h / frozenHeight;
+    return { cx, cy, w, h };
+  });
+
+  // Create thumbnail
+  const thumbCanvas = document.createElement('canvas');
+  thumbCanvas.width = 112;
+  thumbCanvas.height = 84;
+  thumbCanvas.getContext('2d').drawImage(tempCanvas, 0, 0, 112, 84);
+  const thumbBlob = await new Promise(r => thumbCanvas.toBlob(r, 'image/jpeg', 0.7));
+
+  const record = {
+    jpeg: jpegBlob,
+    thumb: thumbBlob,
+    width: frozenWidth,
+    height: frozenHeight,
+    labels,
+    timestamp: Date.now(),
+  };
+
+  const id = await dbPut(record);
+  record.id = id;
+  captures.push(record);
+
+  updateThumbs();
+  updateCounts();
+  toast(`Saved capture #${captures.length} (${labels.length} box${labels.length > 1 ? 'es' : ''})`);
+
+  // Auto-advance to live
+  unfreezeFrame();
+}
+
+// ── Delete capture ─────────────────────────────
+async function deleteSelected() {
+  if (selectedIdx < 0 || selectedIdx >= captures.length) {
+    toast('Select a thumbnail first');
+    return;
+  }
+  const cap = captures[selectedIdx];
+  await dbDelete(cap.id);
+  captures.splice(selectedIdx, 1);
+  selectedIdx = -1;
+  updateThumbs();
+  updateCounts();
+  if (frozen) unfreezeFrame();
+  toast('Deleted');
+}
+
+// ── Thumbnail strip ────────────────────────────
+function updateThumbs() {
+  const strip = document.getElementById('thumbstrip');
+  strip.innerHTML = '';
+  captures.forEach((cap, i) => {
+    const img = document.createElement('img');
+    img.className = 'thumb' + (i === selectedIdx ? ' selected' : '');
+    img.src = URL.createObjectURL(cap.thumb);
+    img.onclick = () => reviewCapture(i);
+    strip.appendChild(img);
+  });
+  // Auto-scroll to end
+  strip.scrollLeft = strip.scrollWidth;
+}
+
+function reviewCapture(idx) {
+  selectedIdx = idx;
+  const cap = captures[idx];
+
+  // Show frozen frame from saved JPEG
+  const img = new Image();
+  img.onload = () => {
+    frozenWidth = cap.width;
+    frozenHeight = cap.height;
+    frozenCanvas.width = frozenWidth;
+    frozenCanvas.height = frozenHeight;
+    frozenCanvas.getContext('2d').drawImage(img, 0, 0);
+    frozenImageData = frozenCanvas.getContext('2d').getImageData(0, 0, frozenWidth, frozenHeight);
+
+    frozen = true;
+    mainArea.classList.add('frozen');
+    overlay.classList.remove('drawing'); // read-only review
+
+    // Reconstruct polygons from bboxes for display
+    closedPolygons = cap.labels.map(l => {
+      const x = (l.cx - l.w / 2) * frozenWidth;
+      const y = (l.cy - l.h / 2) * frozenHeight;
+      const w = l.w * frozenWidth;
+      const h = l.h * frozenHeight;
+      return [
+        { x, y },
+        { x: x + w, y },
+        { x: x + w, y: y + h },
+        { x, y: y + h },
+      ];
+    });
+    currentPoints = [];
+    drawOverlay();
+    setStatus(`Reviewing #${idx + 1} — press Esc to go back`);
+  };
+  img.src = URL.createObjectURL(cap.jpeg);
+  updateThumbs();
+}
+
+// ── Export ZIP ──────────────────────────────────
+window.exportZip = async function() {
+  if (captures.length === 0) { toast('No captures to export'); return; }
+
+  setStatus('Building ZIP...');
+  const zip = new JSZip();
+  const imgFolder = zip.folder('images').folder('train');
+  const lblFolder = zip.folder('labels').folder('train');
+
+  for (let i = 0; i < captures.length; i++) {
+    const cap = captures[i];
+    const name = `capture_${String(i + 1).padStart(4, '0')}`;
+
+    imgFolder.file(`${name}.jpg`, cap.jpeg);
+
+    const labelLines = cap.labels.map(l =>
+      `0 ${l.cx.toFixed(6)} ${l.cy.toFixed(6)} ${l.w.toFixed(6)} ${l.h.toFixed(6)}`
+    ).join('\n');
+    lblFolder.file(`${name}.txt`, labelLines + '\n');
+  }
+
+  // Add dataset.yaml
+  zip.file('dataset.yaml', [
+    '# Kipukas QR Detection Dataset',
+    `# Generated: ${new Date().toISOString()}`,
+    `# Captures: ${captures.length}`,
+    '',
+    'path: .',
+    'train: images/train',
+    'val: images/train  # Split manually for val',
+    '',
+    'nc: 1',
+    'names:',
+    '  0: qr-code',
+    '',
+  ].join('\n'));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kipukas-qr-dataset-${captures.length}imgs.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  setStatus(`Exported ${captures.length} captures`);
+  toast(`ZIP downloaded (${captures.length} images)`);
+};
+
+// ── Keyboard shortcuts ─────────────────────────
+document.addEventListener('keydown', (e) => {
+  // Don't capture if user is in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch (e.code) {
+    case 'Space':
+      e.preventDefault();
+      if (!frozen) freezeFrame();
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (frozen) closePolygon();
+      break;
+    case 'KeyS':
+      e.preventDefault();
+      saveCapture();
+      break;
+    case 'Escape':
+      e.preventDefault();
+      unfreezeFrame();
+      selectedIdx = -1;
+      updateThumbs();
+      break;
+    case 'KeyZ':
+      if (frozen && currentPoints.length > 0) {
+        currentPoints.pop();
+        drawOverlay();
+      }
+      break;
+    case 'KeyC':
+      if (!frozen) switchCamera();
+      break;
+    case 'KeyE':
+      exportZip();
+      break;
+    case 'KeyD':
+    case 'Delete':
+    case 'Backspace':
+      if (frozen && selectedIdx >= 0) deleteSelected();
+      break;
+  }
+});
+
+// ── Resize handler ─────────────────────────────
+window.addEventListener('resize', () => { if (frozen) drawOverlay(); });
+
+// ── Utilities ──────────────────────────────────
+function updateCounts() {
+  document.getElementById('countBadge').textContent = `${captures.length} capture${captures.length !== 1 ? 's' : ''}`;
+  const totalBoxes = captures.reduce((sum, c) => sum + c.labels.length, 0);
+  document.getElementById('boxCount').textContent = `${totalBoxes} box${totalBoxes !== 1 ? 'es' : ''}`;
+}
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── Init: load existing captures from IndexedDB ─
+async function init() {
+  try {
+    const existing = await dbGetAll();
+    captures = existing;
+    updateThumbs();
+    updateCounts();
+    if (captures.length > 0) {
+      toast(`Loaded ${captures.length} existing captures`);
+    }
+  } catch (err) {
+    console.warn('Could not load from IndexedDB:', err);
+  }
+  startCamera();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,7 +1,10 @@
-# QR Code Detection Dataset — YOLO format
-# Single class: "qr-code" (matching kolabit/qr-codes dataset labels)
+# Kipukas QR Detection — Augmented Dataset
+# Kipukas originals: 57
+# Augmented (rqrr cascade): 570
+# Kolabit: 150
+# Total: 777 (622 train, 155 val)
 
-path: /Users/lah-rb/Repos/lah-rb.github.io/YOLO_rqrr/data
+path: /Users/lah-rb/Repos/lah-rb.github.io/YOLO_rqrr/data-augmented
 train: images/train
 val: images/val
 

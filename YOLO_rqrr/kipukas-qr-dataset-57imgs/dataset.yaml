@@ -1,0 +1,11 @@
+# Kipukas QR Detection Dataset
+# Generated: 2026-03-01T02:38:31.729Z
+# Captures: 57
+
+path: .
+train: images/train
+val: images/train  # Split manually for val
+
+nc: 1
+names:
+  0: qr-code
