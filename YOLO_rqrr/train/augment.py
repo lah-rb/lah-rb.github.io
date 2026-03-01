@@ -131,7 +131,6 @@ TRANSFORMS = [
     ("blur_at", blur_adaptive),
     ("stretch_at", contrast_stretch_adaptive),
     ("yellow", yellow_aware),
-    ("otsu", otsu_thresh),
     ("noise15", gaussian_noise),
     ("jpeg35", jpeg_compress),
 ]
@@ -293,7 +292,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Augment Kipukas QR dataset")
     parser.add_argument(
         "--kipukas-dir", type=str,
-        default=str(Path(__file__).parent.parent / "kipukas-qr-dataset-57imgs"),
+        default=str(Path(__file__).parent.parent / "kipukas-qr-dataset-70imgs"),
         help="Path to Kipukas annotated dataset"
     )
     parser.add_argument(

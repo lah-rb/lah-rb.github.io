@@ -1,8 +1,8 @@
 # Kipukas QR Detection — Augmented Dataset
-# Kipukas originals: 57
-# Augmented (rqrr cascade): 570
+# Kipukas originals: 70
+# Augmented (rqrr cascade): 630
 # Kolabit: 150
-# Total: 777 (622 train, 155 val)
+# Total: 850 (680 train, 170 val)
 
 path: /Users/lah-rb/Repos/lah-rb.github.io/YOLO_rqrr/data-augmented
 train: images/train
