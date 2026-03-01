@@ -7,8 +7,9 @@
  *   - Camera start/stop (browser getUserMedia API)
  *   - Frame capture loop (canvas → pixel data → Web Worker)
  *   - Listening for QR_FOUND results from the worker
+ *   - Drawing YOLO bounding box overlays for visual debugging
  *
- * The worker (kipukas-worker.js) handles ZXing decode + WASM HTML formatting.
+ * The worker (kipukas-worker.js) handles YOLO+ZXing decode + WASM HTML formatting.
  * Results are swapped into the DOM via htmx.ajax() for architectural consistency.
  *
  * Exposed globally as window.kipukasQR for use by HTMX-returned HTML fragments.
@@ -25,6 +26,10 @@
   let currentDeviceIndex = 0;
   let currentFacingMode = 'user';
 
+  // Bbox overlay state (updated by QR_BBOX messages from worker)
+  let lastBboxData = null;
+  let bboxFadeTimer = null;
+
   /**
    * Enumerate available video input devices.
    * Called on startup to populate videoDevices list.
@@ -38,6 +43,88 @@
       console.error('[qr-camera] Failed to enumerate devices:', err);
       videoDevices = [];
     }
+  }
+
+  /**
+   * Draw YOLO bounding boxes on the overlay canvas.
+   * Green = detected, Red outline = detected but decode failed, Bright green = decoded.
+   *
+   * @param {Object} data - QR_BBOX message data from worker
+   */
+  function drawBboxOverlay(data) {
+    const overlay = document.getElementById('bbox-overlay');
+    if (!overlay) return;
+
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+    if (!data || !data.detections || data.detections.length === 0) return;
+
+    const { detections, yoloMs, frameW, frameH, decoded } = data;
+
+    // Scale from frame coordinates to overlay canvas coordinates
+    const scaleX = overlay.width / frameW;
+    const scaleY = overlay.height / frameH;
+
+    for (const det of detections) {
+      const x = det.x * scaleX;
+      const y = det.y * scaleY;
+      const w = det.w * scaleX;
+      const h = det.h * scaleY;
+      const conf = (det.confidence * 100).toFixed(0);
+
+      // Box color: bright green if decoded, amber if detection only
+      ctx.strokeStyle = decoded ? '#22c55e' : '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, w, h);
+
+      // Corner accents for visual clarity
+      const cornerLen = Math.min(w, h) * 0.2;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = decoded ? '#22c55e' : '#f59e0b';
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(x, y + cornerLen);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + cornerLen, y);
+      ctx.stroke();
+      // Top-right
+      ctx.beginPath();
+      ctx.moveTo(x + w - cornerLen, y);
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(x + w, y + cornerLen);
+      ctx.stroke();
+      // Bottom-right
+      ctx.beginPath();
+      ctx.moveTo(x + w, y + h - cornerLen);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x + w - cornerLen, y + h);
+      ctx.stroke();
+      // Bottom-left
+      ctx.beginPath();
+      ctx.moveTo(x + cornerLen, y + h);
+      ctx.lineTo(x, y + h);
+      ctx.lineTo(x, y + h - cornerLen);
+      ctx.stroke();
+
+      // Label background
+      const label = decoded ? `✓ ${conf}%` : `${conf}%`;
+      ctx.font = 'bold 14px monospace';
+      const textW = ctx.measureText(label).width;
+      ctx.fillStyle = decoded ? 'rgba(34, 197, 94, 0.85)' : 'rgba(245, 158, 11, 0.85)';
+      ctx.fillRect(x, y - 20, textW + 8, 20);
+
+      // Label text
+      ctx.fillStyle = '#000';
+      ctx.fillText(label, x + 4, y - 5);
+    }
+
+    // YOLO timing in bottom-left
+    ctx.font = '12px monospace';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(4, overlay.height - 22, 90, 18);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText(`YOLO: ${yoloMs}ms`, 8, overlay.height - 8);
   }
 
   /**
@@ -97,7 +184,7 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            // Send raw RGBA pixels to Web Worker for ZXing decode.
+            // Send raw RGBA pixels to Web Worker for YOLO+ZXing decode.
             // Transfer the buffer for zero-copy performance.
             const worker = globalThis.kipukasWorker;
             if (worker) {
@@ -163,8 +250,27 @@
       scanInterval = null;
     }
 
+    // Clear bbox overlay
+    clearBboxOverlay();
+
     // Restart camera with new device
     start();
+  }
+
+  /**
+   * Clear the bounding box overlay canvas.
+   */
+  function clearBboxOverlay() {
+    const overlay = document.getElementById('bbox-overlay');
+    if (overlay) {
+      const ctx = overlay.getContext('2d');
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+    lastBboxData = null;
+    if (bboxFadeTimer) {
+      clearTimeout(bboxFadeTimer);
+      bboxFadeTimer = null;
+    }
   }
 
   /**
@@ -189,6 +295,8 @@
     if (video) {
       video.srcObject = null;
     }
+
+    clearBboxOverlay();
 
     console.log('[qr-camera] Camera stopped');
   }
@@ -220,7 +328,7 @@
     }
   }
 
-  // ── Listen for QR_FOUND from the Web Worker ────────────────────────
+  // ── Listen for QR_FOUND and QR_BBOX from the Web Worker ───────────
 
   function setupWorkerListener() {
     const worker = globalThis.kipukasWorker;
@@ -232,6 +340,22 @@
     }
 
     worker.addEventListener('message', (event) => {
+      // ── Bounding box overlay ──
+      if (event.data?.type === 'QR_BBOX') {
+        if (!scanning) return; // Don't draw if scanner closed
+
+        lastBboxData = event.data;
+        drawBboxOverlay(event.data);
+
+        // Auto-fade boxes after 1.5s if no new data arrives
+        if (bboxFadeTimer) clearTimeout(bboxFadeTimer);
+        bboxFadeTimer = setTimeout(() => {
+          drawBboxOverlay(null);
+        }, 1500);
+        return;
+      }
+
+      // ── QR found result ──
       if (event.data?.type === 'QR_FOUND') {
         // Stop scanning immediately
         stop();

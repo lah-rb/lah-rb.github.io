@@ -194,6 +194,9 @@ fn scanning_ui() -> String {
     <video id="video"
            class="z-50 object-cover size-full scale-x-[-1] rounded-lg transition delay-150"
            autoplay playsinline></video>
+    <canvas id="bbox-overlay"
+            class="z-[60] absolute inset-0 size-full scale-x-[-1] rounded-lg pointer-events-none"
+            width="640" height="480"></canvas>
     <div id="qr-result"></div>
   </div>
 </div>

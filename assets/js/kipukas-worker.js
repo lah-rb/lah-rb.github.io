@@ -8,8 +8,9 @@
  *   HTMX fetch → SW intercepts → SW posts to page → page posts to this worker
  *   → WASM processes → responds on port → SW returns Response to HTMX
  *
- * QR detection: YOLO v12n (ONNX Runtime Web) for localization + rqrr (Rust/WASM)
- * for decode. Replaces the previous ZXing path for improved accuracy on
+ * QR detection: YOLO v12n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
+ * for decode. YOLO finds QR bounding boxes in the camera frame, then ZXing
+ * decodes the cropped region with tryHarder mode for maximum accuracy on
  * camouflaged QR codes with low-res front-facing cameras.
  *
  * This worker runs as { type: 'module' } so it can use ES imports.
@@ -18,6 +19,7 @@
 import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 import { initSession, runDetection } from './yolo-inference.js';
 import { parseDetections, cropDetection } from './postprocess.js';
+import { initZXing, decodeQR as zxingDecode } from './zxing-decode.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -31,12 +33,10 @@ wasmReady.then(() => {
   console.error('[kipukas-worker] WASM init failed:', err);
 });
 
-// ── YOLO + rqrr init (for QR detect + decode) ─────────────────────
+// ── YOLO + ZXing init (for QR detect + decode) ────────────────────
 
 const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
-const RQRR_WASM_JS = '/assets/js-wasm/rqrr-decode-pkg/rqrr_decode.js';
 
-let rqrrModule = null;
 let qrReady = false;
 let qrInitializing = false;
 
@@ -46,20 +46,14 @@ async function initQR() {
 
   try {
     const t0 = performance.now();
-    const [backend, rqrr] = await Promise.all([
+    const [backend] = await Promise.all([
       initSession(MODEL_URL),
-      import(RQRR_WASM_JS).then(async (mod) => {
-        if (mod.default && typeof mod.default === 'function') {
-          await mod.default();
-        }
-        return mod;
-      }),
+      initZXing(),
     ]);
 
-    rqrrModule = rqrr;
     qrReady = true;
     const elapsed = Math.round(performance.now() - t0);
-    console.log(`[kipukas-worker] YOLO+rqrr ready (${backend} backend, ${elapsed}ms)`);
+    console.log(`[kipukas-worker] YOLO+ZXing ready (${backend} backend, ${elapsed}ms)`);
 
     self.postMessage({
       type: 'STATUS',
@@ -67,16 +61,18 @@ async function initQR() {
       backend,
     });
   } catch (err) {
-    console.error('[kipukas-worker] YOLO+rqrr init failed:', err);
+    console.error('[kipukas-worker] YOLO+ZXing init failed:', err);
   } finally {
     qrInitializing = false;
   }
 }
 
-// ── YOLO+rqrr QR decode pipeline ──────────────────────────────────
+// ── YOLO+ZXing QR decode pipeline ─────────────────────────────────
 
 /**
- * Two-stage QR decode: YOLO detects QR bounding boxes, rqrr decodes content.
+ * Two-stage QR decode: YOLO detects QR bounding boxes, ZXing decodes content.
+ * Posts QR_BBOX messages back to main thread for visual overlay debugging.
+ *
  * @param {Uint8ClampedArray} rgba - RGBA pixel buffer
  * @param {number} width
  * @param {number} height
@@ -96,35 +92,65 @@ async function decodeQR(rgba, width, height) {
 
   const t1 = performance.now();
 
+  // Always post bbox data to main thread for visual overlay
+  // (even when no detections — clears old boxes)
+  self.postMessage({
+    type: 'QR_BBOX',
+    detections: detections.map((d) => ({
+      x: d.x,
+      y: d.y,
+      w: d.w,
+      h: d.h,
+      confidence: d.confidence,
+    })),
+    yoloMs: Math.round(t1 - t0),
+    frameW: width,
+    frameH: height,
+    decoded: false,
+  });
+
   if (detections.length === 0) return null;
 
-  // Stage 2: rqrr decode on each detection (highest confidence first)
+  // Stage 2: ZXing decode on each detection (highest confidence first)
   for (const det of detections) {
     const crop = cropDetection(rgba, width, height, det, 0.15);
-    const result = rqrrModule.decode_qr_crop(
-      crop.rgba,
-      crop.width,
-      crop.height,
-    );
 
-    if (result && result.length > 0) {
-      const t2 = performance.now();
-      // Parse: "strategyIdx|strategyName|decodedText"
-      const parts = result.split('|');
-      const strategy = parts.length >= 3 ? parts[1] : 'unknown';
-      const decodedUrl = parts.length >= 3 ? parts.slice(2).join('|') : result;
+    try {
+      const result = zxingDecode(crop.rgba, crop.width, crop.height);
 
-      console.log(
-        `[kipukas-worker] QR decoded: ${decodedUrl} ` +
-        `(YOLO: ${(t1 - t0).toFixed(0)}ms, rqrr[${strategy}]: ${(t2 - t1).toFixed(0)}ms, ` +
-        `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`
-      );
+      if (result && result.text) {
+        const t2 = performance.now();
 
-      return decodedUrl;
+        console.log(
+          `[kipukas-worker] QR decoded: ${result.text} ` +
+          `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
+          `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
+        );
+
+        // Update bbox overlay to show successful decode
+        self.postMessage({
+          type: 'QR_BBOX',
+          detections: detections.map((d) => ({
+            x: d.x,
+            y: d.y,
+            w: d.w,
+            h: d.h,
+            confidence: d.confidence,
+          })),
+          yoloMs: Math.round(t1 - t0),
+          frameW: width,
+          frameH: height,
+          decoded: true,
+        });
+
+        return result.text;
+      }
+    } catch (err) {
+      console.warn('[kipukas-worker] ZXing decode error:', err.message);
     }
   }
 
-  // YOLO found QR-like regions but rqrr couldn't decode — normal for some frames
+  // YOLO found QR-like regions but ZXing couldn't decode — normal for some frames
   return null;
 }
 
