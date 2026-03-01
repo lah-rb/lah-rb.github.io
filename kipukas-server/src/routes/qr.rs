@@ -165,7 +165,7 @@ fn scanning_ui() -> String {
   <!-- Video container - higher z-index to stay above flash -->
   <div class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
     <canvas id="canvas" class="-z-10 object-cover size-full scale-x-[-1] hidden"
-            width="640" height="480"></canvas>
+            width="640" height="640"></canvas>
     
     <!-- Close button (left) -->
     <button class="z-50 absolute top-3 left-3 size-fit transition delay-150"
@@ -196,7 +196,7 @@ fn scanning_ui() -> String {
            autoplay playsinline></video>
     <canvas id="bbox-overlay"
             class="z-[60] absolute inset-0 size-full scale-x-[-1] rounded-lg pointer-events-none"
-            width="640" height="480"></canvas>
+            width="640" height="640"></canvas>
     <div id="qr-result"></div>
   </div>
 </div>

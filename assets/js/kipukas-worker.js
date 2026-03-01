@@ -39,6 +39,7 @@ const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
 
 let qrReady = false;
 let qrInitializing = false;
+let qrMode = null; // 'yolo+zxing' or 'zxing-only'
 
 async function initQR() {
   if (qrReady || qrInitializing) return;
@@ -46,22 +47,34 @@ async function initQR() {
 
   try {
     const t0 = performance.now();
-    const [backend] = await Promise.all([
+
+    // Load YOLO (WebGPU-only) and ZXing in parallel
+    const [yoloBackend] = await Promise.all([
       initSession(MODEL_URL),
       initZXing(),
     ]);
 
     qrReady = true;
     const elapsed = Math.round(performance.now() - t0);
-    console.log(`[kipukas-worker] YOLO+ZXing ready (${backend} backend, ${elapsed}ms)`);
+
+    if (yoloBackend) {
+      // WebGPU available → full YOLO+ZXing pipeline
+      qrMode = 'yolo+zxing';
+      console.log(`[kipukas-worker] YOLO+ZXing ready (${yoloBackend}, ${elapsed}ms)`);
+    } else {
+      // No WebGPU → ZXing-only mode (full-frame decode, no YOLO localization)
+      qrMode = 'zxing-only';
+      console.log(`[kipukas-worker] ZXing-only mode (no WebGPU, ${elapsed}ms)`);
+    }
 
     self.postMessage({
       type: 'STATUS',
       status: 'qr-ready',
-      backend,
+      backend: yoloBackend || 'zxing-only',
+      mode: qrMode,
     });
   } catch (err) {
-    console.error('[kipukas-worker] YOLO+ZXing init failed:', err);
+    console.error('[kipukas-worker] QR init failed:', err);
   } finally {
     qrInitializing = false;
   }
@@ -84,6 +97,21 @@ async function decodeQR(rgba, width, height) {
     if (!qrReady) return null;
   }
 
+  // ── ZXing-only mode (no WebGPU) — scan full frame directly ──
+  if (qrMode === 'zxing-only') {
+    try {
+      const result = zxingDecode(rgba, width, height);
+      if (result && result.text) {
+        console.log(`[kipukas-worker] ZXing-only decoded: ${result.text}`);
+        return result.text;
+      }
+    } catch (err) {
+      console.warn('[kipukas-worker] ZXing-only error:', err.message);
+    }
+    return null;
+  }
+
+  // ── YOLO+ZXing mode (WebGPU available) ──
   const t0 = performance.now();
 
   // Stage 1: YOLO detection
@@ -161,6 +189,12 @@ let processingFrame = false;
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
+  // ── Preload QR stack (triggered 5s after page load by kipukas-api.js) ──
+  if (event.data?.type === 'PRELOAD_QR') {
+    initQR();
+    return;
+  }
+
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     // Drop frame if previous inference is still running

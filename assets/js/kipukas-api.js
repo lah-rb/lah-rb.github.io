@@ -191,3 +191,13 @@ wasmWorker.addEventListener('message', (event) => {
       console.warn('[kipukas-api] Failed to auto-load multiplayer:', err);
     });
 })();
+
+// ============================================
+// PRELOAD QR detection stack (YOLO + ZXing) after 5s delay
+// ============================================
+// Eagerly loads the ~11MB ONNX model + ZXing WASM so the scanner
+// feels instant when opened. The 5s delay avoids competing with
+// initial page rendering and HTMX hydration.
+setTimeout(() => {
+  wasmWorker.postMessage({ type: 'PRELOAD_QR' });
+}, 5000);
