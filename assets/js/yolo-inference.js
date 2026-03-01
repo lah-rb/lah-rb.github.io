@@ -27,23 +27,28 @@ export async function initSession(modelUrl) {
   // Import onnxruntime-web — in a worker context, use importScripts or dynamic import
   const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.all.min.mjs');
 
-  // WebGPU only — WASM/CPU is too slow for YOLO on mobile (~2-4s/frame).
-  // If WebGPU is unavailable, caller falls back to ZXing-only mode.
-  try {
-    ort.env.wasm.numThreads = 1;
-    session = await ort.InferenceSession.create(modelUrl, {
-      executionProviders: ['webgpu'],
-      graphOptimizationLevel: 'all',
-    });
-    backend = 'webgpu';
-    console.log('[yolo-inference] Session created with webgpu backend');
-    return backend;
-  } catch (err) {
-    console.warn('[yolo-inference] WebGPU backend failed:', err.message);
-    console.warn('[yolo-inference] YOLO unavailable — caller should use ZXing-only mode');
-    session = null;
-    return null; // Signal: no YOLO available
+  // Try WebGPU first (3-8× faster on mobile GPU), fall back to WASM/CPU.
+  // User opts in via the CV toggle, so both backends are acceptable.
+  const backends = ['webgpu', 'wasm'];
+
+  for (const b of backends) {
+    try {
+      ort.env.wasm.numThreads = 1; // Single thread in worker
+      session = await ort.InferenceSession.create(modelUrl, {
+        executionProviders: [b],
+        graphOptimizationLevel: 'all',
+      });
+      backend = b;
+      console.log(`[yolo-inference] Session created with ${b} backend`);
+      return backend;
+    } catch (err) {
+      console.warn(`[yolo-inference] ${b} backend failed:`, err.message);
+      session = null;
+    }
   }
+
+  console.error('[yolo-inference] No suitable backend available');
+  return null;
 }
 
 /**

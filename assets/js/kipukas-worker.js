@@ -40,6 +40,7 @@ const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
 let qrReady = false;
 let qrInitializing = false;
 let qrMode = null; // 'yolo+zxing' or 'zxing-only'
+let cvEnabled = false; // User-controlled CV toggle (persisted in localStorage on main thread)
 
 async function initQR() {
   if (qrReady || qrInitializing) return;
@@ -48,30 +49,37 @@ async function initQR() {
   try {
     const t0 = performance.now();
 
-    // Load YOLO (WebGPU-only) and ZXing in parallel
-    const [yoloBackend] = await Promise.all([
-      initSession(MODEL_URL),
-      initZXing(),
-    ]);
+    if (cvEnabled) {
+      // CV enabled — load YOLO (WebGPU → WASM fallback) + ZXing in parallel
+      const [yoloBackend] = await Promise.all([
+        initSession(MODEL_URL),
+        initZXing(),
+      ]);
 
-    qrReady = true;
-    const elapsed = Math.round(performance.now() - t0);
+      qrReady = true;
+      const elapsed = Math.round(performance.now() - t0);
 
-    if (yoloBackend) {
-      // WebGPU available → full YOLO+ZXing pipeline
-      qrMode = 'yolo+zxing';
-      console.log(`[kipukas-worker] YOLO+ZXing ready (${yoloBackend}, ${elapsed}ms)`);
+      if (yoloBackend) {
+        qrMode = 'yolo+zxing';
+        console.log(`[kipukas-worker] YOLO+ZXing ready (${yoloBackend}, ${elapsed}ms)`);
+      } else {
+        qrMode = 'zxing-only';
+        console.log(`[kipukas-worker] CV enabled but YOLO failed — ZXing-only (${elapsed}ms)`);
+      }
     } else {
-      // No WebGPU → ZXing-only mode (full-frame decode, no YOLO localization)
+      // CV disabled — ZXing only (lightweight, works everywhere)
+      await initZXing();
+      qrReady = true;
       qrMode = 'zxing-only';
-      console.log(`[kipukas-worker] ZXing-only mode (no WebGPU, ${elapsed}ms)`);
+      const elapsed = Math.round(performance.now() - t0);
+      console.log(`[kipukas-worker] ZXing-only mode (CV off, ${elapsed}ms)`);
     }
 
     self.postMessage({
       type: 'STATUS',
       status: 'qr-ready',
-      backend: yoloBackend || 'zxing-only',
       mode: qrMode,
+      cvEnabled,
     });
   } catch (err) {
     console.error('[kipukas-worker] QR init failed:', err);
@@ -189,8 +197,29 @@ let processingFrame = false;
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
+  // ── CV mode toggle (from scanner UI button) ──
+  if (event.data?.type === 'SET_CV_MODE') {
+    const wasEnabled = cvEnabled;
+    cvEnabled = !!event.data.enabled;
+    console.log(`[kipukas-worker] CV mode ${cvEnabled ? 'ON' : 'OFF'}`);
+    // If switching to CV mode and QR is already initialized as zxing-only,
+    // reset so next frame triggers YOLO init
+    if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
+      qrReady = false;
+      qrMode = null;
+    }
+    // If switching OFF while YOLO was active, just change mode
+    // (YOLO session stays loaded but won't be used)
+    if (!cvEnabled && qrMode === 'yolo+zxing') {
+      qrMode = 'zxing-only';
+    }
+    self.postMessage({ type: 'STATUS', status: 'cv-mode-changed', mode: qrMode, cvEnabled });
+    return;
+  }
+
   // ── Preload QR stack (triggered 5s after page load by kipukas-api.js) ──
   if (event.data?.type === 'PRELOAD_QR') {
+    cvEnabled = !!event.data.cvEnabled;
     initQR();
     return;
   }
