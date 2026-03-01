@@ -199,5 +199,6 @@ wasmWorker.addEventListener('message', (event) => {
 // feels instant when opened. The 5s delay avoids competing with
 // initial page rendering and HTMX hydration.
 setTimeout(() => {
-  wasmWorker.postMessage({ type: 'PRELOAD_QR' });
+  const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
+  wasmWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled });
 }, 5000);
