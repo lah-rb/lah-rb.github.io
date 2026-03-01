@@ -1,24 +1,29 @@
-# YOLO_rqrr — Two-Stage QR Detection Experiment
+# YOLO_rqrr — Quick and dirty WASM QR Detection Experiment
 
-> **YOLOv12n** (attention-centric object detector) → **ZXing** (C++/WASM barcode decoder)  
-> Designed for Kipukas' anti-cheat camouflaged QR codes on mobile browsers.
+## Notice
+While the results of the experiment might be valuable in informing a proper project, this is beyond my capacity at this time. It is provided as is without warrenty or guarentee of reproducibility.
+
+> **YOLOv12n** (attention-centric object detector) → **ZXing** (C++/WASM barcode decoder) or rqrr (rust/WASM QR decoder)
+> Tested and trained against Kipukas' anti-cheat camouflaged QR codes on mobile browsers.
 
 ## Experiment Summary
 
 This directory contains the complete experiment exploring whether YOLOv12's
 attention mechanism, trained on a custom QR code dataset, could improve QR
 detection speed and accuracy for Kipukas' camouflaged QR codes on low-res
-front-facing cameras.
+front-facing cameras. This was tested on google pixel 3a, google pixel 4a, google pixel 9, iphone 6s, iphone 14 pro, samsung galaxy s21, and samsung galaxy book 3. YOLOv12n displays good tracking on all capable devices. General detection was best with ZXing compiled to WASM in good environmental conditions. Additionally, it is compatible with the older devices and devices which do not yet support WebGPU. In poor conditions, YOLOv12n driven cropping + adaptive threshold preprocessing yelds positive detection results with both ZXing and rqrr backends. While not as performant as ZXing, YOLOv12n + rqrr + at_21 was able to decode reliably and would be judged sufficient for more standard QR workflows. However, its main benefit (small compared to ZXing) is deminished when paired with YOLOv12n (~10x larger than ZXing).
 
 ### Findings
 
 | Approach | Result |
 |----------|--------|
-| **rqrr alone** (28 preprocessing strategies on full frame) | ❌ Fails — finder pattern detection can't see through SVG camouflage |
-| **YOLO v12n + ZXing** (two-stage: detect → crop → decode) | ✅ Works — YOLO learns camouflage patterns, ZXing decodes clean crops |
-| **YOLO on WASM/CPU** | ⚠️ Slow (~1-4s/frame) but functional on powerful devices |
-| **YOLO on WebGPU** | ✅ Fast (~30-80ms/frame) on supported mobile GPUs |
-| **ZXing-only** (no YOLO, full-frame scan) | ✅ Works for standard QR codes, fails on heavy camouflage |
+| **rqrr alone** (28 preprocessing strategies on full frame) | ⚠️ very slow w. adaptive threashold, Fails wo.— finder pattern detection can't see through SVG camouflage |
+| **ZXing-only (std-WASM/CDN)** (no YOLO, full-frame scan) | ⚠️ very slow/fails to detect on most devices |
+| **YOLOv12n + rqrr** | ⚠️ slow but functional on powerful devices |
+| **YOLO v12n + ZXing** (two-stage: detect → crop → decode) | ✅ Works — YOLO learns camouflage patterns, ZXing decodes clean crops, bogs older devices |
+| **YOLO on WASM/CPU** | ⚠️ Slow but functional on powerful devices (laptops) |
+| **YOLO on WebGPU** | ✅ Fast on supported mobile GPUs |
+| **ZXing-only (gcc17, compiled in house)** (no YOLO, full-frame scan) | ✅ Works very fast with close shots and good environment on all devices |
 
 ### Key Decisions
 
@@ -116,14 +121,14 @@ highly reliable.
 ```bash
 cd YOLO_rqrr
 
-# 1. Augment Kipukas + merge with kolabit
+# 1. Augment local QR + merge with kolabit
 uv run python train/augment.py
 
 # 2. Train YOLOv12n (100 epochs, MPS on Apple Silicon)
 uv run python train/train.py --epochs 100 --device mps
 
 # 3. Export to ONNX (opset 12, WebGPU compatible)
-uv run python train/export_onnx.py
+uv run python train/export_onnx.py --weights /Users/lah-rb/Repos/lah-rb.github.io/runs/detect/runs/detect/train/weights/best.pt
 
 # 4. Copy model to site assets
 cp models/yolo12n-qr.onnx ../assets/js-wasm/yolo12n-qr.onnx
