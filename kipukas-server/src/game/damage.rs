@@ -139,6 +139,43 @@ fn build_alpine_x_data(slug: &str, total: u8, is_wasted: bool) -> String {
     xd
 }
 
+/// Return the damage state for a card as a JSON string.
+///
+/// Used by `refreshKealTracker()` in `kipukas-multiplayer.js` to update
+/// an existing Alpine scope's reactive properties directly, avoiding the
+/// cross-browser `innerHTML` + `Alpine.initTree()` re-initialization bug.
+///
+/// Returns: `{"slots":{"1":true,"2":false,...},"wasted":false}`
+/// Returns empty `{}` if the card has no keal means.
+pub fn get_damage_state_json(slug: &str) -> String {
+    let card = match find_card(slug) {
+        Some(c) => c,
+        None => return "{}".to_string(),
+    };
+
+    if card.keal_means.is_empty() {
+        return "{}".to_string();
+    }
+
+    let total = total_slots(card);
+    ensure_card_state(slug, total);
+
+    let is_wasted = player_doc::is_wasted(slug);
+
+    // Build slots JSON: {"1":true,"2":false,...}
+    let mut slots_entries: Vec<String> = Vec::with_capacity(total as usize);
+    for i in 1..=total {
+        let checked = player_doc::get_slot(slug, i);
+        slots_entries.push(format!(r#""{}""#, i) + ":" + if checked { "true" } else { "false" });
+    }
+
+    format!(
+        r#"{{"slots":{{{}}},"wasted":{}}}"#,
+        slots_entries.join(","),
+        if is_wasted { "true" } else { "false" }
+    )
+}
+
 /// Render the keal damage tracker HTML for a specific card.
 ///
 /// Returns an HTML fragment with a single Alpine `x-data` scope at the
@@ -490,6 +527,59 @@ mod tests {
         let html = render_damage_tracker("brox_the_defiant");
         // No sentinel div — Alpine computes allChecked() reactively
         assert!(!html.contains("keal-all-checked"));
+        reset_state();
+    }
+
+    // ── JSON damage state tests ────────────────────────────────────
+
+    #[test]
+    fn json_state_unknown_card_returns_empty() {
+        reset_state();
+        let json = get_damage_state_json("nonexistent_slug");
+        assert_eq!(json, "{}");
+        reset_state();
+    }
+
+    #[test]
+    fn json_state_item_card_returns_empty() {
+        reset_state();
+        let json = get_damage_state_json("cloth");
+        assert_eq!(json, "{}");
+        reset_state();
+    }
+
+    #[test]
+    fn json_state_default_all_false() {
+        reset_state();
+        let json = get_damage_state_json("brox_the_defiant");
+        assert!(json.contains(r#""1":false"#));
+        assert!(json.contains(r#""2":false"#));
+        assert!(json.contains(r#""3":false"#));
+        assert!(json.contains(r#""wasted":false"#));
+        reset_state();
+    }
+
+    #[test]
+    fn json_state_reflects_toggled_slots() {
+        reset_state();
+        ensure_card_state("brox_the_defiant", 3);
+        toggle_slot("brox_the_defiant", 1);
+        toggle_slot("brox_the_defiant", 3);
+        let json = get_damage_state_json("brox_the_defiant");
+        assert!(json.contains(r#""1":true"#));
+        assert!(json.contains(r#""2":false"#));
+        assert!(json.contains(r#""3":true"#));
+        assert!(json.contains(r#""wasted":false"#));
+        reset_state();
+    }
+
+    #[test]
+    fn json_state_reflects_wasted() {
+        reset_state();
+        ensure_card_state("brox_the_defiant", 3);
+        toggle_wasted("brox_the_defiant");
+        let json = get_damage_state_json("brox_the_defiant");
+        assert!(json.contains(r#""wasted":true"#));
         reset_state();
     }
 }

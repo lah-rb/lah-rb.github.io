@@ -19,6 +19,22 @@ pub fn handle_damage_get(query: &str) -> String {
     damage::render_damage_tracker(slug)
 }
 
+// ── GET /api/game/damage/state ─────────────────────────────────────
+
+/// Handle GET /api/game/damage/state?card={slug}
+/// Returns the damage state as JSON for direct Alpine scope updates.
+/// Used by `refreshKealTracker()` to update an existing Alpine scope's
+/// reactive properties without innerHTML replacement, avoiding a
+/// cross-browser Alpine.initTree() re-initialization bug.
+pub fn handle_damage_state_get(query: &str) -> String {
+    let params = parse_query(query);
+    let slug = match get_param(&params, "card") {
+        Some(s) if !s.is_empty() => s,
+        _ => return "{}".to_string(),
+    };
+    damage::get_damage_state_json(slug)
+}
+
 // ── POST /api/game/damage ──────────────────────────────────────────
 
 /// Handle POST /api/game/damage
@@ -297,6 +313,25 @@ mod tests {
         let html = turns::render_alarm_list();
         assert!(html.contains("hidden"));
         reset_state();
+    }
+
+    #[test]
+    fn damage_state_get_returns_json() {
+        reset_state();
+        // Toggle slot 1 on, leave 2 and 3 off
+        handle_damage_post("card=brox_the_defiant&slot=1");
+        let json = handle_damage_state_get("?card=brox_the_defiant");
+        assert!(json.contains(r#""1":true"#));
+        assert!(json.contains(r#""2":false"#));
+        assert!(json.contains(r#""3":false"#));
+        assert!(json.contains(r#""wasted":false"#));
+        reset_state();
+    }
+
+    #[test]
+    fn damage_state_get_missing_card_returns_empty() {
+        let json = handle_damage_state_get("?foo=bar");
+        assert_eq!(json, "{}");
     }
 
     #[test]

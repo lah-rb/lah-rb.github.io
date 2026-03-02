@@ -211,24 +211,32 @@ x-effect="if (showMultiplayer) $nextTick(() => {
 
 ### Pattern 5: WASM State → DOM Sync (refreshKealTracker)
 
-**The pattern:** After WASM auto-marks damage (e.g., from combat outcome), the keal damage tracker on the card page is stale. A JavaScript helper finds the tracker element, re-fetches the full HTML from WASM, and re-initializes Alpine:
+**The pattern:** After WASM auto-marks damage (e.g., from combat outcome), the keal damage tracker on the card page is stale. A JavaScript helper finds the tracker element, fetches the updated damage state as JSON from WASM, and updates the existing Alpine scope's reactive properties directly:
 
 ```javascript
 function refreshKealTracker() {
   const tracker = document.querySelector('[id^="keal-damage-"]');
-  if (tracker) {
-    const slug = tracker.id.replace('keal-damage-', '');
-    wasmRequest('GET', '/api/game/damage', '?card=' + slug, '', (html) => {
-      tracker.innerHTML = html;
-      if (typeof Alpine !== 'undefined') Alpine.initTree(tracker);
+  if (!tracker) { persistState(); return; }
+  const slug = tracker.id.replace('keal-damage-', '');
+  const alpineEl = tracker.querySelector('[x-data]');
+  if (alpineEl && typeof Alpine !== 'undefined') {
+    // Preferred: update Alpine scope directly — no innerHTML, no initTree
+    wasmRequest('GET', '/api/game/damage/state', '?card=' + slug, '', (json) => {
+      const state = JSON.parse(json);
+      const scope = Alpine.$data(alpineEl);
+      for (const [k, v] of Object.entries(state.slots)) {
+        scope.slots[parseInt(k, 10)] = v;
+      }
+      scope.wasted = !!state.wasted;
+      persistState();
     });
   }
 }
 ```
 
-**Why it works:** The WASM state is authoritative. When state changes programmatically (not from a user click), the DOM must be explicitly refreshed. A small `setTimeout(refreshKealTracker, 150)` delay ensures the WASM worker has finished processing before the refresh request arrives.
+**Why it works:** The WASM state is authoritative. When state changes programmatically (not from a user click), the DOM must be explicitly refreshed. A small `setTimeout(refreshKealTracker, 150)` delay ensures the WASM worker has finished processing before the refresh request arrives. The JSON route (`GET /api/game/damage/state?card=SLUG`) returns `{"slots":{"1":true,...},"wasted":false}` — Alpine reactive assignments to `scope.slots[n]` and `scope.wasted` trigger all `:class` bindings automatically.
 
-**Alpine re-initialization:** Since the damage tracker uses Pattern 12 (Alpine `x-data` scope rendered by WASM), `refreshKealTracker` must call `Alpine.initTree(tracker)` after the innerHTML swap so Alpine discovers and initializes the new `x-data` scope with correct initial values from PLAYER_DOC. The WASM response includes the full Alpine state (`slots`, `wasted`, helper methods), so the re-initialized tracker reflects the authoritative game state.
+**Why direct Alpine scope updates (not innerHTML):** The previous approach replaced `tracker.innerHTML` with fresh HTML from WASM and called `Alpine.initTree(tracker)` to re-initialize the new `x-data` scope. This caused a **cross-browser bug**: Firefox, Trivalent, DuckDuckGo, and Cromite (Chrome derivatives) failed to properly discover and initialize new `x-data` scopes after innerHTML replacement — Alpine's internal tracking for the old destroyed scope interfered. Chrome, Vanadium, and Safari handled the tear-down/re-init gracefully. By updating the existing Alpine scope's reactive properties directly via `Alpine.$data()`, we avoid innerHTML replacement entirely and the fix works identically on all browsers. A fallback to innerHTML + `initTree` exists for edge cases where the Alpine scope hasn't been created yet (initial HTMX load incomplete).
 
 **Why inline scripts failed:** Embedding `<script>htmx.ajax(...)</script>` in WASM responses is fragile — `execScripts()` runs the script, but timing with the WASM worker is unpredictable. Explicit JS calls from the callback chain are more reliable.
 
@@ -548,7 +556,7 @@ if (!port) {
 - **No CSS specificity conflict.** Alpine's `:class` is the **only** source of `bg-*` and `border-*` classes. No static classes to fight with. Clean transitions via `transition-colors duration-300` on the same DOM nodes.
 - **Instant visual feedback.** Alpine toggles the reactive state immediately — no waiting for WASM response. The user sees the color change in the same frame as their click.
 - **Rust remains the single source of truth.** The initial `x-data` values (`slots`, `wasted`) come from WASM's authoritative PLAYER_DOC. Fire-and-forget syncs the mutation back. `PERSIST_STATE` saves to localStorage automatically.
-- **Programmatic refresh still works.** `refreshKealTracker()` (Pattern 5) re-fetches from WASM and calls `Alpine.initTree()` to re-initialize the `x-data` scope with fresh values after combat outcomes.
+- **Programmatic refresh still works.** `refreshKealTracker()` (Pattern 5) fetches updated damage state as JSON from WASM and updates the existing Alpine scope's reactive properties directly via `Alpine.$data()` — no innerHTML replacement needed. This works identically on all browsers after combat outcomes.
 - **No sentinel div needed.** Alpine computes `allChecked()` reactively from its own `slots` state. The `:class="{ 'show-final-blows': allChecked() || wasted }"` binding on the container drives Final Blows visibility without any DOM querying.
 
 **When to use this pattern:**

@@ -472,9 +472,18 @@ function wasmRequest(method, path, search, body, callback) {
 
 /** Refresh the keal damage tracker on the card page behind the modal.
  *  After auto-mark damage changes WASM state, the checkboxes on the
- *  card page are stale. Uses direct worker communication (bypasses the
- *  service worker relay) to ensure the updated state is read reliably.
- *  Also persists state to localStorage so changes survive page navigation. */
+ *  card page are stale.
+ *
+ *  Strategy: update the existing Alpine scope's reactive properties
+ *  directly via Alpine.$data() instead of replacing innerHTML and
+ *  re-initializing Alpine. This avoids a cross-browser bug where
+ *  Alpine.initTree() fails to discover new x-data scopes after
+ *  innerHTML replacement on Firefox, Trivalent, DuckDuckGo, and
+ *  Cromite (Chrome derivatives). Alpine reactive assignments trigger
+ *  all :class bindings automatically — no DOM replacement needed.
+ *
+ *  Falls back to innerHTML replacement only if the Alpine scope is
+ *  not yet initialized (e.g., HTMX initial load hasn't completed). */
 function refreshKealTracker() {
   // The keal damage tracker has id="keal-damage-{slug}"
   const tracker = document.querySelector('[id^="keal-damage-"]');
@@ -487,26 +496,52 @@ function refreshKealTracker() {
   const slug = tracker.id.replace('keal-damage-', '');
   console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
 
-  // Fetch updated HTML directly from the WASM worker
+  // Try to find the existing Alpine scope (the x-data div inside the tracker)
+  const alpineEl = tracker.querySelector('[x-data]');
+  if (alpineEl && typeof Alpine !== 'undefined') {
+    // Preferred path: fetch JSON state and update Alpine scope directly.
+    // No innerHTML swap, no initTree — works identically on all browsers.
+    wasmRequest('GET', '/api/game/damage/state', '?card=' + slug, '', (json) => {
+      try {
+        const state = JSON.parse(json);
+        if (state.slots) {
+          const scope = Alpine.$data(alpineEl);
+          // Update each slot — Alpine reactively updates :class bindings
+          for (const [k, v] of Object.entries(state.slots)) {
+            scope.slots[parseInt(k, 10)] = v;
+          }
+          scope.wasted = !!state.wasted;
+          console.log('[multiplayer] Keal tracker updated via Alpine scope for:', slug);
+        }
+      } catch (e) {
+        console.warn('[multiplayer] Alpine scope update failed, falling back to innerHTML:', e);
+        refreshKealTrackerFallback(tracker, slug);
+      }
+      persistState();
+    });
+  } else {
+    // Fallback: Alpine scope not yet initialized (initial HTMX load
+    // hasn't completed). Use innerHTML replacement.
+    console.log('[multiplayer] No Alpine scope found, using innerHTML fallback for:', slug);
+    refreshKealTrackerFallback(tracker, slug);
+    persistState();
+  }
+}
+
+/** Fallback: replace tracker innerHTML and re-initialize Alpine.
+ *  Used only when the Alpine scope hasn't been created yet. */
+function refreshKealTrackerFallback(tracker, slug) {
   wasmRequest('GET', '/api/game/damage', '?card=' + slug, '', (html) => {
     if (html) {
       tracker.innerHTML = html;
-      // The tracker container has hx-trigger="load" — process only the
-      // inner children so we don't re-trigger a redundant HTMX load cycle.
       if (typeof htmx !== 'undefined') {
         tracker.querySelectorAll('[hx-get],[hx-post]').forEach((el) => htmx.process(el));
       }
-      // Initialize Alpine components on the new DOM tree.
       if (typeof Alpine !== 'undefined') {
         Alpine.initTree(tracker);
       }
-      // Dispatch htmx:afterSwap so Alpine's sentinel watcher in
-      // keal_damage_tracker.html updates the Final Blows section visibility
-      tracker.dispatchEvent(new CustomEvent('htmx:afterSwap', { bubbles: true }));
-      console.log('[multiplayer] Keal damage tracker refreshed for:', slug);
+      console.log('[multiplayer] Keal damage tracker refreshed (fallback) for:', slug);
     }
-    // Persist state to localStorage so damage survives page navigation
-    persistState();
   });
 }
 
