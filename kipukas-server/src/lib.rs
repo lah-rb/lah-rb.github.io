@@ -36,6 +36,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
 
     // Game state routes (PLAYER_DOC backed)
     router.insert("/api/game/damage", "game_damage").ok();
+    router.insert("/api/game/damage/state", "game_damage_state").ok();
     router.insert("/api/game/turns", "game_turns").ok();
 
     // Room/multiplayer routes
@@ -89,6 +90,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("qr_status", "GET") => routes::qr::handle_status(query),
             ("qr_found", "GET") => routes::qr::handle_found(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
+            ("game_damage_state", "GET") => routes::game::handle_damage_state_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
 
             ("game_damage", "POST") => routes::game::handle_damage_post(body),
