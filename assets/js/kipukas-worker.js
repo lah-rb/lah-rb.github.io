@@ -20,6 +20,7 @@ import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_serv
 import { initSession, runDetection } from './yolo-inference.js';
 import { parseDetections, cropDetection } from './postprocess.js';
 import { initZXing, decodeQR as zxingDecode } from './zxing-decode.js';
+import { adaptiveThreshold } from './adaptive-threshold.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -107,14 +108,27 @@ async function decodeQR(rgba, width, height) {
 
   // ── ZXing-only mode (no WebGPU) — scan full frame directly ──
   if (qrMode === 'zxing-only') {
+    // Always preprocess with adaptive threshold first — evens out poor
+    // lighting and surface shine that ZXing's binarizer struggles with
     try {
-      const result = zxingDecode(rgba, width, height);
+      const atFrame = adaptiveThreshold(rgba, width, height);
+      const result = zxingDecode(atFrame, width, height);
       if (result && result.text) {
-        console.log(`[kipukas-worker] ZXing-only decoded: ${result.text}`);
+        console.log(`[kipukas-worker] ZXing-only decoded (AT): ${result.text}`);
         return result.text;
       }
     } catch (err) {
-      console.warn('[kipukas-worker] ZXing-only error:', err.message);
+      console.warn('[kipukas-worker] ZXing-only AT error:', err.message);
+    }
+    // Fallback: try raw frame in case threshold hurts this particular image
+    try {
+      const result = zxingDecode(rgba, width, height);
+      if (result && result.text) {
+        console.log(`[kipukas-worker] ZXing-only decoded (raw): ${result.text}`);
+        return result.text;
+      }
+    } catch (err) {
+      console.warn('[kipukas-worker] ZXing-only raw error:', err.message);
     }
     return null;
   }
@@ -148,17 +162,20 @@ async function decodeQR(rgba, width, height) {
   if (detections.length === 0) return null;
 
   // Stage 2: ZXing decode on each detection (highest confidence first)
+  // Try adaptive-threshold preprocessed crop first, then raw crop as fallback
   for (const det of detections) {
     const crop = cropDetection(rgba, width, height, det, 0.15);
 
+    // Attempt 1: Adaptive threshold preprocessed crop (handles glare/lighting)
     try {
-      const result = zxingDecode(crop.rgba, crop.width, crop.height);
+      const atCrop = adaptiveThreshold(crop.rgba, crop.width, crop.height);
+      const result = zxingDecode(atCrop, crop.width, crop.height);
 
       if (result && result.text) {
         const t2 = performance.now();
 
         console.log(
-          `[kipukas-worker] QR decoded: ${result.text} ` +
+          `[kipukas-worker] QR decoded (AT): ${result.text} ` +
           `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
           `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
         );
@@ -182,7 +199,41 @@ async function decodeQR(rgba, width, height) {
         return result.text;
       }
     } catch (err) {
-      console.warn('[kipukas-worker] ZXing decode error:', err.message);
+      console.warn('[kipukas-worker] ZXing AT decode error:', err.message);
+    }
+
+    // Attempt 2: Raw crop fallback
+    try {
+      const result = zxingDecode(crop.rgba, crop.width, crop.height);
+
+      if (result && result.text) {
+        const t2 = performance.now();
+
+        console.log(
+          `[kipukas-worker] QR decoded (raw): ${result.text} ` +
+          `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
+          `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
+        );
+
+        self.postMessage({
+          type: 'QR_BBOX',
+          detections: detections.map((d) => ({
+            x: d.x,
+            y: d.y,
+            w: d.w,
+            h: d.h,
+            confidence: d.confidence,
+          })),
+          yoloMs: Math.round(t1 - t0),
+          frameW: width,
+          frameH: height,
+          decoded: true,
+        });
+
+        return result.text;
+      }
+    } catch (err) {
+      console.warn('[kipukas-worker] ZXing raw decode error:', err.message);
     }
   }
 

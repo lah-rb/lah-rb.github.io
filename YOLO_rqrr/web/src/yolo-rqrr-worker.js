@@ -14,6 +14,7 @@
 
 import { initSession, runDetection } from './yolo-inference.js';
 import { parseDetections, cropDetection } from './postprocess.js';
+import { adaptiveThreshold } from './adaptive-threshold.js';
 
 // ── Configuration ──────────────────────────────────────────────────
 
@@ -90,13 +91,27 @@ async function processFrame(pixels, width, height) {
   }
 
   // Stage 2: Try rqrr decode on each detection (highest confidence first)
+  // Preprocess with adaptive threshold to boost contrast and handle glare/lighting
   for (const det of detections) {
     const crop = cropDetection(rgba, width, height, det, 0.15);
-    const result = rqrrModule.decode_qr_crop(
-      crop.rgba,
+
+    // Try adaptive-threshold preprocessed crop first — gives rqrr a clean
+    // binary image so it hits strategy 0 (adaptive_thresh) immediately
+    const atCrop = adaptiveThreshold(crop.rgba, crop.width, crop.height);
+    let result = rqrrModule.decode_qr_crop(
+      atCrop,
       crop.width,
       crop.height,
     );
+
+    // Fallback to raw crop if AT preprocessing didn't help
+    if (!result || result.length === 0) {
+      result = rqrrModule.decode_qr_crop(
+        crop.rgba,
+        crop.width,
+        crop.height,
+      );
+    }
 
     if (result && result.length > 0) {
       const t2 = performance.now();
