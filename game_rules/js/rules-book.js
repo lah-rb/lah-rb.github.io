@@ -345,10 +345,12 @@ document.addEventListener('alpine:init', () => {
       this.chatInput = '';
       this.chatStreaming = true;
 
-      this._streamCompletion(prompt)
+      const contextPrompt = this._buildContextPrompt(prompt);
+
+      this._streamCompletion(contextPrompt)
         .catch(() => {
           // Fallback to HTTP
-          return this._sendHTTP(prompt);
+          return this._sendHTTP(contextPrompt);
         })
         .catch(() => {
           this.messages.push({
@@ -360,6 +362,31 @@ document.addEventListener('alpine:init', () => {
         .finally(() => {
           this.chatStreaming = false;
         });
+    },
+
+    /**
+     * Build a prompt that includes recent conversation history.
+     * Packs the last N exchanges into a single text block so the
+     * stateless server gets enough context for follow-up questions
+     * and accurate tool calls.
+     */
+    _buildContextPrompt(currentPrompt) {
+      const MAX_HISTORY = 3; // last 3 exchanges ≈ 6 messages
+      // Filter out greeting, streaming, and the message we just pushed
+      const finished = this.messages.filter((m) => !m.streaming);
+      // Take the last N*2 messages (pairs of user+assistant), excluding
+      // the current user message we just appended
+      const history = finished.slice(0, -1).slice(-(MAX_HISTORY * 2));
+
+      if (history.length === 0) return currentPrompt;
+
+      let context = 'Previous conversation:\n';
+      for (const m of history) {
+        const role = m.isUser ? 'User' : 'Kippa';
+        context += `${role}: ${m.text}\n`;
+      }
+      context += `\nCurrent question: ${currentPrompt}`;
+      return context;
     },
 
     _streamCompletion(prompt) {
@@ -419,7 +446,7 @@ document.addEventListener('alpine:init', () => {
           payload: {
             query: `subscription { streamCompletion(request: { prompt: ${
               JSON.stringify(prompt)
-            } }) { text isComplete } }`,
+            } }, useTools: true) { text isComplete } }`,
           },
         }));
 
@@ -440,14 +467,14 @@ document.addEventListener('alpine:init', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: `mutation { createCompletion(request: { prompt: ${
+          query: `query { completion(request: { prompt: ${
             JSON.stringify(prompt)
-          } }) { text tokensGenerated } }`,
+          } }, useTools: true) { text tokensGenerated } }`,
         }),
       })
         .then((r) => r.json())
         .then((data) => {
-          const result = data.data?.createCompletion;
+          const result = data.data?.completion;
           if (result?.text) {
             this.messages.push({ text: result.text, isUser: false, streaming: false });
           }
