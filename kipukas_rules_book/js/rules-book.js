@@ -311,13 +311,14 @@ document.addEventListener('alpine:init', () => {
         if (msg.type === 'connection_ack') {
           this.chatConnected = true;
           this._wsReconnectAttempts = 0;
-          if (this.messages.length === 0) {
-            this.messages.push({
-              text: "Hi! I'm Kippa. Ask me anything about the Kipukas rules.",
-              isUser: false,
-              streaming: false,
-            });
-          }
+          // Clear stale context (bfcache / soft-nav) and start fresh
+          this.messages = [];
+          this.messages.push({
+            text: "Hi! I'm Kippa. Ask me anything about the Kipukas rules.",
+            isUser: false,
+            streaming: false,
+            isGreeting: true,
+          });
         } else if (msg.type === 'connection_error') {
           this.chatConnected = false;
         }
@@ -373,7 +374,7 @@ document.addEventListener('alpine:init', () => {
     _buildContextPrompt(currentPrompt) {
       const MAX_HISTORY = 3; // last 3 exchanges ≈ 6 messages
       // Filter out greeting, streaming, and the message we just pushed
-      const finished = this.messages.filter((m) => !m.streaming);
+      const finished = this.messages.filter((m) => !m.streaming && !m.isGreeting);
       // Take the last N*2 messages (pairs of user+assistant), excluding
       // the current user message we just appended
       const history = finished.slice(0, -1).slice(-(MAX_HISTORY * 2));
