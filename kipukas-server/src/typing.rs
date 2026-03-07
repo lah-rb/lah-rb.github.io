@@ -34,38 +34,38 @@ pub enum Motive {
     Satisfaction,
 }
 
-/// Rows = attacker archetype, Columns = defender archetype.
-/// `TYPE_CHART[atk][def]` gives the modifier for that matchup.
+/// Rows = defender archetype, Columns = attacker archetype.
+/// `TYPE_CHART[def][atk]` gives the modifier for that matchup.
 const TYPE_CHART: [[i8; 15]; 15] = [
-    // vs Cenozoic attacker
+    // Cenozoic defender
     [0, 3, 1, 1, -1, 2, 2, -1, -1, 2, -3, -1, -2, 1, -3],
-    // vs Decrepit attacker
+    // Decrepit defender
     [-3, 0, 1, 2, 1, -1, -3, -2, 3, 1, 2, -1, -1, -1, 2],
-    // vs Angelic attacker
+    // Angelic defender
     [-1, -1, -3, 3, 2, -3, -2, 1, 1, 1, -1, 2, 1, -1, -1],
-    // vs Brutal attacker
+    // Brutal defender
     [-1, -2, -3, 3, 2, -1, -2, 1, 2, -1, -1, 2, 1, 1, 1],
-    // vs Arboreal attacker
+    // Arboreal defender
     [1, -1, -2, -2, 0, -3, -1, -2, 2, 1, 3, 1, -1, 3, 1],
-    // vs Astral attacker
+    // Astral defender
     [-2, 1, 3, 1, 3, 0, -1, 1, -1, -3, -2, -1, 2, -2, 1],
-    // vs Telekinetic attacker
+    // Telekinetic defender
     [-2, 3, 2, 2, 1, 1, 0, -3, -3, -1, -1, -1, 1, -1, 2],
-    // vs Glitch attacker
+    // Glitch defender
     [1, 2, -1, -1, 2, -1, 3, 0, -3, -3, 2, 1, -2, 1, -1],
-    // vs Magic attacker
+    // Magic defender
     [1, -3, -1, -2, -2, 1, 3, 3, 0, -1, 2, 1, 1, -2, -1],
-    // vs Endothermic attacker
+    // Endothermic defender
     [-2, -1, -1, 1, -1, 3, 1, 3, 1, 0, 1, 2, -2, -3, -2],
-    // vs Avian attacker
+    // Avian defender
     [3, -2, 1, 1, -3, 2, 1, -2, -2, -1, 0, 3, -1, 1, -1],
-    // vs Mechanical attacker
+    // Mechanical defender
     [1, 1, -2, -2, -1, 1, 1, -1, -1, -2, -3, 0, 3, 2, 3],
-    // vs Algorithmic attacker
+    // Algorithmic defender
     [2, 1, -1, -1, 1, -2, -1, 2, -1, 2, 1, -3, 0, 3, -3],
-    // vs Energetic attacker
+    // Energetic defender
     [-1, 1, 1, -1, -3, 2, 1, -1, 2, 3, -1, -2, -3, 0, 2],
-    // vs Entropic attacker
+    // Entropic defender
     [3, -2, 1, -1, -1, -1, -2, 1, 1, 2, 1, -3, 3, -2, 0],
 ];
 
@@ -145,7 +145,7 @@ impl MatchupResult {
 
 /// Compute a damage bonus from genetic disposition matchup.
 ///
-/// Formula: TYPE_CHART\[atk_genetic\]\[def_genetic\] × 2, plus +10 if motives interact
+/// Formula: TYPE_CHART\[def_genetic\]\[atk_genetic\] × 2, plus +10 if motives interact
 /// (i.e. the attacker's motive attack index equals the defender's motive defense index).
 ///
 /// This bonus only applies during Final Blows combat.
@@ -159,7 +159,7 @@ pub fn compute_damage_bonus(
 
     // Genetic disposition matchup × 2
     if let (Some(atk), Some(def)) = (atk_genetic, def_genetic) {
-        bonus += (TYPE_CHART[atk as usize][def as usize] as i32) * 2;
+        bonus += (TYPE_CHART[def as usize][atk as usize] as i32) * 2;
     }
 
     // +10 if motives interact
@@ -192,7 +192,7 @@ pub fn type_matchup(
     // Sum archetype matchups: for each attacker × defender pair
     for &atk in attackers {
         for &def in defenders {
-            modifier += TYPE_CHART[atk as usize][def as usize] as i32;
+            modifier += TYPE_CHART[def as usize][atk as usize] as i32;
         }
     }
 
@@ -287,26 +287,29 @@ mod tests {
 
     #[test]
     fn cenozoic_vs_decrepit() {
+        // Cenozoic attacks Decrepit: TABLE[Decrepit=1][Cenozoic=0] = -3
         let result = type_matchup(
             &[Archetype::Cenozoic],
             &[Archetype::Decrepit],
             None,
             None,
         );
-        assert_eq!(result.modifier, 3);
+        assert_eq!(result.modifier, -3);
     }
 
     #[test]
     fn brutal_magic_vs_avian() {
         // Two attackers vs one defender
+        // Brutal atk Avian: TABLE[Avian=10][Brutal=3] = 1
+        // Magic atk Avian: TABLE[Avian=10][Magic=8] = -2
+        // Total: 1 + (-2) = -1
         let result = type_matchup(
             &[Archetype::Brutal, Archetype::Magic],
             &[Archetype::Avian],
             None,
             None,
         );
-        // Brutal vs Avian = -1, Magic vs Avian = 2 → total 1
-        assert_eq!(result.modifier, 1);
+        assert_eq!(result.modifier, -1);
     }
 
     #[test]
@@ -356,14 +359,15 @@ mod tests {
 
     #[test]
     fn display_string_format() {
+        // Entropic attacks Cenozoic: TABLE[Cenozoic=0][Entropic=14] = -3
         let result = type_matchup(
             &[Archetype::Entropic],
             &[Archetype::Cenozoic],
             None,
             None,
         );
-        assert_eq!(result.modifier, 3);
-        assert_eq!(result.to_display_string(), "3");
+        assert_eq!(result.modifier, -3);
+        assert_eq!(result.to_display_string(), "-3");
     }
 
     #[test]
@@ -382,14 +386,14 @@ mod tests {
 
     #[test]
     fn damage_bonus_genetic_only() {
-        // Brutal vs Angelic: TYPE_CHART[3][2] = -3, ×2 = -6
+        // Brutal attacks Angelic: TABLE[Angelic=2][Brutal=3] = 3, ×2 = 6
         let bonus = compute_damage_bonus(
             Some(Archetype::Brutal),
             Some(Archetype::Angelic),
             None,
             None,
         );
-        assert_eq!(bonus, -6);
+        assert_eq!(bonus, 6);
     }
 
     #[test]
@@ -409,15 +413,16 @@ mod tests {
 
     #[test]
     fn damage_bonus_genetic_plus_motive() {
-        // Entropic vs Cenozoic: TYPE_CHART[14][0] = 3, ×2 = 6
+        // Entropic attacks Cenozoic: TABLE[Cenozoic=0][Entropic=14] = -3, ×2 = -6
         // Spirit vs Possessor: interact → +10
+        // Total: -6 + 10 = 4
         let bonus = compute_damage_bonus(
             Some(Archetype::Entropic),
             Some(Archetype::Cenozoic),
             Some(Motive::Spirit),
             Some(Motive::Possessor),
         );
-        assert_eq!(bonus, 16);
+        assert_eq!(bonus, 4);
     }
 
     #[test]

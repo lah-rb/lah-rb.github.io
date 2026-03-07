@@ -42,6 +42,11 @@ interface CardMeta {
   brawl_sequence: string;
   // Phase C: tamability (Species cards only, optional)
   tamability: number | null;
+  // Kippa context fields (JSON export only, not in Rust)
+  description: string | null;
+  play_style: string | null;
+  scarcity: string | null;
+  variation: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -136,6 +141,11 @@ async function main() {
       die: fm.die ? String(fm.die) : '',
       brawl_sequence: fm.brawl_sequence ? String(fm.brawl_sequence) : '',
       tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
+      // Kippa context fields
+      description: fm.description ? String(fm.description).trim() : null,
+      play_style: fm.play_style ? String(fm.play_style).trim() : null,
+      scarcity: fm.scarcity ? String(fm.scarcity).trim() : null,
+      variation: fm.variation ? String(fm.variation).trim() : null,
     });
   }
 
@@ -257,6 +267,36 @@ async function main() {
       cards.filter((c) => c.keal_means.length > 0).length
     } cards`,
   );
+
+  // Also emit a JSON catalog for Kippa (LLM tool context)
+  const jsonCards = cards.map((c) => ({
+    slug: c.slug,
+    title: c.title,
+    type: c.layout,
+    variation: c.variation,
+    genetic_disposition: c.genetic_disposition,
+    motivation: c.motivation,
+    habitat: c.habitat,
+    injury_tolerance: c.injury_tolerance,
+    movement: c.movement,
+    die: c.die,
+    brawl_sequence: c.brawl_sequence,
+    keal_means: c.keal_means.map((km) => ({
+      name: km.name,
+      genetics: km.genetics,
+      count: km.count,
+    })),
+    tamability: c.tamability,
+    scarcity: c.scarcity,
+    tags: c.tags,
+    description: c.description,
+    play_style: c.play_style,
+    url: `https://www.kipukas.cards${c.url}`,
+  }));
+
+  const jsonPath = join(Deno.cwd(), 'kipukas-server', 'cards_catalog.json');
+  await Deno.writeTextFile(jsonPath, JSON.stringify(jsonCards, null, 2));
+  console.log(`[build-card-catalog] JSON catalog: ${jsonCards.length} cards → ${jsonPath}`);
 }
 
 main();
