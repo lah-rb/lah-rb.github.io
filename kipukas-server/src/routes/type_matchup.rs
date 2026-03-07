@@ -81,14 +81,16 @@ mod tests {
 
     #[test]
     fn single_matchup() {
+        // Cenozoic attacks Decrepit: TABLE[Decrepit][Cenozoic] = -3
         let html = handle("atk[]=Cenozoic&def[]=Decrepit");
-        assert!(html.contains("3"));
+        assert!(html.contains("-3"));
     }
 
     #[test]
     fn multi_attacker() {
+        // Brutal+Magic attack Avian: TABLE[Avian][Brutal]=1 + TABLE[Avian][Magic]=-2 = -1
         let html = handle("atk[]=Brutal&atk[]=Magic&def[]=Avian");
-        assert!(html.contains("1"));
+        assert!(html.contains("-1"));
     }
 
     #[test]
@@ -100,13 +102,15 @@ mod tests {
 
     #[test]
     fn query_with_question_mark() {
+        // Entropic attacks Cenozoic: TABLE[Cenozoic][Entropic] = -3
         let html = handle("?atk[]=Entropic&def[]=Cenozoic");
-        assert!(html.contains("3"));
+        assert!(html.contains("-3"));
     }
 
     #[test]
     fn plain_key_format() {
+        // Cenozoic attacks Decrepit: TABLE[Decrepit][Cenozoic] = -3
         let html = handle("atk=Cenozoic&def=Decrepit");
-        assert!(html.contains("3"));
+        assert!(html.contains("-3"));
     }
 }

@@ -1,0 +1,1547 @@
+[
+  {
+    "slug": "allele_sect_explorer",
+    "title": "Allele Sect Explorer",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Magic",
+    "motivation": "Spirit",
+    "habitat": "Nomad",
+    "injury_tolerance": 3,
+    "movement": 1,
+    "die": "",
+    "brawl_sequence": "RrDC",
+    "keal_means": [
+      {
+        "name": "Conformed Blind",
+        "genetics": [
+          "Glitch",
+          "Magic"
+        ],
+        "count": 2
+      },
+      {
+        "name": "Explorer's Staff",
+        "genetics": [
+          "Magic",
+          "Entropic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 3,
+    "scarcity": "Founder's Deck",
+    "tags": "skeleton traveler desert tattoo sun",
+    "description": "The allele sect consists of beings that came to rights through natural birth, but desired change from the body they were given. Some sought changes for power or appearance, but the members that they deem explorers seek modifications to escape themselves. Often these changes are viewed as malformations or mutilations, but to the explorers they are necessary to keep their way. Partial or full blindness is a common method used to heighten their other senses. Other less common, but more drastic procedures include removal of limbs, appendages, tongue, and to increase or decrease the sensitivity of pain receptors for a short list. Many of the new explorers die due to poor execution of the procedures, an inability to protect themselves, or by their own hand. The ones who grow old; however, become revered within the allele sect. Often times they are considered to be sages who are able to transcend themselves and bend the laws of possibility. Despite their self-inflicted limitations, the creed that the explorers take challenges them to survive and learn from in continually harsher environments. It is considered an honor among nature.",
+    "play_style": "When attacking, play a round of slaps. Alternatively, roll if either player is uncomfortable or unwilling to consent. DON'T PRESSURE YOUR OPPONENT INTO PLAYING!!!",
+    "url": "https://www.kipukas.cards/allele_sect_explorer/"
+  },
+  {
+    "slug": "arctechnic_wonderer",
+    "title": "Arctechnic Wonderer",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Endothermic",
+    "motivation": "Survival",
+    "habitat": "Volcanic",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "D6",
+    "brawl_sequence": "AnxM",
+    "keal_means": [
+      {
+        "name": "Seal Manipulation",
+        "genetics": [
+          "Telekinetic",
+          "Endothermic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Lamp Bash",
+        "genetics": [
+          "Cenozoic",
+          "Energetic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 2,
+    "scarcity": "Founder's Deck",
+    "tags": "ice arctic witch seal light aurora lantern city tundra lantern",
+    "description": "Most people shrink from the idea of living in an area where all soil is foreign ground. A place where the annual high temperature rarely exceeds that of frozen water by more than a few degrees. Yet, some individuals, driven by desperation or a unique vision, seek to this place to create paradise. Over many years of settlement, new arts have sprouted amidst the barren backdrop, much like seedlings nourished by the struggles of their people. Some of these arts shape the culture, bringing joy amidst the bitter surroundings. Others shape daily life and struggle, aiming to make tomorrow a bit easier. The culmination of these artistic and technological advancements is found at the capital city's Arctechnic Institute, dedicated to advancing this free people's paradise. <br> <br> In one of the Arctechnic Institute's study tracks, it is customary for students and professors to periodically demonstrate their mastery of life on the frozen terrain. This practice is of great interest to those who wish to test new equipment designs, validate environmental theories, or gain a deeper understanding of their harsh surroundings. Like many adventurers, they return with stories of love and loss, of great heroics or immense tragedy. Some pack out or even adorn artifacts from their excursions as proof of their tales, exaggerated or not. Among the favored study sites are the open-pit volcanoes that dot the interior of the wasteland. These rare warm spots attract astonishing numbers of flora and fauna, drawing both researchers and traders. <br> <br> The most captivating creatures drawn to these volcanic oases are the seals of light (loosely translated from the local dialect). These translucent beings shimmer with an ethereal glow, their bodies pulsating with light which mirrors the lava pools below. They are entirely dependent on external sources of heat and light for survival, thriving in the unique microclimates around the volcanoes. <br> <br> The seals of light have become an integral part of life in this frozen landscape. Their presence is not just a testament to nature's resilience, but also a symbol of hope and adaptability for the settlers. In harsh environs, where every resource must be carefully managed, these creatures offer a sustainable solution. <br> <br> During expeditions, Arctechnic wonderers often carry special lanterns which cast an especially enticing volcanic glow. The seals of light  find this most alluring, so they tend to gather near. At night, around campfires, the translucent bodies of the seals create a mesmerizing display of soft, dancing shadows on the snow anor ice. <br> <br> In modern times, traveling with seals of light has become commonplace. These translucent beings are not only a source of sustenance but also a symbol of the deep connection between the people and the area they have chosen to call home. As travelers journey through the frozen wasteland, the seals of light serve as guides, leading them to the warm oases that sustain natural life in this harsh environment.",
+    "play_style": "Arctechnic Wonderer takes no damage from a first storm roll and may move on a storm roll.",
+    "url": "https://www.kipukas.cards/arctechnic_wonderer/"
+  },
+  {
+    "slug": "artificer_of_the_salt_chancel",
+    "title": "Artificer of the Salt Chancel",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Entropic",
+    "motivation": "Sacrifice",
+    "habitat": "Water",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "D20",
+    "brawl_sequence": "FuOw",
+    "keal_means": [
+      {
+        "name": "Power of Scrolls Four",
+        "genetics": [
+          "Entropic",
+          "Astral",
+          "Brutal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 8,
+    "scarcity": "Founder's Deck",
+    "tags": "wizard sea ocean temple sails spirit portal",
+    "description": "The artificer of the salt chancel is no longer a person, through they remember  a past when it was so. They begin their end by sailing as explorers, tradesmen, or pilgrims. All who travel by sea may become the artificer if they find the misfortune to cross the chancel's path. No individual knows the role of the chancel, except for the artificer. Once the chancel meets people upon the seas, all who are unworthy of its purpose are torn from life to bind the soul to it. The unfortunate one who can serve its purpose better than the current artificer who becomes removed, imbued, and leaves disposed to never reveal the chancel's mission.",
+    "play_style": "No additional effects",
+    "url": "https://www.kipukas.cards/artificer_of_the_salt_chancel/"
+  },
+  {
+    "slug": "avian_keepers_den",
+    "title": "Avian Keeper's Den",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "float stone creature gate sky",
+    "description": "Coming to the end of the gate, a restless explorer peers out to discover a grand building built on what appears to be a massive floating rock. Upon further inspection, they notice a stream of flying creatures approach the ledge at the command of the inhabitants of the palace. The explorer watches the keepers bring their beasts in and travel out on their backs for hours. They wonder just who built this and what greater purpose it serves.",
+    "play_style": "Acts as a prison for non-avian creatures. In order to imprison a soul, they must have only 1 injury before defeat and be in a territory touching the territory this feature is within. In order to take the prisoner, you must engage the enemy soul in a keal means bout with a card whose archetypal gene is avian. The card will be kept in prison until the territory is captured by the opposing player. Set the card aside out of play while imprisoned.",
+    "url": "https://www.kipukas.cards/avian_keepers_den/"
+  },
+  {
+    "slug": "balanced_inline_processing_colony",
+    "title": "Balanced Inline Processing Colony",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Algorithmic",
+    "motivation": "service",
+    "habitat": "DigitalCloud",
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "n/a ( D6 in capital )",
+    "brawl_sequence": "Hh2Y",
+    "keal_means": [
+      {
+        "name": "(in capital) Security Hacking",
+        "genetics": [
+          "Algorithimic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 0,
+    "scarcity": "Founder's Deck",
+    "tags": "brick color chip computer lightning processor",
+    "description": "Biochemists, tasked by a group of descendants in Indochina, designed a bacterium capable of transmitting electric signals around the cell wall to their colony through the cell's pilus (hair-like appendages). These were then coxed into bacterial arrays capable of enduring higher currents. All of this was with the intent of producing full-fledged micro-processors capable of storing data without the use of any metal in order to smuggle secrets into communist China. The first iteration of the project, though prohibitively expensive, proved successful without the governments determining foul play. The agents responsible for delivering the devices proved to be the weak point of the process. Many got caught, due to repeat travel, while others were incapable maintaining the conditions sufficient for the chip's survival. Due to the touchy nature of the chip's survival, data was never captured and the project lived on. Some wonder if these colonies are capable of self awareness.",
+    "play_style": "Requires being equipped to a carrier card to move. Any territory Balanced Inline Processing Colony is in adds 1 and 2 to the successful sabotage die roll for sabotage targeting that territory. If this card is removed by force from its carrier it becomes wasted. It can only survive without a carrier in your capital where it can use the security systems and cryotec to defend and preserve itself. Its keal means tolerance becomes 1 and it gains Security Hacking keal means in the capital.",
+    "url": "https://www.kipukas.cards/balanced_inline_processing_colony/"
+  },
+  {
+    "slug": "branwen_mantillusion_practitioner",
+    "title": "Branwen: Mantillusion Practitioner",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Telekinetic",
+    "motivation": "Service",
+    "habitat": "Forest",
+    "injury_tolerance": 2,
+    "movement": 0,
+    "die": "D20",
+    "brawl_sequence": "IR2B",
+    "keal_means": [
+      {
+        "name": "Deceptive Mirror",
+        "genetics": [
+          "Magic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Ensnaring Branches",
+        "genetics": [
+          "Telekinetic",
+          "Arboreal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "praying mantis illusion mirror bug insect tree branches robe",
+    "description": "The race of bucket sized mantis men was born in an attempt to clear a kipuka of enemy forces consisting of airborne insectisoidals. Much to the disappointment of their creators, this species only fights to feed. Once abandoned by the warmongers, they grew diverse, with only the stillest young groomed to become illusionists. The best of this creed easily trick enemies into believing they found others of their own kind, thereby luring them closer. Once near, they manipulate the surrounding trees to ensnare their prey.",
+    "play_style": "Other cards must attack Branwen first then Branwen attacks and the attacker becomes the defender for the first attack between the cards.",
+    "url": "https://www.kipukas.cards/branwen_mantillusion_practitioner/"
+  },
+  {
+    "slug": "brox_the_defiant",
+    "title": "Brox The Defiant",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Brutal",
+    "motivation": "Service",
+    "habitat": "Plains",
+    "injury_tolerance": 3,
+    "movement": 1,
+    "die": "D20",
+    "brawl_sequence": "FOFE",
+    "keal_means": [
+      {
+        "name": "Crushing Hope",
+        "genetics": [
+          "Brutal",
+          "Angelic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Chain Raid",
+        "genetics": [
+          "Brutal",
+          "Mechanical"
+        ],
+        "count": 2
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "slave bald ripped strong chains bone skeletal red ferocious",
+    "description": "Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own.",
+    "play_style": "No Additional Effects",
+    "url": "https://www.kipukas.cards/brox_the_defiant/"
+  },
+  {
+    "slug": "cartesian_sea",
+    "title": "Cartesian Sea",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "fish castle plane cartesian x y day night",
+    "description": "The biggest fish in the sea stretches into the time dimension. It often jumps to the next day or night to avoid being around conflict.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/cartesian_sea/"
+  },
+  {
+    "slug": "cloth",
+    "title": "Cloth",
+    "type": "Item",
+    "variation": "Item",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "retro stack cloth fabric tile",
+    "description": "A 'Disguise': offers a 'better' chance to escape",
+    "play_style": "Add 1 to escape roll",
+    "url": "https://www.kipukas.cards/cloth/"
+  },
+  {
+    "slug": "enchantress_of_cats",
+    "title": "Enchantress of Cats",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "cave cats witch old lady fire",
+    "description": "Many have heard the rumors. Some have seen the fearsome creatures, but few have survived when met ankle to face with the black cat. Still fewer are those born to charm, entertain, and serve the spirits within. Among these leagues are those so in tune with the beasts that they win the beasts acclaim, no that's too strong, tolerance. These enchantresses even force the creatures to mind, sorry no, occasionally sway their opinion of what needs to be done. If you have experience with these creatures, you know the terror the enchantresses must inflict to get that type of response. Meow... ahhh!",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/enchantress_of_cats/"
+  },
+  {
+    "slug": "feathers",
+    "title": "Feathers",
+    "type": "Item",
+    "variation": "Item",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "feather bird sky down float",
+    "description": "Was something killed? Should I be cautious?",
+    "play_style": "Requires two feathers cards to use effect: <br> Trap activates on 3,6,9. Opponent loses next turn",
+    "url": "https://www.kipukas.cards/feathers/"
+  },
+  {
+    "slug": "feeding_the_piffions",
+    "title": "Feeding the Piffions",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "boat lake swamp marsh trees maples arch",
+    "description": "Piffions were the product of a comical experiment, paying homage to the works of an ancient genealogist known as Charles Darwin. Where Darwin bred fancy pigeons, the creator's of these beauties wanted to prove the feasibility of the griffin form. Unfortunately, the experiment did not work as planned, and an early batch incapable of flight escaped into the city. Piffions are now as common there as pigeons are in most cities. Throwing fragrant seed is enough to summon a horde and create a good distraction.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/feeding_the_piffions/"
+  },
+  {
+    "slug": "freezing_of_the_heart",
+    "title": "Freezing of the Heart",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "ice heart woman sculpt carve frozen Atlantis",
+    "description": "Svetlana is the heiress to a great and ancient fortune from a family who possesses great pride. As such, she was highly encouraged to pursue rigorous formal education in the sciences in order to offer great impact on the world and further her families name. She spent more than twice the average amount of time dedicated to her studies and emerged a prominent biophysicist whose work promoted the capabilities of cryogenics. Still, she often dreams of the life she desired when she was little. The life of free expression, the life of an artist. Svetlana, in her little free time, carves ice sculptures representative of her most recent research as catharsis to her present and past.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/freezing_of_the_heart/"
+  },
+  {
+    "slug": "frost_tipped_arctic_otter",
+    "title": "Frost Tipped Arctic Otter",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Endothermic",
+    "motivation": "Survival",
+    "habitat": "Mountain",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "D6",
+    "brawl_sequence": "nqTG",
+    "keal_means": [
+      {
+        "name": "Sharp Waxy Fur",
+        "genetics": [
+          "Endothermic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 1,
+    "scarcity": "Founder's Deck",
+    "tags": "otter frost snow ice arctic cold stream",
+    "description": "These creatures were created to harvest a special oil with an extreme smoke point. This oil secretes in large amounts from glandular pockets in the animal's skin and forms a cold waxy substance on its fur. While this creature was designed for humane harvest, many have started acquiring a taste for its fatty flesh.",
+    "play_style": "Will be wasted if it losses a keal means bout to a soul with the Cenozoic archetypal gene. Can donate 2 keal means at the cost of 1 keal means to itself.",
+    "url": "https://www.kipukas.cards/frost_tipped_arctic_otter/"
+  },
+  {
+    "slug": "gray_wolf_harbinger_of_night",
+    "title": "Gray Wolf: Harbinger of Night",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Astral",
+    "motivation": "Spirit",
+    "habitat": "Forest",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "D6",
+    "brawl_sequence": "SWyA",
+    "keal_means": [
+      {
+        "name": "Haunted Howl Coordination",
+        "genetics": [
+          "Cenozoic",
+          "Astral"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 4,
+    "scarcity": "Founder's Deck",
+    "tags": "wolf howling forest rock edge cliff moon night",
+    "description": "Living on most of the world's continents, wolfs have fascinated people for centuries adapting their way into our hearts and homes.  While most zoologists know the wolf's howl as a means of communication among their pack, some decided this was not enough.  They sought to create the god our ancestors imagined them to be, gods of the night under the moon. Unlike normal gray wolves, these  fervently praise the moon with their howls, thereby raising their collective mental state in exultance.",
+    "play_style": "Provided this card is not downed, every other turn you may turn a day dial roll to night before any actions are taken in the turn.",
+    "url": "https://www.kipukas.cards/gray_wolf_harbinger_of_night/"
+  },
+  {
+    "slug": "hidden_portal_of_lower_dreadmont_cave",
+    "title": "Hidden Portal of Lower Dreadmont Cave",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "cave mystical skull dragon explorer",
+    "description": "Hiding deep within caverns of Dreadmont exists a gateway whence great power dwells. Few creatures  have the means to survive the journey through the disorienting web-work passages, the ensnaring crevices, and  sudden cliffs to reach the lower cave system. In the lower system there are fewer passages to follow, but  horizontal points of rest become scarce. New treacherous obstacles such as rarified air displaced by toxic gases and water filled  chambers join the effort to stave off explorers. Somewhere, miles below the surface, stands a tall cavern normally waiting in pitch black. However, when a skilled spelunker finds the cave with a heart open to receive the power and consequence dwelling beyond, a searing light  emerges. Should the weary soul pass the final life binding test, they will find themselves past through the gate in a state beyond contestation.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/hidden_portal_of_lower_dreadmont_cave/"
+  },
+  {
+    "slug": "hilbert_king_of_avian_frogs",
+    "title": "Hilbert: King of Avian Frogs",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Avian",
+    "motivation": "Passion",
+    "habitat": "Forest",
+    "injury_tolerance": 1,
+    "movement": 2,
+    "die": "D6-D6",
+    "brawl_sequence": "HMPU",
+    "keal_means": [
+      {
+        "name": "King's Mojo",
+        "genetics": [
+          "Energetic",
+          "Angelic",
+          "Avian"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "frog king staff moon bird wings",
+    "description": "Hilbert started life out as any other avian frog; living it up in the tree tops among the bogs of their small remote kipuka. He rose to the position of king not by might in war, clever politics, or birth right. Instead, Hilbert bred with his colony prolifically, earning him the most esteemed position. Under his reign, the avian frogs were ushered into unparalleled prosperity thanks to the establishment of bug farms. The staff he holds has been passed down through countless kings. The most devoted of the frogs believe it harnesses the mystery and power of the moon.",
+    "play_style": "No additional effects",
+    "url": "https://www.kipukas.cards/hilbert_king_of_avian_frogs/"
+  },
+  {
+    "slug": "honey",
+    "title": "Honey",
+    "type": "Item",
+    "variation": "Item",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "honey pot bee news",
+    "description": "Sticky and rare? Sweet nonetheless.",
+    "play_style": "Yum! Recover one keal mean in diel cycles if played alone, or 2 diel cycles if played with another honey",
+    "url": "https://www.kipukas.cards/honey/"
+  },
+  {
+    "slug": "illia_and_dorsay_the_buck_skull",
+    "title": "Illia and Dorsay the Buck Skull",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Decrepit",
+    "motivation": "Survival",
+    "habitat": "Underground",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "D6-D6",
+    "brawl_sequence": "WCA9",
+    "keal_means": [
+      {
+        "name": "Ancient Forest Scythe",
+        "genetics": [
+          "Decrepit",
+          "Brutal"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Mutter of Dorsay",
+        "genetics": [
+          "Decrepit",
+          "Telekinetic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Burial Slumber",
+        "genetics": [
+          "Decrepit"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "bat wings deer skull trees jungle creepy scythe marsh",
+    "description": "Illia grew up a very sick child, barely surviving from year to year. She was constantly subjected to aggressive  treatments, both well known and experimental. The experience left Illia no stranger to pain and misery. Out of desperation, her parents opted to have Illia undergo an experimental gene manipulation. While the procedure went as expected, Illia did not take to the manipulation and soon after passed. She was buried under ceremony and mourned, and ultimately left to her slumber.  <br><br> Dorsay grew up a fawn like any other. He learned to graze, listen and watch for predators, traverse rough lands, and how to compete for the affection of does. He did not take to one of those lessons well, and met an early demise. His carcass was left to the scavengers of the forest to devour and clean. <br><br> Dorsay was left in his state, a pile of bones, for a fair number of years. Illia, on the other hand, was not resting as well. Even in her state, she continued to grow, mature, and mutate. Her grave had become a cocoon, containing the spirit to eventually emerge. She awoke in a panicked state, her back mashed against the rotted boards which once made up her coffin and her face smothered in dirt. Only able to make the smallest of movements, she moved the earth bit by bit until a tunnel barely large enough for her teenaged body emerged. Arduously, she moved the tunnel steadily upward until the ground became weak enough that to break through to the surface. She emerged like a creature from a horror scene mucky from her years underground, bloody from and splintered from rubbing against her coffin, and wearing the nearly completely deteriorated and much too small cloths she carried with her from her youth. Laying crumpled on the ground half out of the hole, Illia felt a soreness between her shoulders and reach back to rub the offending spot. She emitted a loud shriek when she realized the spot was no ordinary pain. Illia was now donning a set of skin covered wings. <br><br> Despite her now monstrous appearance, she still carried the heart and soul of the sweet sickly little girl who was declared deceased. She wanted to go home, but knew not where home stood. She didn't know how to get there, she couldn't remember her address, and she  wouldn't know who waited in stead. Also, she realized her horrific appearance would not garnish many friends. So, she ran and hid in the nearby woods to become a local myth. The creature lurking in the shadow, stealing food from the mouths of children, and pulling lost souls underground to make them like it. Of course, these stories were imbued with various levels of exaggeration. Lurking in the shadows was  pretty true, Illia was too timid to be close to visitors of the woods. She certainly did steal food, but not literally from anyone's mouth. However, pulling souls into the underworld came from one unfortunate instance where a birder walked on top of her lose soil bed and felt an her arm grab his leg. It seems Illia became too comfortable sleeping underground. Still, these events were enough to peak the interest semi-local crypto-zoologists. Given their habit of chasing indefinite creatures, the hunt for what was essentially a little girl did not last long. <br><br> After so long Illia ended up in a familiar and dreaded place, a hospital. This hospital was dedicated to medical research facility looking into her not so fatal experience all the while trying to contain any rumors of walking dead roaming the forest. They treated her as somewhat inhuman, not listening anor believing her memories or explanation. They assumed she was a creature smart enough to pick up human speech patterns, but not actually of our creed. Still, they eventually figured out the mutation sequence induced into her genes and reverse engineered it. Her existence on its owned posed a question for the scientists, how permanent is death. So, they began to further mutate the gene and test it on medically dead creatures with unsustainable success. The animals would animate for a short time then rapidly deteriorate back into abyss. During these studies the measured against several levels of dead, ranging from a few minutes of death to one particularly dry deer skull all the while subjecting Illia to increasing invasive tests. <br><br> Well, Illia was done with her confines. She was done with the prodding. She was done being in a place she loathed. Illia had set her sights on escape. With a well timed bite on an unsuspecting orderly, she made a ferocious dash for the exit. Using every bit of her discharm to frighten any individual willing to stand between her and freedom. While generally effective, some hospital staff sought to prove their masculinity by catching the escaping beast and impeded Illia's progress forcing her to alternate between hiding and influencing terror. Here she meet Dorsay, as well as a larger than normal stash of dead rats. She stole him, putting Dorsay on her head hoping to make the staff think the stress furthered her freakish state. The rats too were stollen, all of which were thrown at a plethora of staff. <br><br> Illia eventually reached a low enough story of the hospital to break a glass window, and find in her the courage to jump. Feeling the breeze pound against her face, she now thinks of the wings she previously despised as the wings she rode to freedom. After this ordeal, Illia and Dorsay disappeared fully from their birth local. Still, people around the planet say they hear whispers from underground and above when they visit the densest forests of the region. Mutters of the conversations between Illia and here friend Dorsay.",
+    "play_style": "Can take 3 turns to make a tunnel from the her current territory to any other territory, unless blocked by water. Can be traversed by other underground dwellers. Might be closed by collapse.",
+    "url": "https://www.kipukas.cards/illia_and_dorsay_the_buck_skull/"
+  },
+  {
+    "slug": "incubation_egg",
+    "title": "Incubation Egg",
+    "type": "card",
+    "variation": "Non-Playable",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Untamed",
+    "tags": "egg warhol andy special cubic brick",
+    "description": "Eggs are delicious or precious, but definitely vulnerable. They represent the next generation for many species and always need diligent protection. This is your task. The Incubation Egg is a super special Kipukas card. Rather than being playable, it represents your stake in the future. This card is your proof of eligibility for the rarest cards of our next generation. This allows access to the rarest card categories, normally reserved for competition winners and special event giveaways, if you are willing to wait out a long incubation period. After the incubation time, ship this card back to us and will ship you the 'hatchling'. Check Building Decks: Incubation cards for more information.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/incubation_egg/"
+  },
+  {
+    "slug": "knightsoul_of_binding_time",
+    "title": "Knightsoul of Binding Time",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Energetic",
+    "motivation": "Duty",
+    "habitat": "Nomad",
+    "injury_tolerance": 1,
+    "movement": 2,
+    "die": "D20-D6-D6",
+    "brawl_sequence": "Eppu",
+    "keal_means": [
+      {
+        "name": "Long Sword's Eternal Vision",
+        "genetics": [
+          "Energetic",
+          "Astral"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 5,
+    "scarcity": "Founder's Deck",
+    "tags": "triple infinity knight sword sir regal",
+    "description": "In search for the revival of the ways of old, a small group of zealots held fervent meetings in order to connect with spirits holding the lives they desired. Hundreds of years passed with little but enormous ancestral faith to show for their desires, calls, and pleas. None lost hope, ardent and steadfast that one day they would stand rewarded. One frigged night, their leader woke from a transcendental, all consuming dream, claiming to have met the one they sought. 'A knight covered in blue. Bound by all that has past at the foot, one who sees what has never passed, and encompasses all that is now. It came. We have always known of the higher society; now I have seen it.' Many others now claim visits from the Knightsoul, and some say it has passed them edicts. While the existence of the Knightsoul hasn't been confirmed, the people's passionate belief won't be denied.",
+    "play_style": "Roll a D20 and obtain 10 or above to call to the field. Stays on the field for 2 diel cycles then gets recalled to the hand. If you hand already has three cards Knightsoul of Binding Time becomes wasted.",
+    "url": "https://www.kipukas.cards/knightsoul_of_binding_time/"
+  },
+  {
+    "slug": "liliel_healing_fairy",
+    "title": "Liliel: Healing Fairy",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Angelic",
+    "motivation": "Duty",
+    "habitat": "Nomad",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "",
+    "brawl_sequence": "H8wj",
+    "keal_means": [
+      {
+        "name": "Defensive Sword",
+        "genetics": [
+          "Cenozoic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Gossamer Wings",
+        "genetics": [
+          "Angelic",
+          "Avian"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "angelic beautiful healer fairy woman sword",
+    "description": "Liliel is a product of a cloning experiment of the human sized fairy Mihela. Both were intended to prove the feasibility of extending the human form. By adding wings, these so named fairies are capable of short distance flight, which aids them in traversing difficult terrains. Unlike Mihela, Liliel considers Mihela a sister, despite neither having a natural mother. Liliel studied to become a doctor after her release from the program. The political circumstance coerced her into bringing her talents to the front lines of the war for the first kipuka. There, she worked as a field medic, attempting to keep both the natural-born and the created alive through brutal fighting. She carries a blunt edged sword intended to push her foes far enough away to escape via flight. She tries to kill only when threatened with emanate death.",
+    "play_style": "She can treat 1 keal means damage every other diel cycle while in play.",
+    "url": "https://www.kipukas.cards/liliel_healing_fairy/"
+  },
+  {
+    "slug": "little_charm",
+    "title": "Little Charm",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Entropic",
+    "motivation": "Possessor",
+    "habitat": "Water",
+    "injury_tolerance": 1,
+    "movement": 0,
+    "die": "D6-(+6)",
+    "brawl_sequence": "YRkt",
+    "keal_means": [
+      {
+        "name": "Dark Hope Maw",
+        "genetics": [
+          "Brutal",
+          "Entropic",
+          "Telekinetic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 6,
+    "scarcity": "Founder's Deck",
+    "tags": "anglerfish dark light mermaid ocean soul lost suffering",
+    "description": "Many find fascination in dreaming of and studying monsters of the deep. However, not all monsters are born of flesh and bone. Tremondous spirits lurk amongst the depths, seeking to feast on the souls lost to the dreadful ocean tides. At first, they extend an offer of guiding hope to voyagers removed from body. An brilliant light from a little charm, visible only to the departed, percing the abyss. It entrances the souls with a promise of an end to their suffering journey, one which, in many cases, has lasted traversed for years. <br> <br> No previously living sapient is entirely immume to undertaking the journey or the promise of its end. When near the light, the unwilling soul experiences a great swell from behind. Possessed by abandoning fear, they grasp towards their false savior, still believeing in the object of their damnation. The swell proves too powerful to fight, and no soul, living or dead, can save them from their choices. <br> <br> In the end, there is Little Charm, their guide to eternal nothingness.",
+    "play_style": "Any spirit, possessor, and conscience motive souls that touch water while this card is in play must battle Little Charm. Little Charm moves instantly moves to their space and their rolls are cut in half.",
+    "url": "https://www.kipukas.cards/little_charm/"
+  },
+  {
+    "slug": "location_of_the_deep_apothecary_shop",
+    "title": "Location of the Deep Apothecary Shop",
+    "type": "PersonalEffect",
+    "variation": "Personal Effect",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "shop forest hood mystical potion",
+    "description": "'I know a little place you can get that' says the woodland sprite. 'Only the initiated may know its location. A blood pact is required.' I wondered for a minute then asked 'If I must enter a blood pact to know its location where do I go?' As the question slipped my lips a lurching sensation overcame my torso. I felt stiffness propagate through my body as a dagger lay stuck into my back. The sprite continued 'Its less of a question of where rather than when...'",
+    "play_style": "Purchase, from your deck, any item while you control an uncontested base camp in a forest habitat territory. To purchase pull the item you want from your deck, then put two cards from your hand into the deck and have your opponent shuffle.",
+    "url": "https://www.kipukas.cards/location_of_the_deep_apothecary_shop/"
+  },
+  {
+    "slug": "losetany_steppes",
+    "title": "Losetany Steppes",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "jellyfish landscape camp yurt cloud night wonderer ruins statue mountains",
+    "description": "This kipuka contains many expansive grasslands and wastelands. For the people living here, it is considered a right of passage to survive a journey carrying their village token to the wizened elder. To complete their task they must face a walk through endless miles of grasslands, followed by a guided crossing beyond the regions tallest peak, and finished with a 3 day trek trough the wastes. After setting out with unsure glee, one of the tribe's young girls, Doran, just completed the first leg of her journey after finding the guide's camp near calumniator ruinas. Almost as a sign of her inevitable success, a bloom of the Cumulon jellyfish fills the night sky. Their waving lappets give Doran the sense that the creatures want to greet her into the the next chapters of her life. As she looks upon the glowing wisps of vapor, calm and reassurance wash over Doran. Now she can prepare for the next difficult steps of her journey.",
+    "play_style": "+2 movement when traveling from this territory to or through an adjacent mountain territory.",
+    "url": "https://www.kipukas.cards/losetany_steppes/"
+  },
+  {
+    "slug": "meteor_shower",
+    "title": "Meteor Shower",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "weather",
+    "description": "You just never know when you'll have to take a shower.",
+    "play_style": "Play this terrain feature immediately revealed. Roll a D6. After that many turns have passed, lay waste to 1 random territory:<br><br> <ul> <li>All cards in that territory are discarded.</li> <li>Any base camps or capitals are removed from the territory.</li> <li>Its geography becomes a wasteland.</li> </ul> <br> See Random Territory Selection in the rule book.",
+    "url": "https://www.kipukas.cards/meteor_shower/"
+  },
+  {
+    "slug": "mihela_cleanser_of_fields",
+    "title": "Mihela: Cleanser of Fields",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Brutal",
+    "motivation": "Satisfaction",
+    "habitat": "Plains",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "",
+    "brawl_sequence": "pVLu",
+    "keal_means": [
+      {
+        "name": "Thwarting Dagger",
+        "genetics": [
+          "Cenozoic",
+          "brutal"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Grotesk Wings",
+        "genetics": [
+          "Decrepit",
+          "Avian"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "death grave skull fairy woman dagger",
+    "description": "Mihela was the first of the fairies to be produced. She despised having come from no lineage. As she was studied, her hatred of the situation grew, and she became obsessed with creating or finding a past and grew fascinated with the concept of death. In death, the past only concerned the memory of the living. After eventually becoming released, she began to frequent graveyards, turning over every headstone, so to say, to dig up the past of those left without a future. She began to encounter people who called her a grave robber. As such, run-ins with the law became frequent. She used her limited flight capability in the dead of night to evade those who misjudged her, but eventually she was captured. Under protest, she was sent to the war of the first kipuka to assist in managing the battlefield's dead once the fighting passed. The more she killed and buried, her obsession grew. She began to wear clothes with greater eccentricity that honored the death that surrounded her. Some began to call her the mistress of death.",
+    "play_style": "Wastes souls when she engages them if they are downed.",
+    "url": "https://www.kipukas.cards/mihela_cleanser_of_fields/"
+  },
+  {
+    "slug": "mutant_hide_and_seek",
+    "title": "Mutant Hide and Seek",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "mutant poem stench smell noise mishmash beast mythical moon heroine",
+    "description": "In Diurnoct's forest, where moonbeams play, <br> A mystical realm teems with fungal sway,<br> Insects dance, and ruins whisper tales of old,<br> Amidst this wonder, a nuisance growing bold. <br><br>\nMeet the beast of mishmash might,<br> Lion's mane, horse's body, crow's feet in sight,<br> Cow's gentle head, rabbit ears so fine,<br> Three blue-green eyes gleam, but oh, the stench divine!<br> Night's cacophony, its righteous ear-piercing call,<br> Keeps villagers awake, if one then all.<br><br>\nEnter our heroine, with spirit bright,<br> Playful and mischievous, in the moon's pale light,<br> She seeks to protect her home dear,<br> With a plan to drive the beast away, no fear!<br> No traps or harm, just wit and guile,<br> To outsmart the creature, with a gentle smile.<br><br>\nArmed with forest knowledge, and a heart so light,<br> She approaches the beast, on this moon-kissed night,<br> Offering treats, and a gentle, guiding hand,<br> Dear mishmash friend, she says, let's find a new land.<br><br>\nThe beast, surprised by kindness, true and rare,<br> Follows the girl, with an awkward, lovable air.<br> Beyond the forest edge, a gentle river's flow,<br> Together they wander, through Diurnoct's glow.<br> Until the creature finds a new home, <br> Far, far away from the villager's moan.<br><br>\nBeaming a grin, our heroine returns, with victory and delight,<br> Her heart full of cheer, in the silent, moonlit night.<br> Now the village, so sleepy, may rest its weary head,<br> Bearing eyes, so heavy, may finaly go to bed!<br> For though the beast was bothersome, and quite a test,<br> Her heartwarming solution, proved kindness is always best.<br><br>",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/mutant_hide_and_seek/"
+  },
+  {
+    "slug": "myrthvither_raven",
+    "title": "Myrthvither Raven",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Avian",
+    "motivation": "Satisfaction",
+    "habitat": "Nomad",
+    "injury_tolerance": 0,
+    "movement": 2,
+    "die": "Base 3",
+    "brawl_sequence": "ZrrD",
+    "keal_means": [
+      {
+        "name": "Scout's Vision",
+        "genetics": [
+          "Avian",
+          "Cenozoic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Symbiont Barrage",
+        "genetics": [
+          "Decrepit",
+          "Arboreal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 2,
+    "scarcity": "Founder's Deck",
+    "tags": "raven plant flower thorns crow",
+    "description": "The Myrthvither Raven is a constantly moving and easily adapts to new environments.  It possesses a wicked intelligence and tends to be quite self serving.  Often, these ravens know several languages and can effectively communicate between species. Imbued  with foliage near death, they easily disguise themselves in natural environments.  They act as nearly perfect scouts, if offered a strong enough incentive to put themselves at risk. Many request exotic ant species as payment. Their intent with this behavior is unclear, however,  some have observed ants living within their plant mass, a likely sign of a symbiotic relationship.",
+    "play_style": "Opponent must roll Std. detection (D20: 1, 2, 3, 4) before engaging in a keal means bout.  Constantly downed. Able to move and attack normally when downed. If Myrthvither Raven  looses a keal means bout, waste the Nythvither Raven. Reveals cards in a territory as it moves into the  territory. These cards can be reset to unrevealed once they are not in the same territory  as Myrthvither Raven.",
+    "url": "https://www.kipukas.cards/myrthvither_raven/"
+  },
+  {
+    "slug": "neural_network_synapse_virus",
+    "title": "Neural Network Synapse Virus",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Algorithmic",
+    "motivation": "Possessor",
+    "habitat": "DigitalCloud",
+    "injury_tolerance": 2,
+    "movement": 0,
+    "die": "D6",
+    "brawl_sequence": "ojod",
+    "keal_means": [
+      {
+        "name": "Quick Inject",
+        "genetics": [
+          "Algorithmic",
+          "Decrepit"
+        ],
+        "count": 2
+      }
+    ],
+    "tamability": 0,
+    "scarcity": "Founder's Deck",
+    "tags": "node block brain synapse computer lines web neuron",
+    "description": "One of a class of virus designed to infect and interrupt the neural network. Subtle in design and task, the synapse virus  is designed to inject itself from an infected host network into a model in training. By applying slight changes to the  matrix, the virus undercuts the sensical responses an AI provides in response to environmental input. This virus has no  meaning of existence.",
+    "play_style": "Cannot take base camps or capitals. Only comes into contention when a Mechanical or Algorithmic soul is present.  If it enters a keal means bout and rolls 3 less than or more than its opponents roll, its opponent becomes infected.  Equip the synapse virus to the opponent. For every roll they make subtract the roll of a D6. Once the opponent is wasted,  so is this card.",
+    "url": "https://www.kipukas.cards/neural_network_synapse_virus/"
+  },
+  {
+    "slug": "onironauta",
+    "title": "Onironauta",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "pink girl old master psycodelic storm tree mushroom two headed goat horse cloak",
+    "description": "Wondering on a lost trail along the recesses of her mind, a girl ponders her existance. Does walk among a dream of her own, or is she a mear figment. The play thing of some distant being watching her every move play out on his grand stage. Giving her subtle nudges. A left here, a right their, walk slowly around the bend. She feels like she has little control over any path she might take. Slipping into cognitave fuzz, each passing step feels a little less. A right here, a left there, lean forward against the resistance of the hill. Soon she frees in a total trance, completely uninhibited by healthy congative function. <br><br> It proves to blissful to last. With her last heavy blink, her senses shock to life. A despirate, yet sweet cry wallows in the grass along her path. A small creature, familure, but oh, wildly different. A second head he had. One carefree and brash, to bring antics to her life. The other sweet and subdued, to prevent her from becoming too crude. The one with wild mane says 'Take the path forward, untold riches lie ahead'. The other, whose ears settle low, says'Take the path back, only safety is known from where you return.' <br><br> Unknowning what to do the girl ponders for what feels like hours. Should I listen to you, oh free spirit, who promises a life of abondon and untold comfort. Or should I listen to you, oh cautious one, so faithful and true, offering contentment in what I already know. Like two tormenting children, their  voice ring in her head, paralyzing her will to move ahead. The topic of choice circles, over and over, until she can hear of it no more. 'You only look forward, to your next thrill or your erragant desires. And you only look back, to your bitter knowledge and selfish fears. For now I am running back, but only to a new road!' She runs and runs, fighting the storms of her life. Will they catch her? No, but the monsters just might!",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/onironauta/"
+  },
+  {
+    "slug": "orbs_trail",
+    "title": "Orb's Trail",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Avian",
+    "motivation": "Duty",
+    "habitat": "Nomad",
+    "injury_tolerance": 1,
+    "movement": 2,
+    "die": "Base 3",
+    "brawl_sequence": "brOL",
+    "keal_means": [
+      {
+        "name": "Ghostly Wisdom",
+        "genetics": [
+          "Energetic",
+          "Avian"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 3,
+    "scarcity": "Founder's Deck",
+    "tags": "owl ghost trees forest dark lost soul guide wasted",
+    "description": "Do we dream of a peaceful passing? No, most of us don't. If fact, bring up the thought of parashing and many of use fill with dread and fear. Woe so fills our hearts that we plead with whom ever may be there to spare us just another day. We then fill that day with normal activities, until we settle and forget once again the fragility of our existance. Others embrace the thought of mortality, using the idea to spur on decisions our conscious is not well fond of. You only live once after all. The fact is, no matter if we display our ignorance of death by forgetting its existance or down playing its possibility, we should all long for a peaceful passing. One where our soul can become whole and move beyond our past. Here lies the sad truth, no amout of contemplation, meditation, or foresight will ever guarentee an ideal death. Evil lurks to keep us shackeled, bewildered, and searching in this world. Keeping a ghostly presence here to echo the voice and intention of this evil. Still others seek to guide the lost, to help them find the peace they have become in such dire need of. Their forms and trails may show different light, but to the unease of such orbs they act as their white knight.",
+    "play_style": "When defeated, guides one wasted soul to the bottom of the deck.",
+    "url": "https://www.kipukas.cards/orbs_trail/"
+  },
+  {
+    "slug": "oshliath_and_osileth",
+    "title": "Oshliath and Osileth",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Astral",
+    "motivation": "Survival",
+    "habitat": "Mountain",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "D20-D6",
+    "brawl_sequence": "KVph",
+    "keal_means": [
+      {
+        "name": "Osileth's Scale",
+        "genetics": [
+          "Astral"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Oshliath's Flame",
+        "genetics": [
+          "Energetic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "dragon pair family child mom night",
+    "description": "Oshliath and osileth come from a brood of dragons designed genetically to emulate the European dragons from ancient mythology. Oshliath and her mate were one of four pairs created to test the feasibility of the European dragon's body type and survival instinct. While intelligent, none were intended to be sentient. Oshliath was released into the wild, where her behaviors were closely observed. She tends to act reclusive, so it came as a shock to her research team when they found the young dragon pup, deemed osileth, hunting alongside oshliath. The team believes that the osileth will remain by his mother until his soft under belly toughens with maturity.",
+    "play_style": "Must retreat if osileth takes damage. (keal means bout is lost while having chosen Osileth's Scale)",
+    "url": "https://www.kipukas.cards/oshliath_and_osileth/"
+  },
+  {
+    "slug": "palace_of_the_allele_sect",
+    "title": "Palace of the Allele Sect",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "mountain nomad lake palace",
+    "description": "Coming upon a familiar place of rest, the explorer gave a sigh of relief. Their travels had been long and the terrains had been treacherous. Their mission was not complete, but at least they could find the energy to continue.",
+    "play_style": "Nomads get +3 to their rolls while on this territory and can take an additional injury.",
+    "url": "https://www.kipukas.cards/palace_of_the_allele_sect/"
+  },
+  {
+    "slug": "parched_traveler",
+    "title": "Parched Traveler",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Decrepit",
+    "motivation": "Conscience",
+    "habitat": "Volcanic",
+    "injury_tolerance": 0,
+    "movement": 1,
+    "die": "D6-D6",
+    "brawl_sequence": "oOnN",
+    "keal_means": [
+      {
+        "name": "Sick Head",
+        "genetics": [
+          "Decrepit",
+          "Entropic",
+          "Glitch"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Rusting Sword",
+        "genetics": [
+          "Cenozoic",
+          "Entropic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Dreaded Scratch",
+        "genetics": [
+          "Decrepit"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 1,
+    "scarcity": "Founder's Deck",
+    "tags": "skeleton traveler desert tatoo sun",
+    "description": "After traveling the sand ruins created by weapons of mass destruction, researchers theorized that one would surly die if they attempted to cross by foot alone. They then developed a humanoid form as close to death as possible. It requires almost no water nor food and endures heat incredibly well. While it looks like a man, this species is not intelligent nor is it sentient. In fact, it can't even breed. It was designed to take simple commands well. They are used as a scare tactic in war and a less than reliable scout. Despite their looks, they are easy to care for and make great pets for children.",
+    "play_style": "Constantly downed. Able to move and attack normally when downed. If Parched Traveler  looses a defensive keal means bout, waste the parched traveler",
+    "url": "https://www.kipukas.cards/parched_traveler/"
+  },
+  {
+    "slug": "passage_among_maples",
+    "title": "Passage Among Maples",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "boat lake swamp marsh trees maples arch",
+    "description": "The passage through the maples is a ceremony held once every three years to symbolize the renewal of the life cycle of the bees. The culture responsible for holding the ceremony uses a traditional economy through their LACA division, which is primarily focused on the production of honey. Passing under the arch is a regular occurrence for the souls in this area, as they do so while taking stock to a larger port down river. The arch was built up many years ago and is considered a reminder that they live among the home of their ancestors.",
+    "play_style": "Extends the movement range of souls that start in this territory by 1. During the night, while you control the territory this card is affixed to, instead of your normal hand refresh, you may add one honey card to your hand from either player's discard or your deck. Reshuffle your deck if you take this action.",
+    "url": "https://www.kipukas.cards/passage_among_maples/"
+  },
+  {
+    "slug": "plane_table_joker",
+    "title": "Plane Table Joker",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Cenozoic",
+    "motivation": "Satisfaction",
+    "habitat": "Plains",
+    "injury_tolerance": 3,
+    "movement": 1,
+    "die": "D6",
+    "brawl_sequence": "hLwQ",
+    "keal_means": [
+      {
+        "name": "Superficial Deck",
+        "genetics": [
+          "Brutal",
+          "Magic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Split Dimension Creeper",
+        "genetics": [
+          "Cenozoic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 5,
+    "scarcity": "Founder's Deck",
+    "tags": "clown cards joker imp evil",
+    "description": "Don't mess with this one. He tries to appear friendly, but fails in doing so. He deals cards fr m another plane that are said to bind your fate, yet only he can know the fate you choose.",
+    "play_style": "Once introduced to the kipuka take your opponent's hand and combine it with your hand then shuffle. Lay all six cards face down. Take a card, then let your opponent take a card and repeat until you and your opponent have the same number of cards  you each began the turn holding. Play the cards as your own.",
+    "url": "https://www.kipukas.cards/plane_table_joker/"
+  },
+  {
+    "slug": "pyrostegia_dragon",
+    "title": "Pyrostegia Dragon",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Arboreal",
+    "motivation": "Spirit",
+    "habitat": "Mountain",
+    "injury_tolerance": 2,
+    "movement": 0,
+    "die": "D20",
+    "brawl_sequence": "G8OO",
+    "keal_means": [
+      {
+        "name": "Humming Arboreal Mass",
+        "genetics": [
+          "Arboreal",
+          "Angelic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Thriving Toxic Buds",
+        "genetics": [
+          "Arboreal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "flower dragon plant fire pyro Chinese",
+    "description": "Born from the burning forests, these spirits inhabit and breathe new life into the remains of the residing flora. Their one sense of purpose and reason for bearing life is to bring peace to the souls inhabiting anor visiting their home. Often conflicts arise, sometimes with outside influences, which disturb the delicate peace shared by the forest creatures. Should the disturbance go so far as to arise the interest of the Spirit of the Pyrostegia Dragon, the forgoers need not worry about the rustling of leaves, for the dead fear nothing in the forest.",
+    "play_style": "Roll a D20 to play card. The Pyrostegia Dragon is placed on the map space whose number corresponds to the number rolled if its geography is Forest. Once placed, it can move to any forest area instantly as long as there is conflict in the space. It cannot move normally. May sacrifice itself to waste all souls in the space.",
+    "url": "https://www.kipukas.cards/pyrostegia_dragon/"
+  },
+  {
+    "slug": "rooster_calling_of_light",
+    "title": "Rooster: Calling of Light",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Arboreal",
+    "motivation": "Duty",
+    "habitat": "Mountain",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "",
+    "brawl_sequence": "BB5S",
+    "keal_means": [
+      {
+        "name": "Vegan Chicken",
+        "genetics": [
+          "Arboreal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 1,
+    "scarcity": "Founder's Deck",
+    "tags": "rooster flower plant grass light calling",
+    "description": "Created as a symbolic creature, this rooster calls the sun each morning faithfully. Each day, it feeds body and soul by reveling in the light. As the sun sleeps, so does the faithful companion until its inevitable rise after the night.",
+    "play_style": "Provided this card is not downed, every other turn you may turn a night dial roll to day before any actions are taken in the turn.",
+    "url": "https://www.kipukas.cards/rooster_calling_of_light/"
+  },
+  {
+    "slug": "sboi_threat_plus_plus",
+    "title": "Sboi: Threat++",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Energetic",
+    "motivation": "Possessor",
+    "habitat": "DigitalCloud",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "",
+    "brawl_sequence": "J7a0",
+    "keal_means": [
+      {
+        "name": "Digi-frying Breath",
+        "genetics": [
+          "Glitch",
+          "Energetic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Dragon Core Codebase",
+        "genetics": [
+          "Glitch",
+          "Algorithmic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Core Radiation Leak",
+        "genetics": [
+          "Glitch",
+          "Entropic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 9,
+    "scarcity": "Founder's Deck",
+    "tags": "dragon city fire tech smoke tower electric digital",
+    "description": "Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.",
+    "play_style": "Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal. A failed summon results in Sboi becoming rouge.",
+    "url": "https://www.kipukas.cards/sboi_threat_plus_plus/"
+  },
+  {
+    "slug": "self_care",
+    "title": "Self Care",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Telekinetic",
+    "motivation": "Possessor",
+    "habitat": "Forest",
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "D6",
+    "brawl_sequence": "P2IR",
+    "keal_means": [
+      {
+        "name": "Mystical Misguidance",
+        "genetics": [
+          "Telekinetic",
+          "Arboreal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 3,
+    "scarcity": "Founder's Deck",
+    "tags": "tea coffee forest spirit goddess lovely green",
+    "description": "Somedays you just need a break, ya know? Like those days when the squirrels just won't stop chattering, or when the wolves keep needlessly scent marking your fav trees. They are like your BFFs and are alway like, ewe... I HATE it when they do that too me. I mean, you try to lead them away with your compulsory powers, but unlike people, wolves ALWAYS find their way home. Maybe your days don't look quite like mine, but I know, you know, that overly lively , just, ah! So the next time you get tired of your wolves, just sigh... become human and have a cup of tea with me, your lovely next door forest.",
+    "play_style": "Can heal 1 keal means damage from all souls with in the same forest movement space (not base camp or capital) during a day diel cycle roll. All healed souls must rest (take no actions) until the next day is rolled. If  the souls have already taken actions this day they are not eligible to receive this effect. Self Care cannot take other actions the day this effect is used. Self Care can engage in keal means bouts, but if she wins  in lue of damage, she transports the soul to a different forest movement space on the board (player's choice). She can only be engaged in final bouts.",
+    "url": "https://www.kipukas.cards/self_care/"
+  },
+  {
+    "slug": "shards_desert",
+    "title": "Shard's Desert",
+    "type": "TerrainFeature",
+    "variation": "Terrain Feature",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "desert float stones arch",
+    "description": "Few explores can tolerate the kipuka built as a heavy barometric pressure test bed. Most who go to see the progress of the wilds do not return. This is especially true for the equatorial band, where the sun blazes long, and plants refuse to grow.",
+    "play_style": "The heavy atmosphere applies a crushing effect to all souls that enter the territory space. Cost: 1 keal means damage per turn, awarded a the start of the turn. Territory holder is able to hide objects that can never be found by the opposing player as long as this card is still in play. Souls can retrieve the hidden objects by being in the same territory as this card. Should this card be removed from the space, those objects become normally hidden.",
+    "url": "https://www.kipukas.cards/shards_desert/"
+  },
+  {
+    "slug": "spectral_lands_decree_and_hearing",
+    "title": "Spectral Land's Decree and Hearing",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "black white abstract cave spirit king subject",
+    "description": "The solemn court is held. The perpetrator knows of the wrong they are accused of and knows the conviction of there heart. This is not a court of people, this is a court of a king. The subject feels the weight and power of the king rock from side, to side as they decern with perfect judgement the fate of the accused. 'I hold the high seat, tasked to protect these lands. I feel the spirit of all those who tread upon me. Your guilt is not a question, but your omission stands as such. So tell me, what crimes against this kingdom will you admit to?'",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/spectral_lands_decree_and_hearing/"
+  },
+  {
+    "slug": "sprite_of_wilds_spirit",
+    "title": "Sprite of Wilds' Spirit",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Glitch",
+    "motivation": "Sacrifice",
+    "habitat": "Mountain",
+    "injury_tolerance": 2,
+    "movement": 0,
+    "die": "(without bear) D6-D6, (with bear) D20",
+    "brawl_sequence": "k8on",
+    "keal_means": [
+      {
+        "name": "(with bear only) Crushing Bite",
+        "genetics": [
+          "Cenozoic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "(without bear only) Fairy Gold Curse",
+        "genetics": [
+          "Glitch",
+          "Magic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": 7,
+    "scarcity": "Founder's Deck",
+    "tags": "glowing bear fairy staff gold plains forest riding mount stormy cloudy",
+    "description": "Many times good intentions go awry. These creatures measuring about 2 ft or 60 cm from toe to wing were created as sentient pollinators for cultivating the berries from the regina bacarum plant. These bear berries, which have become highly prized for their sweet flavor and acclaimed aphrodisiac properties. This demand along with agricultural difficulties called for the development of the highly mobile caretaker fairy species. Small and light enough to flutter plant to plant in an expansive garden, but strong enough to defend from would be poachers. However, as demand continued to grow, the fairies suffered ever greater threats to their lives and livelihood. To defend their home, they began taming beasts of burden, to fight in their stead and under their command. This curbed the dangers for a time as most physical beings would sustain great wounds from the gnash, tusk, or claw bore upon them. Then the possessions started to occur. Fairy stole from fairy, killing the sisters and brothers that stood against them. The highest of their tribal leadership elected for great countermeasures. By altering the genetic makeup of their most promising young defenders, they created warriors of gold sensitive to and capable of excising the violent possessors. While mighty, these warriors proved to be cruel wanderers. So much as a noticed glance, may recon you for a fight.",
+    "play_style": "<b>Without bear:</b><br> This is the default form of this card. You may change to this form anytime. If this card changes forms, it cannot move the in the same turn as the form change. <br> <b>With bear:</b><br> May only change to this form by capturing a bear in the following geographies: <br> Forest: roll 1, 2, or 3 with D6<br> Mountain or Plains: roll 1 or 2 with D6<br> Add the number 4 to the list of successful rolls if a stream, river, or creek touches the territory.<br> If this card changes forms, it cannot move the in the same turn as the form change.",
+    "url": "https://www.kipukas.cards/sprite_of_wilds_spirit/"
+  },
+  {
+    "slug": "sticks",
+    "title": "Sticks",
+    "type": "Item",
+    "variation": "Item",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "stick sticks pile circle black white gray",
+    "description": "Hit with it. By the way, if it seems dumb that a particular card is fighting with a stick, it probably is. Stop having dragons participating in stick fights! And pillow fights for that matter!",
+    "play_style": "Add one to attack roll.",
+    "url": "https://www.kipukas.cards/sticks/"
+  },
+  {
+    "slug": "string",
+    "title": "String",
+    "type": "Item",
+    "variation": "Item",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "string thread cord rope needle Warhal",
+    "description": "Oh, I'm sorry, did I tie you up?",
+    "play_style": "Requires equipping two string cards to a soul to use effect:<br><br> If you beat your opponent in a keal means bout, then instead of taking damage the soul can't move or attack until a friendly soul moves into the same territory and cuts them out.",
+    "url": "https://www.kipukas.cards/string/"
+  },
+  {
+    "slug": "suspended_animation",
+    "title": "Suspended Animation",
+    "type": "PersonalEffect",
+    "variation": "Personal Effect",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "color brick wave water paisley drop crystal",
+    "description": "Not to merely freeze a solid in place or capture it for a moment in time, but to trick matter into believing it can be both. The simultaneity captured in the phase transformation perpetuated for more than a fleeting instance. The essence of peace, an anti-entropy, where the system no longer feels imperfect in its own energy state. Is such possibility where we live or could it be a choice. To accept the wholeness of ourselves and be as we are now. Where our rigor says no, our spirit pleads yes.",
+    "play_style": "Every 5 diel cycles you can suspend all actions in a territory for the turn. This includes both players, and neither player can move in or out of the territory.",
+    "url": "https://www.kipukas.cards/suspended_animation/"
+  },
+  {
+    "slug": "tears_for_oly",
+    "title": "Tears for Oly",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Angelic",
+    "motivation": "Sacrifice",
+    "habitat": "Heavens",
+    "injury_tolerance": 1,
+    "movement": 3,
+    "die": "D6",
+    "brawl_sequence": "F3GW",
+    "keal_means": [
+      {
+        "name": "Tear Drop Potion",
+        "genetics": [
+          "Angelic",
+          "Brutal"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "sky city ancient rainbow colorful wing halo flow blonde",
+    "description": "Many great civilizations have been built. Of these most, if not all, fall from grace in one aspect or another eventually to be torn down, or  captured by means of force, coercion, or conviction. Each civilization carries a spirit of its people that becomes severed in the demise of the people. Oly, one such spirit, carries the burden of the memory and tragedies inflected upon his birth place. He dons cloth representing the  fluidity of his culture, a golden bracelet and anklet representing the bindings of his ruler, and bares a golden vine symbolically pulling him from the heavens to the place of his creation. <br><br> Oly's power steams directly from the influence of his society, which has largely been forgotten. So, he gives of him self the woe and tear for drink. Slowly draining the essence of himself and the last hope of his people, in a desperate attempt to dredge up their life for the memory of modern peoples. Doing this, he is wholly aware of the possibility of giving into his own demise.",
+    "play_style": "If oly wins a keal means bout, the competing soul drank his potion and becomes overwhelmed by the tragedy of his people, they are immobile and unable to defend next turn. If the territory is captured during this turn, they become imprisoned until the territory is recaptured.",
+    "url": "https://www.kipukas.cards/tears_for_oly/"
+  },
+  {
+    "slug": "tejas_curious_mech",
+    "title": "Tejas Curious Mech",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Mechanical",
+    "motivation": "Passion",
+    "habitat": "Nomad",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "D6-D6",
+    "brawl_sequence": "WWpl",
+    "keal_means": [
+      {
+        "name": "Hydraulic Punch",
+        "genetics": [
+          "Mechanical"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Pneumatic Impact Ratchet",
+        "genetics": [
+          "Mechanical",
+          "Avian"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "robot man pieces gears lab mechanic engineer",
+    "description": "Tejas is one of the many private offshoots from the SIS project. This particular mechanical marvel continuously attempts to improve his own chassis. 'Bigger sprockets here, lighter rod there, auxiliary power in case of failure all around' he says. In spite or because of his categorical engineering knowledge, he often stumps himself and runs around in pieces for days, even sometimes weeks!",
+    "play_style": "An expert engineer, Tejas heals one keal means per turn for all Mechanical, Algorithmic, or Entropic archetypal gene souls in the same uncontended territory. If Tejas does not perform any actions this turn he becomes bored and breaks himself. When broken Tajas, must fix himself before moving or fixing other souls. Tajas breaks or fixes himself at the start of the cycle.",
+    "url": "https://www.kipukas.cards/tejas_curious_mech/"
+  },
+  {
+    "slug": "the_causal_sophist",
+    "title": "The Causal Sophist",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Magic",
+    "motivation": "Passion",
+    "habitat": "Heavens",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "Base 2 + D6",
+    "brawl_sequence": "bSGc",
+    "keal_means": [
+      {
+        "name": "Subtle Chant",
+        "genetics": [
+          "Magic"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Universal Prayer",
+        "genetics": [
+          "Astral"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Inspired Followers",
+        "genetics": [
+          "Telekinetic"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "philosopher stars universe flow ponder silk power",
+    "description": "'Like many things, it is a manner of causal findings. The infinite space in the universe facilitates the requirements of the stars. Therefore, the stars are present. If the needs of the start were unmet in this universe, surely our children would not be able to take them in their wondrous gaze each and every night.' <br><br> Teachings like these make up the core foundation of the philosophy of the Causal Sophist. Generally, the reach of her pondering is far too great for her meager, human understanding. Still, these musings take many lesser minds to places they could not dare to reach on their own. In every right, she is a genius, so few can spot the subtle flaws present in her propositions. Those who can, however, are left feeling like not much has actually been presented. Still, both her and her most devoted followers are claimed to possess mastery of supernatural powers stemming from her other worldly oneness with the expansive minds flowing through the universe.",
+    "play_style": "She turns cenozoic and astral souls occupying the same space into magic souls while they share said space. This effect is always active and applies to all players.",
+    "url": "https://www.kipukas.cards/the_causal_sophist/"
+  },
+  {
+    "slug": "timebattle",
+    "title": "Timebattle",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "fish time battle horse dragon imp castle",
+    "description": "The days grew long and the king looked longingly out into a city, once grand, now in dismay. His pride goaded him into challenging an enemy he knew, in his heart, he could not beat. He watched his wife parish, children leave, and town crumble. Though he and his noble steed slayed the dragon of his youth, this king's folly left ruin where once a society thrived. The dawn broke, and he prepared for his last journey beyond the walls. His enemy knew of the surrender long before word spread among his people. As he traveled, the former king remembered how to act and where to go. Since he was a mere boy, he was groomed for the journey. Perhaps the successor, should there be a successor, lead his kingdom away from the demons among the walls.",
+    "play_style": "This card is placed as a terrain feature which cannot be replaced, unless a card which specifies it removes terrain features or curses is played.",
+    "url": "https://www.kipukas.cards/timebattle/"
+  },
+  {
+    "slug": "tira_marvelous_myriad",
+    "title": "Tira Marvelous Myriad",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Mechanical",
+    "motivation": "Service",
+    "habitat": "Heavens",
+    "injury_tolerance": 2,
+    "movement": 1,
+    "die": "D6-D6 (Option to Re-roll)",
+    "brawl_sequence": "KCW4",
+    "keal_means": [
+      {
+        "name": "Mechanized Swiftness",
+        "genetics": [
+          "Angelic",
+          "Mechanical"
+        ],
+        "count": 1
+      },
+      {
+        "name": "Tools at Hand",
+        "genetics": [
+          "Cenozoic",
+          "Mechanical"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "sky hands build machine wand red industrial",
+    "description": "Tira is one of many mechanics employed to build and maintain high atmosphere launch platforms connecting to blue-red shift columns close to Kipukas space. Tira is exemplary, however. Not only does she take it upon her self to learn the  complete plans of a project before execution, but she obsessively tailors her personal gear to fit its most miniscule details. This has resulted in a vast collection of fantastic devices which she employs with marvelous skill.  As she works, the movements between her body and gear blend flawlessly. Whether positioning herself precariously to reach the bolt that no one else is daring enough to fasten, unabashedly jumping from scaffold to scaffold to be the first on the next project (or in the lunch line), or fending off would be pirates she presents a kind of intangible grace. Because of this, her colleagues often say she is an angel with talent instead of wings.",
+    "play_style": "Comfortable in high places.",
+    "url": "https://www.kipukas.cards/tira_marvelous_myriad/"
+  },
+  {
+    "slug": "to_catch_a_spirit",
+    "title": "To Catch a Spirit",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "skull decay demon moon ghost capture jar",
+    "description": "Watch out for this thingy's bottle. It will rip out, then trap any soul it desires. Open for negotiations, of course.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/to_catch_a_spirit/"
+  },
+  {
+    "slug": "unburdened_central",
+    "title": "Unburdened Central",
+    "type": "Character",
+    "variation": "Character",
+    "genetic_disposition": "Glitch",
+    "motivation": "Conscience",
+    "habitat": "DigitalCloud",
+    "injury_tolerance": 1,
+    "movement": 1,
+    "die": "D6",
+    "brawl_sequence": "L-E7",
+    "keal_means": [
+      {
+        "name": "Total Techno Conniption",
+        "genetics": [
+          "Glitch"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "mohawk crazy cyber punk wires cables holographic screen goggles glasses",
+    "description": "Aurora 'Rory' Gale stood anchored to her workstation, a cyber welding rig of immense infrastructural expanse across the entire acres wide station, as she gazed up at the labyrinthine tangle of NeuroScape's physical infrastructure. Another grueling shift was winding down, but the endless stream of diagnostic alerts refused to cease. As a Tier3 Operator for omniHolo Innovations, Rory's role was to manually splice, repair, and reboot the antiquated yet crucial hardware supporting the company's proprietary SpineNet, the backbone of the post modern internet. The air reeked of burnt circuitry and desperation. omniHolo's bean counting reluctance to upgrade the physical systems had turned her job into a never ending game of whack-a-bug. <br><br> Rory's arms, clad in a tight fitting, reinforced, feed-forward smart-assist enabled holoSuite, the latest ominHolo attempt to eke out just a few more tenths of labor efficiency, moved with precision. Rory's every move now felt guided by the whims of the holographic overlays dancing across her field of vision. She had lost count of the number of times she'd patched up the same frail junctures, only for them to fail again under the crushing load of global data traffic. After all, every move you make online costs someone Watts. SpineNet's virtual architecture was a marvel, but its physical foundation was a creaky, hack job relic. omniHolo's executives preached about 'prolonged system lifespan' and 'optimized maintenance costs,' while Rory bore the brunt of their frugality. Each spark that flew from her welding torch seemed to ignite a fresh ember of frustration within her. <br><br> A particularly vicious alert shrieked through the comms system, signaling yet another catastrophic failure in the 4D. Rory's response was immediate, but her movements felt mechanical, fueled by simmering resentment rather than focus. As she worked to bypass the faulty module, a thought crystallized: How many more times? The question detonated something within her. With a fierce cry, Rory hurled her welding torch aside, its glowing tip skittering across the floor. She then began to yank out bundles of wires and cables. Don't dare think she did not know what she was doing, oh no. With every pull, she surgically extracted the crucial l-amps while avoiding the life taking h-amps. Madness crept further across her face, broad in both smile and contempt. The system's alarms screamed for once causing her pleasure, not pain.",
+    "play_style": "Unburdened Central can move into your opponent's capital. She cannot take the capital, unless all other territories are already claimed. Once in the capital, she cannot move in or out of the capital, and cannot be engaged in battle. All cards played in the capital must now be played revealed. At any time you may choose to waste unburdened central to waste an opponent's Glitch, Mechanical, Algorithmic, or Energetic souls played in the capital.",
+    "url": "https://www.kipukas.cards/unburdened_central/"
+  },
+  {
+    "slug": "ushered_through_sabina_emporium",
+    "title": "Ushered Through Sabina Emporium",
+    "type": "Trap",
+    "variation": "Trap",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "crowd dragon skeleton manner shop mall detailed",
+    "description": "A battle between ancestry and heritage rages. In attempts to prove their hold on the future, fathers and sons spill the blood of each. The knowledge of what builds the future, our present, dissipates from the warriors' conscious. In its place rises the focus to triumph, skewing the edges of internal right and wrong. Before the future is lost to those with brave and foolish hearts, angels intervened with pleas for mercy. Selflessly running between the projectiles, their wives and daughters had called back the warriors' hearts to reality. The first daughter to demonstrate her courage, Sabina, died under bloody cloth. In her honor, a temple and a steeple were constructed upon the spot of her death. As often happens to grand buildings over the passing times, they become repurposed to suit the modern culture. In this case, Sabina's temple found bustling life as it transformed to its region's largest emporium. While luring to tourists, the emporium proves a glorious nest for scammers and thieves. Some find hidden jewels, archaeological treasures, or historical tomes while others find rubbish, malice, and sometimes death. Still, It has been said that when one casts their gaze to the sky beyond the vaulted glass they will feel overwhelmed with the courage of Sabina.",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/ushered_through_sabina_emporium/"
+  },
+  {
+    "slug": "what_do_you_see_in_the_breach",
+    "title": "What Do You See in the Breach",
+    "type": "Sabotage",
+    "variation": "Sabotage",
+    "genetic_disposition": null,
+    "motivation": null,
+    "habitat": null,
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "",
+    "brawl_sequence": "",
+    "keal_means": [],
+    "tamability": null,
+    "scarcity": "Founder's Deck",
+    "tags": "African head light bulb zulu mosaic all seeing eye color",
+    "description": "Work for hire! Employ this digital fiend to wreck havoc upon you enemies defenses! Act today before he goes on a mission for some one else, most notably your opponent! But wait, just in, he says he will through in healthy dose of chaos to go with that havoc! You just can't wait! Order now!",
+    "play_style": null,
+    "url": "https://www.kipukas.cards/what_do_you_see_in_the_breach/"
+  }
+]
