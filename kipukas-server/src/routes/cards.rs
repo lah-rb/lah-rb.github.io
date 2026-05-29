@@ -93,7 +93,17 @@ fn card_matches_search(card: &Card, search: &str) -> bool {
     haystack.contains(&search_lower)
 }
 
+/// Longest-side pixel cap for grid preview decodes. The source is a low-res DC
+/// image, so this keeps the decoded BMP small (memory + cache) while staying
+/// crisp for a ~200px tile at high DPI.
+const GRID_PREVIEW_MAXDIM: u32 = 400;
+
 /// Render a single card as an HTML fragment with skeleton placeholder and smooth image loading.
+///
+/// Each card has one progressive `.jxl`; the grid requests only its DC prefix
+/// (`?p=<dc_bytes>`) downscaled to `GRID_PREVIEW_MAXDIM` (`?d=`). The Service
+/// Worker Range-fetches that prefix and decodes it via WASM. `object-cover`
+/// plus the per-card `thumbnail` anchor frames the tile.
 fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     // Different animation delay for initial load vs scroll-loaded cards
     let stagger_delay = if is_initial_load {
@@ -102,31 +112,37 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         delay_ms.min(180) // Cap at 180ms (3 cards worth) for scroll-loaded cards
     };
 
+    let anchor = match card.thumbnail {
+        "top" => "object-top",
+        "bottom" => "object-bottom",
+        _ => "object-center",
+    };
+
     format!(
-        r#"<div class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{}ms">
+        r#"<div class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{stagger}ms">
   <a href="{url}"
     class="block w-full h-full pt-4 bg-amber-50 active:shadow-inner active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
   >
-    <picture class="skeleton-pulse relative block">
-      <source media="(min-width: 768px)"
-        srcset="/assets/thumbnails/x2/{img} 1x, /assets/thumbnails/x4/{img} 2x">
+    <div class="skeleton-pulse relative block w-full aspect-[2/3]">
       <img
-        src="/assets/thumbnails/x1/{img}"
-        srcset="/assets/thumbnails/x1/{img} 1x, /assets/thumbnails/x2/{img} 2x, /assets/thumbnails/x3/{img} 3x"
+        src="/assets/images/{img}?p={dc}&d={maxdim}"
         alt="{alt}"
         loading="lazy"
         decoding="async"
         fetchpriority="low"
-        class="w-full opacity-0 transition-opacity duration-300 ease-out"
+        class="w-full h-full object-cover {anchor} opacity-0 transition-opacity duration-300 ease-out"
         onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('skeleton-pulse');"
       >
-    </picture>
+    </div>
     <div class="text-center text-wrap px-2 py-2">{title}</div>
   </a>
 </div>"#,
-        stagger_delay,
+        stagger = stagger_delay,
         url = card.url,
         img = card.img_name,
+        dc = card.dc_bytes,
+        maxdim = GRID_PREVIEW_MAXDIM,
+        anchor = anchor,
         alt = card.img_alt,
         title = card.title,
     )

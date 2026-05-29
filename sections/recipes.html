@@ -59,13 +59,7 @@ bg-terra: "bg-hero-pattern "
           {% for item in site.data.types.Items %}
             <p class="text-7xl content-center mx-2 hidden lg:block" x-transition x-show="items['{{ item }}'] && checkFirst('{{ item }}', items )">+</p>
             <img x-cloak x-transition width="160" height="160" x-show="items['{{ item }}']" class="rounded outline outline-1 outline-kip-drk-goldenrod"
-            srcset="
-            /assets/thumbnails/x1/{{item | append: '.webp'}} 1x,
-            /assets/thumbnails/x2/{{item | append: '.webp'}} 2x,
-            /assets/thumbnails/x3/{{item | append: '.webp'}} 3x,
-            /assets/thumbnails/x4/{{item | append: '.webp'}} 4x,
-            /assets/thumbnails/x5/{{item | append: '.webp'}} 5x,
-            " alt="{{ item }}"></img>
+            src="/assets/images/{{ item | append: '.jxl' }}?d=400" alt="{{ item }}"></img>
           {% endfor %}
         </div>
         <div>

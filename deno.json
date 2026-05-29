@@ -20,6 +20,7 @@
     "build:alpine": "deno run -A scripts/bundle-alpine.ts",
     "build:htmx": "cp node_modules/.deno/htmx.org@2.0.4/node_modules/htmx.org/dist/htmx.min.js assets/js/htmx.min.js",
     "build:card-catalog": "deno run -A scripts/build-card-catalog.ts",
+    "build:images": "deno run -A scripts/build-images.ts",
     "build:wasm": "deno task build:card-catalog && cd kipukas-server && wasm-pack build --target web --out-dir ../assets/js-wasm/kipukas-server-pkg --release && rm -f ../assets/js-wasm/kipukas-server-pkg/.gitignore",
     "build:sw": "deno run -A npm:workbox-cli injectManifest workbox-config.cjs",
     "build:minify": "deno run -A scripts/minify-site.ts",

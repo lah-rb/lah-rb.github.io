@@ -120,6 +120,121 @@ registerRoute(wasmApiMatcher, wasmApiHandler, 'PUT');   // PUT
 registerRoute(wasmApiMatcher, wasmApiHandler, 'PATCH'); // PATCH
 
 // ============================================
+// JXL IMAGE ROUTE — decode .jxl via WASM, serve a renderable BMP
+// ============================================
+// Card art is stored as a single progressive .jxl per card. The browser can't
+// decode JXL (here), so we intercept every .jxl request and route the bytes
+// through the same page → Web Worker → WASM bridge used for /api/*.
+//
+// Query params (emitted by the card renderer / layout):
+//   ?p=<bytes>  preview prefix length — Range-fetch only this many leading
+//               bytes (the DC/low-res image) instead of the whole file.
+//   ?d=<px>     downscale target — longest output side in pixels (0 = full).
+//
+// Decoded previews are cached (small, hit repeatedly on grid scroll-back);
+// full images cache only the small raw .jxl for offline and re-decode on view.
+const DECODED_CACHE = 'kipukas-images-decoded';
+const RAW_JXL_CACHE = 'kipukas-jxl';
+
+// In-flight decode de-duplication: the card detail page requests the same full
+// .jxl three times at once (two <img> + one CSS background). Collapse identical
+// concurrent requests onto a single decode and share the resulting bytes.
+const jxlInflight = new Map();
+
+const jxlMatcher = ({ url }) => url.pathname.endsWith('.jxl');
+
+/// Fetch + decode the bytes for one .jxl request, returning the BMP bytes.
+async function decodeJxlRequest(request, event) {
+  const url = new URL(request.url);
+  const previewBytes = parseInt(url.searchParams.get('p') || '0', 10);
+  const maxDim = parseInt(url.searchParams.get('d') || '0', 10);
+  const isPreview = previewBytes > 0;
+
+  // Fetch the .jxl bytes — a Range prefix for previews, the whole file
+  // otherwise. Cache the (small) raw full file for offline re-decode.
+  const assetUrl = url.origin + url.pathname;
+  const rawCache = await caches.open(RAW_JXL_CACHE);
+  let buf;
+  try {
+    const opts = isPreview ? { headers: { Range: `bytes=0-${previewBytes - 1}` } } : {};
+    const net = await fetch(assetUrl, opts);
+    if (net.ok || net.status === 206) {
+      if (!isPreview) {
+        try { await rawCache.put(assetUrl, net.clone()); } catch (_e) { /* quota */ }
+      }
+      buf = await net.arrayBuffer();
+    }
+  } catch (_e) { /* offline — fall through to cache */ }
+  if (!buf) {
+    const cachedRaw = await rawCache.match(assetUrl);
+    if (cachedRaw) buf = await cachedRaw.arrayBuffer(); // decode full even for preview
+  }
+  if (!buf) return null;
+
+  // Relay bytes to the page → Web Worker → WASM for decode.
+  const client =
+    (event.clientId && (await self.clients.get(event.clientId))) ||
+    (await self.clients.matchAll({ type: 'window' }))[0];
+  if (!client) return { raw: buf }; // no page to decode through (very first load)
+
+  const bmp = await new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => reject(new Error('JXL decode timed out')), 15000);
+    channel.port1.onmessage = (msg) => {
+      clearTimeout(timeout);
+      msg.data.ok ? resolve(msg.data.bytes) : reject(new Error(msg.data.error));
+    };
+    client.postMessage(
+      { type: 'WASM_DECODE_JXL', bytes: buf, maxDim },
+      [buf, channel.port2],
+    );
+  });
+  return { bmp, isPreview };
+}
+
+const jxlHandler = async ({ request, event }) => {
+  const isPreview = new URL(request.url).searchParams.has('p');
+
+  // 1. Decoded-preview cache (keyed by the full request incl. query).
+  const decodedCache = await caches.open(DECODED_CACHE);
+  if (isPreview) {
+    const hit = await decodedCache.match(request);
+    if (hit) return hit;
+  }
+
+  // 2. Decode (de-duplicating identical concurrent requests).
+  const key = request.url;
+  let result;
+  try {
+    if (jxlInflight.has(key)) {
+      result = await jxlInflight.get(key);
+    } else {
+      const p = decodeJxlRequest(request, event);
+      jxlInflight.set(key, p);
+      try { result = await p; } finally { jxlInflight.delete(key); }
+    }
+  } catch (_e) {
+    return Response.error();
+  }
+  if (!result) return Response.error();
+
+  // 3. Build the response. Each caller gets a fresh Response from the bytes.
+  if (result.raw) {
+    return new Response(result.raw, { headers: { 'Content-Type': 'image/jxl' } });
+  }
+  const resp = new Response(result.bmp, {
+    status: 200,
+    headers: { 'Content-Type': 'image/bmp' },
+  });
+  if (result.isPreview) {
+    try { await decodedCache.put(request, resp.clone()); } catch (_e) { /* quota */ }
+  }
+  return resp;
+};
+
+registerRoute(jxlMatcher, jxlHandler);
+
+// ============================================
 // RUNTIME CACHING STRATEGIES
 // ============================================
 

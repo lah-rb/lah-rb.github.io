@@ -42,6 +42,14 @@ if (navigator.serviceWorker) {
         },
         event.ports, // Transfer all ports (the SW sent one)
       );
+    } else if (event.data?.type === 'WASM_DECODE_JXL') {
+      // SW fetched .jxl bytes (full file or DC prefix) and needs them decoded.
+      // Forward the buffer + the SW's response port to the worker; transfer
+      // both so the bytes travel zero-copy.
+      wasmWorker.postMessage(
+        { type: 'DECODE_JXL', bytes: event.data.bytes, maxDim: event.data.maxDim || 0 },
+        [event.data.bytes, ...event.ports],
+      );
     }
   });
 }

@@ -4,7 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["cdylib"]
+# cdylib for wasm-pack; rlib so the native build-time probe binary can link the
+# shared decode logic (keeps SW prefix and worker decode in lockstep).
+crate-type = ["cdylib", "rlib"]
+
+# Native build tool: emits the per-card DC-prefix manifest consumed by
+# scripts/build-card-catalog.ts. Excluded from the wasm build (see cfg in the
+# source); only built when explicitly requested via `cargo run --bin jxl_probe`.
+[[bin]]
+name = "jxl_probe"
+path = "src/bin/jxl_probe.rs"
 
 [dependencies]
 wasm-bindgen = "0.2"
@@ -14,6 +23,8 @@ serde_json = "1"
 yrs = "0.25"
 base64 = "0.22"
 hmac-sha256 = "1.1"
+# JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
+jxl-oxide = { version = "0.12.6", default-features = false }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

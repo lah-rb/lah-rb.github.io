@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod cards_generated;
 pub mod game;
+pub mod image;
 pub mod routes;
 pub mod typing;
 

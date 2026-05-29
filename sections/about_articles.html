@@ -49,12 +49,10 @@ bg-terra: "bg-hero-pattern "
           screenWidth: window.innerWidth 
         }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
         {% if article.img_name%}
-          <img 
+          <img
             :width="$data.screenWidth >= 768 ? '320' : '160'"
             :height="$data.screenWidth >= 768 ? '320' : '160'"
-            :srcset="$data.screenWidth >= 768 
-                      ? `/assets/thumbnails/x2/{{article.img_name}} 1x, /assets/thumbnails/x4/{{article.img_name}} 2x`
-                      : `/assets/thumbnails/x1/{{article.img_name}} 1x, /assets/thumbnails/x2/{{article.img_name}} 2x, /assets/thumbnails/x3/{{article.img_name}} 3x, /assets/thumbnails/x4/{{article.img_name}} 4x, /assets/thumbnails/x5/{{article.img_name}} 5x`"
+            src="/assets/images/{{ article.img_name }}?d=640"
             alt="{{ article.img_alt }}"
             loading="lazy"
           >
