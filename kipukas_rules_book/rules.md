@@ -19,7 +19,7 @@ Kipukas is a game which draws the best concepts from creature card games and mel
 
 Kipukas is a visualization of a world where society creates new worlds as they see fit. Each of these worlds are known as kipuka, which comes from the Hawaiian word for 'land between lava flows', and is symbolic of the destruction and rebirth of worlds. Cloning and genetic manipulation are the preferred methods of populating, expanding, and manipulating the worlds. In the game, the kipukas are represented by the 3D game map and the souls take life in the cards. The game represents the strife to control the world, while the players provide the motivation for the strife. The companion book series, Conscious Territory, which takes a deep dive into these concepts, is in progress with the first three chapters released and ready for reading. I have personally enjoyed working the concepts and hope you will enjoy contemplating them as well.
 
-![ConsciousTerritory Cover](./images/front_cover.jpeg)
+![ConsciousTerritory Cover](./images/front_cover.jxl)
 
 
 ## Objective: Conquer {#win}
@@ -42,7 +42,7 @@ Practically any Android or Apple Phone, or laptop computer will work with our ga
 **Token Sets (Per Player)**
 Set includes 10 Soul tokens, 11 Base Camp tokens, and a Capital token
 
-![capital token](./images/capital.jpeg)![base camp token](./images/basecamp.jpeg)![soul token](./images/soul_token.jpeg)
+![capital token](./images/capital.jxl)![base camp token](./images/basecamp.jxl)![soul token](./images/soul_token.jxl)
 
 **Capital (left or top):** The hardest area to take 
 **Base Camp (center):** The standard base of operations
@@ -53,14 +53,14 @@ Set includes 10 Soul tokens, 11 Base Camp tokens, and a Capital token
 **Dice Sets (Per Player)**
 Set includes 2 six sided dice, a 20 sided die, and a Diel Die
 
-![d6](./images/d6.jpeg)![diel die](./images/diel_die.jpeg)![d20](./images/d20.jpeg)
+![d6](./images/d6.jxl)![diel die](./images/diel_die.jxl)![d20](./images/d20.jxl)
 
 **D6 (left or top):** A die with 6 faces
 **Diel Die (center)** Controls the day, night and storm cycle
 **D20 (right or bottom):** A die with more faces!
 
 **[3D Kipuka Map](#maps)**
-This is the field of play where the souls move, battle, and claim ![d20](./images/map_perspective.jpeg)
+This is the field of play where the souls move, battle, and claim ![d20](./images/map_perspective.jxl)
 
 
 **[Field Mat](#mats)**
@@ -96,7 +96,7 @@ Kipukas relies on oversized cards, 3d printed game pieces and game boards, and a
 
 ### Example Card {#example_card}
 
-![hilbert winged frog](./images/hilbert_king_of_avian_frogs.jpeg) ![back hilbert winged frog](./images/hilbert_king_of_avian_frogs_back.jpeg)
+![hilbert winged frog](./images/hilbert_king_of_avian_frogs.jxl) ![back hilbert winged frog](./images/hilbert_king_of_avian_frogs_back.jxl)
 
 **Front and back of a the Kipukas card ”Hilbert: King of Avian Frogs” (above)**. Creating a card boarder was the artist's choice.
 
@@ -111,7 +111,7 @@ A last note about the cards. The center of the edge on the cards is colored to r
 
 The following image shows an example of our game board, a.k.a. the map or kipuka. For your convenience, it is labeled with token placement and boundary line nomenclature.
 
-![game board top view pic](./images/map_top.jpeg) ![mat top view pic](./images/12_slot_rec_mat.jpg)
+![game board top view pic](./images/map_top.jxl) ![mat top view pic](./images/12_slot_rec_mat.jxl)
 
 Note the numbers on each territory stand. This is the reference for that territory. The following is an example of a mat that would be paired with the above map.
 
@@ -195,12 +195,12 @@ In Kipukas there are several types of cards that compose a deck which are listed
 
 | **Card Type (Rules Section Links)** | **Example Links (QR & clickable)** | **Description** |
 |---------------|------------------|-----------------|
-| [Character and Species Cards](#character_species) | [![Character QR](./images/hilbert_king_of_avian_frogs_qr.jpeg)](https://www.kpks.us/HMPU) | Take and defend territories. a.k.a. soul cards |
-| [Terrain Feature Cards](#terrain_features) | [![Terrain QR](./images/palace_of_the_allele_sect_qr.jpeg)](https://www.kpks.us/ioqs) | Modify play within a territory |
-| [Trap Cards](#traps) | [![Trap QR](./images/feeding_the_piffions_qr.jpeg)](https://www.kpks.us/K_vJ) | Act as passive defenses |
-| [Sabotage Cards](#sabotage) | [![Sabotage QR](./images/onironauta_qr.png)](https://www.kpks.us/fFvj) | Interfear with your opponent at night |
-| [Item Cards](#items) | [![Item QR](./images/honey_qr.jpeg)](https://www.kpks.us/ro1A) | Build or bolster cards |
-| [Personal Effect Cards](#personal_effects) | [![Personal Effect QR](./images/location_of_the_deep_apothecary_shop_qr.png)](https://www.kpks.us/aS1Q) | Grant players an effect for the duration of the game |
+| [Character and Species Cards](#character_species) | [![Character QR](./images/hilbert_king_of_avian_frogs_qr.jxl)](https://www.kpks.us/HMPU) | Take and defend territories. a.k.a. soul cards |
+| [Terrain Feature Cards](#terrain_features) | [![Terrain QR](./images/palace_of_the_allele_sect_qr.jxl)](https://www.kpks.us/ioqs) | Modify play within a territory |
+| [Trap Cards](#traps) | [![Trap QR](./images/feeding_the_piffions_qr.jxl)](https://www.kpks.us/K_vJ) | Act as passive defenses |
+| [Sabotage Cards](#sabotage) | [![Sabotage QR](./images/onironauta_qr.jxl)](https://www.kpks.us/fFvj) | Interfear with your opponent at night |
+| [Item Cards](#items) | [![Item QR](./images/honey_qr.jxl)](https://www.kpks.us/ro1A) | Build or bolster cards |
+| [Personal Effect Cards](#personal_effects) | [![Personal Effect QR](./images/location_of_the_deep_apothecary_shop_qr.jxl)](https://www.kpks.us/aS1Q) | Grant players an effect for the duration of the game |
 
 ### Allele {#allele}
 
@@ -371,7 +371,7 @@ This is the other type considered for the [Final Blow](#final_blow) attack. Moti
 
 This shows the bonuses on the previous page overlayed on the additional attack bonus which motivation provides. If there is an interaction between the motive types it add an additional 10 to the attack roll in the direction of the arrow. For example, if a soul card with the corporal (worldly) Service motivation attacks a soul card with the worldly Satisfaction motivation it gains 10 to its original attack roll. Likewise if the Spectral Possessor motivation attacks the Spectral Conscience motive it gains 10 for its attack. Worldly and Spectral motives do not interact. The fists tool also works for determining motive typing bonuses. Just remember to set the archetype to a single archetypal gene not a KEAL means.
 
-![motive diagram](./images/motives.png)
+![motive diagram](./images/motives.jxl)
 
 
 ### Fists Tool {#fists_tool}
@@ -498,7 +498,7 @@ Additionally, if the situation is looking grim, but you don't want to lose the f
 
 ### An Example Combat Round ( Contention Resolution ) {#contention_ex}
 
-![hibert winged frog](./images/hilbert_king_of_avian_frogs.jpeg)![myrthvither_raven](./images/myrthvither_raven.webp)
+![hibert winged frog](./images/hilbert_king_of_avian_frogs.jxl)![myrthvither_raven](./images/myrthvither_raven.jxl)
 
 **This is our old friend hilbert!** **Let’s pit him against one of the myrthvither raven species members.**
 
@@ -506,9 +506,9 @@ Additionally, if the situation is looking grim, but you don't want to lose the f
 
 **Current Geography:**
 
-![map top](./images/map_top_example.png) 
+![map top](./images/map_top_example.jxl) 
 
-![log cabin](./images/log_cabin.jpeg)
+![log cabin](./images/log_cabin.jxl)
 
 This bout is taking place in territory 7 (hightlighted with pink) which, as indicated by the log cabin, is a forest territory
 
@@ -665,7 +665,7 @@ All cards played throughout the game will dictate where and how they can be plac
 -   Play a revealed landscape card horizontally, but vertically when unrevealed or hidden
 -   Play a hidden card vertically face down under the mat
 
-![placement convention example picture](./images/placement_courtesy.jpg)
+![placement convention example picture](./images/placement_courtesy.jxl)
 
 
 ### Summoning Sickness {#summoning_sickness}
@@ -752,31 +752,31 @@ In addition to the boat(s) marking the water habitats, Kipukas maps use docks to
 
 ### Representation of Geography on the Kipuka {#geo_markers}
 
-![A-Frame token](./images/A_frame.jpeg)
+![A-Frame token](./images/A_frame.jxl)
 
 **Mountain Habitat:** A-Frame House Geomarker
 
-![log cabin token](./images/log_cabin.jpeg)
+![log cabin token](./images/log_cabin.jxl)
 
 **Forest Habitat:** Log Cabin Geomarker
 
-![plain home token](./images/plain_house.jpeg)
+![plain home token](./images/plain_house.jxl)
 
 **Plains Habitat:** Ranch House Geomarker
 
-![modern home token](./images/modern_home.jpeg)
+![modern home token](./images/modern_home.jxl)
 
 **Volcanic Habitat:** Modern House Geomarker
 
-![boat token](./images/boat.jpeg)
+![boat token](./images/boat.jxl)
 
 **Water Habitat:** Boat Geomarker
 
-![underground tunnel token](./images/tunnel.jpeg)
+![underground tunnel token](./images/tunnel.jxl)
 
 **Underground Tunnel:** Connect territories and shorten travel for underground dwellers
 
-![dock token](./images/dock.jpeg)
+![dock token](./images/dock.jxl)
 
 **Water Habitat:** Dock Geomarker (Point of Entry)
 

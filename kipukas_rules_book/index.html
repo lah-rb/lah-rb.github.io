@@ -25,6 +25,10 @@
     <!-- WASM API bridge: enables QR scanner + multiplayer reconnect -->
     <script defer src="/assets/js/kipukas-api.js"></script>
 
+    <!-- Register the Service Worker so /game_rules/ controls .jxl decode + caching
+         even when deep-linked directly (reloads once on first controllerchange). -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
+
     <!-- Lazy loaders for site-wide tools -->
     <script>
       window.kipukasLoadQR = function() {
@@ -35,7 +39,7 @@
       };
     </script>
 </head>
-<body class="rules-book-layout bg-sky-200 text-slate-900 h-screen flex flex-col font-sans"
+<body class="rules-book-layout bg-emerald-200 text-slate-900 h-screen flex flex-col font-sans"
       x-data="rulesBook()"
       x-init="init()"
       @hashchange.window="handleHash()"
@@ -43,44 +47,34 @@
       @keydown.ctrl.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()">
 
     <!-- Header -->
-    <header class="bg-sky-700 text-sky-50 px-4 py-1 flex items-center gap-3 z-40 shadow-lg shrink-0">
-        <!-- Sidebar toggle -->
-        <button @click="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-sky-800 transition-colors" title="Toggle menu">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    <header class="bg-emerald-700 text-amber-50 px-3 py-2 flex items-center gap-2 z-40 shadow-lg shrink-0">
+        <!-- Contents (sidebar) toggle -->
+        <button @click="toggleSidebar()" class="toolbar-tile shrink-0" title="Toggle contents" aria-label="Toggle contents">
+            <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
         </button>
 
-        <!-- Logo + title -->
-        <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src="./images/small_kip_logo.png" alt="Kipukas" class="h-14 w-14 shrink-0 object-contain">
-
+        <!-- Logo → binder home -->
+        <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0" title="Binder Home">
+            <img src="/assets/utility_images/small_kip_logo.png" alt="Kipukas" class="h-12 w-12 shrink-0 object-contain">
         </a>
         <h1 class="font-bold text-lg hidden sm:block">Kipukas Rules</h1>
 
-        <!-- Spacer -->
         <div class="flex-1"></div>
-
-        <!-- QR Scanner button -->
-        <button class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Scan QR Code"
-                onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
-            </svg>
-        </button>
 
         <!-- Search -->
         <div class="relative" @click.outside="showSearchResults = false">
-            <div class="flex items-center bg-sky-800 rounded-lg border border-sky-800 focus-within:border-sky-400 transition-colors">
-                <svg class="w-4 h-4 ml-3 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center bg-amber-50 rounded-xl border-2 border-kip-drk-sienna focus-within:border-kip-goldenrod transition-colors">
+                <svg class="w-4 h-4 ml-3 text-kip-drk-goldenrod" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 <input x-ref="searchInput" type="text" placeholder="Search rules..." autocomplete="off"
                     x-model="searchQuery"
                     @input="onSearchInput()"
                     @keydown.escape="clearSearch(); $refs.searchInput.blur()"
-                    class="bg-transparent text-sky-50 placeholder-sky-400 px-3 py-2 text-sm w-40 sm:w-64 focus:outline-none">
-                <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-sky-400 hover:text-sky-200">
+                    class="bg-transparent text-kip-drk-sienna placeholder-slate-400 px-3 py-2 text-sm w-36 sm:w-56 focus:outline-none">
+                <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-kip-drk-goldenrod hover:text-kip-red">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -88,26 +82,51 @@
             </div>
             <!-- Search results dropdown -->
             <div x-show="showSearchResults" x-cloak x-transition
-                 class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-sky-200 max-h-96 overflow-y-auto z-50">
+                 class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-amber-50 rounded-xl shadow-2xl border-2 border-kip-drk-sienna max-h-96 overflow-y-auto z-50">
                 <template x-if="searchResults.length === 0 && searchQuery.length >= 2">
                     <div class="p-4 text-center text-slate-500 text-sm">No results found</div>
                 </template>
                 <template x-for="r in searchResults" :key="r.id">
                     <button @click="selectSearchResult(r.id)"
-                            class="block w-full text-left px-4 py-3 hover:bg-sky-50 border-b border-sky-100 last:border-0 transition-colors">
-                        <div class="font-semibold text-sky-900 text-sm" x-text="r.title"></div>
+                            class="block w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-emerald-100 last:border-0 transition-colors">
+                        <div class="font-semibold text-kip-drk-sienna text-sm" x-text="r.title"></div>
                         <div class="text-xs text-slate-600 mt-1 leading-relaxed" x-html="r.snippet"></div>
                     </button>
                 </template>
             </div>
         </div>
 
-        <!-- Print button -->
-        <button @click="handlePrint()" class="p-2 rounded-lg hover:bg-sky-800 transition-colors" title="Export to PDF">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+        <!-- QR scanner tile -->
+        <button class="toolbar-tile shrink-0" title="Scan QR Code" aria-label="Scan QR code"
+                onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+            <svg class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red" viewBox="0 0 24 24">
+                <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
             </svg>
         </button>
+
+        <!-- Print/PDF tile -->
+        <button @click="handlePrint()" class="toolbar-tile shrink-0" title="Export to PDF" aria-label="Export to PDF">
+            <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+        </button>
+
+        <!-- Site nav menu (matches the binder's hamburger) -->
+        <div class="relative shrink-0" x-data="{ showHamburger: false }" @click.outside="showHamburger = false">
+            <button @click="showHamburger = !showHamburger" class="toolbar-tile" title="Site menu" aria-label="Site menu">
+                <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                </svg>
+            </button>
+            <div x-show="showHamburger" x-cloak x-transition
+                 class="text-nowrap bg-amber-50 absolute right-0 top-full mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
+                <div><a href="/" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+                <div><a href="/game_rules/index.html" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+                <div><a href="/recipes" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+                <div><a href="/privacy_policy" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+                <div><a href="/about_articles" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+            </div>
+        </div>
     </header>
 
     <!-- Main layout -->
@@ -125,11 +144,11 @@
 
         <!-- Sidebar -->
         <aside id="sidebar"
-               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-sky-800 text-sky-100 flex flex-col transition-transform duration-300 mt-14.25 lg:mt-0"
+               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-emerald-800 text-emerald-100 flex flex-col transition-transform duration-300 mt-14.25 lg:mt-0"
                :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-            <div class="px-4 py-3 border-b border-sky-700 flex items-center justify-between shrink-0">
-                <span class="font-semibold text-sky-200 text-sm uppercase tracking-wider">Table of Contents</span>
-                <button @click="closeSidebar()" class="lg:hidden p-1 rounded hover:bg-sky-700 text-sky-400">
+            <div class="px-4 py-3 border-b border-emerald-700 flex items-center justify-between shrink-0">
+                <span class="font-semibold text-emerald-200 text-sm uppercase tracking-wider">Table of Contents</span>
+                <button @click="closeSidebar()" class="lg:hidden p-1 rounded hover:bg-emerald-700 text-emerald-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -151,18 +170,18 @@
         </aside>
 
         <!-- Content -->
-        <main id="content-scroll" class="flex-1 overflow-y-auto bg-sky-50">
+        <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50">
             <div id="rules-content"
                  class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full"
                  @click="handleContentClick($event)">
                 <!-- Loading state (replaced by build-time pre-render) -->
                 <div id="loading" class="flex items-center justify-center h-64 not-prose">
                     <div class="text-center">
-                        <svg class="animate-spin h-8 w-8 text-sky-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin h-8 w-8 text-emerald-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <p class="text-sky-700">Loading rules...</p>
+                        <p class="text-emerald-700">Loading rules...</p>
                     </div>
                 </div>
             </div>
@@ -175,7 +194,7 @@
     <!-- Chat Widget (Kippa) -->
     <div class="fixed bottom-5 right-5 z-50">
         <!-- Chat toggle button -->
-        <button @click="toggleChat()" class="w-14 h-14 bg-sky-700 hover:bg-sky-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
+        <button @click="toggleChat()" class="w-14 h-14 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
             <svg x-show="!chatOpen" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
             </svg>
@@ -187,16 +206,16 @@
         <!-- Chat panel -->
         <div x-show="chatOpen" x-cloak
              x-transition.duration.300ms
-             class="absolute bottom-16 right-0 w-80 sm:w-96 h-112 bg-sky-950 rounded-2xl shadow-2xl border border-sky-800 flex flex-col overflow-hidden"
+             class="absolute bottom-16 right-0 w-80 sm:w-96 h-112 bg-emerald-950 rounded-2xl shadow-2xl border border-emerald-800 flex flex-col overflow-hidden"
              id="chat-panel">
             <!-- Chat header -->
-            <div class="bg-sky-900 px-4 py-3 flex items-center gap-2 border-b border-sky-800 shrink-0">
-                <div class="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center">
+            <div class="bg-emerald-900 px-4 py-3 flex items-center gap-2 border-b border-emerald-800 shrink-0">
+                <div class="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
                 </div>
-                <span class="font-semibold text-sky-100 text-sm">Kippa — Rules Assistant</span>
+                <span class="font-semibold text-emerald-100 text-sm">Kippa — Rules Assistant</span>
                 <div class="flex-1"></div>
                 <div class="w-2 h-2 rounded-full"
                      :class="chatConnected ? 'bg-green-500' : 'bg-gray-500'"
@@ -209,8 +228,8 @@
                     <div :class="msg.isUser ? 'flex justify-end' : 'flex justify-start'">
                         <div class="chat-bubble rounded-xl px-3 py-2"
                              :class="{
-                                 'bg-sky-600 text-white rounded-br-sm': msg.isUser,
-                                 'bg-sky-800 text-sky-100 rounded-bl-sm': !msg.isUser,
+                                 'bg-emerald-600 text-white rounded-br-sm': msg.isUser,
+                                 'bg-emerald-800 text-emerald-100 rounded-bl-sm': !msg.isUser,
                                  'streaming-cursor': msg.streaming
                              }">
                             <div class="markdown-content"
@@ -221,15 +240,15 @@
             </div>
 
             <!-- Chat input -->
-            <form @submit.prevent="sendMessage()" class="border-t border-sky-800 p-3 flex gap-2 shrink-0">
+            <form @submit.prevent="sendMessage()" class="border-t border-emerald-800 p-3 flex gap-2 shrink-0">
                 <input type="text" x-model="chatInput" placeholder="Ask Kippa..."
                     :placeholder="chatConnected ? 'Ask Kippa...' : 'Connecting...'"
                     :disabled="!chatConnected"
-                    class="flex-1 bg-sky-900 border border-sky-700 rounded-lg px-3 py-2 text-sky-100 placeholder-sky-500 text-sm focus:outline-none focus:border-sky-500 disabled:opacity-50"
+                    class="flex-1 bg-emerald-900 border border-emerald-700 rounded-lg px-3 py-2 text-emerald-100 placeholder-emerald-500 text-sm focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                     autocomplete="off">
                 <button type="submit"
                     :disabled="!chatConnected || chatStreaming"
-                    class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     x-text="chatStreaming ? '...' : 'Send'">Send</button>
             </form>
         </div>

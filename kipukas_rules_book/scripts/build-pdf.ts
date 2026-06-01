@@ -241,9 +241,23 @@ for (const p of weasyPaths) {
   }
 }
 
+// Run WeasyPrint through a tiny Python wrapper that imports pillow-jxl-plugin,
+// so the PDF can embed our .jxl rules images (WeasyPrint decodes rasters via
+// Pillow, which needs the plugin imported to register the JXL codec). Derive the
+// venv python from the weasyprint launcher's shebang so we use the env where the
+// plugin is injected.
+let pyBin = 'python3';
 try {
-  const cmd = new Deno.Command(weasyBin, {
-    args: [tempHtml, OUTPUT_PDF],
+  const firstLine = Deno.readTextFileSync(weasyBin).split('\n')[0];
+  if (firstLine.startsWith('#!')) pyBin = firstLine.slice(2).trim();
+} catch {
+  // weasyBin is only on PATH (no readable shebang) — fall back to python3.
+}
+const pdfWrapper = join(ROOT, 'scripts', 'weasyprint_jxl.py');
+
+try {
+  const cmd = new Deno.Command(pyBin, {
+    args: [pdfWrapper, tempHtml, OUTPUT_PDF],
     cwd: ROOT,
     stdin: 'inherit',
     stdout: 'inherit',

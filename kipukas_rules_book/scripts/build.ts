@@ -156,6 +156,14 @@ function classifyImage(src: string): string {
   return DEFAULT_IMG_CLASSES;
 }
 
+// Longest-side pixel cap for the in-browser JXL decode, bucketed by display size
+// (the SW/WASM decode + BMP stay small). Only applied to .jxl raster images.
+function previewSize(classes: string): number {
+  if (/\bw-(16|20|36)\b/.test(classes)) return 384; // tokens, QR thumbs, geo markers
+  if (/\bmax-w-lg\b/.test(classes)) return 1152; // big maps
+  return 768; // w-64/w-96/max-w-sm/max-w-md/covers/default
+}
+
 // Same custom renderer as before — handles {#id} header anchors + image classes
 const headerRegex = /\{#([^}]+)\}\s*$/;
 
@@ -195,7 +203,12 @@ const customRenderer = {
     const classes = classifyImage(href || '');
     const alt = (text || '').replace(/"/g, '&quot;');
     const titleAttr = title ? ` title="${title.replace(/"/g, '&quot;')}"` : '';
-    return `<img src="${href}" alt="${alt}" class="${classes}"${titleAttr} loading="lazy">`;
+    // .jxl images decode in-browser via the SW/WASM pool — size the decode to the
+    // display box with ?d so it stays cheap. (Vectors/SVG keep their src as-is.)
+    const src = (href || '').endsWith('.jxl')
+      ? `${href}?d=${previewSize(classes)}`
+      : href;
+    return `<img src="${src}" alt="${alt}" class="${classes}"${titleAttr} loading="lazy">`;
   },
 };
 
