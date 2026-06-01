@@ -93,17 +93,18 @@ fn card_matches_search(card: &Card, search: &str) -> bool {
     haystack.contains(&search_lower)
 }
 
-/// Longest-side pixel cap for grid preview decodes. The source is a low-res DC
-/// image, so this keeps the decoded BMP small (memory + cache) while staying
-/// crisp for a ~200px tile at high DPI.
-const GRID_PREVIEW_MAXDIM: u32 = 400;
+/// Longest-side pixel cap for grid thumbnails. The Service Worker fetches the
+/// whole `.jxl`, the WASM pool decodes it at full resolution, then downscales to
+/// this size — keeping the decoded BMP tile-sized while staying crisp on a ~200px
+/// tile at high DPI.
+const GRID_THUMB_MAXDIM: u32 = 512;
 
 /// Render a single card as an HTML fragment with skeleton placeholder and smooth image loading.
 ///
-/// Each card has one progressive `.jxl`; the grid requests only its DC prefix
-/// (`?p=<dc_bytes>`) downscaled to `GRID_PREVIEW_MAXDIM` (`?d=`). The Service
-/// Worker Range-fetches that prefix and decodes it via WASM. `object-cover`
-/// plus the per-card `thumbnail` anchor frames the tile.
+/// Each card has one `.jxl`; the grid requests it with `?d=<maxdim>` so the
+/// decode worker pool downscales the full-resolution decode to a tile-sized,
+/// fully-colored thumbnail. `object-cover` + the per-card `thumbnail` anchor
+/// frames the tile.
 fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     // Different animation delay for initial load vs scroll-loaded cards
     let stagger_delay = if is_initial_load {
@@ -125,7 +126,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
   >
     <div class="skeleton-pulse relative block w-full aspect-[2/3]">
       <img
-        src="/assets/images/{img}?p={dc}&d={maxdim}"
+        src="/assets/images/{img}?d={maxdim}"
         alt="{alt}"
         loading="lazy"
         decoding="async"
@@ -140,8 +141,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         stagger = stagger_delay,
         url = card.url,
         img = card.img_name,
-        dc = card.dc_bytes,
-        maxdim = GRID_PREVIEW_MAXDIM,
+        maxdim = GRID_THUMB_MAXDIM,
         anchor = anchor,
         alt = card.img_alt,
         title = card.title,

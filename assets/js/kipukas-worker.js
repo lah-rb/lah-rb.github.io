@@ -16,7 +16,7 @@
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
 
-import init, { decode_jxl, handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 import { initSession, runDetection } from './yolo-inference.js';
 import { parseDetections, cropDetection } from './postprocess.js';
 import { initZXing, decodeQR as zxingDecode } from './zxing-decode.js';
@@ -298,23 +298,6 @@ self.onmessage = async (event) => {
         '',
       );
       self.postMessage({ type: 'QR_FOUND', html, url: decoded });
-    }
-    return;
-  }
-
-  // ── JXL decode (from the SW .jxl route, relayed by kipukas-api.js) ──
-  // Receives raw .jxl bytes (full file or a low-res DC prefix) + a target
-  // max dimension, returns a 24-bit BMP the browser can render directly.
-  if (event.data?.type === 'DECODE_JXL') {
-    const jxlPort = event.ports[0];
-    try {
-      if (!initialized) await wasmReady;
-      const bmp = decode_jxl(new Uint8Array(event.data.bytes), event.data.maxDim || 0);
-      // bmp is a Uint8Array out of wasm memory; transfer its buffer back.
-      jxlPort?.postMessage({ ok: true, bytes: bmp.buffer }, [bmp.buffer]);
-    } catch (err) {
-      console.error('[kipukas-worker] JXL decode error:', err);
-      jxlPort?.postMessage({ ok: false, error: String(err?.message || err) });
     }
     return;
   }

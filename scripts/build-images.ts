@@ -1,15 +1,13 @@
 /**
  * build-images.ts
  *
- * Generates one progressive JPEG XL per card from the full-size masters in
- * assets/images/, then runs the native jxl_probe to record each file's
- * DC-prefix length (the bytes the Service Worker Range-fetches for grid
- * previews) into assets/images/jxl-manifest.json.
+ * Generates one JPEG XL per card from the full-size masters in assets/images/.
  *
  * Single source of truth per card — no x1..x5 thumbnail tiers. The browser
- * decodes .jxl via the in-browser WASM worker (see assets/js/kipukas-worker.js).
+ * decodes .jxl at full resolution via the in-browser WASM decode worker pool
+ * (see assets/js/jxl-decode-worker.js); the grid downscales per request (?d=).
  *
- * Requires: cjxl (libjxl) and sips (macOS) on PATH; cargo for the probe.
+ * Requires: cjxl (libjxl) and sips (macOS) on PATH.
  * Run: deno task build:images
  */
 
@@ -54,22 +52,6 @@ async function main() {
     jxlPaths.push(jxl);
   }
   console.log(`[build-images] encoded ${jxlPaths.length} .jxl from masters`);
-
-  // Probe DC-prefix length for every file (shared decode logic with the worker).
-  const json = await run('cargo', [
-    'run',
-    '--release',
-    '--quiet',
-    '--manifest-path',
-    join(Deno.cwd(), 'kipukas-server', 'Cargo.toml'),
-    '--bin',
-    'jxl_probe',
-    '--',
-    ...jxlPaths,
-  ]);
-  const manifestPath = join(IMAGES_DIR, 'jxl-manifest.json');
-  await Deno.writeTextFile(manifestPath, json.trim() + '\n');
-  console.log(`[build-images] wrote DC-prefix manifest → ${manifestPath}`);
 }
 
 main();

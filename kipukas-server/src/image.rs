@@ -1,25 +1,22 @@
 //! JPEG XL decode for the in-browser WASM binary.
 //!
-//! The Service Worker fetches a `.jxl` (or a low-res truncated prefix of one)
-//! and hands the bytes here. We decode with `jxl-oxide` and return a 24-bit
-//! BMP byte buffer — a format every browser renders directly from an `<img>`,
-//! and trivial to encode (no compression pass). Card art is opaque, so we drop
-//! any alpha channel and emit BGR.
+//! The Service Worker fetches a `.jxl` and hands the bytes here. We decode the
+//! full image with `jxl-oxide` and return a 24-bit BMP byte buffer — a format
+//! every browser renders directly from an `<img>`, trivial to encode (no
+//! compression pass). Card art is opaque, so we drop alpha and emit BGR.
 //!
 //! Entry point exported to JS:
-//! - `decode_jxl(bytes, max_dim)` — decode whatever frame is available (full
-//!   file → full image; truncated prefix → upscaled DC/low-res preview), then
-//!   optionally downscale so the longest side is at most `max_dim` (0 = none).
+//! - `decode_jxl(bytes, max_dim)` — decode the full image, then optionally
+//!   downscale so the longest side is at most `max_dim` (0 = no downscale).
 //!
-//! Downscaling matters: jxl-oxide returns the DC preview **upscaled to the full
-//! canvas size**, so without it a 160px grid tile would receive a multi-megabyte
-//! full-dimension BMP. Grid tiles pass a small `max_dim`; the detail view passes 0.
+//! Grid tiles pass a small `max_dim` (e.g. 512) so the decoded BMP is tile-sized
+//! rather than the multi-megabyte full canvas; the detail view passes 0.
 
 use jxl_oxide::{InitializeResult, JxlImage};
 use wasm_bindgen::prelude::*;
 
-/// Decode JXL bytes (complete file or truncated prefix) to a 24-bit BMP buffer,
-/// downscaled so its longest side is at most `max_dim` pixels (0 = no downscale).
+/// Decode a JXL file to a 24-bit BMP buffer, downscaled so its longest side is
+/// at most `max_dim` pixels (0 = no downscale).
 ///
 /// Returns the BMP bytes as a `Uint8Array` to JS. Errors become a thrown
 /// `JsError` so the Service Worker can fall back / surface a broken image.
@@ -71,8 +68,10 @@ fn downscale_rgb(w: u32, h: u32, rgb: Vec<u8>, max_dim: u32) -> (u32, u32, Vec<u
 
 /// Decode to interleaved 8-bit RGB (3 bytes/pixel, row-major, top-down).
 ///
-/// Uses the incremental `feed_bytes` / `try_init` path so a truncated prefix
-/// still initializes and renders its DC/low-res frame instead of erroring.
+/// We feed the whole file and render the complete keyframe (`render_frame`) for
+/// a full-resolution, fully-colored image. The `render_loading_frame` branch is
+/// only a fallback if a complete keyframe somehow isn't loaded (e.g. a truncated
+/// byte range); the normal grid/detail paths supply the whole file.
 fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
     let mut uninit = JxlImage::builder().build_uninit();
     uninit
@@ -86,9 +85,6 @@ fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
         }
     };
 
-    // Complete keyframe → render it; otherwise render the partially-loaded
-    // keyframe (the DC/low-res preview from a progressive prefix). Mirrors
-    // jxl-oxide's own integration adapter.
     let render = if image.num_loaded_keyframes() > 0 {
         image.render_frame(0)
     } else {
@@ -120,93 +116,6 @@ fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
     }
 
     Ok((width, height, rgb))
-}
-
-/// Smallest leading-byte count of a progressive `.jxl` that *decodes at all*
-/// (the structural boundary). NOTE: at this point the DC pixels are typically
-/// still empty (black) — use [`preview_prefix_len`] for a populated preview.
-/// Kept for tests/diagnostics. Native-only (build tooling).
-#[cfg(not(target_arch = "wasm32"))]
-pub fn dc_prefix_len(bytes: &[u8]) -> Option<usize> {
-    if decode_to_rgb(bytes).is_err() {
-        return None; // even the full file doesn't decode — caller's problem
-    }
-    let (mut lo, mut hi) = (1usize, bytes.len());
-    while lo < hi {
-        let mid = lo + (hi - lo) / 2;
-        if decode_to_rgb(&bytes[..mid]).is_ok() {
-            hi = mid;
-        } else {
-            lo = mid + 1;
-        }
-    }
-    Some(lo)
-}
-
-#[cfg(all(test, not(target_arch = "wasm32")))]
-fn mean_brightness(bytes: &[u8]) -> f64 {
-    match decode_to_rgb(bytes) {
-        Ok((_, _, rgb)) if !rgb.is_empty() => {
-            rgb.iter().map(|&b| b as u64).sum::<u64>() as f64 / rgb.len() as f64
-        }
-        _ => 0.0,
-    }
-}
-
-/// Per-channel (R,G,B) mean of a decoded prefix, or None if it didn't decode.
-/// `None` channel means are returned as `[-1.0; 3]` sentinel so callers can
-/// treat undecodable prefixes as "far" from the target.
-#[cfg(not(target_arch = "wasm32"))]
-fn channel_means(bytes: &[u8]) -> [f64; 3] {
-    match decode_to_rgb(bytes) {
-        Ok((_, _, rgb)) if rgb.len() >= 3 => {
-            let (mut r, mut g, mut b) = (0u64, 0u64, 0u64);
-            for px in rgb.chunks_exact(3) {
-                r += px[0] as u64;
-                g += px[1] as u64;
-                b += px[2] as u64;
-            }
-            let n = (rgb.len() / 3) as f64;
-            [r as f64 / n, g as f64 / n, b as f64 / n]
-        }
-        _ => [-1.0; 3],
-    }
-}
-
-/// Smallest leading-byte count of a progressive `.jxl` that decodes to a
-/// *populated and colored* DC/low-res preview.
-///
-/// Two failure modes the prefix must clear: (1) the minimal-decodable prefix
-/// renders fully black (`render_loading_frame` succeeds before DC pixels
-/// arrive); (2) early progressive passes carry luma before chroma, so a
-/// brightness-only target yields a grayscale preview. We therefore require all
-/// three channel means to be within `max_channel_delta` of the full image's.
-/// The summed per-channel error falls monotonically as the DC (then chroma)
-/// fills in, so we binary-search the crossing. Native-only (build tooling).
-#[cfg(not(target_arch = "wasm32"))]
-pub fn preview_prefix_len(bytes: &[u8], max_channel_delta: f64) -> Option<usize> {
-    let total = bytes.len();
-    let full = channel_means(bytes);
-    if full[0] < 0.0 {
-        return None; // didn't decode
-    }
-    let error = |prefix: &[u8]| -> f64 {
-        let m = channel_means(prefix);
-        if m[0] < 0.0 {
-            return f64::MAX; // undecodable prefix is maximally far
-        }
-        (0..3).map(|i| (m[i] - full[i]).abs()).fold(0.0, f64::max)
-    };
-    let (mut lo, mut hi) = (1usize, total);
-    while lo < hi {
-        let mid = lo + (hi - lo) / 2;
-        if error(&bytes[..mid]) <= max_channel_delta {
-            hi = mid;
-        } else {
-            lo = mid + 1;
-        }
-    }
-    Some(lo)
 }
 
 #[inline]
@@ -297,39 +206,5 @@ mod tests {
         assert_eq!(i32::from_le_bytes([bmp[22], bmp[23], bmp[24], bmp[25]]), 64);
         // smaller than the full-size BMP
         assert!(bmp.len() < decode_jxl(FIXTURE, 0).unwrap().len());
-    }
-
-    #[test]
-    fn truncated_prefix_still_decodes_preview() {
-        // Feed only the first ~40% of the file — should still init + render a
-        // (DC/low-res) frame rather than erroring.
-        let prefix = &FIXTURE[..FIXTURE.len() * 2 / 5];
-        match decode_to_rgb(prefix) {
-            Ok((w, h, _)) => assert_eq!((w, h), (160, 160)),
-            Err(e) => panic!("truncated decode failed: {e}"),
-        }
-    }
-
-    /// The preview prefix must decode to a *populated and colored* image — not
-    /// the black minimal-decodable prefix, nor a grayscale luma-only pass.
-    /// Guards both regressions (black tiles, then desaturated tiles).
-    #[test]
-    fn preview_prefix_is_populated_and_colored() {
-        const DELTA: f64 = 6.0;
-        let full = channel_means(FIXTURE);
-        let dc = preview_prefix_len(FIXTURE, DELTA).expect("decodes");
-        assert!(dc < FIXTURE.len(), "preview must be smaller than whole file");
-        let m = channel_means(&FIXTURE[..dc]);
-        for i in 0..3 {
-            assert!(
-                (m[i] - full[i]).abs() <= DELTA,
-                "channel {i} off: prefix {:.1} vs full {:.1}",
-                m[i],
-                full[i]
-            );
-        }
-        // Brighter than the bare (black) minimal-decodable prefix.
-        let bare = dc_prefix_len(FIXTURE).unwrap();
-        assert!(mean_brightness(&FIXTURE[..dc]) > mean_brightness(&FIXTURE[..bare]));
     }
 }

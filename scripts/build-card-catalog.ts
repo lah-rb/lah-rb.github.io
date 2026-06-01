@@ -30,7 +30,6 @@ interface CardMeta {
   img_name: string;
   img_alt: string;
   thumbnail: string; // grid crop anchor: top | center | bottom
-  dc_bytes: number; // DC-prefix length for progressive preview (0 = unknown)
   tags: string;
   genetic_disposition: string | null;
   motivation: string | null;
@@ -110,25 +109,9 @@ function extractKealMeans(fm: Record<string, any>): KealMeans[] {
 
 const THUMB_ANCHORS = ['top', 'center', 'bottom'];
 
-/**
- * Load the DC-prefix manifest (img filename → byte count) produced by the
- * native jxl_probe during `deno task build:images`. Absent on a clean tree —
- * dc_bytes then defaults to 0 and previews fall back to full-file decode.
- */
-async function loadDcManifest(): Promise<Record<string, number>> {
-  const path = join(Deno.cwd(), 'assets', 'images', 'jxl-manifest.json');
-  try {
-    return JSON.parse(await Deno.readTextFile(path)) as Record<string, number>;
-  } catch {
-    console.warn('[build-card-catalog] no jxl-manifest.json — dc_bytes default 0');
-    return {};
-  }
-}
-
 async function main() {
   const postsDir = join(Deno.cwd(), '_posts');
   const cards: CardMeta[] = [];
-  const dcManifest = await loadDcManifest();
 
   for await (const entry of walk(postsDir, { exts: ['.html'], maxDepth: 1 })) {
     if (!entry.isFile) continue;
@@ -147,9 +130,6 @@ async function main() {
     const thumbnail = THUMB_ANCHORS.includes(String(fm.thumbnail))
       ? String(fm.thumbnail)
       : 'center';
-    // Manifest is keyed by the .jxl filename; derive it from img_name.
-    const jxlName = img_name.replace(/\.[^.]+$/, '.jxl');
-    const dc_bytes = dcManifest[jxlName] ?? 0;
 
     cards.push({
       slug,
@@ -158,7 +138,6 @@ async function main() {
       img_name,
       img_alt: fm.img_alt ? String(fm.img_alt).trim() : '',
       thumbnail,
-      dc_bytes,
       tags: fm.tags ? String(fm.tags) : '',
       genetic_disposition: fm.genetic_disposition ? String(fm.genetic_disposition) : null,
       motivation: fm.motivation ? String(fm.motivation) : null,
@@ -212,7 +191,6 @@ async function main() {
     "    pub img_name: &'static str,",
     "    pub img_alt: &'static str,",
     "    pub thumbnail: &'static str,",
-    '    pub dc_bytes: u32,',
     "    pub tags: &'static str,",
     "    pub genetic_disposition: Option<&'static str>,",
     "    pub motivation: Option<&'static str>,",
@@ -274,7 +252,6 @@ async function main() {
     lines.push(`        img_name: "${escapeRust(card.img_name)}",`);
     lines.push(`        img_alt: "${escapeRust(card.img_alt)}",`);
     lines.push(`        thumbnail: "${escapeRust(card.thumbnail)}",`);
-    lines.push(`        dc_bytes: ${card.dc_bytes},`);
     lines.push(`        tags: "${escapeRust(card.tags)}",`);
     lines.push(`        genetic_disposition: ${optionStr(card.genetic_disposition)},`);
     lines.push(`        motivation: ${optionStr(card.motivation)},`);

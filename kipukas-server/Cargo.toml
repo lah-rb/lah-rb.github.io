@@ -4,16 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-# cdylib for wasm-pack; rlib so the native build-time probe binary can link the
-# shared decode logic (keeps SW prefix and worker decode in lockstep).
-crate-type = ["cdylib", "rlib"]
-
-# Native build tool: emits the per-card DC-prefix manifest consumed by
-# scripts/build-card-catalog.ts. Excluded from the wasm build (see cfg in the
-# source); only built when explicitly requested via `cargo run --bin jxl_probe`.
-[[bin]]
-name = "jxl_probe"
-path = "src/bin/jxl_probe.rs"
+crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2"

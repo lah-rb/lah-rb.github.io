@@ -27,6 +27,27 @@ const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' }
 // Expose worker for qr-camera.js and other modules that need direct access
 globalThis.kipukasWorker = wasmWorker;
 
+// ============================================
+// JXL DECODE WORKER POOL — parallel, off the /api worker
+// ============================================
+// Grid thumbnails (and full card art) are JXL, decoded by WASM. A small pool of
+// dedicated decode workers lets tiles decode in parallel instead of serializing
+// behind /api calls in the single worker above. Round-robin dispatch.
+const JXL_POOL_SIZE = Math.min(navigator.hardwareConcurrency || 2, 4);
+const jxlPool = Array.from(
+  { length: JXL_POOL_SIZE },
+  () => new Worker('/assets/js/jxl-decode-worker.js', { type: 'module' }),
+);
+let jxlPoolNext = 0;
+// Timing instrumentation: workers report per-decode ms; log for measurement.
+for (const w of jxlPool) {
+  w.addEventListener('message', (e) => {
+    if (e.data?.type === 'JXL_TIMING') {
+      console.log(`[jxl-pool] ${e.data.w}x${e.data.h} d=${e.data.maxDim} ${e.data.ms.toFixed(1)}ms`);
+    }
+  });
+}
+
 // Listen for messages from the controlling Service Worker
 if (navigator.serviceWorker) {
   navigator.serviceWorker.addEventListener('message', (event) => {
@@ -43,11 +64,13 @@ if (navigator.serviceWorker) {
         event.ports, // Transfer all ports (the SW sent one)
       );
     } else if (event.data?.type === 'WASM_DECODE_JXL') {
-      // SW fetched .jxl bytes (full file or DC prefix) and needs them decoded.
-      // Forward the buffer + the SW's response port to the worker; transfer
-      // both so the bytes travel zero-copy.
-      wasmWorker.postMessage(
-        { type: 'DECODE_JXL', bytes: event.data.bytes, maxDim: event.data.maxDim || 0 },
+      // SW fetched the whole .jxl and needs it decoded. Dispatch to the next
+      // pool worker (round-robin); forward the buffer + the SW's response port,
+      // transferring both so the bytes travel zero-copy.
+      const worker = jxlPool[jxlPoolNext];
+      jxlPoolNext = (jxlPoolNext + 1) % jxlPool.length;
+      worker.postMessage(
+        { bytes: event.data.bytes, maxDim: event.data.maxDim || 0 },
         [event.data.bytes, ...event.ports],
       );
     }
