@@ -119,23 +119,27 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
         _ => "object-center",
     };
 
+    // Image-as-background tile: the art fills the rounded tile and the card name
+    // is overlaid on a bottom gradient scrim. Skeleton sits under the image and
+    // is cleared on load; a subtle hover zoom is clipped by overflow-hidden.
     format!(
         r#"<div class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{stagger}ms">
   <a href="{url}"
-    class="block w-full h-full pt-4 bg-amber-50 active:shadow-inner active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded overflow-hidden"
+    class="group block relative w-full h-full rounded-md overflow-hidden shadow-lg active:shadow-inner bg-kip-drk-sienna"
   >
-    <div class="skeleton-pulse relative block w-full aspect-[2/3]">
-      <img
-        src="/assets/images/{img}?d={maxdim}"
-        alt="{alt}"
-        loading="lazy"
-        decoding="async"
-        fetchpriority="low"
-        class="w-full h-full object-cover {anchor} opacity-0 transition-opacity duration-300 ease-out"
-        onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('skeleton-pulse');"
-      >
+    <div class="skeleton-pulse absolute inset-0"></div>
+    <img
+      src="/assets/images/{img}?d={maxdim}"
+      alt="{alt}"
+      loading="lazy"
+      decoding="async"
+      fetchpriority="low"
+      class="absolute inset-0 w-full h-full object-cover {anchor} opacity-0 transition duration-300 ease-out group-hover:scale-105"
+      onload="this.classList.remove('opacity-0'); this.previousElementSibling.classList.remove('skeleton-pulse');"
+    >
+    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2 pt-8 pb-2">
+      <span class="block text-center text-balance leading-tight font-semibold text-sm text-amber-50 line-clamp-2 drop-shadow-md">{title}</span>
     </div>
-    <div class="text-center text-wrap px-2 py-2">{title}</div>
   </a>
 </div>"#,
         stagger = stagger_delay,
