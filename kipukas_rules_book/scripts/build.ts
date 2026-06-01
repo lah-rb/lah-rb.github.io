@@ -5,7 +5,8 @@
  *
  * Steps:
  *   1. Clean dist/
- *   2. Copy main site CSS → dist/css/styles.css (unified Tailwind build)
+ *   2. (Rules book links the shared, precached /assets/css/output.css directly —
+ *      no private CSS copy, so the SW versions one CSS file site-wide.)
  *   3. Copy vendor JS (marked, DOMPurify) → dist/js/vendor/
  *   4. Copy app JS (rules-book.js) → dist/js/
  *   5. Copy print CSS → dist/css/
@@ -26,7 +27,6 @@ import { copySync, ensureDirSync, walkSync } from 'jsr:@std/fs@1';
 import { existsSync } from 'jsr:@std/fs@1/exists';
 
 const ROOT = dirname(dirname(fromFileUrl(import.meta.url)));
-const SITE_ROOT = dirname(ROOT); // parent: the main site repo root
 const DIST = join(ROOT, 'dist');
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -56,20 +56,11 @@ function copyDirSync(src: string, dest: string): boolean {
 console.log('🧹  Cleaning dist/...');
 clean(DIST);
 
-// ── 2. Copy main site CSS (unified Tailwind build) ──────────
-
-console.log('🎨  Copying main site CSS...');
-const mainCSS = join(SITE_ROOT, 'assets', 'css', 'output.css');
-const outputCSS = join(DIST, 'css', 'styles.css');
-
-if (existsSync(mainCSS)) {
-  copyFileSync(mainCSS, outputCSS);
-  console.log(`   → ${relative(ROOT, outputCSS)} (from main site build)`);
-} else {
-  console.error('❌ Main site CSS not found at', mainCSS);
-  console.error('   Run "deno task build:css" from the site root first.');
-  Deno.exit(1);
-}
+// ── 2. CSS: link the shared, precached site CSS directly ────
+// No private copy — index.html's dev `../assets/css/output.css` link is rewritten
+// to the absolute `/assets/css/output.css` (step 9a) so the Service Worker versions
+// one CSS file for the whole site (precached via `assets/css/**`). This avoids the
+// stale-CSS-on-update bug a separate game_rules/css/styles.css produced.
 
 // ── 3. Copy vendor JS ───────────────────────────────────────
 
@@ -305,10 +296,10 @@ console.log('🏗️   Processing index.html...');
 
 let html = Deno.readTextFileSync(join(ROOT, 'index.html'));
 
-// 9a. Replace dev CSS path with local built copy
+// 9a. Point the rules book at the shared, precached site CSS (absolute path)
 html = html.replace(
   'href="../assets/css/output.css"',
-  'href="css/styles.css"',
+  'href="/assets/css/output.css"',
 );
 
 // 9b. Inject pre-rendered rules content into #rules-content div

@@ -43,61 +43,67 @@
       x-data="rulesBook()"
       x-init="init()"
       @hashchange.window="handleHash()"
-      @keydown.meta.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()"
-      @keydown.ctrl.k.window.prevent="$refs.searchInput.focus(); $refs.searchInput.select()">
+      @keydown.meta.k.window.prevent="showSearchBar = true; $nextTick(() => { $refs.searchInput.focus(); $refs.searchInput.select(); })"
+      @keydown.ctrl.k.window.prevent="showSearchBar = true; $nextTick(() => { $refs.searchInput.focus(); $refs.searchInput.select(); })">
 
-    <!-- Header -->
-    <header class="bg-emerald-700 text-amber-50 px-3 py-2 flex items-center gap-2 z-40 shadow-lg shrink-0">
-        <!-- Contents (sidebar) toggle -->
-        <button @click="toggleSidebar()" class="toolbar-tile shrink-0" title="Toggle contents" aria-label="Toggle contents">
-            <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+    <!-- Floating toolbar (mirrors the binder's mobile toolbar) -->
+    <div class="z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+
+        <!-- Contents → TOC modal -->
+        <button @click="toggleToc()" x-ref="tocBtn" class="toolbar-tile" :class="{ 'toolbar-tile-active': tocOpen }"
+                title="Table of contents" aria-label="Table of contents">
+            <svg class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
             </svg>
         </button>
 
-        <!-- Logo → binder home -->
-        <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0" title="Binder Home">
-            <img src="/assets/utility_images/small_kip_logo.png" alt="Kipukas" class="h-12 w-12 shrink-0 object-contain">
-        </a>
-        <h1 class="font-bold text-lg hidden sm:block">Kipukas Rules</h1>
-
-        <div class="flex-1"></div>
-
-        <!-- Search -->
-        <div class="relative" @click.outside="showSearchResults = false">
-            <div class="flex items-center bg-amber-50 rounded-xl border-2 border-kip-drk-sienna focus-within:border-kip-goldenrod transition-colors">
-                <svg class="w-4 h-4 ml-3 text-kip-drk-goldenrod" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <!-- Search tile + revealed input (showSearchBar lives in the root rulesBook() scope
+             so the body-level Cmd/Ctrl-K handler can reach $refs.searchInput) -->
+        <div class="relative w-fit"
+             @click.outside="showSearchBar = false; showSearchResults = false">
+            <button x-ref="searchBtn" class="toolbar-tile" :class="{ 'toolbar-tile-active': showSearchBar }"
+                    title="Search rules" aria-label="Search rules"
+                    @click="showSearchBar = !showSearchBar; if (showSearchBar) { $nextTick(() => $refs.searchInput.focus()) } else { clearSearch() }">
+                <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <input x-ref="searchInput" type="text" placeholder="Search rules..." autocomplete="off"
-                    x-model="searchQuery"
-                    @input="onSearchInput()"
-                    @keydown.escape="clearSearch(); $refs.searchInput.blur()"
-                    class="bg-transparent text-kip-drk-sienna placeholder-slate-400 px-3 py-2 text-sm w-36 sm:w-56 focus:outline-none">
-                <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-kip-drk-goldenrod hover:text-kip-red">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </button>
+            <div x-anchor.right-end.offset.10="$refs.searchBtn" x-show="showSearchBar" x-cloak x-transition.duration.350ms
+                 class="w-72 sm:w-96">
+                <div class="flex items-center bg-amber-50 rounded-xl border-2 border-kip-drk-sienna focus-within:border-kip-goldenrod transition-colors">
+                    <svg class="w-4 h-4 ml-3 text-kip-drk-goldenrod" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                </button>
-            </div>
-            <!-- Search results dropdown -->
-            <div x-show="showSearchResults" x-cloak x-transition
-                 class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-amber-50 rounded-xl shadow-2xl border-2 border-kip-drk-sienna max-h-96 overflow-y-auto z-50">
-                <template x-if="searchResults.length === 0 && searchQuery.length >= 2">
-                    <div class="p-4 text-center text-slate-500 text-sm">No results found</div>
-                </template>
-                <template x-for="r in searchResults" :key="r.id">
-                    <button @click="selectSearchResult(r.id)"
-                            class="block w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-emerald-100 last:border-0 transition-colors">
-                        <div class="font-semibold text-kip-drk-sienna text-sm" x-text="r.title"></div>
-                        <div class="text-xs text-slate-600 mt-1 leading-relaxed" x-html="r.snippet"></div>
+                    <input x-ref="searchInput" type="text" placeholder="Search rules..." autocomplete="off"
+                        x-model="searchQuery"
+                        @input="onSearchInput()"
+                        @keydown.escape="clearSearch(); showSearchBar = false; $refs.searchInput.blur()"
+                        class="bg-transparent text-kip-drk-sienna placeholder-slate-400 px-3 py-2 text-sm w-full focus:outline-none">
+                    <button x-show="searchQuery" x-cloak @click="clearSearch()" class="pr-3 text-kip-drk-goldenrod hover:text-kip-red">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
-                </template>
+                </div>
+                <!-- Search results dropdown -->
+                <div x-show="showSearchResults" x-cloak x-transition
+                     class="mt-2 bg-amber-50 rounded-xl shadow-2xl border-2 border-kip-drk-sienna max-h-96 overflow-y-auto">
+                    <template x-if="searchResults.length === 0 && searchQuery.length >= 2">
+                        <div class="p-4 text-center text-slate-500 text-sm">No results found</div>
+                    </template>
+                    <template x-for="r in searchResults" :key="r.id">
+                        <button @click="selectSearchResult(r.id); showSearchBar = false"
+                                class="block w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-emerald-100 last:border-0 transition-colors">
+                            <div class="font-semibold text-kip-drk-sienna text-sm" x-text="r.title"></div>
+                            <div class="text-xs text-slate-600 mt-1 leading-relaxed" x-html="r.snippet"></div>
+                        </button>
+                    </template>
+                </div>
             </div>
         </div>
 
         <!-- QR scanner tile -->
-        <button class="toolbar-tile shrink-0" title="Scan QR Code" aria-label="Scan QR code"
+        <button class="toolbar-tile" title="Scan QR Code" aria-label="Scan QR code"
                 onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
             <svg class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red" viewBox="0 0 24 24">
                 <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
@@ -105,21 +111,22 @@
         </button>
 
         <!-- Print/PDF tile -->
-        <button @click="handlePrint()" class="toolbar-tile shrink-0" title="Export to PDF" aria-label="Export to PDF">
+        <button @click="handlePrint()" class="toolbar-tile" title="Export to PDF" aria-label="Export to PDF">
             <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
             </svg>
         </button>
 
         <!-- Site nav menu (matches the binder's hamburger) -->
-        <div class="relative shrink-0" x-data="{ showHamburger: false }" @click.outside="showHamburger = false">
-            <button @click="showHamburger = !showHamburger" class="toolbar-tile" title="Site menu" aria-label="Site menu">
+        <div class="relative w-fit" x-data="{ showHamburger: false }" @click.outside="showHamburger = false">
+            <button @click="showHamburger = !showHamburger" x-ref="hamburger" class="toolbar-tile"
+                    :class="{ 'toolbar-tile-active': showHamburger }" title="Site menu" aria-label="Site menu">
                 <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
                 </svg>
             </button>
-            <div x-show="showHamburger" x-cloak x-transition
-                 class="text-nowrap bg-amber-50 absolute right-0 top-full mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
+            <div x-anchor.right-end.offset.10="$refs.hamburger" x-show="showHamburger" x-cloak x-transition.duration.350ms
+                 class="text-nowrap bg-amber-50 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
                 <div><a href="/" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
                 <div><a href="/game_rules/index.html" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
                 <div><a href="/recipes" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
@@ -127,34 +134,24 @@
                 <div><a href="/about_articles" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- Main layout -->
-    <div class="flex flex-1 overflow-hidden relative">
-        <!-- Sidebar overlay (mobile) -->
-        <div x-show="sidebarOpen" x-cloak
-             class="fixed inset-0 bg-black/40 z-30 lg:hidden"
-             @click="closeSidebar()"
-             x-transition:enter="transition-opacity duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition-opacity duration-300"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"></div>
-
-        <!-- Sidebar -->
-        <aside id="sidebar"
-               class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-emerald-800 text-emerald-100 flex flex-col transition-transform duration-300 mt-14.25 lg:mt-0"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-            <div class="px-4 py-3 border-b border-emerald-700 flex items-center justify-between shrink-0">
-                <span class="font-semibold text-emerald-200 text-sm uppercase tracking-wider">Table of Contents</span>
-                <button @click="closeSidebar()" class="lg:hidden p-1 rounded hover:bg-emerald-700 text-emerald-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Table of Contents modal -->
+    <div x-show="tocOpen" x-cloak class="fixed inset-0 flex items-center justify-center z-50"
+         x-transition.duration.350ms @keydown.escape.window="closeToc()">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="closeToc()"></div>
+        <!-- Card -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto relative mx-4">
+            <div class="sticky top-0 bg-amber-50 px-5 pt-4 pb-3 border-b border-kip-drk-goldenrod/30 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-kip-drk-sienna">Table of Contents</h2>
+                <button @click="closeToc()" class="text-kip-drk-goldenrod hover:text-kip-red" aria-label="Close contents">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
-            <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+            <nav class="px-4 py-3 space-y-0.5">
                 <template x-for="h in headers" :key="h.id">
                     <a :href="'#' + h.id"
                        @click.prevent="tocClick(h.id)"
@@ -164,29 +161,29 @@
                            'toc-sub': h.level === 3
                        }"
                        x-text="h.text"
-                       x-effect="if (activeId === h.id) $el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })"></a>
+                       x-effect="if (tocOpen && activeId === h.id) $el.scrollIntoView({ block: 'nearest' })"></a>
                 </template>
             </nav>
-        </aside>
+        </div>
+    </div>
 
-        <!-- Content -->
-        <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50">
-            <div id="rules-content"
-                 class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 py-8 bg-white shadow-sm min-h-full"
-                 @click="handleContentClick($event)">
-                <!-- Loading state (replaced by build-time pre-render) -->
-                <div id="loading" class="flex items-center justify-center h-64 not-prose">
-                    <div class="text-center">
-                        <svg class="animate-spin h-8 w-8 text-emerald-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <p class="text-emerald-700">Loading rules...</p>
-                    </div>
+    <!-- Content (full-width scroller; only element that scrolls) -->
+    <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50">
+        <div id="rules-content"
+             class="prose prose-sky lg:prose-lg max-w-4xl mx-auto pl-4 sm:pl-8 pr-20 pt-8 pb-8 lg:pl-8 lg:pr-8 bg-white shadow-sm min-h-full"
+             @click="handleContentClick($event)">
+            <!-- Loading state (replaced by build-time pre-render) -->
+            <div id="loading" class="flex items-center justify-center h-64 not-prose">
+                <div class="text-center">
+                    <svg class="animate-spin h-8 w-8 text-emerald-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-emerald-700">Loading rules...</p>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <!-- QR Overlay -->
     <div id="qr-container"></div>

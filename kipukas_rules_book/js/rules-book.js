@@ -5,13 +5,13 @@
  * Pattern 11: Self-contained Alpine component with Tailwind utilities.
  *
  * Markdown rendering is handled at build time (build.ts pre-renders into HTML).
- * This component handles: TOC/sidebar, scroll-spy, search, chat (Kippa), print.
+ * This component handles: TOC modal, scroll-spy, search, chat (Kippa), print.
  */
 
 document.addEventListener('alpine:init', () => {
   Alpine.data('rulesBook', () => ({
-    // ── Sidebar / TOC ─────────────────────────────────────────
-    sidebarOpen: globalThis.innerWidth >= 1024,
+    // ── TOC (modal) ───────────────────────────────────────────
+    tocOpen: false,
     headers: [],
     activeId: '',
     _observer: null,
@@ -21,6 +21,7 @@ document.addEventListener('alpine:init', () => {
     searchResults: [],
     searchIndex: [],
     showSearchResults: false,
+    showSearchBar: false,
     _searchDebounce: null,
 
     // ── Chat (Kippa) ──────────────────────────────────────────
@@ -85,7 +86,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     // ══════════════════════════════════════════════════════════
-    // Sidebar / TOC
+    // TOC (modal)
     // ══════════════════════════════════════════════════════════
 
     collectHeaders() {
@@ -134,24 +135,12 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      if (globalThis.innerWidth >= 1024) {
-        // Desktop toggle
-        if (sidebar.classList.contains('lg:-translate-x-full')) {
-          sidebar.classList.remove('lg:-translate-x-full');
-          sidebar.classList.add('lg:translate-x-0');
-        } else {
-          sidebar.classList.add('lg:-translate-x-full');
-          sidebar.classList.remove('lg:translate-x-0');
-        }
-      } else {
-        this.sidebarOpen = !this.sidebarOpen;
-      }
+    toggleToc() {
+      this.tocOpen = !this.tocOpen;
     },
 
-    closeSidebar() {
-      this.sidebarOpen = false;
+    closeToc() {
+      this.tocOpen = false;
     },
 
     scrollTo(targetId) {
@@ -174,8 +163,8 @@ document.addEventListener('alpine:init', () => {
     tocClick(id) {
       this.scrollTo(id);
       history.replaceState(null, '', `#${id}`);
-      // Close sidebar on mobile
-      if (globalThis.innerWidth < 1024) this.closeSidebar();
+      // Close the TOC modal after navigating
+      this.closeToc();
     },
 
     // ══════════════════════════════════════════════════════════
