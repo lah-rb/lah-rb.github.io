@@ -78,7 +78,7 @@
                   currentURL: $persist(''),
                   hideInstallButton: $persist(false),
                 }" 
-        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 bg-fixed font-serif antialiased scroll-smooth w-dvw h-dvh' }}"
+        class="{{page.bg-terra | append: 'z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh' }}"
         x-init="previousURL = currentURL, currentURL = window.location.href">
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}

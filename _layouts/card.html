@@ -18,8 +18,16 @@ layout: default
     base_stroke='stroke-slate-200'
   %}
   <!-- layout for small screens and landscape cards -->
-  <div :class="landscape ? '' : 'lg:hidden'" class="z-10 w-screen min-h-screen h-fit bg-cover bg-fixed bg-center" :style='`background-image: url( "{{ "/assets/images/" | append: page.img_name }}" )`'>
-    <div x-show="showCardInfo" class="w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
+  <div :class="landscape ? '' : 'lg:hidden'" class="relative z-10 w-screen min-h-screen h-fit">
+    <!-- Fixed, GPU-composited art layer — replaces background-attachment:fixed, which repaints
+         every scroll frame and janks when the mobile URL bar hides. LQIP: the cached grid
+         thumbnail (?d=512) paints instantly; the full art fades in over it. -->
+    <img aria-hidden="true" src="{{ '/assets/images/' | append: page.img_name | append: '?d=512' }}"
+      class="fixed inset-0 -z-10 w-full h-full object-cover">
+    <img aria-hidden="true" src="{{ '/assets/images/' | append: page.img_name }}"
+      class="fixed inset-0 -z-10 w-full h-full object-cover opacity-0 transition-opacity duration-700"
+      onload="this.classList.remove('opacity-0')">
+    <div x-show="showCardInfo" class="relative w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
         <div class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 h-fit min-h-screen scroll-smooth">
           <p class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</p>
@@ -37,7 +45,9 @@ layout: default
 <template x-if="true"> <!-- This fixes the cls issue completely -->
   <div class="bg-hero-pattern hidden lg:flex w-screen min-h-screen h-fit bg-cover bg-fixed">
     <div class="flex-none w-fit h-fit"><img class="invisible h-screen max-w-3xl" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}"></div>
-    <img class="fixed top-0 h-screen max-w-3xl" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}">
+    <!-- LQIP: cached grid thumbnail paints instantly; full art fades in over it. -->
+    <img class="fixed top-0 h-screen max-w-3xl" src="{{ '/assets/images/' | append: page.img_name | append: '?d=512' }}" alt="" aria-hidden="true">
+    <img class="fixed top-0 h-screen max-w-3xl opacity-0 transition-opacity duration-700" src="{{ '/assets/images/' | append: page.img_name }}" alt="{{ page.img_alt }}" onload="this.classList.remove('opacity-0')">
     <div class="flex-1 grid grid-cols-1 text-kip-drk-sienna text-justify leading-tight h-fit min-h-screen scroll-smooth">
       <p class="text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center text-wrap">{{ page.title }}</p>
       {{ content }}

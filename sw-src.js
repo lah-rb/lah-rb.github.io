@@ -130,11 +130,26 @@ registerRoute(wasmApiMatcher, wasmApiHandler, 'PATCH'); // PATCH
 //   ?d=<px>  downscale target — longest output side in pixels (0 = full).
 //            Grid tiles pass ?d=512 (tile-sized); the detail view omits it.
 //
-// Decoded grid thumbnails (maxDim>0, small) are cached for instant scroll-back;
-// full detail images aren't cached (in-flight de-dup handles the detail page's
-// 3 concurrent requests). The small raw .jxl is cached for offline re-decode.
-const DECODED_CACHE = 'kipukas-images-decoded';
+// Decoded outputs are cached so revisits/scroll-back are instant: grid
+// thumbnails (small, many) and full detail images (large, few) live in separate
+// caches, each FIFO-capped so memory stays bounded. The small raw .jxl is also
+// cached for offline re-decode.
+const DECODED_CACHE = 'kipukas-images-decoded'; // thumbnails (?d=512)
+const FULL_CACHE = 'kipukas-images-full'; // full detail decodes (no ?d)
 const RAW_JXL_CACHE = 'kipukas-jxl';
+const THUMB_CACHE_MAX = 300; // ~small BMPs
+const FULL_CACHE_MAX = 12; // ~3.8MB BMP each → bounded ≈ 46MB
+
+// Put into a cache, then evict oldest entries (insertion order) over the cap.
+async function cachePutCapped(cache, request, response, max) {
+  try {
+    await cache.put(request, response);
+    const keys = await cache.keys();
+    for (let i = 0; i < keys.length - max; i++) {
+      await cache.delete(keys[i]);
+    }
+  } catch (_e) { /* quota / eviction race — non-fatal */ }
+}
 
 // In-flight decode de-duplication: the card detail page requests the same .jxl
 // three times at once (two <img> + one CSS background). Collapse identical
@@ -188,13 +203,13 @@ async function decodeJxlRequest(request, event) {
 
 const jxlHandler = async ({ request, event }) => {
   const hasDownscale = new URL(request.url).searchParams.has('d');
+  // Thumbnails (?d=) and full detail images cache separately, each capped.
+  const cache = await caches.open(hasDownscale ? DECODED_CACHE : FULL_CACHE);
 
-  // 1. Decoded-thumbnail cache (keyed by the full request incl. ?d=).
-  const decodedCache = await caches.open(DECODED_CACHE);
-  if (hasDownscale) {
-    const hit = await decodedCache.match(request);
-    if (hit) return hit;
-  }
+  // 1. Decoded-output cache (keyed by the full request incl. ?d=). This is what
+  //    makes revisits instant — full detail decodes are now cached too.
+  const hit = await cache.match(request);
+  if (hit) return hit;
 
   // 2. Decode (de-duplicating identical concurrent requests).
   const key = request.url;
@@ -220,10 +235,12 @@ const jxlHandler = async ({ request, event }) => {
     status: 200,
     headers: { 'Content-Type': 'image/bmp' },
   });
-  // Cache only the small downscaled thumbnails (maxDim>0), not full images.
-  if (result.maxDim > 0) {
-    try { await decodedCache.put(request, resp.clone()); } catch (_e) { /* quota */ }
-  }
+  await cachePutCapped(
+    cache,
+    request,
+    resp.clone(),
+    hasDownscale ? THUMB_CACHE_MAX : FULL_CACHE_MAX,
+  );
   return resp;
 };
 
