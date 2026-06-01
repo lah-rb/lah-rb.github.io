@@ -9,10 +9,13 @@ export default {
       params: {
         overrides: {
           // Coordinate-precision reduction is the safe, high-impact lever.
-          // 2 decimals keeps glyph curves intact (precision 1 distorted text).
-          convertPathData: { floatPrecision: 2 },
-          cleanupNumericValues: { floatPrecision: 2 },
-          convertTransform: { floatPrecision: 2 },
+          // floatPrecision 3 keeps the error tolerance tight enough that svgo
+          // does NOT linearize curves (precision 2 turned them polygonal), so
+          // the smooth strokes survive. (straightCurves:false would be more
+          // direct but crashes svgo 3.3.3.)
+          convertPathData: { floatPrecision: 3 },
+          cleanupNumericValues: { floatPrecision: 3 },
+          convertTransform: { floatPrecision: 3 },
           // Never drop viewBox — the toolbar sizes via CSS and relies on it.
           removeViewBox: false,
           // The wordmark is outlined text with evenodd fills; merging glyph

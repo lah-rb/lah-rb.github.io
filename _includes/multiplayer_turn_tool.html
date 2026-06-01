@@ -6,14 +6,9 @@
      x-init="
        $watch('roomConnected', value => { if (!value) showTurnMenu = false });
      ">
-    <button aria-label="Toggle Shared Turn Timer" x-show="roomConnected" x-cloak>
-        <svg @click="showTurnMenu = !showTurnMenu"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            {% unless page.landscape %}
-              :class="'lg:stroke-kip-goldenrod'"
-            {% endunless %}
-            class="{{ include.base_stroke }}{{ include.svgClass }}">
+    <button @click="showTurnMenu = !showTurnMenu" aria-label="Toggle Shared Turn Timer" x-show="roomConnected" x-cloak class="toolbar-tile">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            class="toolbar-tile-icon stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
     </button>

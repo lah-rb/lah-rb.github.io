@@ -95,6 +95,22 @@
   50% { opacity: 0.6; }
 }
 
+/* ── Toolbar "aztec tile" icon buttons ──
+   Uniform squircle: kip-drk-sienna border, amber-50 fill, icon centered in a
+   touch-friendly box. Applied to every toolbar icon's clickable element. */
+@layer components {
+  .toolbar-tile {
+    @apply inline-flex items-center justify-center w-14 h-14 rounded-2xl
+           border-2 border-kip-drk-sienna bg-amber-50 shadow-sm transition;
+  }
+  .toolbar-tile:hover { @apply bg-amber-100; }
+  .toolbar-tile:active { @apply scale-95; }
+  /* Open/active tool: invert to a filled sienna tile. */
+  .toolbar-tile-active { @apply bg-kip-drk-sienna; }
+  /* Uniform icon inside the tile. */
+  .toolbar-tile-icon { @apply w-7 h-7; }
+}
+
 /* ══════════════════════════════════════════════════════════════
    Rules Book — custom styles that prose / Tailwind can't cover
    ══════════════════════════════════════════════════════════════ */
