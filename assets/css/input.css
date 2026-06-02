@@ -107,8 +107,12 @@
   .toolbar-tile:active { @apply scale-95; }
   /* Open/active tool: invert to a filled sienna tile. */
   .toolbar-tile-active { @apply bg-kip-drk-sienna; }
-  /* Uniform icon inside the tile. */
-  .toolbar-tile-icon { @apply w-7 h-7; }
+  /* Uniform icon inside the tile. Size + a single outline stroke weight live
+     here so every toolbar icon (binder + rules book) matches. stroke-width is a
+     raw decl in 24-viewBox user units: 1.5 @ 36px ≈ 2.25px rendered. It's inert
+     on filled icons (no stroke painted). Per-icon stroke-* / stroke-width must
+     stay OFF outline tiles or they'd override this (utility layer wins). */
+  .toolbar-tile-icon { @apply w-9 h-9; stroke-width: 1.5; }
 }
 
 /* Idle-ghost floating toolbar (binder + rules book): after a few idle seconds the

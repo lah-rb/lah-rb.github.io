@@ -521,6 +521,29 @@ document.addEventListener('alpine:init', () => {
     // pre-built kipukas_rules.pdf (see index.html). `pdfAvailable` (probed in init)
     // lets that anchor fall back to window.print() when the PDF isn't present.
 
+    isStandalone() {
+      return globalThis.matchMedia('(display-mode: standalone)').matches ||
+        globalThis.matchMedia('(display-mode: fullscreen)').matches ||
+        navigator.standalone === true;
+    },
+
+    openPdf(e) {
+      // No pre-built PDF → print the HTML rules.
+      if (!this.pdfAvailable) {
+        e.preventDefault();
+        globalThis.print();
+        return;
+      }
+      // Installed PWA (esp. Firefox for Android): an <a target="_blank" download>
+      // opens about:blank. Navigate the SAME top-level window instead so the
+      // browser's built-in pdf.js renders the PDF in-app; the back gesture
+      // returns to the rules book. Browser mode keeps the native download/_blank.
+      if (this.isStandalone()) {
+        e.preventDefault();
+        globalThis.location.href = 'kipukas_rules.pdf';
+      }
+    },
+
     // ══════════════════════════════════════════════════════════
     // Hash navigation
     // ══════════════════════════════════════════════════════════
