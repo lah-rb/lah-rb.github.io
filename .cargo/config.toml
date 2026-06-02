@@ -1,0 +1,6 @@
+# Enable fixed-width WASM SIMD for the in-browser Rust modules (JXL decode in
+# kipukas-server, and rqrr-decode when rebuilt). Scoped to the wasm32 target so
+# native `cargo test` (host target) is unaffected. Raises the browser floor to
+# SIMD-capable engines (~Chrome 91 / Firefox 89 / Safari 16.4).
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]
