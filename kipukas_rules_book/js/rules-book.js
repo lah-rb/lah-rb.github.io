@@ -517,23 +517,9 @@ document.addEventListener('alpine:init', () => {
       return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
     },
 
-    // ══════════════════════════════════════════════════════════
-    // Print / PDF
-    // ══════════════════════════════════════════════════════════
-
-    handlePrint() {
-      if (this.pdfAvailable) {
-        const a = document.createElement('a');
-        a.href = 'kipukas_rules.pdf';
-        a.download = 'kipukas_rules.pdf';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => document.body.removeChild(a), 100);
-      } else {
-        globalThis.print();
-      }
-    },
+    // Print / PDF: the toolbar's "Export to PDF" tile is a real <a> linking to the
+    // pre-built kipukas_rules.pdf (see index.html). `pdfAvailable` (probed in init)
+    // lets that anchor fall back to window.print() when the PDF isn't present.
 
     // ══════════════════════════════════════════════════════════
     // Hash navigation

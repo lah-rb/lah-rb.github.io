@@ -125,12 +125,17 @@
             </svg>
         </button>
 
-        <!-- Print/PDF tile -->
-        <button @click="handlePrint()" class="toolbar-tile" title="Export to PDF" aria-label="Export to PDF">
+        <!-- Print/PDF tile — a REAL <a> (a synthetic anchor .click() with download
+             routes to about:blank on Firefox for Android). `download` saves the PDF
+             where supported; target=_blank gracefully opens it in a new tab otherwise.
+             Falls back to window.print() only when the pre-built PDF isn't present. -->
+        <a href="kipukas_rules.pdf" download="kipukas_rules.pdf" target="_blank" rel="noopener"
+           @click="if (!pdfAvailable) { $event.preventDefault(); globalThis.print(); }"
+           class="toolbar-tile" title="Export to PDF" aria-label="Export to PDF">
             <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
             </svg>
-        </button>
+        </a>
 
         <!-- Contents → TOC modal (bottom) -->
         <button @click="toggleToc()" x-ref="tocBtn" class="toolbar-tile" :class="{ 'toolbar-tile-active': tocOpen }"
