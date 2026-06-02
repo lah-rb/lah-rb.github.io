@@ -222,6 +222,11 @@ pub fn handle(query: &str) -> String {
     let filtered: Vec<&Card> = CARDS
         .iter()
         .filter(|card| {
+            // Hidden cards (e.g. the /fourohfour easter-egg) never appear in the
+            // browse grid, regardless of all/filter/search.
+            if card.hidden {
+                return false;
+            }
             // If "all" is true and no search, show everything
             if all && search_raw.is_empty() {
                 return true;

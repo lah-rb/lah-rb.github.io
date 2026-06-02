@@ -29,94 +29,118 @@ pub struct Card {
     pub brawl_sequence: &'static str,
     // Phase C: tamability (Species cards only)
     pub tamability: Option<u32>,
+    // Hidden from the /api/cards browse grid (e.g. the /fourohfour easter-egg card)
+    pub hidden: bool,
 }
 
-static GENETICS_0: &[&str] = &["Glitch", "Magic"];
-static GENETICS_1: &[&str] = &["Magic", "Entropic"];
-static GENETICS_2: &[&str] = &["Telekinetic", "Endothermic"];
-static GENETICS_3: &[&str] = &["Cenozoic", "Energetic"];
-static GENETICS_4: &[&str] = &["Entropic", "Astral", "Brutal"];
-static GENETICS_5: &[&str] = &["Algorithimic"];
-static GENETICS_6: &[&str] = &["Magic"];
-static GENETICS_7: &[&str] = &["Telekinetic", "Arboreal"];
-static GENETICS_8: &[&str] = &["Brutal", "Angelic"];
-static GENETICS_9: &[&str] = &["Brutal", "Mechanical"];
-static GENETICS_10: &[&str] = &["Endothermic"];
-static GENETICS_11: &[&str] = &["Cenozoic", "Astral"];
-static GENETICS_12: &[&str] = &["Energetic", "Angelic", "Avian"];
-static GENETICS_13: &[&str] = &["Decrepit", "Brutal"];
-static GENETICS_14: &[&str] = &["Decrepit", "Telekinetic"];
-static GENETICS_15: &[&str] = &["Decrepit"];
-static GENETICS_16: &[&str] = &["Energetic", "Astral"];
-static GENETICS_17: &[&str] = &["Cenozoic"];
-static GENETICS_18: &[&str] = &["Angelic", "Avian"];
-static GENETICS_19: &[&str] = &["Brutal", "Entropic", "Telekinetic"];
-static GENETICS_20: &[&str] = &["Cenozoic", "brutal"];
-static GENETICS_21: &[&str] = &["Decrepit", "Avian"];
-static GENETICS_22: &[&str] = &["Avian", "Cenozoic"];
-static GENETICS_23: &[&str] = &["Decrepit", "Arboreal"];
-static GENETICS_24: &[&str] = &["Algorithmic", "Decrepit"];
-static GENETICS_25: &[&str] = &["Energetic", "Avian"];
-static GENETICS_26: &[&str] = &["Astral"];
-static GENETICS_27: &[&str] = &["Energetic"];
-static GENETICS_28: &[&str] = &["Decrepit", "Entropic", "Glitch"];
-static GENETICS_29: &[&str] = &["Cenozoic", "Entropic"];
-static GENETICS_30: &[&str] = &["Decrepit"];
-static GENETICS_31: &[&str] = &["Brutal", "Magic"];
-static GENETICS_32: &[&str] = &["Cenozoic"];
-static GENETICS_33: &[&str] = &["Arboreal", "Angelic"];
-static GENETICS_34: &[&str] = &["Arboreal"];
+static GENETICS_0: &[&str] = &["glitch"];
+static GENETICS_1: &[&str] = &["Glitch", "Magic"];
+static GENETICS_2: &[&str] = &["Magic", "Entropic"];
+static GENETICS_3: &[&str] = &["Telekinetic", "Endothermic"];
+static GENETICS_4: &[&str] = &["Cenozoic", "Energetic"];
+static GENETICS_5: &[&str] = &["Entropic", "Astral", "Brutal"];
+static GENETICS_6: &[&str] = &["Algorithimic"];
+static GENETICS_7: &[&str] = &["Magic"];
+static GENETICS_8: &[&str] = &["Telekinetic", "Arboreal"];
+static GENETICS_9: &[&str] = &["Brutal", "Angelic"];
+static GENETICS_10: &[&str] = &["Brutal", "Mechanical"];
+static GENETICS_11: &[&str] = &["Endothermic"];
+static GENETICS_12: &[&str] = &["Cenozoic", "Astral"];
+static GENETICS_13: &[&str] = &["Energetic", "Angelic", "Avian"];
+static GENETICS_14: &[&str] = &["Decrepit", "Brutal"];
+static GENETICS_15: &[&str] = &["Decrepit", "Telekinetic"];
+static GENETICS_16: &[&str] = &["Decrepit"];
+static GENETICS_17: &[&str] = &["Energetic", "Astral"];
+static GENETICS_18: &[&str] = &["Cenozoic"];
+static GENETICS_19: &[&str] = &["Angelic", "Avian"];
+static GENETICS_20: &[&str] = &["Brutal", "Entropic", "Telekinetic"];
+static GENETICS_21: &[&str] = &["Cenozoic", "brutal"];
+static GENETICS_22: &[&str] = &["Decrepit", "Avian"];
+static GENETICS_23: &[&str] = &["Avian", "Cenozoic"];
+static GENETICS_24: &[&str] = &["Decrepit", "Arboreal"];
+static GENETICS_25: &[&str] = &["Algorithmic", "Decrepit"];
+static GENETICS_26: &[&str] = &["Energetic", "Avian"];
+static GENETICS_27: &[&str] = &["Astral"];
+static GENETICS_28: &[&str] = &["Energetic"];
+static GENETICS_29: &[&str] = &["Decrepit", "Entropic", "Glitch"];
+static GENETICS_30: &[&str] = &["Cenozoic", "Entropic"];
+static GENETICS_31: &[&str] = &["Decrepit"];
+static GENETICS_32: &[&str] = &["Brutal", "Magic"];
+static GENETICS_33: &[&str] = &["Cenozoic"];
+static GENETICS_34: &[&str] = &["Arboreal", "Angelic"];
 static GENETICS_35: &[&str] = &["Arboreal"];
-static GENETICS_36: &[&str] = &["Glitch", "Energetic"];
-static GENETICS_37: &[&str] = &["Glitch", "Algorithmic"];
-static GENETICS_38: &[&str] = &["Glitch", "Entropic"];
-static GENETICS_39: &[&str] = &["Telekinetic", "Arboreal"];
-static GENETICS_40: &[&str] = &["Cenozoic"];
-static GENETICS_41: &[&str] = &["Glitch", "Magic"];
-static GENETICS_42: &[&str] = &["Angelic", "Brutal"];
-static GENETICS_43: &[&str] = &["Mechanical"];
-static GENETICS_44: &[&str] = &["Mechanical", "Avian"];
-static GENETICS_45: &[&str] = &["Magic"];
-static GENETICS_46: &[&str] = &["Astral"];
-static GENETICS_47: &[&str] = &["Telekinetic"];
-static GENETICS_48: &[&str] = &["Angelic", "Mechanical"];
-static GENETICS_49: &[&str] = &["Cenozoic", "Mechanical"];
-static GENETICS_50: &[&str] = &["Glitch"];
+static GENETICS_36: &[&str] = &["Arboreal"];
+static GENETICS_37: &[&str] = &["Glitch", "Energetic"];
+static GENETICS_38: &[&str] = &["Glitch", "Algorithmic"];
+static GENETICS_39: &[&str] = &["Glitch", "Entropic"];
+static GENETICS_40: &[&str] = &["Telekinetic", "Arboreal"];
+static GENETICS_41: &[&str] = &["Cenozoic"];
+static GENETICS_42: &[&str] = &["Glitch", "Magic"];
+static GENETICS_43: &[&str] = &["Angelic", "Brutal"];
+static GENETICS_44: &[&str] = &["Mechanical"];
+static GENETICS_45: &[&str] = &["Mechanical", "Avian"];
+static GENETICS_46: &[&str] = &["Magic"];
+static GENETICS_47: &[&str] = &["Astral"];
+static GENETICS_48: &[&str] = &["Telekinetic"];
+static GENETICS_49: &[&str] = &["Angelic", "Mechanical"];
+static GENETICS_50: &[&str] = &["Cenozoic", "Mechanical"];
+static GENETICS_51: &[&str] = &["Glitch"];
 
-static KEAL_0: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_0, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_1, count: 1 }];
-static KEAL_1: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_2, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_3, count: 1 }];
-static KEAL_2: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_4, count: 1 }];
-static KEAL_4: &[KealMeans] = &[KealMeans { name: "(in capital) Security Hacking", genetics: GENETICS_5, count: 1 }];
-static KEAL_5: &[KealMeans] = &[KealMeans { name: "Deceptive Mirror", genetics: GENETICS_6, count: 1 }, KealMeans { name: "Ensnaring Branches", genetics: GENETICS_7, count: 1 }];
-static KEAL_6: &[KealMeans] = &[KealMeans { name: "Crushing Hope", genetics: GENETICS_8, count: 1 }, KealMeans { name: "Chain Raid", genetics: GENETICS_9, count: 2 }];
-static KEAL_13: &[KealMeans] = &[KealMeans { name: "Sharp Waxy Fur", genetics: GENETICS_10, count: 1 }];
-static KEAL_14: &[KealMeans] = &[KealMeans { name: "Haunted Howl Coordination", genetics: GENETICS_11, count: 1 }];
-static KEAL_16: &[KealMeans] = &[KealMeans { name: "King's Mojo", genetics: GENETICS_12, count: 1 }];
-static KEAL_18: &[KealMeans] = &[KealMeans { name: "Ancient Forest Scythe", genetics: GENETICS_13, count: 1 }, KealMeans { name: "Mutter of Dorsay", genetics: GENETICS_14, count: 1 }, KealMeans { name: "Burial Slumber", genetics: GENETICS_15, count: 1 }];
-static KEAL_20: &[KealMeans] = &[KealMeans { name: "Long Sword's Eternal Vision", genetics: GENETICS_16, count: 1 }];
-static KEAL_21: &[KealMeans] = &[KealMeans { name: "Defensive Sword", genetics: GENETICS_17, count: 1 }, KealMeans { name: "Gossamer Wings", genetics: GENETICS_18, count: 1 }];
-static KEAL_22: &[KealMeans] = &[KealMeans { name: "Dark Hope Maw", genetics: GENETICS_19, count: 1 }];
-static KEAL_26: &[KealMeans] = &[KealMeans { name: "Thwarting Dagger", genetics: GENETICS_20, count: 1 }, KealMeans { name: "Grotesk Wings", genetics: GENETICS_21, count: 1 }];
-static KEAL_28: &[KealMeans] = &[KealMeans { name: "Scout's Vision", genetics: GENETICS_22, count: 1 }, KealMeans { name: "Symbiont Barrage", genetics: GENETICS_23, count: 1 }];
-static KEAL_29: &[KealMeans] = &[KealMeans { name: "Quick Inject", genetics: GENETICS_24, count: 2 }];
-static KEAL_31: &[KealMeans] = &[KealMeans { name: "Ghostly Wisdom", genetics: GENETICS_25, count: 1 }];
-static KEAL_32: &[KealMeans] = &[KealMeans { name: "Osileth's Scale", genetics: GENETICS_26, count: 1 }, KealMeans { name: "Oshliath's Flame", genetics: GENETICS_27, count: 1 }];
-static KEAL_34: &[KealMeans] = &[KealMeans { name: "Sick Head", genetics: GENETICS_28, count: 1 }, KealMeans { name: "Rusting Sword", genetics: GENETICS_29, count: 1 }, KealMeans { name: "Dreaded Scratch", genetics: GENETICS_30, count: 1 }];
-static KEAL_36: &[KealMeans] = &[KealMeans { name: "Superficial Deck", genetics: GENETICS_31, count: 1 }, KealMeans { name: "Split Dimension Creeper", genetics: GENETICS_32, count: 1 }];
-static KEAL_37: &[KealMeans] = &[KealMeans { name: "Humming Arboreal Mass", genetics: GENETICS_33, count: 1 }, KealMeans { name: "Thriving Toxic Buds", genetics: GENETICS_34, count: 1 }];
-static KEAL_38: &[KealMeans] = &[KealMeans { name: "Vegan Chicken", genetics: GENETICS_35, count: 1 }];
-static KEAL_39: &[KealMeans] = &[KealMeans { name: "Digi-frying Breath", genetics: GENETICS_36, count: 1 }, KealMeans { name: "Dragon Core Codebase", genetics: GENETICS_37, count: 1 }, KealMeans { name: "Core Radiation Leak", genetics: GENETICS_38, count: 1 }];
-static KEAL_40: &[KealMeans] = &[KealMeans { name: "Mystical Misguidance", genetics: GENETICS_39, count: 1 }];
-static KEAL_43: &[KealMeans] = &[KealMeans { name: "(with bear only) Crushing Bite", genetics: GENETICS_40, count: 1 }, KealMeans { name: "(without bear only) Fairy Gold Curse", genetics: GENETICS_41, count: 1 }];
-static KEAL_47: &[KealMeans] = &[KealMeans { name: "Tear Drop Potion", genetics: GENETICS_42, count: 1 }];
-static KEAL_48: &[KealMeans] = &[KealMeans { name: "Hydraulic Punch", genetics: GENETICS_43, count: 1 }, KealMeans { name: "Pneumatic Impact Ratchet", genetics: GENETICS_44, count: 1 }];
-static KEAL_49: &[KealMeans] = &[KealMeans { name: "Subtle Chant", genetics: GENETICS_45, count: 1 }, KealMeans { name: "Universal Prayer", genetics: GENETICS_46, count: 1 }, KealMeans { name: "Inspired Followers", genetics: GENETICS_47, count: 1 }];
-static KEAL_51: &[KealMeans] = &[KealMeans { name: "Mechanized Swiftness", genetics: GENETICS_48, count: 1 }, KealMeans { name: "Tools at Hand", genetics: GENETICS_49, count: 1 }];
-static KEAL_53: &[KealMeans] = &[KealMeans { name: "Total Techno Conniption", genetics: GENETICS_50, count: 1 }];
+static KEAL_0: &[KealMeans] = &[KealMeans { name: "Digital lost and found:", genetics: GENETICS_0, count: 1 }];
+static KEAL_1: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_1, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_2, count: 1 }];
+static KEAL_2: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_3, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_4, count: 1 }];
+static KEAL_3: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_5, count: 1 }];
+static KEAL_5: &[KealMeans] = &[KealMeans { name: "(in capital) Security Hacking", genetics: GENETICS_6, count: 1 }];
+static KEAL_6: &[KealMeans] = &[KealMeans { name: "Deceptive Mirror", genetics: GENETICS_7, count: 1 }, KealMeans { name: "Ensnaring Branches", genetics: GENETICS_8, count: 1 }];
+static KEAL_7: &[KealMeans] = &[KealMeans { name: "Crushing Hope", genetics: GENETICS_9, count: 1 }, KealMeans { name: "Chain Raid", genetics: GENETICS_10, count: 2 }];
+static KEAL_14: &[KealMeans] = &[KealMeans { name: "Sharp Waxy Fur", genetics: GENETICS_11, count: 1 }];
+static KEAL_15: &[KealMeans] = &[KealMeans { name: "Haunted Howl Coordination", genetics: GENETICS_12, count: 1 }];
+static KEAL_17: &[KealMeans] = &[KealMeans { name: "King's Mojo", genetics: GENETICS_13, count: 1 }];
+static KEAL_19: &[KealMeans] = &[KealMeans { name: "Ancient Forest Scythe", genetics: GENETICS_14, count: 1 }, KealMeans { name: "Mutter of Dorsay", genetics: GENETICS_15, count: 1 }, KealMeans { name: "Burial Slumber", genetics: GENETICS_16, count: 1 }];
+static KEAL_21: &[KealMeans] = &[KealMeans { name: "Long Sword's Eternal Vision", genetics: GENETICS_17, count: 1 }];
+static KEAL_22: &[KealMeans] = &[KealMeans { name: "Defensive Sword", genetics: GENETICS_18, count: 1 }, KealMeans { name: "Gossamer Wings", genetics: GENETICS_19, count: 1 }];
+static KEAL_23: &[KealMeans] = &[KealMeans { name: "Dark Hope Maw", genetics: GENETICS_20, count: 1 }];
+static KEAL_27: &[KealMeans] = &[KealMeans { name: "Thwarting Dagger", genetics: GENETICS_21, count: 1 }, KealMeans { name: "Grotesk Wings", genetics: GENETICS_22, count: 1 }];
+static KEAL_29: &[KealMeans] = &[KealMeans { name: "Scout's Vision", genetics: GENETICS_23, count: 1 }, KealMeans { name: "Symbiont Barrage", genetics: GENETICS_24, count: 1 }];
+static KEAL_30: &[KealMeans] = &[KealMeans { name: "Quick Inject", genetics: GENETICS_25, count: 2 }];
+static KEAL_32: &[KealMeans] = &[KealMeans { name: "Ghostly Wisdom", genetics: GENETICS_26, count: 1 }];
+static KEAL_33: &[KealMeans] = &[KealMeans { name: "Osileth's Scale", genetics: GENETICS_27, count: 1 }, KealMeans { name: "Oshliath's Flame", genetics: GENETICS_28, count: 1 }];
+static KEAL_35: &[KealMeans] = &[KealMeans { name: "Sick Head", genetics: GENETICS_29, count: 1 }, KealMeans { name: "Rusting Sword", genetics: GENETICS_30, count: 1 }, KealMeans { name: "Dreaded Scratch", genetics: GENETICS_31, count: 1 }];
+static KEAL_37: &[KealMeans] = &[KealMeans { name: "Superficial Deck", genetics: GENETICS_32, count: 1 }, KealMeans { name: "Split Dimension Creeper", genetics: GENETICS_33, count: 1 }];
+static KEAL_38: &[KealMeans] = &[KealMeans { name: "Humming Arboreal Mass", genetics: GENETICS_34, count: 1 }, KealMeans { name: "Thriving Toxic Buds", genetics: GENETICS_35, count: 1 }];
+static KEAL_39: &[KealMeans] = &[KealMeans { name: "Vegan Chicken", genetics: GENETICS_36, count: 1 }];
+static KEAL_40: &[KealMeans] = &[KealMeans { name: "Digi-frying Breath", genetics: GENETICS_37, count: 1 }, KealMeans { name: "Dragon Core Codebase", genetics: GENETICS_38, count: 1 }, KealMeans { name: "Core Radiation Leak", genetics: GENETICS_39, count: 1 }];
+static KEAL_41: &[KealMeans] = &[KealMeans { name: "Mystical Misguidance", genetics: GENETICS_40, count: 1 }];
+static KEAL_44: &[KealMeans] = &[KealMeans { name: "(with bear only) Crushing Bite", genetics: GENETICS_41, count: 1 }, KealMeans { name: "(without bear only) Fairy Gold Curse", genetics: GENETICS_42, count: 1 }];
+static KEAL_48: &[KealMeans] = &[KealMeans { name: "Tear Drop Potion", genetics: GENETICS_43, count: 1 }];
+static KEAL_49: &[KealMeans] = &[KealMeans { name: "Hydraulic Punch", genetics: GENETICS_44, count: 1 }, KealMeans { name: "Pneumatic Impact Ratchet", genetics: GENETICS_45, count: 1 }];
+static KEAL_50: &[KealMeans] = &[KealMeans { name: "Subtle Chant", genetics: GENETICS_46, count: 1 }, KealMeans { name: "Universal Prayer", genetics: GENETICS_47, count: 1 }, KealMeans { name: "Inspired Followers", genetics: GENETICS_48, count: 1 }];
+static KEAL_52: &[KealMeans] = &[KealMeans { name: "Mechanized Swiftness", genetics: GENETICS_49, count: 1 }, KealMeans { name: "Tools at Hand", genetics: GENETICS_50, count: 1 }];
+static KEAL_54: &[KealMeans] = &[KealMeans { name: "Total Techno Conniption", genetics: GENETICS_51, count: 1 }];
 
-pub const CARD_COUNT: usize = 56;
+pub const CARD_COUNT: usize = 57;
 
 pub static CARDS: [Card; CARD_COUNT] = [
+    Card {
+        slug: "fourohfour",
+        title: "404 Glitch",
+        layout: "Species",
+        img_name: "404.jxl",
+        img_alt: "Lost? 404 will get you home!",
+        thumbnail: "center",
+        tags: "lost found",
+        genetic_disposition: Some("Glitch"),
+        motivation: Some("Service"),
+        habitat: Some("The cloud"),
+        url: "/fourohfour",
+        injury_tolerance: 0,
+        keal_means: KEAL_0,
+        movement: 0,
+        die: "D6",
+        brawl_sequence: "eUN0",
+        tamability: None,
+        hidden: true,
+    },
     Card {
         slug: "allele_sect_explorer",
         title: "Allele Sect Explorer",
@@ -130,11 +154,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/allele_sect_explorer/",
         injury_tolerance: 3,
-        keal_means: KEAL_0,
+        keal_means: KEAL_1,
         movement: 1,
         die: "",
         brawl_sequence: "RrDC",
         tamability: Some(3),
+        hidden: false,
     },
     Card {
         slug: "arctechnic_wonderer",
@@ -149,11 +174,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Volcanic"),
         url: "/arctechnic_wonderer/",
         injury_tolerance: 2,
-        keal_means: KEAL_1,
+        keal_means: KEAL_2,
         movement: 1,
         die: "D6",
         brawl_sequence: "AnxM",
         tamability: Some(2),
+        hidden: false,
     },
     Card {
         slug: "artificer_of_the_salt_chancel",
@@ -168,11 +194,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Water"),
         url: "/artificer_of_the_salt_chancel/",
         injury_tolerance: 1,
-        keal_means: KEAL_2,
+        keal_means: KEAL_3,
         movement: 1,
         die: "D20",
         brawl_sequence: "FuOw",
         tamability: Some(8),
+        hidden: false,
     },
     Card {
         slug: "avian_keepers_den",
@@ -192,6 +219,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "balanced_inline_processing_colony",
@@ -206,11 +234,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("DigitalCloud"),
         url: "/balanced_inline_processing_colony/",
         injury_tolerance: 0,
-        keal_means: KEAL_4,
+        keal_means: KEAL_5,
         movement: 0,
         die: "n/a ( D6 in capital )",
         brawl_sequence: "Hh2Y",
         tamability: Some(0),
+        hidden: false,
     },
     Card {
         slug: "branwen_mantillusion_practitioner",
@@ -225,11 +254,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Forest"),
         url: "/branwen_mantillusion_practitioner/",
         injury_tolerance: 2,
-        keal_means: KEAL_5,
+        keal_means: KEAL_6,
         movement: 0,
         die: "D20",
         brawl_sequence: "IR2B",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "brox_the_defiant",
@@ -244,11 +274,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Plains"),
         url: "/brox_the_defiant/",
         injury_tolerance: 3,
-        keal_means: KEAL_6,
+        keal_means: KEAL_7,
         movement: 1,
         die: "D20",
         brawl_sequence: "FOFE",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "cartesian_sea",
@@ -268,6 +299,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "cloth",
@@ -287,6 +319,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "enchantress_of_cats",
@@ -306,6 +339,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "feathers",
@@ -325,6 +359,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "feeding_the_piffions",
@@ -344,6 +379,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "freezing_of_the_heart",
@@ -363,6 +399,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "frost_tipped_arctic_otter",
@@ -377,11 +414,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Mountain"),
         url: "/frost_tipped_arctic_otter/",
         injury_tolerance: 1,
-        keal_means: KEAL_13,
+        keal_means: KEAL_14,
         movement: 1,
         die: "D6",
         brawl_sequence: "nqTG",
         tamability: Some(1),
+        hidden: false,
     },
     Card {
         slug: "gray_wolf_harbinger_of_night",
@@ -396,11 +434,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Forest"),
         url: "/gray_wolf_harbinger_of_night/",
         injury_tolerance: 1,
-        keal_means: KEAL_14,
+        keal_means: KEAL_15,
         movement: 1,
         die: "D6",
         brawl_sequence: "SWyA",
         tamability: Some(4),
+        hidden: false,
     },
     Card {
         slug: "hidden_portal_of_lower_dreadmont_cave",
@@ -420,6 +459,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "hilbert_king_of_avian_frogs",
@@ -434,11 +474,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Forest"),
         url: "/hilbert_king_of_avian_frogs/",
         injury_tolerance: 1,
-        keal_means: KEAL_16,
+        keal_means: KEAL_17,
         movement: 2,
         die: "D6-D6",
         brawl_sequence: "HMPU",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "honey",
@@ -458,6 +499,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "illia_and_dorsay_the_buck_skull",
@@ -472,11 +514,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Underground"),
         url: "/illia_and_dorsay_the_buck_skull/",
         injury_tolerance: 2,
-        keal_means: KEAL_18,
+        keal_means: KEAL_19,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WCA9",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "incubation_egg",
@@ -496,6 +539,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "knightsoul_of_binding_time",
@@ -510,11 +554,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/knightsoul_of_binding_time/",
         injury_tolerance: 1,
-        keal_means: KEAL_20,
+        keal_means: KEAL_21,
         movement: 2,
         die: "D20-D6-D6",
         brawl_sequence: "Eppu",
         tamability: Some(5),
+        hidden: false,
     },
     Card {
         slug: "liliel_healing_fairy",
@@ -529,11 +574,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/liliel_healing_fairy/",
         injury_tolerance: 2,
-        keal_means: KEAL_21,
+        keal_means: KEAL_22,
         movement: 1,
         die: "",
         brawl_sequence: "H8wj",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "little_charm",
@@ -548,11 +594,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Water"),
         url: "/little_charm/",
         injury_tolerance: 1,
-        keal_means: KEAL_22,
+        keal_means: KEAL_23,
         movement: 0,
         die: "D6-(+6)",
         brawl_sequence: "YRkt",
         tamability: Some(6),
+        hidden: false,
     },
     Card {
         slug: "location_of_the_deep_apothecary_shop",
@@ -572,6 +619,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "losetany_steppes",
@@ -591,6 +639,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "meteor_shower",
@@ -610,6 +659,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "mihela_cleanser_of_fields",
@@ -624,11 +674,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Plains"),
         url: "/mihela_cleanser_of_fields/",
         injury_tolerance: 2,
-        keal_means: KEAL_26,
+        keal_means: KEAL_27,
         movement: 1,
         die: "",
         brawl_sequence: "pVLu",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "mutant_hide_and_seek",
@@ -648,6 +699,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "myrthvither_raven",
@@ -662,11 +714,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/myrthvither_raven/",
         injury_tolerance: 0,
-        keal_means: KEAL_28,
+        keal_means: KEAL_29,
         movement: 2,
         die: "Base 3",
         brawl_sequence: "ZrrD",
         tamability: Some(2),
+        hidden: false,
     },
     Card {
         slug: "neural_network_synapse_virus",
@@ -681,11 +734,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("DigitalCloud"),
         url: "/neural_network_synapse_virus/",
         injury_tolerance: 2,
-        keal_means: KEAL_29,
+        keal_means: KEAL_30,
         movement: 0,
         die: "D6",
         brawl_sequence: "ojod",
         tamability: Some(0),
+        hidden: false,
     },
     Card {
         slug: "onironauta",
@@ -705,6 +759,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "orbs_trail",
@@ -719,11 +774,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/orbs_trail/",
         injury_tolerance: 1,
-        keal_means: KEAL_31,
+        keal_means: KEAL_32,
         movement: 2,
         die: "Base 3",
         brawl_sequence: "brOL",
         tamability: Some(3),
+        hidden: false,
     },
     Card {
         slug: "oshliath_and_osileth",
@@ -738,11 +794,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Mountain"),
         url: "/oshliath_and_osileth/",
         injury_tolerance: 2,
-        keal_means: KEAL_32,
+        keal_means: KEAL_33,
         movement: 1,
         die: "D20-D6",
         brawl_sequence: "KVph",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "palace_of_the_allele_sect",
@@ -762,6 +819,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "parched_traveler",
@@ -776,11 +834,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Volcanic"),
         url: "/parched_traveler/",
         injury_tolerance: 0,
-        keal_means: KEAL_34,
+        keal_means: KEAL_35,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "oOnN",
         tamability: Some(1),
+        hidden: false,
     },
     Card {
         slug: "passage_among_maples",
@@ -800,6 +859,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "plane_table_joker",
@@ -814,11 +874,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Plains"),
         url: "/plane_table_joker/",
         injury_tolerance: 3,
-        keal_means: KEAL_36,
+        keal_means: KEAL_37,
         movement: 1,
         die: "D6",
         brawl_sequence: "hLwQ",
         tamability: Some(5),
+        hidden: false,
     },
     Card {
         slug: "pyrostegia_dragon",
@@ -833,11 +894,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Mountain"),
         url: "/pyrostegia_dragon/",
         injury_tolerance: 2,
-        keal_means: KEAL_37,
+        keal_means: KEAL_38,
         movement: 0,
         die: "D20",
         brawl_sequence: "G8OO",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "rooster_calling_of_light",
@@ -852,11 +914,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Mountain"),
         url: "/rooster_calling_of_light/",
         injury_tolerance: 1,
-        keal_means: KEAL_38,
+        keal_means: KEAL_39,
         movement: 1,
         die: "",
         brawl_sequence: "BB5S",
         tamability: Some(1),
+        hidden: false,
     },
     Card {
         slug: "sboi_threat_plus_plus",
@@ -871,11 +934,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("DigitalCloud"),
         url: "/sboi_threat_plus_plus/",
         injury_tolerance: 2,
-        keal_means: KEAL_39,
+        keal_means: KEAL_40,
         movement: 1,
         die: "",
         brawl_sequence: "J7a0",
         tamability: Some(9),
+        hidden: false,
     },
     Card {
         slug: "self_care",
@@ -890,11 +954,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Forest"),
         url: "/self_care/",
         injury_tolerance: 0,
-        keal_means: KEAL_40,
+        keal_means: KEAL_41,
         movement: 0,
         die: "D6",
         brawl_sequence: "P2IR",
         tamability: Some(3),
+        hidden: false,
     },
     Card {
         slug: "shards_desert",
@@ -914,6 +979,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "spectral_lands_decree_and_hearing",
@@ -933,6 +999,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "sprite_of_wilds_spirit",
@@ -947,11 +1014,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Mountain"),
         url: "/sprite_of_wilds_spirit/",
         injury_tolerance: 2,
-        keal_means: KEAL_43,
+        keal_means: KEAL_44,
         movement: 0,
         die: "(without bear) D6-D6, (with bear) D20",
         brawl_sequence: "k8on",
         tamability: Some(7),
+        hidden: false,
     },
     Card {
         slug: "sticks",
@@ -971,6 +1039,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "string",
@@ -990,6 +1059,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "suspended_animation",
@@ -1009,6 +1079,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "tears_for_oly",
@@ -1023,11 +1094,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Heavens"),
         url: "/tears_for_oly/",
         injury_tolerance: 1,
-        keal_means: KEAL_47,
+        keal_means: KEAL_48,
         movement: 3,
         die: "D6",
         brawl_sequence: "F3GW",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "tejas_curious_mech",
@@ -1042,11 +1114,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Nomad"),
         url: "/tejas_curious_mech/",
         injury_tolerance: 1,
-        keal_means: KEAL_48,
+        keal_means: KEAL_49,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WWpl",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "the_causal_sophist",
@@ -1061,11 +1134,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Heavens"),
         url: "/the_causal_sophist/",
         injury_tolerance: 2,
-        keal_means: KEAL_49,
+        keal_means: KEAL_50,
         movement: 1,
         die: "Base 2 + D6",
         brawl_sequence: "bSGc",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "timebattle",
@@ -1085,6 +1159,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "tira_marvelous_myriad",
@@ -1099,11 +1174,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("Heavens"),
         url: "/tira_marvelous_myriad/",
         injury_tolerance: 2,
-        keal_means: KEAL_51,
+        keal_means: KEAL_52,
         movement: 1,
         die: "D6-D6 (Option to Re-roll)",
         brawl_sequence: "KCW4",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "to_catch_a_spirit",
@@ -1123,6 +1199,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "unburdened_central",
@@ -1137,11 +1214,12 @@ pub static CARDS: [Card; CARD_COUNT] = [
         habitat: Some("DigitalCloud"),
         url: "/unburdened_central/",
         injury_tolerance: 1,
-        keal_means: KEAL_53,
+        keal_means: KEAL_54,
         movement: 1,
         die: "D6",
         brawl_sequence: "L-E7",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "ushered_through_sabina_emporium",
@@ -1161,6 +1239,7 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
     Card {
         slug: "what_do_you_see_in_the_breach",
@@ -1180,5 +1259,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         die: "",
         brawl_sequence: "",
         tamability: None,
+        hidden: false,
     },
 ];

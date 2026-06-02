@@ -43,6 +43,8 @@ interface CardMeta {
   brawl_sequence: string;
   // Phase C: tamability (Species cards only, optional)
   tamability: number | null;
+  // Hidden from /api/cards browse grid (e.g. the /fourohfour easter-egg card)
+  hidden: boolean;
   // Kippa context fields (JSON export only, not in Rust)
   description: string | null;
   play_style: string | null;
@@ -109,53 +111,78 @@ function extractKealMeans(fm: Record<string, any>): KealMeans[] {
 
 const THUMB_ANCHORS = ['top', 'center', 'bottom'];
 
+// Root-level card pages that live outside _posts but still need a tracker.
+// Explicit allowlist keeps 404.html and other root pages from being registered.
+const EXTRA_CARD_FILES = ['fourohfour.html'];
+
+/**
+ * Parse a single card's front matter into a CardMeta, or return null if it is
+ * missing the required fields. Shared by the _posts walk and EXTRA_CARD_FILES.
+ */
+function extractCard(name: string, content: string): CardMeta | null {
+  const fm = parseFrontMatter(content);
+
+  if (!fm.permalink || !fm.title || !fm.layout || !fm.img_name) {
+    console.warn(`Skipping ${name}: missing required front matter`);
+    return null;
+  }
+
+  const slug = String(fm.permalink).replace(/\//g, '');
+
+  const img_name = String(fm.img_name);
+  const thumbnail = THUMB_ANCHORS.includes(String(fm.thumbnail)) ? String(fm.thumbnail) : 'center';
+
+  return {
+    slug,
+    title: String(fm.title),
+    layout: String(fm.layout),
+    img_name,
+    img_alt: fm.img_alt ? String(fm.img_alt).trim() : '',
+    thumbnail,
+    tags: fm.tags ? String(fm.tags) : '',
+    genetic_disposition: fm.genetic_disposition ? String(fm.genetic_disposition) : null,
+    motivation: fm.motivation ? String(fm.motivation) : null,
+    habitat: fm.habitat ? String(fm.habitat) : null,
+    url: String(fm.permalink),
+    // Phase 3b game data
+    injury_tolerance: typeof fm.injury_tolerance === 'number' ? fm.injury_tolerance : 0,
+    keal_means: extractKealMeans(fm),
+    movement: typeof fm.movement === 'number' ? fm.movement : 0,
+    die: fm.die ? String(fm.die) : '',
+    brawl_sequence: fm.brawl_sequence ? String(fm.brawl_sequence) : '',
+    tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
+    hidden: fm.hidden === true,
+    // Kippa context fields
+    description: fm.description ? String(fm.description).trim() : null,
+    play_style: fm.play_style ? String(fm.play_style).trim() : null,
+    scarcity: fm.scarcity ? String(fm.scarcity).trim() : null,
+    variation: fm.variation ? String(fm.variation).trim() : null,
+  };
+}
+
 async function main() {
   const postsDir = join(Deno.cwd(), '_posts');
   const cards: CardMeta[] = [];
+  const seen = new Set<string>();
 
   for await (const entry of walk(postsDir, { exts: ['.html'], maxDepth: 1 })) {
     if (!entry.isFile) continue;
 
     const content = await Deno.readTextFile(entry.path);
-    const fm = parseFrontMatter(content);
-
-    if (!fm.permalink || !fm.title || !fm.layout || !fm.img_name) {
-      console.warn(`Skipping ${entry.name}: missing required front matter`);
-      continue;
+    const card = extractCard(entry.name, content);
+    if (card && !seen.has(card.slug)) {
+      seen.add(card.slug);
+      cards.push(card);
     }
+  }
 
-    const slug = String(fm.permalink).replace(/\//g, '');
-
-    const img_name = String(fm.img_name);
-    const thumbnail = THUMB_ANCHORS.includes(String(fm.thumbnail))
-      ? String(fm.thumbnail)
-      : 'center';
-
-    cards.push({
-      slug,
-      title: String(fm.title),
-      layout: String(fm.layout),
-      img_name,
-      img_alt: fm.img_alt ? String(fm.img_alt).trim() : '',
-      thumbnail,
-      tags: fm.tags ? String(fm.tags) : '',
-      genetic_disposition: fm.genetic_disposition ? String(fm.genetic_disposition) : null,
-      motivation: fm.motivation ? String(fm.motivation) : null,
-      habitat: fm.habitat ? String(fm.habitat) : null,
-      url: String(fm.permalink),
-      // Phase 3b game data
-      injury_tolerance: typeof fm.injury_tolerance === 'number' ? fm.injury_tolerance : 0,
-      keal_means: extractKealMeans(fm),
-      movement: typeof fm.movement === 'number' ? fm.movement : 0,
-      die: fm.die ? String(fm.die) : '',
-      brawl_sequence: fm.brawl_sequence ? String(fm.brawl_sequence) : '',
-      tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
-      // Kippa context fields
-      description: fm.description ? String(fm.description).trim() : null,
-      play_style: fm.play_style ? String(fm.play_style).trim() : null,
-      scarcity: fm.scarcity ? String(fm.scarcity).trim() : null,
-      variation: fm.variation ? String(fm.variation).trim() : null,
-    });
+  for (const name of EXTRA_CARD_FILES) {
+    const content = await Deno.readTextFile(join(Deno.cwd(), name));
+    const card = extractCard(name, content);
+    if (card && !seen.has(card.slug)) {
+      seen.add(card.slug);
+      cards.push(card);
+    }
   }
 
   // Sort alphabetically by title (matching current Jekyll sort:title)
@@ -204,6 +231,8 @@ async function main() {
     "    pub brawl_sequence: &'static str,",
     '    // Phase C: tamability (Species cards only)',
     '    pub tamability: Option<u32>,',
+    '    // Hidden from the /api/cards browse grid (e.g. the /fourohfour easter-egg card)',
+    '    pub hidden: bool,',
     '}',
     '',
   ];
@@ -263,6 +292,7 @@ async function main() {
     lines.push(`        die: "${escapeRust(card.die)}",`);
     lines.push(`        brawl_sequence: "${escapeRust(card.brawl_sequence)}",`);
     lines.push(`        tamability: ${optionU32(card.tamability)},`);
+    lines.push(`        hidden: ${card.hidden},`);
     lines.push('    },');
   }
 

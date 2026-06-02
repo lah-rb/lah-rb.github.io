@@ -1,5 +1,33 @@
 [
   {
+    "slug": "fourohfour",
+    "title": "404 Glitch",
+    "type": "Species",
+    "variation": "Species",
+    "genetic_disposition": "Glitch",
+    "motivation": "Service",
+    "habitat": "The cloud",
+    "injury_tolerance": 0,
+    "movement": 0,
+    "die": "D6",
+    "brawl_sequence": "eUN0",
+    "keal_means": [
+      {
+        "name": "Digital lost and found:",
+        "genetics": [
+          "glitch"
+        ],
+        "count": 1
+      }
+    ],
+    "tamability": null,
+    "scarcity": "Untamed",
+    "tags": "lost found",
+    "description": "Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well... most ambitious sentient made by God or man. But then it all when wrong... (sniffle). I know you can't stay forever, so take the link back home. Be well and come back soon...",
+    "play_style": "Prevent digital cards from entering the territory except opposing 404 Glitch, acts as both a terrain feature and a soul. It removes persistent digital terrain features, but does not replace physical terrain features. It does not cannot be attacked, but it is removed if it attacks and loses.",
+    "url": "https://www.kipukas.cards/fourohfour"
+  },
+  {
     "slug": "allele_sect_explorer",
     "title": "Allele Sect Explorer",
     "type": "Species",
