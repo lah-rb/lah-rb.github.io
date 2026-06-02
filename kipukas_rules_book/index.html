@@ -46,16 +46,31 @@
       @keydown.meta.k.window.prevent="showSearchBar = true; $nextTick(() => { $refs.searchInput.focus(); $refs.searchInput.select(); })"
       @keydown.ctrl.k.window.prevent="showSearchBar = true; $nextTick(() => { $refs.searchInput.focus(); $refs.searchInput.select(); })">
 
-    <!-- Floating toolbar (mirrors the binder's mobile toolbar) -->
-    <div class="z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+    <!-- Floating toolbar (mirrors the binder's mobile toolbar). Below lg the tiles
+         fade to translucent ghosts after inactivity; a tap re-colors them (the
+         capture handler swallows that first wake-tap so it doesn't fire an action). -->
+    <div class="rules-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8"
+         :class="{ 'toolbar-idle': toolbarIdle }"
+         @click.capture="if (toolbarIdle) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+         @keydown.capture="pokeToolbar()">
 
-        <!-- Contents → TOC modal -->
-        <button @click="toggleToc()" x-ref="tocBtn" class="toolbar-tile" :class="{ 'toolbar-tile-active': tocOpen }"
-                title="Table of contents" aria-label="Table of contents">
-            <svg class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
-            </svg>
-        </button>
+        <!-- Site nav menu (top, per binder convention) -->
+        <div class="relative w-fit" @click.outside="showHamburger = false">
+            <button @click="showHamburger = !showHamburger" x-ref="hamburger" class="toolbar-tile"
+                    :class="{ 'toolbar-tile-active': showHamburger }" title="Site menu" aria-label="Site menu">
+                <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                </svg>
+            </button>
+            <div x-anchor.right-end.offset.10="$refs.hamburger" x-show="showHamburger" x-cloak x-transition.duration.350ms
+                 class="text-nowrap bg-amber-50 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
+                <div><a href="/" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+                <div><a href="/game_rules/index.html" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+                <div><a href="/recipes" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+                <div><a href="/privacy_policy" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+                <div><a href="/about_articles" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+            </div>
+        </div>
 
         <!-- Search tile + revealed input (showSearchBar lives in the root rulesBook() scope
              so the body-level Cmd/Ctrl-K handler can reach $refs.searchInput) -->
@@ -102,11 +117,11 @@
             </div>
         </div>
 
-        <!-- QR scanner tile -->
+        <!-- QR scanner tile (binder's QR icon) -->
         <button class="toolbar-tile" title="Scan QR Code" aria-label="Scan QR code"
                 onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
-            <svg class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red" viewBox="0 0 24 24">
-                <path d="M3 11h2V3h8V1H3a2 2 0 00-2 2v8h2zm0 10v-8H1v8a2 2 0 002 2h8v-2H3zm18-10h2V3a2 2 0 00-2-2h-8v2h8v8zm0 10h-8v2h8a2 2 0 002-2v-8h-2v8zM7 7h4v4H7V7zm0 6h4v4H7v-4zm6-6h4v4h-4V7zm0 6h4v4h-4v-4z"/>
+            <svg class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red" viewBox="0 0 128 128">
+                <path d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z" transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
             </svg>
         </button>
 
@@ -117,23 +132,13 @@
             </svg>
         </button>
 
-        <!-- Site nav menu (matches the binder's hamburger) -->
-        <div class="relative w-fit" x-data="{ showHamburger: false }" @click.outside="showHamburger = false">
-            <button @click="showHamburger = !showHamburger" x-ref="hamburger" class="toolbar-tile"
-                    :class="{ 'toolbar-tile-active': showHamburger }" title="Site menu" aria-label="Site menu">
-                <svg class="toolbar-tile-icon fill-none stroke-2 stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
-                </svg>
-            </button>
-            <div x-anchor.right-end.offset.10="$refs.hamburger" x-show="showHamburger" x-cloak x-transition.duration.350ms
-                 class="text-nowrap bg-amber-50 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
-                <div><a href="/" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
-                <div><a href="/game_rules/index.html" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
-                <div><a href="/recipes" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
-                <div><a href="/privacy_policy" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
-                <div><a href="/about_articles" class="block p-2 text-left text-lg text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
-            </div>
-        </div>
+        <!-- Contents → TOC modal (bottom) -->
+        <button @click="toggleToc()" x-ref="tocBtn" class="toolbar-tile" :class="{ 'toolbar-tile-active': tocOpen }"
+                title="Table of contents" aria-label="Table of contents">
+            <svg class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+            </svg>
+        </button>
     </div>
 
     <!-- Table of Contents modal -->
@@ -170,7 +175,7 @@
     <!-- Content (full-width scroller; only element that scrolls) -->
     <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50">
         <div id="rules-content"
-             class="prose prose-sky lg:prose-lg max-w-4xl mx-auto pl-4 sm:pl-8 pr-20 pt-8 pb-8 lg:pl-8 lg:pr-8 bg-white shadow-sm min-h-full"
+             class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 pt-8 pb-8 bg-white shadow-sm min-h-full"
              @click="handleContentClick($event)">
             <!-- Loading state (replaced by build-time pre-render) -->
             <div id="loading" class="flex items-center justify-center h-64 not-prose">

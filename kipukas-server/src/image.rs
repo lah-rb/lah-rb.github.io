@@ -3,7 +3,7 @@
 //! The Service Worker fetches a `.jxl` and hands the bytes here. We decode the
 //! full image with `jxl-oxide` and return a 24-bit BMP byte buffer — a format
 //! every browser renders directly from an `<img>`, trivial to encode (no
-//! compression pass). Card art is opaque, so we drop alpha and emit BGR.
+//! compression pass). Any alpha is composited onto white, then we emit BGR.
 //!
 //! Entry point exported to JS:
 //! - `decode_jxl(bytes, max_dim)` — decode the full image, then optionally
@@ -101,14 +101,30 @@ fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
     let mut stream = stream;
     stream.write_to_buffer(&mut fb);
 
-    // Interleaved f32 samples in [0,1] → RGB u8. Handle gray / RGB / RGBA.
+    // Interleaved f32 samples in [0,1] → RGB u8. Handle gray / gray+alpha / RGB /
+    // RGBA, compositing any alpha onto white (white = 1.0). Document images (QR
+    // codes, diagrams) are often black-on-transparent PNGs; without this they'd
+    // decode to solid black, since the transparent + black pixels are both (0,0,0).
     let px = width as usize * height as usize;
     let mut rgb = vec![0u8; px * 3];
     for i in 0..px {
         let base = i * channels;
         let (r, g, b) = match channels {
             1 => (fb[base], fb[base], fb[base]),
-            _ => (fb[base], fb[base + 1], fb[base + 2]),
+            2 => {
+                let a = fb[base + 1];
+                let v = fb[base] * a + (1.0 - a);
+                (v, v, v)
+            }
+            3 => (fb[base], fb[base + 1], fb[base + 2]),
+            _ => {
+                let a = fb[base + 3];
+                (
+                    fb[base] * a + (1.0 - a),
+                    fb[base + 1] * a + (1.0 - a),
+                    fb[base + 2] * a + (1.0 - a),
+                )
+            }
         };
         rgb[i * 3] = to_u8(r);
         rgb[i * 3 + 1] = to_u8(g);

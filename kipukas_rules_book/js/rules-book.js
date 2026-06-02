@@ -16,6 +16,11 @@ document.addEventListener('alpine:init', () => {
     activeId: '',
     _observer: null,
 
+    // ── Toolbar (idle ghost on mobile) ────────────────────────
+    toolbarIdle: false,
+    showHamburger: false,
+    _idleTimer: null,
+
     // ── Search ────────────────────────────────────────────────
     searchQuery: '',
     searchResults: [],
@@ -48,6 +53,9 @@ document.addEventListener('alpine:init', () => {
 
       // Set up scroll-spy via IntersectionObserver
       this.initScrollSpy();
+
+      // Start the toolbar idle-ghost timer (mobile only)
+      this.pokeToolbar();
 
       // Load search index (generated at build time)
       this.loadSearchIndex();
@@ -141,6 +149,30 @@ document.addEventListener('alpine:init', () => {
 
     closeToc() {
       this.tocOpen = false;
+    },
+
+    // ══════════════════════════════════════════════════════════
+    // Toolbar idle-ghost (mobile only) — the floating tiles overlap content
+    // below `lg`, so after a few idle seconds they fade to translucent gray;
+    // a tap re-colors them (the markup's capture handler swallows that tap).
+    // ══════════════════════════════════════════════════════════
+
+    _ghostEnabled() {
+      return globalThis.matchMedia('(max-width: 1023px)').matches;
+    },
+
+    pokeToolbar() {
+      this.toolbarIdle = false;
+      clearTimeout(this._idleTimer);
+      if (!this._ghostEnabled()) return;
+      this._idleTimer = setTimeout(() => {
+        // Don't ghost while a panel is open — re-arm instead.
+        if (this.showSearchBar || this.tocOpen || this.showHamburger) {
+          this.pokeToolbar();
+        } else {
+          this.toolbarIdle = true;
+        }
+      }, 4000);
     },
 
     scrollTo(targetId) {

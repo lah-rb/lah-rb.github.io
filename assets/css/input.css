@@ -111,6 +111,15 @@
   .toolbar-tile-icon { @apply w-7 h-7; }
 }
 
+/* Rules-book floating toolbar: idle-ghost (mobile/tablet only). The tiles overlap
+   content below lg, so after a few idle seconds they fade to translucent gray to
+   get out of the way; a tap re-colors them. On lg+ the toolbar sits in the margin,
+   so it never ghosts. Tiles stay pointer-interactive while ghosted (tap to wake). */
+.rules-toolbar { transition: opacity 0.5s ease, filter 0.5s ease; }
+@media (max-width: 1023px) {
+  .rules-toolbar.toolbar-idle { opacity: 0.4; filter: grayscale(0.85); }
+}
+
 /* ══════════════════════════════════════════════════════════════
    Rules Book — custom styles that prose / Tailwind can't cover
    ══════════════════════════════════════════════════════════════ */

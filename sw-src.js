@@ -134,8 +134,10 @@ registerRoute(wasmApiMatcher, wasmApiHandler, 'PATCH'); // PATCH
 // thumbnails (small, many) and full detail images (large, few) live in separate
 // caches, each FIFO-capped so memory stays bounded. The small raw .jxl is also
 // cached for offline re-decode.
-const DECODED_CACHE = 'kipukas-images-decoded'; // thumbnails (?d=512)
-const FULL_CACHE = 'kipukas-images-full'; // full detail decodes (no ?d)
+// -v2: bumped when the WASM decoder changed (alpha→white composite) so the old
+// black-on-transparent BMPs are re-decoded rather than served from cache.
+const DECODED_CACHE = 'kipukas-images-decoded-v2'; // thumbnails (?d=512)
+const FULL_CACHE = 'kipukas-images-full-v2'; // full detail decodes (no ?d)
 const RAW_JXL_CACHE = 'kipukas-jxl';
 const THUMB_CACHE_MAX = 300; // ~small BMPs
 const FULL_CACHE_MAX = 12; // ~3.8MB BMP each → bounded ≈ 46MB
@@ -334,7 +336,11 @@ self.addEventListener('activate', (event) => {
               /kipukas-(?:pages|assets|images|fonts)-[a-f0-9]{64}/.test(name);
             // Also delete the old "my-app-cache-" prefix from the backup config
             const isLegacyCache = name.startsWith('my-app-cache-');
-            return isOldVersionedCache || isLegacyCache;
+            // Pre-v2 decoded-image caches held BMPs from the old decoder (alpha
+            // dropped → black). Drop them so the new decoder's output is used.
+            const isStaleDecodedCache =
+              name === 'kipukas-images-decoded' || name === 'kipukas-images-full';
+            return isOldVersionedCache || isLegacyCache || isStaleDecodedCache;
           })
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
