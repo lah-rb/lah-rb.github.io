@@ -56,11 +56,15 @@
 
         <!-- Site nav menu (top, per binder convention) -->
         <div class="relative w-fit" @click.outside="showHamburger = false">
-            <button @click="showHamburger = !showHamburger" x-ref="hamburger" class="toolbar-tile"
-                    :class="{ 'toolbar-tile-active': showHamburger }" title="Site menu" aria-label="Site menu">
-                <svg class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
-                </svg>
+            <button @click="showHamburger = !showHamburger" x-ref="hamburger"
+                    class="toolbar-tile text-kip-drk-goldenrod hover:text-kip-red relative"
+                    title="Site menu" aria-label="Site menu">
+                <span class="sr-only">Site menu</span>
+                <div class="block w-5 absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,'-translate-y-1.5': !showHamburger }"></span>
+                    <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger }"></span>
+                    <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'-rotate-45': showHamburger,'translate-y-1.5': !showHamburger}"></span>
+                </div>
             </button>
             <div x-anchor.right-end.offset.10="$refs.hamburger" x-show="showHamburger" x-cloak x-transition.duration.350ms
                  class="text-nowrap bg-amber-50 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 z-50">
