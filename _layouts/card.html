@@ -34,7 +34,7 @@ layout: default
       onload="this.classList.remove('opacity-0')">
     <div x-show="showCardInfo" class="relative w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
-        <div class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">
+        <div data-card-detail class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">
           <h1 class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</h1>
           {{ content }}
           <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>

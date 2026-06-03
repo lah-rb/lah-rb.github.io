@@ -32,6 +32,8 @@ module.exports = {
     'site.webmanifest',
     // Tiny list of assets the SW warms into runtime caches after PWA install.
     'offline-manifest.json',
+    // Hand-view code→card index (small; needed whenever /hand/ loads).
+    'assets/data/**/*.json',
   ],
   globIgnores: [
     // Build artifacts that should NOT be precached
@@ -48,6 +50,9 @@ module.exports = {
     'assets/thumbnails/**',
     // Full-size images are handled by runtime CacheFirst
     'assets/images/**',
+    // Per-card detail fragments are runtime-cached (NetworkFirst HTML route) when
+    // a /hand/ is viewed — keep them out of the lean first-visit precache.
+    'card_fragments/**',
     // Duplicate content in kipukas_rules_book source dirs
     'kipukas_rules_book/src/**',
     'kipukas_rules_book/old/**',

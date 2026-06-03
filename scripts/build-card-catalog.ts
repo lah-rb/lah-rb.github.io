@@ -30,6 +30,7 @@ interface CardMeta {
   img_name: string;
   img_alt: string;
   thumbnail: string; // grid crop anchor: top | center | bottom
+  code: string; // 4-char redirect_from code — compact id for hand-view URLs
   tags: string;
   genetic_disposition: string | null;
   motivation: string | null;
@@ -139,6 +140,7 @@ function extractCard(name: string, content: string): CardMeta | null {
     img_name,
     img_alt: fm.img_alt ? String(fm.img_alt).trim() : '',
     thumbnail,
+    code: fm.redirect_from ? String(fm.redirect_from).replace(/\//g, '').trim() : '',
     tags: fm.tags ? String(fm.tags) : '',
     genetic_disposition: fm.genetic_disposition ? String(fm.genetic_disposition) : null,
     motivation: fm.motivation ? String(fm.motivation) : null,
@@ -338,6 +340,35 @@ async function main() {
   const jsonPath = join(Deno.cwd(), 'kipukas-server', 'cards_catalog.json');
   await Deno.writeTextFile(jsonPath, JSON.stringify(jsonCards, null, 2));
   console.log(`[build-card-catalog] JSON catalog: ${jsonCards.length} cards → ${jsonPath}`);
+
+  // Hand-view index: maps each card's compact 4-char code → the data the
+  // /hand/ page needs to build a pane (art + title) and fetch its fragment.
+  // Codes must be exactly 4 chars so the URL hash can be parsed in fixed-width
+  // chunks (e.g. /hand/#KVphRrDC = two cards). Hidden cards are excluded.
+  const handIndex: Record<string, { slug: string; img_name: string; title: string }> = {};
+  for (const c of cards) {
+    if (c.hidden) continue;
+    if (c.code.length !== 4) {
+      console.warn(
+        `[build-card-catalog] WARNING: card "${c.slug}" has a non-4-char code "${c.code}" — excluded from hand-index (breaks fixed-width URL parsing).`,
+      );
+      continue;
+    }
+    if (handIndex[c.code]) {
+      console.warn(
+        `[build-card-catalog] WARNING: duplicate code "${c.code}" (${handIndex[c.code].slug} vs ${c.slug}); keeping first.`,
+      );
+      continue;
+    }
+    handIndex[c.code] = { slug: c.slug, img_name: c.img_name, title: c.title };
+  }
+  const dataDir = join(Deno.cwd(), 'assets', 'data');
+  await Deno.mkdir(dataDir, { recursive: true });
+  const handIndexPath = join(dataDir, 'hand-index.json');
+  await Deno.writeTextFile(handIndexPath, JSON.stringify(handIndex));
+  console.log(
+    `[build-card-catalog] Hand index: ${Object.keys(handIndex).length} codes → ${handIndexPath}`,
+  );
 
   // Offline warm manifest: the assets the SW pulls into runtime caches AFTER the
   // user installs the PWA (kept lean in the precache for fast first visits).

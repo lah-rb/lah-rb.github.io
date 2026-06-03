@@ -1,0 +1,51 @@
+---
+layout: default
+permalink: /hand/
+title: "Your Hand"
+description: "View a hand of Kipukas cards side by side — a shareable spread."
+---
+{% include toolbar.html
+  hamburger=true
+  goHome=true
+  base_fill='fill-slate-200'
+  base_stroke='stroke-slate-200'
+%}
+
+<div class="w-screen h-screen overflow-hidden">
+  <!-- Empty / invalid-hand state -->
+  <div id="hand-empty" hidden
+    class="flex flex-col items-center justify-center h-screen text-center px-6 text-kip-drk-goldenrod">
+    <p class="text-2xl md:text-3xl font-semibold mb-3">No cards in your hand</p>
+    <p class="mb-6 text-slate-500 max-w-md">
+      Add card codes to the address (e.g. <code class="font-mono">/hand/#KVphRrDC</code>),
+      or head back to the binder to pick some.
+    </p>
+    <a href="/" class="toolbar-tile w-auto px-6 text-kip-drk-goldenrod">Back to the binder</a>
+  </div>
+
+  <!-- The spread: horizontal scroll-snap row of full-bleed panes.
+       Desktop → several panes visible (a spread); mobile → one per swipe. -->
+  <div id="hand-spread" hidden
+    class="flex h-screen overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth"></div>
+</div>
+
+<!-- Pane template (all classes live here so Tailwind detects them). hand-view.js
+     clones this per card, sets the art src, and injects the card's detail fragment. -->
+<template id="hand-pane-tpl">
+  <section class="hand-pane relative h-full">
+    <img data-art-lqip aria-hidden="true" alt=""
+      class="absolute inset-0 w-full h-full object-cover">
+    <img data-art-full aria-hidden="true" alt="" onload="this.classList.remove('opacity-0')"
+      class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700">
+    <div class="absolute inset-0 overflow-y-auto">
+      <div class="min-h-full backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
+        <div class="flex place-content-center w-full">
+          <div data-pane-content
+            class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-5/6 h-fit min-h-full scroll-smooth"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script src="/assets/js/hand-view.js" defer></script>
