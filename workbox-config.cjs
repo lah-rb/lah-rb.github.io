@@ -4,7 +4,12 @@ module.exports = {
   // and Workbox replaces self.__WB_MANIFEST with the precache list.
   // ============================================
   swSrc: './sw-src.js',
-  swDest: './sw.js',
+  // Write the generated SW directly into the deploy output (_site). build:sw runs
+  // AFTER `jekyll build`, so this overwrites Jekyll's stale copy with a manifest
+  // globbed from the CURRENT _site. (Previously swDest was the repo root, so the
+  // deployed _site/sw.js was always one build stale — its manifest pointed at
+  // files that no longer existed, failing precache install on fresh clients.)
+  swDest: './_site/sw.js',
 
   globDirectory: '_site/',
   globPatterns: [
@@ -54,6 +59,9 @@ module.exports = {
     'windows11/**',
     'ios/**',
     'android/**',
+    // Archived experiment — must never be precached (also excluded from _site)
+    'YOLO_rqrr/**',
+    'runs/**',
   ],
 
   // Maximum file size to precache (2 MB) — skip anything larger

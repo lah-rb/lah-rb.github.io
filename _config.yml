@@ -64,4 +64,7 @@ exclude:
   - PWA_SETUP.md
   - workbox-config.cjs
   - sw-src.js
+  # sw.js is generated straight into _site by build:sw (swDest); don't let Jekyll
+  # copy a stale root sw.js over it.
+  - sw.js
 
