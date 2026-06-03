@@ -51,7 +51,7 @@
          capture handler swallows that first wake-tap so it doesn't fire an action). -->
     <div class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8"
          :class="{ 'toolbar-idle': toolbarIdle }"
-         @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+         @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
          @keydown.capture="pokeToolbar()">
 
         <!-- Site nav menu (top, per binder convention) -->

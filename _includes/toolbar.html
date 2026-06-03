@@ -27,7 +27,7 @@ background_color
 <div x-cloak
   x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true), toolbarIdle: false, _idleTimer: null, pokeToolbar() { this.toolbarIdle = false; clearTimeout(this._idleTimer); this._idleTimer = setTimeout(() => { this.toolbarIdle = true; }, 4000); } }"
   x-init="pokeToolbar()"
-  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
   @keydown.capture="pokeToolbar()"
   :class="{ 'toolbar-idle': toolbarIdle }"
   class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
@@ -46,8 +46,6 @@ background_color
 
   {% if include.hamburger %}
     {% include hamburger_menu.html %}
-    {% include player_data_tool.html %}
-    {% include device_sync_tool.html %}
   {% endif %}
 
   {% if include.goHome %}
@@ -227,5 +225,13 @@ background_color
     </svg>
   </button>
   {% endif %}
-  
+
 </div>
+
+{% comment %} Fixed-position modals (event-triggered from the hamburger menu).
+  Rendered OUTSIDE the toolbar's flex column so their empty wrappers don't add
+  gap spacing below the hamburger. {% endcomment %}
+{% if include.hamburger %}
+  {% include player_data_tool.html %}
+  {% include device_sync_tool.html %}
+{% endif %}
