@@ -224,12 +224,8 @@ wasmWorker.addEventListener('message', (event) => {
 })();
 
 // ============================================
-// PRELOAD QR detection stack (YOLO + ZXing) after 5s delay
+// QR detection stack is loaded on demand
 // ============================================
-// Eagerly loads the ~11MB ONNX model + ZXing WASM so the scanner
-// feels instant when opened. The 5s delay avoids competing with
-// initial page rendering and HTMX hydration.
-setTimeout(() => {
-  const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
-  wasmWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled });
-}, 5000);
+// Previously preloaded 5s into every visit (wasteful for the majority who never
+// scan). It's now warmed on the FIRST QR-button click — see window.kipukasLoadQR
+// in _layouts/default.html — so it preps while the user reads the privacy modal.

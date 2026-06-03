@@ -26,6 +26,13 @@
           body._x_dataStack[0].hideInstallButton = true;
         }
       });
+      // Installed PWA launch: warm/resume the offline cache (idempotent — skips
+      // already-cached entries, so re-running each launch finishes an interrupted warm).
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.ready.then((reg) => {
+          if (reg.active) reg.active.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+        });
+      }
     }
 
     // Layer 2: Listen for the appinstalled event (fires when user completes install).
@@ -38,9 +45,11 @@
       }
       deferredPrompt = null;
 
-      // Notify the Service Worker so it can track install state independently
+      // Notify the Service Worker so it can track install state independently,
+      // and ask it to warm the full offline cache (card art + QR decoder).
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'PWA_INSTALLED' });
+        navigator.serviceWorker.controller.postMessage({ type: 'WARM_OFFLINE_CACHE' });
       }
     });
 

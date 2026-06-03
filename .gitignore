@@ -15,6 +15,7 @@ kipukas-server/target/
 _site/
 game_rules/
 sw.js
+offline-manifest.json
 assets/css/output.css
 assets/js-wasm/kipukas-server-pkg/
 assets/js/alpine.bundle.min.js

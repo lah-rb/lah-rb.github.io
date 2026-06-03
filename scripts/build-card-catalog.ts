@@ -338,6 +338,26 @@ async function main() {
   const jsonPath = join(Deno.cwd(), 'kipukas-server', 'cards_catalog.json');
   await Deno.writeTextFile(jsonPath, JSON.stringify(jsonCards, null, 2));
   console.log(`[build-card-catalog] JSON catalog: ${jsonCards.length} cards → ${jsonPath}`);
+
+  // Offline warm manifest: the assets the SW pulls into runtime caches AFTER the
+  // user installs the PWA (kept lean in the precache for fast first visits).
+  // - images: raw card .jxl (the real offline gap — art decodes on-demand and
+  //   isn't cached until viewed). Warmed into the SW's raw-jxl cache.
+  // - extra: the QR decoder (removed from precache; only needed when scanning).
+  const offlineManifest = {
+    images: cards
+      .filter((c) => !c.hidden && c.img_name)
+      .map((c) => `/assets/images/${c.img_name}`),
+    extra: [
+      '/assets/js-wasm/zxing_reader.js',
+      '/assets/js-wasm/zxing_reader.wasm',
+    ],
+  };
+  const offlinePath = join(Deno.cwd(), 'offline-manifest.json');
+  await Deno.writeTextFile(offlinePath, JSON.stringify(offlineManifest));
+  console.log(
+    `[build-card-catalog] Offline manifest: ${offlineManifest.images.length} images + ${offlineManifest.extra.length} extra → ${offlinePath}`,
+  );
 }
 
 main();

@@ -6,6 +6,8 @@
     <meta charset="utf-8">
     <title>{{ page.title }}</title>
     <link rel="stylesheet" href="{{ '/assets/css/output.css' | relative_url }}">
+    {% if page.url == "/" %}<!-- Homepage LCP: the card-collection hero -->
+    <link rel="preload" as="image" type="image/svg+xml" href="/assets/utility_images/kipukas_complete_card_collection.svg">{% endif %}
     <!-- Preload critical scripts to reduce parse/evaluation time -->
     <link rel="preload" href="/assets/js/htmx.min.js" as="script">
     <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
@@ -25,11 +27,7 @@
     <meta name="msapplication-TileColor" content="#9b2c2c">
     <meta name="theme-color" content="#9b2c2c">
 
-    <script src="/assets/js-wasm/ios-pwa-splash.js">
-      document.addEventListener('DOMContentLoaded', function() {
-        iosPWASplash('/assets/utiltity_images/small_kip_logo.png', '#9b2c2c');
-      });
-    </script>
+    <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
     <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
     <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
@@ -45,6 +43,14 @@
       // Lazy load QR camera only when needed
       window.kipukasLoadQR = function() {
         if (window.kipukasQRLoaded) return Promise.resolve();
+        // Warm the QR decoder in the WASM worker on this first click so it preps
+        // while the user reads/accepts the privacy modal (worker init is idempotent).
+        try {
+          if (globalThis.kipukasWorker) {
+            const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
+            globalThis.kipukasWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled: cvEnabled });
+          }
+        } catch (_e) { /* worker not ready yet — initQR runs again at scan start */ }
         return import('/assets/js/qr-camera.js')
           .then(function() {
             window.kipukasQRLoaded = true;

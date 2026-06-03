@@ -37,6 +37,12 @@ self.addEventListener('message', (event) => {
     pwaInstalled = true;
   }
 
+  // After install (or on a standalone launch), warm the full offline cache:
+  // card art (.jxl) + the QR decoder, which are kept out of the lean precache.
+  if (event.data && event.data.type === 'WARM_OFFLINE_CACHE') {
+    event.waitUntil(warmOfflineCache());
+  }
+
   // install_pwa.html asks us on page load whether the PWA was already installed.
   // Responds on the provided MessageChannel port.
   if (event.data && event.data.type === 'PWA_INSTALL_CHECK') {
@@ -141,6 +147,44 @@ const FULL_CACHE = 'kipukas-images-full-v2'; // full detail decodes (no ?d)
 const RAW_JXL_CACHE = 'kipukas-jxl';
 const THUMB_CACHE_MAX = 300; // ~small BMPs
 const FULL_CACHE_MAX = 12; // ~3.8MB BMP each → bounded ≈ 46MB
+
+// Warm the offline cache after the user installs the PWA (triggered by
+// install_pwa.html). Pulls the deferred assets — listed in offline-manifest.json
+// — into the same runtime caches the request handlers read from, so a later
+// offline session works fully. Idempotent (skips already-cached entries) and
+// resumable; every fetch is best-effort so a single failure never aborts the run.
+async function warmOfflineCache() {
+  let manifest;
+  try {
+    const res = await fetch('/offline-manifest.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    manifest = await res.json();
+  } catch (_e) {
+    return; // offline at warm time — nothing to do; we'll retry on next launch
+  }
+
+  const warmOne = async (url, cache, key) => {
+    try {
+      if (await cache.match(key || url)) return; // already warmed — skip
+      const r = await fetch(url);
+      if (r.ok) await cache.put(key || url, r.clone());
+    } catch (_e) { /* best-effort; offline/quota — non-fatal */ }
+  };
+
+  // 1. QR decoder etc. — small, into the StaleWhileRevalidate assets cache.
+  const assets = await caches.open('kipukas-assets');
+  for (const url of (manifest.extra || [])) {
+    await warmOne(url, assets);
+  }
+  // 2. Card art — the raw .jxl, keyed by absolute origin+path to match the JXL
+  //    handler's offline cache lookup (rawCache.match(url.origin + url.pathname)).
+  //    Sequential to avoid saturating a metered connection (it's ~tens of MB).
+  const raw = await caches.open(RAW_JXL_CACHE);
+  for (const path of (manifest.images || [])) {
+    const abs = new URL(path, self.location.origin).href;
+    await warmOne(abs, raw, abs);
+  }
+}
 
 // Put into a cache, then evict oldest entries (insertion order) over the cap.
 async function cachePutCapped(cache, request, response, max) {

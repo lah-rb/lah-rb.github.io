@@ -20,6 +20,9 @@ jxl-oxide = { version = "0.12.6", default-features = false }
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 
+# opt-level: "s" keeps the precached wasm lean (~612 KB gz). Measured opt-level=2
+# was ~14% faster JXL decode but +189 KB gz — not worth bloating the precache for
+# a path SIMD already made fast. Revisit if decode becomes a bottleneck again.
 [profile.release]
 opt-level = "s"
 lto = true

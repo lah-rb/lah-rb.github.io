@@ -30,6 +30,8 @@ module.exports = {
     // Manifest
     'manifest.json',
     'site.webmanifest',
+    // Tiny list of assets the SW warms into runtime caches after PWA install.
+    'offline-manifest.json',
   ],
   globIgnores: [
     // Build artifacts that should NOT be precached
@@ -62,6 +64,13 @@ module.exports = {
     // Archived experiment — must never be precached (also excluded from _site)
     'YOLO_rqrr/**',
     'runs/**',
+    // Keep first-visit precache lean. The QR decoder is only needed when the
+    // scanner opens (cached on demand via the SWR route; warmed on PWA install).
+    'assets/js-wasm/zxing_reader.js',
+    'assets/js-wasm/zxing_reader.wasm',
+    'assets/js-wasm/rqrr-decode-pkg/**',
+    // Workbox dev builds are never loaded (only *.prod.js runs).
+    'assets/js/workbox/**/*.dev.js',
   ],
 
   // Maximum file size to precache (2 MB) — skip anything larger
