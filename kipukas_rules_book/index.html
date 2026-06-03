@@ -151,14 +151,15 @@
     </div>
 
     <!-- Table of Contents modal -->
-    <div x-show="tocOpen" x-cloak class="fixed inset-0 flex items-center justify-center z-50"
+    <div x-show="tocOpen" x-cloak role="dialog" aria-modal="true" aria-labelledby="toc-title"
+         x-trap="tocOpen" class="fixed inset-0 flex items-center justify-center z-50"
          x-transition.duration.350ms @keydown.escape.window="closeToc()">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-300 opacity-75" @click="closeToc()"></div>
         <!-- Card -->
         <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto relative mx-4">
             <div class="sticky top-0 bg-amber-50 px-5 pt-4 pb-3 border-b border-kip-drk-goldenrod/30 flex items-center justify-between">
-                <h2 class="text-lg font-bold text-kip-drk-sienna">Table of Contents</h2>
+                <h2 id="toc-title" class="text-lg font-bold text-kip-drk-sienna">Table of Contents</h2>
                 <button @click="closeToc()" class="text-kip-drk-goldenrod hover:text-kip-red" aria-label="Close contents">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>

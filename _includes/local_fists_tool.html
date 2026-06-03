@@ -8,6 +8,8 @@
     </button>
     <!-- Full-screen modal overlay -->
     <div x-show="showTypeMenu" x-cloak
+        role="dialog" aria-modal="true" aria-label="Type matchup"
+        x-trap="showTypeMenu" @keydown.escape.window="showTypeMenu = false"
         class="fixed inset-0 flex items-center justify-center z-50"
         x-transition.duration.350ms>
 
@@ -17,8 +19,8 @@
         <!-- Modal content -->
         <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative p-4 text-kip-drk-sienna">
         <div class="flex place-content-center">
-          <svg xmlns="http://www.w3.org/2000/svg" alt="show keal"
-            @click="showKeal = !showKeal" :class="{ 'rotate-180': !showKeal }" x-transition
+          <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle archetypes" :aria-expanded="showKeal"
+            @click="showKeal = !showKeal" @keydown.enter.space.prevent="showKeal = !showKeal" :class="{ 'rotate-180': !showKeal }" x-transition
             class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
           </svg>
@@ -39,8 +41,8 @@
           </div>
         </div>
         <div class="flex place-content-center">
-          <svg xmlns="http://www.w3.org/2000/svg" alt="show Motivation"
-            @click="showMot = !showMot" :class="{ 'rotate-180': !showMot }" x-transition
+          <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle motivations" :aria-expanded="showMot"
+            @click="showMot = !showMot" @keydown.enter.space.prevent="showMot = !showMot" :class="{ 'rotate-180': !showMot }" x-transition
             class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
           </svg>

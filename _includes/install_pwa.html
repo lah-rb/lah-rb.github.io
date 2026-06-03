@@ -107,8 +107,8 @@ If you have not already installed our pwa, check if your browser (and launcher i
     
 </script>
 <template x-if="true">
-    <button class="toolbar-tile" x-show="!hideInstallButton" @click="showInstallModal = !showInstallModal">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" alt="install pwa icon"
+    <button class="toolbar-tile" x-show="!hideInstallButton" @click="showInstallModal = !showInstallModal" aria-label="Install app">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"
             class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
         </svg>

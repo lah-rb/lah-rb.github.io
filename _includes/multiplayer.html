@@ -12,6 +12,8 @@
 
   <!-- Full-screen modal overlay (room management only) -->
   <div x-show="showMultiplayer" x-cloak
+    role="dialog" aria-modal="true" aria-label="Multiplayer room"
+    x-trap="showMultiplayer" @keydown.escape.window="showMultiplayer = false"
     class="fixed inset-0 flex items-center justify-center z-50"
     x-transition.duration.350ms
     x-effect="if (showMultiplayer) $nextTick(() => {

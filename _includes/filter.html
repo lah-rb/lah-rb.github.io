@@ -1,65 +1,65 @@
 <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
-    <div x-show="showFilter" 
+    <div x-show="showFilter" id="filter-popover" role="region" aria-label="Card filters"
         x-anchor.right-end.offset.10="$refs.filter"
-        x-transition.duration.350ms 
+        x-transition.duration.350ms
         class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden transition-opacity duration-300">
         <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :checked="filter.all" @click="filter.all = !filter.all; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="All" checked><label for="All">Show All - <strong>{{ site.posts.size }}</strong></label></div>
-        <div class="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" alt="Variation toggle"
-                @click="showVariation = !showVariation" :class="{ 'rotate-90': showVariation }"
+        <button type="button" class="flex w-full items-center text-left" @click="showVariation = !showVariation" :aria-expanded="showVariation" aria-controls="filter-variations">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showVariation }"
                 class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
-            <div>Variations</div>
-        </div>
-        <div x-show="showVariation">
+            <span>Variations</span>
+        </button>
+        <div x-show="showVariation" id="filter-variations">
             {% for type in site.data.types.Variations %}
                 <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
             {% endfor %}
             <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.card = !filter.card; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Other"><label for="Other">Other</label></div>
         </div>
-        <div class="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" alt="Soul type toggle"
-                @click="showSoulType = !showSoulType" :class="{ 'rotate-90': showSoulType }"
+        <button type="button" class="flex w-full items-center text-left" @click="showSoulType = !showSoulType" :aria-expanded="showSoulType" aria-controls="filter-soultypes">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showSoulType }"
                 class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
-            <div>Soul Types</div>
-        </div>
-        <div x-show="showSoulType">
+            <span>Soul Types</span>
+        </button>
+        <div x-show="showSoulType" id="filter-soultypes">
             {% for type in site.data.types.Archetypes %}
                 <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
             {% endfor %}
         </div>
-        <div class="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" alt="Motivation toggle"
-                @click="showMotivation = !showMotivation" :class="{ 'rotate-90': showMotivation }"
+        <button type="button" class="flex w-full items-center text-left" @click="showMotivation = !showMotivation" :aria-expanded="showMotivation" aria-controls="filter-motivations">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showMotivation }"
                 class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
-            <div>Motivations</div>
-        </div>
-        <div x-show="showMotivation">
+            <span>Motivations</span>
+        </button>
+        <div x-show="showMotivation" id="filter-motivations">
             {% for type in site.data.types.Motivations %}
                 <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
             {% endfor %}
         </div>
-        <div class="flex">
-            <svg xmlns="http://www.w3.org/2000/svg" alt="Habitat toggle"
-                @click="showHabitat = !showHabitat" :class="{ 'rotate-90': showHabitat }"
+        <button type="button" class="flex w-full items-center text-left" @click="showHabitat = !showHabitat" :aria-expanded="showHabitat" aria-controls="filter-habitats">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showHabitat }"
                 class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
-            <div>Habitats</div>
-        </div>
-        <div x-show="showHabitat">
+            <span>Habitats</span>
+        </button>
+        <div x-show="showHabitat" id="filter-habitats">
             {% for type in site.data.types.Habitats %}
                 <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
             {% endfor %}
         </div>
     </div>
-    <button aria-label="show filter options" @click="showFilter = !showFilter" x-ref="filter" class="toolbar-tile">
-        <svg xmlns="http://www.w3.org/2000/svg" alt="Filter toggle" viewBox="0 0 24 24"
+    <button aria-label="show filter options" :aria-expanded="showFilter" aria-controls="filter-popover" @click="showFilter = !showFilter" x-ref="filter" class="toolbar-tile">
+        <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"
         class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
         </svg>

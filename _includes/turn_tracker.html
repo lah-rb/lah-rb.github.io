@@ -15,6 +15,7 @@
     </button>
 
     <div x-show="showTurnTracker && !roomConnected" x-cloak
+    role="dialog" aria-label="Turn timer" @keydown.escape.window="showTurnTracker = false"
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
     x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {

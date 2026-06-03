@@ -220,8 +220,8 @@ background_color
     {% endif %}
   </div>
   {% if include.hideTools %}
-  <svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle"
-    @click="showTools = !showTools" :class="{ 'rotate-180': !showTools }" x-transition
+  <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle tools" :aria-expanded="showTools"
+    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools" :class="{ 'rotate-180': !showTools }" x-transition
     class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 mb-2 place-self-center">
     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
   </svg>

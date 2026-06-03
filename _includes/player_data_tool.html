@@ -73,11 +73,11 @@
         <!-- Export form -->
         <template x-if="mode === 'export'">
           <div class="grid gap-3">
-            <label class="text-sm font-medium">Passphrase</label>
-            <input type="password" x-model="passphrase" placeholder="Enter a passphrase"
+            <label for="export-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="export-passphrase" type="password" x-model="passphrase" placeholder="Enter a passphrase"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
-            <label class="text-sm font-medium">Confirm Passphrase</label>
-            <input type="password" x-model="confirmPassphrase" placeholder="Confirm passphrase"
+            <label for="export-confirm" class="text-sm font-medium">Confirm Passphrase</label>
+            <input id="export-confirm" type="password" x-model="confirmPassphrase" placeholder="Confirm passphrase"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
 
             <button @click="
@@ -132,12 +132,12 @@
         <!-- Import form -->
         <template x-if="mode === 'import'">
           <div class="grid gap-3">
-            <label class="text-sm font-medium">Select backup file</label>
-            <input type="file" accept=".kipukas" @change="importFile = $event.target.files[0]"
+            <label for="import-file" class="text-sm font-medium">Select backup file</label>
+            <input id="import-file" type="file" accept=".kipukas" @change="importFile = $event.target.files[0]"
               class="w-full text-sm text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-kip-drk-sienna hover:file:bg-slate-200">
 
-            <label class="text-sm font-medium">Passphrase</label>
-            <input type="password" x-model="passphrase" placeholder="Enter backup passphrase"
+            <label for="import-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="import-passphrase" type="password" x-model="passphrase" placeholder="Enter backup passphrase"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
 
             <button @click="

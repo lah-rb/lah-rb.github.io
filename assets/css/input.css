@@ -182,3 +182,17 @@ mark.search-highlight { background: #fde68a; padding: 0.1rem 0.2rem; border-radi
   .rules-book-layout > div { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
   #content-scroll { display: block !important; overflow: visible !important; height: auto !important; }
 }
+
+/* ── Respect prefers-reduced-motion: neutralize animations/transitions ──
+   Covers CSS animations (card-fade-in, skeleton-pulse, ghost-toolbar idle,
+   blink) and CSS transitions, including Alpine x-transition (CSS-driven). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

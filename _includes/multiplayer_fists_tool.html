@@ -13,6 +13,8 @@
 
     <!-- Full-screen modal overlay -->
     <div x-show="showFistsMenu" x-cloak
+        role="dialog" aria-modal="true" aria-label="Fists combat"
+        x-trap="showFistsMenu" @keydown.escape.window="showFistsMenu = false"
         class="fixed inset-0 flex items-center justify-center z-50"
         x-transition.duration.350ms
         x-effect="if (showFistsMenu) $nextTick(() => {

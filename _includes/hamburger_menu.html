@@ -1,5 +1,6 @@
-<div x-show="showHamburger" 
-    x-anchor.right-end.offset.10="$refs.hamburger" 
+<div x-show="showHamburger"
+    id="hamburger-menu" role="navigation" aria-label="Site menu"
+    x-anchor.right-end.offset.10="$refs.hamburger"
     x-transition.duration.350ms
     x-cloak
     class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
@@ -16,7 +17,9 @@
     <button class="toolbar-tile text-kip-drk-goldenrod relative"
             @click="showHamburger = !showHamburger"
             x-ref="hamburger"
-            aria-label="extra nav menu">
+            aria-label="extra nav menu"
+            :aria-expanded="showHamburger"
+            aria-controls="hamburger-menu">
         <span class="sr-only">show main menu</span>
         <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
             <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>

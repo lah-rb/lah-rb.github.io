@@ -86,8 +86,9 @@
                 }" 
         class="{{page.bg-terra | append: 'z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh' }}"
         x-init="previousURL = currentURL, currentURL = window.location.href">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}
-    <div>{{ content }}</div>
+    <main id="main-content">{{ content }}</main>
   </body>
 </html>
