@@ -55,4 +55,13 @@ exclude:
   - WORKFLOW.md
   - kipukas_rules_book/
   - scripts/
+  # Experiment + build/source artifacts that must never leak into the served _site
+  # (Jekyll ignores .gitignore, so these need to be listed explicitly).
+  - YOLO_rqrr/
+  - runs/
+  - .archive/
+  - CONTRIBUTING.md
+  - PWA_SETUP.md
+  - workbox-config.cjs
+  - sw-src.js
 
