@@ -33,7 +33,7 @@ pub struct Card {
     pub hidden: bool,
 }
 
-static GENETICS_0: &[&str] = &["glitch"];
+static GENETICS_0: &[&str] = &["Glitch"];
 static GENETICS_1: &[&str] = &["Glitch", "Magic"];
 static GENETICS_2: &[&str] = &["Magic", "Entropic"];
 static GENETICS_3: &[&str] = &["Telekinetic", "Endothermic"];
@@ -54,7 +54,7 @@ static GENETICS_17: &[&str] = &["Energetic", "Astral"];
 static GENETICS_18: &[&str] = &["Cenozoic"];
 static GENETICS_19: &[&str] = &["Angelic", "Avian"];
 static GENETICS_20: &[&str] = &["Brutal", "Entropic", "Telekinetic"];
-static GENETICS_21: &[&str] = &["Cenozoic", "brutal"];
+static GENETICS_21: &[&str] = &["Cenozoic", "Brutal"];
 static GENETICS_22: &[&str] = &["Decrepit", "Avian"];
 static GENETICS_23: &[&str] = &["Avian", "Cenozoic"];
 static GENETICS_24: &[&str] = &["Decrepit", "Arboreal"];
@@ -86,7 +86,7 @@ static GENETICS_49: &[&str] = &["Angelic", "Mechanical"];
 static GENETICS_50: &[&str] = &["Cenozoic", "Mechanical"];
 static GENETICS_51: &[&str] = &["Glitch"];
 
-static KEAL_0: &[KealMeans] = &[KealMeans { name: "Digital lost and found:", genetics: GENETICS_0, count: 1 }];
+static KEAL_0: &[KealMeans] = &[KealMeans { name: "Digital lost and found", genetics: GENETICS_0, count: 1 }];
 static KEAL_1: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_1, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_2, count: 1 }];
 static KEAL_2: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_3, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_4, count: 1 }];
 static KEAL_3: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_5, count: 1 }];

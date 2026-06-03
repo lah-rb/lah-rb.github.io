@@ -53,7 +53,7 @@ function recipeBook(itemObject) {
   );
   recipeMap.set(
     JSON.stringify({ cloth: true, feathers: false, honey: false, sticks: false, string: true }),
-    ['Tunic: ', ' No damage is taken due to storm. Once effect activates, the items are wasted.'],
+    ['Tunic: ', ' No damage is taken due to storm.'],
   );
   recipeMap.set(
     JSON.stringify({ cloth: false, feathers: true, honey: true, sticks: false, string: false }),
@@ -113,7 +113,7 @@ function recipeBook(itemObject) {
     JSON.stringify({ cloth: true, feathers: true, honey: false, sticks: false, string: true }),
     [
       'Jacket: ',
-      ' For the wielder, No damage is taken during storm. Adds 1 extra damage taken due to heat and subtracts 1 extra damage due to cold.',
+      ' For the wielder, No damage is taken during storm. Absorbs 1 from attacking dice rolls while equiped.',
     ],
   );
   recipeMap.set(

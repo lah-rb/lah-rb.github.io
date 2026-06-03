@@ -13,9 +13,9 @@
     "brawl_sequence": "eUN0",
     "keal_means": [
       {
-        "name": "Digital lost and found:",
+        "name": "Digital lost and found",
         "genetics": [
-          "glitch"
+          "Glitch"
         ],
         "count": 1
       }
@@ -735,7 +735,7 @@
         "name": "Thwarting Dagger",
         "genetics": [
           "Cenozoic",
-          "brutal"
+          "Brutal"
         ],
         "count": 1
       },
