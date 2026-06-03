@@ -1,11 +1,30 @@
+# OS / editor cruft
+**/.DS_Store
+
+# Jekyll build caches
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
-kipukas-server/target/
-new_extensions.txt
-node_modules/
-_site/
-deno.lock
 
-# Generated build intermediaries (keep build outputs tracked for GitHub Pages)
+# Build dependency dirs
+node_modules/
+kipukas-server/target/
+
+# Generated build outputs — built locally by `deno task build` and published to
+# the gh-pages branch via `deno task deploy`. Never committed to master.
+_site/
+game_rules/
+sw.js
+assets/css/output.css
+assets/js-wasm/kipukas-server-pkg/
+assets/js/alpine.bundle.min.js
+assets/js/htmx.min.js
+
+# Archived experiment — kept locally for reference; the compressed copy is in
+# .archive/yolo-rqrr-experiment.tar.gz (committed).
+YOLO_rqrr/
+runs/
+
+# Misc generated intermediaries
 scripts/_alpine-entry.ts
+new_extensions.txt
