@@ -1,0 +1,103 @@
+---
+layout: default
+permalink: /known_issues
+title: "Browser Support & Troubleshooting"
+description: "Known, environment-side quirks and their quick fixes — hardened-browser
+speed, gray card tiles, multiplayer on VPNs, and clearing stale content."
+bg-terra: "bg-hero-pattern "
+---
+{% include toolbar.html
+  hamburger=true
+  logo=true
+  goHome=true
+  lastPage=true
+  install_pwa=true
+  hideTools=true
+  base_fill='fill-kip-goldenrod'
+  base_stroke='stroke-kip-goldenrod'
+  background_color='bg-slate-100/80'
+%}
+<template x-if="true">
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-2 md:px-10 w-5/6 h-fit min-h-screen scroll-smooth text-sm md:text-lg">
+
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        {{ page.title }}
+      </h1>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Kipukas runs entirely in your browser — there is no backend, and every card image is decoded
+        on your own device. That keeps the binder private and free, but it also means a handful of
+        quirks come down to your browser's settings rather than a bug on our end. Here are the ones
+        we know about and how to fix each in a few seconds.
+      </p>
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+
+      <!-- ─── Hardened browser speed (Vanadium / GrapheneOS) ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">The binder is very slow on a hardened browser</h2>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        If you're on <b>GrapheneOS Vanadium</b> (or a similarly locked-down browser) the binder can
+        feel sluggish — cards take noticeably longer to appear. This is by design: Vanadium turns off
+        the JavaScript <b>JIT</b> as a security hardening measure, which forces our WebAssembly image
+        decoder to run interpreted instead of compiled. The work still happens, just much more slowly.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Fix:</b> allow the JIT for this site. In Vanadium, open the site settings for
+        <span class="italic">kipukas.cards</span> (tap the lock/page icon in the address bar →
+        site settings) and enable <b>JavaScript JIT</b>. Reload, and the binder runs at full speed.
+        Testers have confirmed this resolves it completely.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Other privacy-focused browsers — <span class="italic">Cromite, Trichrome, IronFox, and Floorp</span> —
+        keep the JIT on, so they're already fast with no changes needed.
+      </p>
+
+      <!-- ─── Gray tiles / WASM disabled ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Cards show up as gray tiles</h2>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Each card's art is decoded locally with WebAssembly. If the gray placeholder tiles never fill
+        in with art, it almost always means your browser (or a privacy extension) is <b>blocking
+        WebAssembly or JavaScript</b> for the site. Our decoder also requires WASM SIMD, so a browser
+        with WASM restricted can't paint the images at all.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Fix:</b> allow JavaScript and WebAssembly for <span class="italic">kipukas.cards</span>
+        (and whitelist the site in any script-blocking extension), then reload. The tiles will fill in.
+      </p>
+
+      <!-- ─── Multiplayer on VPNs ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Multiplayer won't connect on my VPN</h2>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Multiplayer rooms sync over a lightweight relay connection. Some VPNs block the underlying
+        WebSocket/WebRTC traffic that relay needs, so the room never connects (a tester first hit this
+        on <span class="italic">Riseup VPN</span>). Everything else — browsing the binder, single-device
+        tools, and offline play — is unaffected, since none of it touches the network.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Fix:</b> turn the VPN off while playing multiplayer, or use split-tunneling / an allowlist
+        to exempt <span class="italic">kipukas.cards</span> from the tunnel. Re-join the room afterward.
+      </p>
+
+      <!-- ─── Stale content / force update ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">I'm still seeing an old version</h2>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The binder is offline-first: a background service worker caches the app so it loads instantly
+        and works without a connection. After we ship an update, the new version downloads in the
+        background and applies the next time you reopen the app — so it normally self-heals on its own.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Fix (if you want it now):</b> in the browser, do a hard refresh
+        (<span class="italic">Ctrl/Cmd + Shift + R</span>, or pull-to-refresh on mobile). For the
+        installed app, fully close and reopen it. If something still looks wrong after that, clearing
+        the site's data and reloading will rebuild the cache from scratch — your saved progress lives
+        in your encrypted player backup, so export one first from the menu if you haven't.
+      </p>
+
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center mt-6"></div>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center py-4 italic">
+        Hit something not listed here? It may be a real bug — let us know and we'll take a look.
+      </p>
+    </div>
+  </div>
+</template>

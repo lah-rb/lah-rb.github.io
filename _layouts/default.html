@@ -7,7 +7,7 @@
     <title>{{ page.title }}</title>
     <link rel="stylesheet" href="{{ '/assets/css/output.css' | relative_url }}">
     {% if page.url == "/" %}<!-- Homepage LCP: the card-collection hero -->
-    <link rel="preload" as="image" type="image/svg+xml" href="/assets/utility_images/kipukas_complete_card_collection.svg">{% endif %}
+    <link rel="preload" as="image" type="image/svg+xml" fetchpriority="high" href="/assets/utility_images/kipukas_complete_card_collection.svg">{% endif %}
     <!-- Preload critical scripts to reduce parse/evaluation time -->
     <link rel="preload" href="/assets/js/htmx.min.js" as="script">
     <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
