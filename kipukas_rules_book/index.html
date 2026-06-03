@@ -76,6 +76,14 @@
             </div>
         </div>
 
+        <!-- Branded Home tile (always visible, just below the hamburger) -->
+        <a href="/" class="toolbar-tile" title="Binder home" aria-label="Binder home">
+            <img src="/assets/utility_images/k_plain.svg" alt="Home" class="h-9 w-auto">
+        </a>
+
+        <!-- Collapsible tools group (search, QR, PDF, contents) with drop-stack reveal -->
+        <div x-show="showTools" class="toolbar-tools flex flex-col items-center gap-2">
+
         <!-- Search tile + revealed input (showSearchBar lives in the root rulesBook() scope
              so the body-level Cmd/Ctrl-K handler can reach $refs.searchInput) -->
         <div class="relative w-fit"
@@ -146,6 +154,17 @@
                 title="Table of contents" aria-label="Table of contents">
             <svg class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+            </svg>
+        </button>
+        </div><!-- /toolbar-tools -->
+
+        <!-- Tools toggle (pill) -->
+        <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
+            @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"
+            class="toolbar-tile-pill mb-2 place-self-center">
+            <svg xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate-180': !showTools }"
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
             </svg>
         </button>
     </div>

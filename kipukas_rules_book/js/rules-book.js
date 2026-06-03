@@ -19,6 +19,9 @@ document.addEventListener('alpine:init', () => {
     // ── Toolbar (idle ghost on mobile) ────────────────────────
     toolbarIdle: false,
     showHamburger: false,
+    // Collapsible tools group (search/QR/PDF/TOC). Persisted so a collapse sticks
+    // across reloads; global $persist needs an explicit key inside Alpine.data().
+    showTools: Alpine.$persist(true).as('rulesShowTools'),
     _idleTimer: null,
 
     // ── Search ────────────────────────────────────────────────

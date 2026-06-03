@@ -50,7 +50,15 @@ background_color
     {% include device_sync_tool.html %}
   {% endif %}
 
-  <div {% if include.hideTools %}x-show="showTools" x-collapse {% endif %} class="flex flex-col items-center gap-2">
+  {% if include.goHome %}
+  <!-- Branded Home tile — sits just below the hamburger, always visible (outside
+       the collapsible tools group). The "k" mark carries its own brand colors. -->
+  <a href="/" aria-label="Go to home page" class="toolbar-tile">
+    <img src="/assets/utility_images/k_plain.svg" alt="Home" class="h-9 w-auto">
+  </a>
+  {% endif %}
+
+  <div {% if include.hideTools %}x-show="showTools" {% endif %} class="toolbar-tools flex flex-col items-center gap-2">
     {% if include.install_pwa %}
       {% include install_pwa.html  %}
     {% endif %}
@@ -179,7 +187,7 @@ background_color
     {% endif %}
 
     {% if include.showCardInfo %}
-      <button x-show="showCardInfo" aria-label="Show Background Image" @click="showCardInfo = !showCardInfo" class="toolbar-tile {% unless page.landscape %}lg:hidden{% endunless %}">
+      <button x-show="showCardInfo" aria-label="Show Background Image" @click="showCardInfo = !showCardInfo" class="toolbar-tile">
         <svg xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
@@ -188,7 +196,7 @@ background_color
         </svg>
       </button>
 
-      <button x-show="!showCardInfo" aria-label="Show game play data" @click="showCardInfo = !showCardInfo" class="toolbar-tile {% unless page.landscape %}lg:hidden{% endunless %}">
+      <button x-show="!showCardInfo" aria-label="Show game play data" @click="showCardInfo = !showCardInfo" class="toolbar-tile">
         <svg xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
@@ -208,23 +216,16 @@ background_color
       </a>
     {% endif %}
     
-    {% if include.goHome %}
-    <a href="/" aria-label="Go to home page" class="toolbar-tile">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
-          <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-      </svg>
-    </a>
-    {% endif %}
   </div>
   {% if include.hideTools %}
-  <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle tools" :aria-expanded="showTools"
-    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools" :class="{ 'rotate-180': !showTools }" x-transition
-    class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 mb-2 place-self-center">
-    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-  </svg>
+  <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
+    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"
+    class="toolbar-tile-pill mb-2 place-self-center">
+    <svg xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate-180': !showTools }"
+      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+    </svg>
+  </button>
   {% endif %}
   
 </div>

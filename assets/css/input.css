@@ -113,6 +113,14 @@
      on filled icons (no stroke painted). Per-icon stroke-* / stroke-width must
      stay OFF outline tiles or they'd override this (utility layer wins). */
   .toolbar-tile-icon { @apply w-9 h-9; stroke-width: 1.5; }
+  /* Pill-shaped toggle (show/hide tools) — same palette as the tiles, shorter
+     and fully rounded so it reads as a control rather than another icon tile. */
+  .toolbar-tile-pill {
+    @apply inline-flex items-center justify-center h-7 px-3 rounded-full
+           border-2 border-kip-drk-sienna bg-amber-50 shadow-sm transition;
+  }
+  .toolbar-tile-pill:hover { @apply bg-amber-100; }
+  .toolbar-tile-pill:active { @apply scale-95; }
 }
 
 /* Idle-ghost floating toolbar (binder + rules book): after a few idle seconds the
@@ -125,6 +133,32 @@
   transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.5s ease, filter 0.5s ease;
 }
 .ghost-toolbar.toolbar-idle .toolbar-tile { opacity: 0.4; filter: grayscale(0.85); }
+
+/* Staggered "drop & stack" reveal for the collapsible tool tiles (binder + rules
+   book): each tile falls into its slot top-to-bottom with a slight settle, so the
+   group reads as being pulled out of the menu. Replays whenever the group is shown
+   (Alpine x-show flips display, which restarts the keyframes). Neutralized by the
+   prefers-reduced-motion block below. */
+@keyframes tile-drop {
+  0%   { opacity: 0; transform: translateY(-14px) scale(0.85); }
+  70%  { opacity: 1; transform: translateY(2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toolbar-tools > * { animation: tile-drop 260ms ease-out backwards; }
+.toolbar-tools > *:nth-child(1)  { animation-delay: 0ms; }
+.toolbar-tools > *:nth-child(2)  { animation-delay: 40ms; }
+.toolbar-tools > *:nth-child(3)  { animation-delay: 80ms; }
+.toolbar-tools > *:nth-child(4)  { animation-delay: 120ms; }
+.toolbar-tools > *:nth-child(5)  { animation-delay: 160ms; }
+.toolbar-tools > *:nth-child(6)  { animation-delay: 200ms; }
+.toolbar-tools > *:nth-child(7)  { animation-delay: 240ms; }
+.toolbar-tools > *:nth-child(8)  { animation-delay: 280ms; }
+.toolbar-tools > *:nth-child(9)  { animation-delay: 320ms; }
+.toolbar-tools > *:nth-child(10) { animation-delay: 360ms; }
+.toolbar-tools > *:nth-child(11) { animation-delay: 400ms; }
+.toolbar-tools > *:nth-child(12) { animation-delay: 440ms; }
+.toolbar-tools > *:nth-child(13) { animation-delay: 480ms; }
+.toolbar-tools > *:nth-child(14) { animation-delay: 520ms; }
 
 /* ══════════════════════════════════════════════════════════════
    Rules Book — custom styles that prose / Tailwind can't cover
