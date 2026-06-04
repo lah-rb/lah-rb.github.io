@@ -1,0 +1,260 @@
+/* Tailwind v4 CSS-based config */
+@import "tailwindcss";
+
+/* ── Source paths (replaces `content` in tailwind.config.js) ── */
+@source "../../*.{html,js,yml}";
+@source "../../_layouts/*.{html,js,yml}";
+@source "../../_posts/*.{html,js,yml}";
+@source "../../_data/*.{html,js,yml}";
+@source "../../_includes/*.{html,js,yml}";
+@source "../../sections/*.{html,js,yml}";
+@source "../../game_rules/*.{html,js,yml}";
+@source "../../kipukas-server/src/**/*.rs";
+@source "../../kipukas_rules_book/**/*.{html,js}";
+
+/* ── Safelist (classes generated dynamically) ── */
+@source inline("grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7");
+
+/* ── Plugins ── */
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+
+/* ── Theme extensions (replaces tailwind.config.js theme.extend) ── */
+@theme {
+  --color-kip-red: #9c2828;
+  --color-kip-goldenrod: #b87a19;
+  --color-kip-drk-goldenrod: #7A5015;
+  --color-kip-drk-sienna: #341c17;
+
+  --background-image-hero-pattern: url('/assets/utility_images/topography.svg');
+
+  --breakpoint-xs: 450px;
+  --breakpoint-sm: 450px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* ── v3 compat: default border color & pointer cursor on buttons ── */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+/* ── Custom animations ── */
+@theme {
+  --animate-card-fade-in: card-fade-in 250ms ease-out backwards;
+}
+
+@keyframes card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── HTMX swap transitions ── */
+/* Fade-out old content before HTMX replaces it (filter/search changes) */
+#card-grid.htmx-swapping {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+/* ── Custom utilities ── */
+@utility content-auto {
+  content-visibility: auto;
+}
+
+@utility skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Toolbar "aztec tile" icon buttons ──
+   Uniform squircle: kip-drk-sienna border, amber-50 fill, icon centered in a
+   touch-friendly box. Applied to every toolbar icon's clickable element. */
+@layer components {
+  .toolbar-tile {
+    @apply inline-flex items-center justify-center w-14 h-14 rounded-2xl
+           border-2 border-kip-drk-sienna bg-amber-50 shadow-sm transition;
+  }
+  .toolbar-tile:hover { @apply bg-amber-100; }
+  .toolbar-tile:active { @apply scale-95; }
+  /* Open/active tool: invert to a filled sienna tile. */
+  .toolbar-tile-active { @apply bg-kip-drk-sienna; }
+  /* Uniform icon inside the tile. Size + a single outline stroke weight live
+     here so every toolbar icon (binder + rules book) matches. stroke-width is a
+     raw decl in 24-viewBox user units: 1.5 @ 36px ≈ 2.25px rendered. It's inert
+     on filled icons (no stroke painted). Per-icon stroke-* / stroke-width must
+     stay OFF outline tiles or they'd override this (utility layer wins). */
+  .toolbar-tile-icon { @apply w-9 h-9; stroke-width: 1.5; }
+  /* Pill-shaped toggle (show/hide tools) — same palette as the tiles, shorter
+     and fully rounded so it reads as a control rather than another icon tile. */
+  .toolbar-tile-pill {
+    @apply inline-flex items-center justify-center h-7 px-3 rounded-full
+           border-2 border-kip-drk-sienna bg-amber-50 shadow-sm transition;
+  }
+  .toolbar-tile-pill:hover { @apply bg-amber-100; }
+  .toolbar-tile-pill:active { @apply scale-95; }
+}
+
+/* Idle-ghost floating toolbar (binder + rules book): after a few idle seconds the
+   tiles fade to translucent gray to de-clutter; a tap re-colors them (the markup
+   swallows that first wake-tap). Targets the .toolbar-tile elements only — open
+   popovers/modals are DOM children of the toolbar, so fading the container would
+   fade them too. Tiles stay pointer-interactive while ghosted (tap to wake). Which
+   breakpoints ghost is gated in JS (binder: all sizes; rules book: mobile/tablet). */
+.ghost-toolbar .toolbar-tile,
+.ghost-toolbar .toolbar-tile-pill {
+  transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.5s ease, filter 0.5s ease;
+}
+.ghost-toolbar.toolbar-idle .toolbar-tile,
+.ghost-toolbar.toolbar-idle .toolbar-tile-pill { opacity: 0.4; filter: grayscale(0.85); }
+
+/* Staggered "drop & stack" reveal for the collapsible tool tiles (binder + rules
+   book): each tile falls into its slot top-to-bottom with a slight settle, so the
+   group reads as being pulled out of the menu. Replays whenever the group is shown
+   (Alpine x-show flips display, which restarts the keyframes). Neutralized by the
+   prefers-reduced-motion block below. */
+@keyframes tile-drop {
+  0%   { opacity: 0; transform: translateY(-14px) scale(0.85); }
+  70%  { opacity: 1; transform: translateY(2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toolbar-tools > * { animation: tile-drop 260ms ease-out backwards; }
+.toolbar-tools > *:nth-child(1)  { animation-delay: 0ms; }
+.toolbar-tools > *:nth-child(2)  { animation-delay: 40ms; }
+.toolbar-tools > *:nth-child(3)  { animation-delay: 80ms; }
+.toolbar-tools > *:nth-child(4)  { animation-delay: 120ms; }
+.toolbar-tools > *:nth-child(5)  { animation-delay: 160ms; }
+.toolbar-tools > *:nth-child(6)  { animation-delay: 200ms; }
+.toolbar-tools > *:nth-child(7)  { animation-delay: 240ms; }
+.toolbar-tools > *:nth-child(8)  { animation-delay: 280ms; }
+.toolbar-tools > *:nth-child(9)  { animation-delay: 320ms; }
+.toolbar-tools > *:nth-child(10) { animation-delay: 360ms; }
+.toolbar-tools > *:nth-child(11) { animation-delay: 400ms; }
+.toolbar-tools > *:nth-child(12) { animation-delay: 440ms; }
+.toolbar-tools > *:nth-child(13) { animation-delay: 480ms; }
+.toolbar-tools > *:nth-child(14) { animation-delay: 520ms; }
+/* The binder landing page has the most tiles — ~17 direct children once the
+   interleaved scripts / fixed overlays / search input are counted — so cover
+   well past it; uncovered children fall back to delay 0 and pop in instantly. */
+.toolbar-tools > *:nth-child(15) { animation-delay: 560ms; }
+.toolbar-tools > *:nth-child(16) { animation-delay: 600ms; }
+.toolbar-tools > *:nth-child(17) { animation-delay: 640ms; }
+.toolbar-tools > *:nth-child(18) { animation-delay: 680ms; }
+.toolbar-tools > *:nth-child(19) { animation-delay: 720ms; }
+.toolbar-tools > *:nth-child(20) { animation-delay: 760ms; }
+.toolbar-tools > *:nth-child(21) { animation-delay: 800ms; }
+.toolbar-tools > *:nth-child(22) { animation-delay: 840ms; }
+.toolbar-tools > *:nth-child(23) { animation-delay: 880ms; }
+.toolbar-tools > *:nth-child(24) { animation-delay: 920ms; }
+
+/* Hand view (/hand/): each full-bleed card pane in the horizontal scroll-snap
+   spread. One pane per screen on mobile (swipe carousel); a fixed-width column
+   on desktop so several show at once (a spread). Width lives here (not a JS-only
+   arbitrary utility) so it's robust regardless of Tailwind content detection. */
+.hand-pane {
+  flex: 0 0 auto;
+  width: 100vw;
+  scroll-snap-align: center;
+}
+@media (min-width: 768px) {
+  .hand-pane { width: 34rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Rules Book — custom styles that prose / Tailwind can't cover
+   ══════════════════════════════════════════════════════════════ */
+
+/* Scrollbar styling (rules book content) */
+#content-scroll::-webkit-scrollbar { width: 6px; }
+#content-scroll::-webkit-scrollbar-track { background: transparent; }
+#content-scroll::-webkit-scrollbar-thumb { background: rgba(4,120,87,0.3); border-radius: 3px; }
+#content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(4,120,87,0.5); }
+
+/* Prose overrides — fine-tune typography plugin for rules book look */
+#rules-content h2 { border-bottom: 2px solid rgba(4,120,87,0.2); padding-bottom: 0.5rem; }
+#rules-content a { color: #047857; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Header anchor links (hover-reveal # link) */
+.header-anchor { opacity: 0; margin-left: 0.5rem; color: #047857; text-decoration: none; transition: opacity 0.2s; font-weight: 400; }
+#rules-content h2:hover .header-anchor,
+#rules-content h3:hover .header-anchor,
+#rules-content h4:hover .header-anchor { opacity: 1; }
+
+/* Search highlight */
+mark.search-highlight { background: #fde68a; padding: 0.1rem 0.2rem; border-radius: 0.15rem; }
+
+/* TOC modal links (amber-50 surface): dark sienna text, kip-red hover,
+   emerald active highlight, goldenrod connector rail for h3 sub-items. */
+.toc-link { display: block; padding: 0.35rem 0.75rem; border-radius: 0.375rem; color: #341c17; text-decoration: none; transition: all 0.15s; font-size: 0.9rem; line-height: 1.4; font-weight: 600; }
+.toc-link:hover { background: rgba(122,80,21,0.10); color: #9c2828; }
+.toc-link.active { background: rgba(4,120,87,0.15); color: #065f46; font-weight: 700; }
+.toc-sub { margin-left: 0.75rem; padding-left: 0.75rem; border-left: 2px solid rgba(122,80,21,0.30); font-weight: 500; font-size: 0.85rem; }
+
+/* Chat widget */
+#chat-panel { transition: all 0.3s ease; }
+.chat-bubble { max-width: 85%; word-wrap: break-word; }
+.chat-bubble .markdown-content h1,
+.chat-bubble .markdown-content h2,
+.chat-bubble .markdown-content h3 { font-weight: 600; margin-top: 0.5rem; margin-bottom: 0.25rem; font-size: 1rem; }
+.chat-bubble .markdown-content p { margin-bottom: 0.5rem; line-height: 1.5; }
+.chat-bubble .markdown-content ul,
+.chat-bubble .markdown-content ol { margin-left: 1rem; margin-bottom: 0.5rem; }
+.chat-bubble .markdown-content ul { list-style-type: disc; }
+.chat-bubble .markdown-content ol { list-style-type: decimal; }
+.chat-bubble .markdown-content a { color: #6ee7b7; text-decoration: underline; text-decoration-color: rgba(110,231,183,0.4); text-underline-offset: 2px; }
+.chat-bubble .markdown-content a:hover { color: #a7f3d0; text-decoration-color: rgba(167,243,208,0.6); }
+.chat-bubble .markdown-content code { background: rgba(0,0,0,0.15); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.85em; }
+.streaming-cursor::after { content: '▋'; animation: blink 1s infinite; color: #047857; }
+@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+/* Rules book layout — lock outer scroll, only #content-scroll scrolls */
+.rules-book-layout { overflow: hidden; }
+
+/* Print overrides for rules book (supplement print.css) */
+@media print {
+  .rules-book-layout { overflow: visible !important; height: auto !important; display: block !important; }
+  .rules-book-layout > div { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
+  #content-scroll { display: block !important; overflow: visible !important; height: auto !important; }
+}
+
+/* ── Respect prefers-reduced-motion: neutralize animations/transitions ──
+   Covers CSS animations (card-fade-in, skeleton-pulse, ghost-toolbar idle,
+   blink) and CSS transitions, including Alpine x-transition (CSS-driven). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

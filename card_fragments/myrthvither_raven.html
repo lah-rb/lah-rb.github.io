@@ -1,0 +1,192 @@
+<h1 class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Myrthvither Raven</h1>
+          <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Species
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    movement range
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        2
+      
+  </p>
+</div>
+
+
+<!-- 
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        
+      
+  </p>
+</div>
+ -->
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         Opponent must roll Std. detection (D20: 1, 2, 3, 4) before engaging in a keal means bout. Constantly downed. Able to move and attack normally when downed. If Myrthvither Raven looses a keal means bout, waste the Nythvither Raven. Reveals cards in a territory as it moves into the territory. These cards can be reset to unrevealed once they are not in the same territory as Myrthvither Raven. 
+      
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        
+    Always Rolls: Base 3
+  
+      
+  </p>
+</div>
+
+
+
+<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
+     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
+
+     DOM Residency Model:
+     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
+     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
+       via a single x-data scope rendered by WASM inside the tracker HTML
+     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
+       with no HTMX swap — Alpine handles the immediate visual update
+
+     The WASM-rendered HTML contains:
+     - x-data with slots state, wasted state, and helper methods
+     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
+     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
+     - :class="slotClass(n)" for reactive circle color transitions -->
+<style>
+  .final-blows-section { display: none; }
+  .show-final-blows .final-blows-section { display: block; }
+</style>
+<div id="keal-damage-myrthvither_raven" class="w-full grid grid-cols-1 place-self-center" hx-get="/api/game/damage?card=myrthvither_raven" hx-trigger="load" hx-swap="innerHTML">
+</div>
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        {"Scout's Vision" => {"genetics" => ["Avian", "Cenozoic"], "count" => 1}, "Symbiont Barrage" => {"genetics" => ["Decrepit", "Arboreal"], "count" => 1}}
+      
+  </p>
+</div>
+ -->
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        ZrrD
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Nomad
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Avian
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Satisfaction
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Founder's Deck
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         The Myrthvither Raven is a constantly moving and easily adapts to new environments. It possesses a wicked intelligence and tends to be quite self serving.  Often, these ravens know several languages and can effectively communicate between species. Imbued with foliage near death, they easily disguise themselves in natural environments. They act as nearly perfect scouts, if offered a strong enough incentive to put themselves at risk. Many request exotic ant species as payment. Their intent with this behavior is unclear, however, some have observed ants living within their plant mass, a likely sign of a symbiotic relationship. 
+      
+  </p>
+</div>
+
+
+          <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+          <p class="font-hairline text-slate-300 text-xs italic"></p>

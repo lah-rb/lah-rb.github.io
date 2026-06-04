@@ -1,0 +1,192 @@
+<h1 class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Arctechnic Wonderer</h1>
+          <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Species
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    movement range
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        1
+      
+  </p>
+</div>
+
+
+<!-- 
+<div x-data="{ play_data: false }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        
+      
+  </p>
+</div>
+ -->
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         Arctechnic Wonderer takes no damage from a first storm roll and may move on a storm roll. 
+      
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        
+    Always Rolls: D6
+  
+      
+  </p>
+</div>
+
+
+
+<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
+     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
+
+     DOM Residency Model:
+     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
+     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
+       via a single x-data scope rendered by WASM inside the tracker HTML
+     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
+       with no HTMX swap — Alpine handles the immediate visual update
+
+     The WASM-rendered HTML contains:
+     - x-data with slots state, wasted state, and helper methods
+     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
+     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
+     - :class="slotClass(n)" for reactive circle color transitions -->
+<style>
+  .final-blows-section { display: none; }
+  .show-final-blows .final-blows-section { display: block; }
+</style>
+<div id="keal-damage-arctechnic_wonderer" class="w-full grid grid-cols-1 place-self-center" hx-get="/api/game/damage?card=arctechnic_wonderer" hx-trigger="load" hx-swap="innerHTML">
+</div>
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        {"Seal Manipulation" => {"genetics" => ["Telekinetic", "Endothermic"], "count" => 1}, "Lamp Bash" => {"genetics" => ["Cenozoic", "Energetic"], "count" => 1}}
+      
+  </p>
+</div>
+ -->
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        AnxM
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Volcanic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    archetypal gene
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Endothermic
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Survival
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Founder's Deck
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         Most people shrink from the idea of living in an area where all soil is foreign ground. A place where the annual high temperature rarely exceeds that of frozen water by more than a few degrees. Yet, some individuals, driven by desperation or a unique vision, seek to this place to create paradise. Over many years of settlement, new arts have sprouted amidst the barren backdrop, much like seedlings nourished by the struggles of their people. Some of these arts shape the culture, bringing joy amidst the bitter surroundings. Others shape daily life and struggle, aiming to make tomorrow a bit easier. The culmination of these artistic and technological advancements is found at the capital city's Arctechnic Institute, dedicated to advancing this free people's paradise. <br> <br> In one of the Arctechnic Institute's study tracks, it is customary for students and professors to periodically demonstrate their mastery of life on the frozen terrain. This practice is of great interest to those who wish to test new equipment designs, validate environmental theories, or gain a deeper understanding of their harsh surroundings. Like many adventurers, they return with stories of love and loss, of great heroics or immense tragedy. Some pack out or even adorn artifacts from their excursions as proof of their tales, exaggerated or not. Among the favored study sites are the open-pit volcanoes that dot the interior of the wasteland. These rare warm spots attract astonishing numbers of flora and fauna, drawing both researchers and traders. <br> <br> The most captivating creatures drawn to these volcanic oases are the seals of light (loosely translated from the local dialect). These translucent beings shimmer with an ethereal glow, their bodies pulsating with light which mirrors the lava pools below. They are entirely dependent on external sources of heat and light for survival, thriving in the unique microclimates around the volcanoes. <br> <br> The seals of light have become an integral part of life in this frozen landscape. Their presence is not just a testament to nature's resilience, but also a symbol of hope and adaptability for the settlers. In harsh environs, where every resource must be carefully managed, these creatures offer a sustainable solution. <br> <br> During expeditions, Arctechnic wonderers often carry special lanterns which cast an especially enticing volcanic glow. The seals of light find this most alluring, so they tend to gather near. At night, around campfires, the translucent bodies of the seals create a mesmerizing display of soft, dancing shadows on the snow anor ice. <br> <br> In modern times, traveling with seals of light has become commonplace. These translucent beings are not only a source of sustenance but also a symbol of the deep connection between the people and the area they have chosen to call home. As travelers journey through the frozen wasteland, the seals of light serve as guides, leading them to the warm oases that sustain natural life in this harsh environment. 
+      
+  </p>
+</div>
+
+
+          <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+          <p class="font-hairline text-slate-300 text-xs italic"></p>

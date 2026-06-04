@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Binder Home | Kipukas</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Binder Home" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
+<meta property="og:description" content="This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place." />
+<link rel="canonical" href="https://www.kipukas.cards/" />
+<meta property="og:url" content="https://www.kipukas.cards/" />
+<meta property="og:site_name" content="Kipukas" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Binder Home" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","description":"This is the home of all the cards ever produced by Kipukas! Whether you are planning you next dominating game strategy or browsing for lovely pieces of art you came to the right place.","headline":"Binder Home","name":"Kipukas","url":"https://www.kipukas.cards/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Binder Home</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
+    <!-- Homepage LCP: the card-collection hero -->
+    <link rel="preload" as="image" type="image/svg+xml" fetchpriority="high" href="/assets/utility_images/kipukas_complete_card_collection.svg">
+    <!-- Preload critical scripts to reduce parse/evaluation time -->
+    <link rel="preload" href="/assets/js/htmx.min.js" as="script">
+    <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
+    <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!--favicon code realfavicongenerator.net-->
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <link rel="mask-icon" href="/assets/ico/safari-pinned-tab.svg" color="#9b2c2c">
+    <link rel="shortcut icon" href="/assets/ico/favicon.ico">
+    <meta name="apple-mobile-web-app-title" content="Kipukas">
+    <meta name="application-name" content="Kipukas">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
+    <meta name="theme-color" content="#9b2c2c">
+
+    <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/htmx.min.js"></script>
+
+    <!-- PWA: service worker registration + update-then-refresh flow -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
+
+    <!-- Lazy loading helpers for feature-specific scripts -->
+    <script>
+      // Lazy load QR camera only when needed
+      window.kipukasLoadQR = function() {
+        if (window.kipukasQRLoaded) return Promise.resolve();
+        // Warm the QR decoder in the WASM worker on this first click so it preps
+        // while the user reads/accepts the privacy modal (worker init is idempotent).
+        try {
+          if (globalThis.kipukasWorker) {
+            const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
+            globalThis.kipukasWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled: cvEnabled });
+          }
+        } catch (_e) { /* worker not ready yet — initQR runs again at scan start */ }
+        return import('/assets/js/qr-camera.js')
+          .then(function() {
+            window.kipukasQRLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+      };
+
+      // Lazy load Multiplayer only when needed
+      window.kipukasLoadMultiplayer = function() {
+        if (window.kipukasMultiplayerLoaded) return Promise.resolve();
+        return import('/assets/js/kipukas-multiplayer.js')
+          .then(function() {
+            window.kipukasMultiplayerLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load multiplayer:', err);
+          });
+      };
+    </script>
+
+  </head>
+
+  <body x-data="{ 
+                  filter: { all: true }, 
+                  showInstallModal: false,
+                  searchQuery: '',
+                  top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
+                  hideInstallButton: $persist(false),
+                }" 
+        class="bg-hero-pattern z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
+    <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+</div>
+
+    <main id="main-content"><!-- includes available
+hamburger
+qr_scanner
+type_matchup
+damage_tracker
+showCardInfo
+lastPage
+logo
+goHome
+hideTools
+base_fill
+base_stroke
+background_color
+  
+-->
+
+
+<div class="w-screen h-fit z-0 justify-center flex place-items-center mb-2">
+  <a href="./" class="block w-full max-w-md" title="Binder Home">
+    <img class="w-full h-auto transition hover:scale-95 active:transform-none" width="640" height="320" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection" fetchpriority="high"></img>
+  </a>
+</div>
+
+
+<div x-cloak
+  x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true), toolbarIdle: false, _idleTimer: null, pokeToolbar() { this.toolbarIdle = false; clearTimeout(this._idleTimer); this._idleTimer = setTimeout(() => { this.toolbarIdle = true; }, 4000); } }"
+  x-init="pokeToolbar()"
+  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+  @keydown.capture="pokeToolbar()"
+  :class="{ 'toolbar-idle': toolbarIdle }"
+  class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+  
+
+  
+
+  
+  
+
+  
+    <div x-show="showHamburger"
+    id="hamburger-menu" role="navigation" aria-label="Site menu"
+    x-anchor.right-end.offset.10="$refs.hamburger"
+    x-transition.duration.350ms
+    x-cloak
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
+    <div><a href="/" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+    <div><a href="/game_rules/index.html" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+    <div><a href="/recipes" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+    <div><button @click="$dispatch('open-player-data'); showHamburger = false" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Manage Player Data</button></div>
+    <!--<div><button @click="$dispatch('open-device-sync'); showHamburger = false" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Sync Devices</button></div>-->
+    <div><a href="/privacy_policy" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+    <div><a href="/about_articles" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+</div>
+
+<div class="flex justify-center">
+    <button class="toolbar-tile text-kip-drk-goldenrod relative"
+            @click="showHamburger = !showHamburger"
+            x-ref="hamburger"
+            aria-label="extra nav menu"
+            :aria-expanded="showHamburger"
+            aria-controls="hamburger-menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
+  
+
+  
+
+  <div x-show="showTools"  class="toolbar-tools flex flex-col items-center gap-2">
+    
+      <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default behavior (which would be to show the install prompt automatically)
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    });
+
+    // ============================================
+    // AUTO-HIDE: detect if the PWA is already installed
+    // ============================================
+
+    // Layer 1: If running in standalone / fullscreen mode, the PWA is installed.
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        navigator.standalone === true) {
+      // We need to wait for Alpine to initialise the data stack before setting.
+      document.addEventListener('alpine:init', () => {
+        Alpine.store('__pwaInstalled', true);
+      });
+      // Also set via DOM once body x-data is ready (belt-and-suspenders)
+      document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        if (body && body._x_dataStack) {
+          body._x_dataStack[0].hideInstallButton = true;
+        }
+      });
+      // Installed PWA launch: warm/resume the offline cache (idempotent — skips
+      // already-cached entries, so re-running each launch finishes an interrupted warm).
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.ready.then((reg) => {
+          if (reg.active) reg.active.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+        });
+      }
+    }
+
+    // Layer 2: Listen for the appinstalled event (fires when user completes install).
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed — hiding install button');
+      // Set Alpine persisted state so the button stays hidden on future visits
+      const body = document.body;
+      if (body && body._x_dataStack) {
+        body._x_dataStack[0].hideInstallButton = true;
+      }
+      deferredPrompt = null;
+
+      // Notify the Service Worker so it can track install state independently,
+      // and ask it to warm the full offline cache (card art + QR decoder).
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'PWA_INSTALLED' });
+        navigator.serviceWorker.controller.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+      }
+    });
+
+    // Layer 3: Ask the Service Worker if it already knows the PWA was installed.
+    // This covers cases where localStorage was cleared but the SW persists.
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (!registration.active) return;
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (msg) => {
+          if (msg.data && msg.data.installed === true) {
+            const body = document.body;
+            if (body && body._x_dataStack) {
+              body._x_dataStack[0].hideInstallButton = true;
+            }
+          }
+        };
+        registration.active.postMessage({ type: 'PWA_INSTALL_CHECK' }, [ch.port2]);
+      });
+    }
+
+    // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+
+        // Wait for the user to make a choice
+        deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('[PWA] Install choice:', choiceResult.outcome);
+            if (choiceResult.outcome === 'accepted') {
+                // The appinstalled event will fire and handle hiding,
+                // but set it here too for immediate feedback.
+                const body = document.body;
+                if (body && body._x_dataStack) {
+                    body._x_dataStack[0].hideInstallButton = true;
+                }
+            }
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
+        });
+    } else {
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        const body = document.body;
+        if (body && body._x_dataStack) {
+            body._x_dataStack[0].hideInstallButton = true;
+        }
+    }
+}
+    
+</script>
+<template x-if="true">
+    <button class="toolbar-tile" x-show="!hideInstallButton" @click="showInstallModal = !showInstallModal" aria-label="Install app">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"
+            class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+    </button>
+</template>
+
+
+
+<div x-show="showInstallModal"
+     role="dialog" aria-modal="true" aria-labelledby="modal-title-install-notice"
+     x-trap="showInstallModal"
+     @keydown.escape.window="showInstallModal = false"
+     class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 id="modal-title-install-notice" class="text-xl font-semibold mb-4 text-kip-drk-sienna">Install Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          I'll use the website as is.
+        </button>
+        
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+
+      </div>
+    </template>
+  </div>
+
+
+    
+
+    
+      <!-- QR Scanner — Phase 2: HTMX + WASM driven
+     UI state managed by /api/qr/status route (Rust WASM).
+     Camera + ZXing decode managed by qr-camera.js + kipukas-worker.js.
+     Alpine state (showScanner, showFlash, videoReady, noCamera, showQRModal)
+     removed from default.html — now server-driven HTML fragments. -->
+
+<!-- Container for HTMX-swapped scanner UI (privacy modal, camera, results) -->
+<div id="qr-container"></div>
+
+<!-- Button to toggle QR scanner -->
+<button aria-label="Toggle QR Scanner"
+        class="toolbar-tile"
+        onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+    viewBox="0 0 128 128"
+    
+      :class="'lg:fill-kip-goldenrod'"
+    
+    class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red active:fill-kip-drk-sienna">
+    <path
+      d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+      transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
+  </svg>
+</button>
+
+    
+
+    
+      <button class="toolbar-tile" aria-label="Search cards" x-ref="search" @click="showSearchBar = !showSearchBar; filter.all = !filter.all; if (!showSearchBar) { searchQuery = ''; }; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })">
+        <svg class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red fill-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
+        </svg>
+      </button>
+      <input type="text" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" x-model="searchQuery" @input.debounce.300ms="if (window.kipukasRefreshCards) window.kipukasRefreshCards()" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
+    
+
+    
+      <!-- Local Fists Tool — archetype/motivation matchup calculator (WASM: /api/type-matchup) -->
+<div x-data="{ showTypeMenu: false, showKeal: true, showMot: true, atkCount:0, defCount:0, roomConnected: false }"
+     class="relative place-content-center"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false">
+    <button @click="showTypeMenu = !showTypeMenu" aria-label="Toggle Type Comparison" x-ref="typeButton" x-show="!roomConnected" x-cloak class="toolbar-tile">
+        <svg viewBox="177 150 731 731" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd" class="toolbar-tile-icon text-kip-drk-goldenrod hover:text-kip-red"><path d="m548.46 524.42-10.96.03-35.52 35.52c-19.53 19.53-35.27 35.75-34.97 36.04s3.39.85 6.88 1.25l6.35.72 18.92 18.9 18.93 18.91 32.72-32.72 32.72-32.72-.04-10.96-.03-10.96-12.02-12.02-12.02-12.02zm56.43 76.19-8.71-8.26-10.22-.04-10.21-.04-25.3 25.3-25.3 25.3 19.45 19.44 19.45 19.44 25.33-25.33 25.33-25.33-.15-11c-.08-6.05-.33-11.05-.56-11.11-.22-.06-4.32-3.83-9.11-8.37m-117.95-107.3-10.25.03-30.05 30.06-30.06 30.05.04 11.9.03 11.92 7.46 7.92 7.46 7.93 11.72-.15c9.34-.11 12-.54 13.08-2.12.75-1.08 14.32-14.98 30.16-30.88l28.8-28.9-.24-10.02-.23-10.02-8.83-8.88-8.84-8.87zm-60.63-30.36-11-.15-22.67 22.66-22.66 22.67-.03 12.38-.03 12.37 7.45 7.46 7.46 7.45 10.94-.03 10.94-.03 23.32-23.13 23.32-23.12.04-11.14.03-11.14-8.05-8.05-8.06-8.05zm39.4 143.55-9.5-.76L446 616.02l-10.23 10.28.84 9.68.84 9.68 36.79 36.78 36.78 36.8-3.53 3.53-3.54 3.53-6.54-6.54c-19.7-19.68-39.1-29.76-62.64-32.5-22.79-2.67-44.11 3.48-62.84 18.1-7.05 5.51-7.45 5.69-9.44 4.16-4.88-3.72-5.08-4.96-1.4-8.64 8.58-8.59 26.61-18.48 39.54-21.7 17.39-4.33 33.4-4.1 51.39.77l6.68 1.8-15.56-16.26-15.55-16.26-1.23-13.08-1.23-13.08 7.13-8.1c3.92-4.44 8.16-8.7 9.43-9.46 3.44-2.06 1.9-2.65-6.68-2.6l-7.73.05-10.75-10.75-10.75-10.75.45-11.89.45-11.88-13.07-.03-13.07-.03-10.56-10.56-10.56-10.56.12-8.37c.06-4.6-.03-8.51-.22-8.7-.18-.17-14.36 13.72-31.51 30.87l-31.2 31.19-.9 19.1c-.5 10.5-1.5 32.17-2.24 48.15l-1.34 29.07-24.55 24.6L243.02 727l57.63 57.63 57.63 57.63 21.67-21.67 21.67-21.67 16.5-.61c9.09-.34 31.02-1.06 48.74-1.62 17.73-.55 35.03-1.14 38.45-1.31l6.22-.3 24.65-24.7 24.64-24.68 2.65-23.88 2.64-23.87-45.46-45.34-45.46-45.35zm71.31-99.4 10.96-.03 35.52-35.52c19.53-19.53 35.27-35.75 34.97-36.04s-3.39-.85-6.88-1.25l-6.35-.72-18.92-18.9-18.93-18.91-32.72 32.72-32.72 32.72.04 10.96.03 10.96 12.02 12.02 12.02 12.02zm-56.43-76.19 8.71 8.26 10.22.04 10.21.04 25.3-25.3 25.3-25.3-19.45-19.44-19.45-19.44-25.33 25.33-25.33 25.33.15 11c.08 6.05.33 11.05.56 11.11.22.06 4.32 3.82 9.11 8.37m117.95 107.3 10.25-.03 30.05-30.06 30.06-30.05-.04-11.9-.03-11.92-7.46-7.92-7.46-7.93-11.72.15c-9.34.11-12 .54-13.08 2.12-.75 1.08-14.32 14.98-30.16 30.88l-28.8 28.9.24 10.02.23 10.02 8.83 8.88 8.84 8.87zm60.63 30.36 11 .15 22.67-22.66 22.66-22.67.03-12.38.03-12.37-7.45-7.46-7.46-7.45-10.94.03-10.94.03-23.32 23.13-23.32 23.12-.04 11.14-.03 11.14 8.05 8.05 8.06 8.05zm-39.4-143.55 9.5.76 10.22-10.28 10.23-10.28-.84-9.68-.84-9.68-36.79-36.78-36.78-36.8 3.53-3.53 3.54-3.53 6.54 6.54c19.7 19.68 39.1 29.76 62.64 32.5 22.79 2.67 44.11-3.48 62.84-18.1 7.05-5.51 7.45-5.69 9.44-4.16 4.88 3.72 5.08 4.96 1.4 8.64-8.58 8.59-26.61 18.48-39.54 21.7-17.39 4.33-33.4 4.1-51.39-.77l-6.68-1.8 15.56 16.26 15.55 16.26 1.23 13.08 1.23 13.08-7.13 8.1c-3.92 4.44-8.16 8.7-9.43 9.46-3.44 2.06-1.9 2.65 6.68 2.6l7.73-.05 10.75 10.75 10.75 10.75-.45 11.89-.45 11.88 13.07.03 13.07.03 10.56 10.56L726.07 495l-.12 8.37c-.06 4.6.03 8.51.22 8.7.18.17 14.36-13.72 31.51-30.87l31.2-31.19.9-19.1c.5-10.5 1.5-32.17 2.24-48.15l1.34-29.07 24.55-24.6 24.55-24.59-57.63-57.63-57.63-57.63-21.67 21.67-21.67 21.67-16.5.61c-9.09.34-31.02 1.06-48.74 1.62-17.73.55-35.03 1.14-38.45 1.31l-6.22.3-24.65 24.7-24.64 24.68-2.66 23.9-2.64 23.87 45.46 45.34 45.46 45.35z"/></svg>
+    </button>
+    <!-- Full-screen modal overlay -->
+    <div x-show="showTypeMenu" x-cloak
+        role="dialog" aria-modal="true" aria-label="Type matchup"
+        x-trap="showTypeMenu" @keydown.escape.window="showTypeMenu = false"
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTypeMenu = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative p-4 text-kip-drk-sienna">
+        <div class="flex place-content-center">
+          <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle archetypes" :aria-expanded="showKeal"
+            @click="showKeal = !showKeal" @keydown.enter.space.prevent="showKeal = !showKeal" :class="{ 'rotate-180': !showKeal }" x-transition
+            class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
+          <b>Archetypes</b>
+        </div>
+        <div class="grid grid-cols-2">
+          <div x-show="showKeal" >
+            <span><b>Attacker</b></span>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Cenozoic" id="CenozoicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="CenozoicAtk">Cenozoic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Decrepit" id="DecrepitAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="DecrepitAtk">Decrepit</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Angelic" id="AngelicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AngelicAtk">Angelic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Brutal" id="BrutalAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="BrutalAtk">Brutal</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Arboreal" id="ArborealAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="ArborealAtk">Arboreal</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Astral" id="AstralAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AstralAtk">Astral</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Telekinetic" id="TelekineticAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="TelekineticAtk">Telekinetic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Glitch" id="GlitchAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="GlitchAtk">Glitch</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Magic" id="MagicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="MagicAtk">Magic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Endothermic" id="EndothermicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EndothermicAtk">Endothermic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Avian" id="AvianAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AvianAtk">Avian</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Mechanical" id="MechanicalAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="MechanicalAtk">Mechanical</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Algorithmic" id="AlgorithmicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AlgorithmicAtk">Algorithmic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Energetic" id="EnergeticAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EnergeticAtk">Energetic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="atkCount >= 3 && !checked" name="atk" value="Entropic" id="EntropicAtk" @click="checked = !checked; atkCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EntropicAtk">Entropic</label></div>
+            
+          </div>
+          <div x-show="showKeal">
+            <span><b>Defender</b></span>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Cenozoic" id="CenozoicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="CenozoicDef">Cenozoic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Decrepit" id="DecrepitDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="DecrepitDef">Decrepit</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Angelic" id="AngelicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AngelicDef">Angelic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Brutal" id="BrutalDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="BrutalDef">Brutal</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Arboreal" id="ArborealDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="ArborealDef">Arboreal</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Astral" id="AstralDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AstralDef">Astral</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Telekinetic" id="TelekineticDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="TelekineticDef">Telekinetic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Glitch" id="GlitchDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="GlitchDef">Glitch</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Magic" id="MagicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="MagicDef">Magic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Endothermic" id="EndothermicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EndothermicDef">Endothermic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Avian" id="AvianDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AvianDef">Avian</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Mechanical" id="MechanicalDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="MechanicalDef">Mechanical</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Algorithmic" id="AlgorithmicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="AlgorithmicDef">Algorithmic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Energetic" id="EnergeticDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EnergeticDef">Energetic</label></div>
+            
+              <div x-data="{ checked: false }"><input type="checkbox" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="defCount >= 3 && !checked" name="def" value="Entropic" id="EntropicDef" @click="checked = !checked; defCount += checked ? 1 : -1; htmx.trigger('#type-form', 'formChanged')"><label for="EntropicDef">Entropic</label></div>
+            
+          </div>
+        </div>
+        <div class="flex place-content-center">
+          <svg xmlns="http://www.w3.org/2000/svg" role="button" tabindex="0" aria-label="Toggle motivations" :aria-expanded="showMot"
+            @click="showMot = !showMot" @keydown.enter.space.prevent="showMot = !showMot" :class="{ 'rotate-180': !showMot }" x-transition
+            class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 place-self-center col-span-2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
+          <b>Motivations</b>
+        </div>
+        <div class="grid grid-cols-2">
+          <div x-show="showMot">
+            <span><b>Attacker</b></span>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Spirit" id="SpiritAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SpiritAtkMot">Spirit</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Service" id="ServiceAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="ServiceAtkMot">Service</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Survival" id="SurvivalAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SurvivalAtkMot">Survival</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Possessor" id="PossessorAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="PossessorAtkMot">Possessor</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Satisfaction" id="SatisfactionAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SatisfactionAtkMot">Satisfaction</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Sacrifice" id="SacrificeAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SacrificeAtkMot">Sacrifice</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Conscience" id="ConscienceAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="ConscienceAtkMot">Conscience</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Passion" id="PassionAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="PassionAtkMot">Passion</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motAtk" value="Duty" id="DutyAtkMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="DutyAtkMot">Duty</label></div>
+            
+          </div>
+          <div x-show="showMot">
+            <span><b>Defender</b></span>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Spirit" id="SpiritDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SpiritDefMot">Spirit</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Service" id="ServiceDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="ServiceDefMot">Service</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Survival" id="SurvivalDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SurvivalDefMot">Survival</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Possessor" id="PossessorDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="PossessorDefMot">Possessor</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Satisfaction" id="SatisfactionDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SatisfactionDefMot">Satisfaction</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Sacrifice" id="SacrificeDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="SacrificeDefMot">Sacrifice</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Conscience" id="ConscienceDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="ConscienceDefMot">Conscience</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Passion" id="PassionDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="PassionDefMot">Passion</label></div>
+            
+              <div x-data="{ checked: false }"><input type="radio" :checked="checked" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" name="motDef" value="Duty" id="DutyDefMot" @click="checked = !checked; htmx.trigger('#type-form', 'formChanged')"><label for="DutyDefMot">Duty</label></div>
+            
+          </div>
+        </div>
+        <!-- HTMX-powered result: fetches from WASM server via SW → Web Worker -->
+        <div id="type-form"
+             hx-get="/api/type-matchup"
+             hx-trigger="formChanged"
+             hx-target="#type-result"
+             hx-swap="innerHTML"
+             hx-include="[name='atk'], [name='def'], [name='motAtk'], [name='motDef']">
+        </div>
+        <div id="type-result" class="col-span-2">
+          <span><strong>Attack Die Modifier:</strong></span>
+        </div>
+
+        <!-- Close button -->
+        <div class="border-t border-slate-300 pt-3 mt-3">
+            <button @click="showTypeMenu = false"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Close
+            </button>
+        </div>
+        </div> <!-- close modal content -->
+    </div> <!-- close fixed overlay -->
+
+</div> <!-- close outer x-data -->
+
+    
+
+    
+
+    
+      <!-- Multiplayer Fists Tool — appears when connected to a room (WASM: /api/room/fists) -->
+<div x-data="{ showFistsMenu: false, roomConnected: false }"
+     class="relative place-content-center"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false"
+     x-init="
+       $watch('roomConnected', value => { if (!value) showFistsMenu = false });
+       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.resetFists(); });
+     ">
+    <button @click="showFistsMenu = !showFistsMenu" aria-label="Toggle Fists Combat" x-show="roomConnected" x-cloak class="toolbar-tile">
+        <svg viewBox="177 150 731 731" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd" class="toolbar-tile-icon text-kip-drk-goldenrod hover:text-kip-red"><path d="m548.46 524.42-10.96.03-35.52 35.52c-19.53 19.53-35.27 35.75-34.97 36.04s3.39.85 6.88 1.25l6.35.72 18.92 18.9 18.93 18.91 32.72-32.72 32.72-32.72-.04-10.96-.03-10.96-12.02-12.02-12.02-12.02zm56.43 76.19-8.71-8.26-10.22-.04-10.21-.04-25.3 25.3-25.3 25.3 19.45 19.44 19.45 19.44 25.33-25.33 25.33-25.33-.15-11c-.08-6.05-.33-11.05-.56-11.11-.22-.06-4.32-3.83-9.11-8.37m-117.95-107.3-10.25.03-30.05 30.06-30.06 30.05.04 11.9.03 11.92 7.46 7.92 7.46 7.93 11.72-.15c9.34-.11 12-.54 13.08-2.12.75-1.08 14.32-14.98 30.16-30.88l28.8-28.9-.24-10.02-.23-10.02-8.83-8.88-8.84-8.87zm-60.63-30.36-11-.15-22.67 22.66-22.66 22.67-.03 12.38-.03 12.37 7.45 7.46 7.46 7.45 10.94-.03 10.94-.03 23.32-23.13 23.32-23.12.04-11.14.03-11.14-8.05-8.05-8.06-8.05zm39.4 143.55-9.5-.76L446 616.02l-10.23 10.28.84 9.68.84 9.68 36.79 36.78 36.78 36.8-3.53 3.53-3.54 3.53-6.54-6.54c-19.7-19.68-39.1-29.76-62.64-32.5-22.79-2.67-44.11 3.48-62.84 18.1-7.05 5.51-7.45 5.69-9.44 4.16-4.88-3.72-5.08-4.96-1.4-8.64 8.58-8.59 26.61-18.48 39.54-21.7 17.39-4.33 33.4-4.1 51.39.77l6.68 1.8-15.56-16.26-15.55-16.26-1.23-13.08-1.23-13.08 7.13-8.1c3.92-4.44 8.16-8.7 9.43-9.46 3.44-2.06 1.9-2.65-6.68-2.6l-7.73.05-10.75-10.75-10.75-10.75.45-11.89.45-11.88-13.07-.03-13.07-.03-10.56-10.56-10.56-10.56.12-8.37c.06-4.6-.03-8.51-.22-8.7-.18-.17-14.36 13.72-31.51 30.87l-31.2 31.19-.9 19.1c-.5 10.5-1.5 32.17-2.24 48.15l-1.34 29.07-24.55 24.6L243.02 727l57.63 57.63 57.63 57.63 21.67-21.67 21.67-21.67 16.5-.61c9.09-.34 31.02-1.06 48.74-1.62 17.73-.55 35.03-1.14 38.45-1.31l6.22-.3 24.65-24.7 24.64-24.68 2.65-23.88 2.64-23.87-45.46-45.34-45.46-45.35zm71.31-99.4 10.96-.03 35.52-35.52c19.53-19.53 35.27-35.75 34.97-36.04s-3.39-.85-6.88-1.25l-6.35-.72-18.92-18.9-18.93-18.91-32.72 32.72-32.72 32.72.04 10.96.03 10.96 12.02 12.02 12.02 12.02zm-56.43-76.19 8.71 8.26 10.22.04 10.21.04 25.3-25.3 25.3-25.3-19.45-19.44-19.45-19.44-25.33 25.33-25.33 25.33.15 11c.08 6.05.33 11.05.56 11.11.22.06 4.32 3.82 9.11 8.37m117.95 107.3 10.25-.03 30.05-30.06 30.06-30.05-.04-11.9-.03-11.92-7.46-7.92-7.46-7.93-11.72.15c-9.34.11-12 .54-13.08 2.12-.75 1.08-14.32 14.98-30.16 30.88l-28.8 28.9.24 10.02.23 10.02 8.83 8.88 8.84 8.87zm60.63 30.36 11 .15 22.67-22.66 22.66-22.67.03-12.38.03-12.37-7.45-7.46-7.46-7.45-10.94.03-10.94.03-23.32 23.13-23.32 23.12-.04 11.14-.03 11.14 8.05 8.05 8.06 8.05zm-39.4-143.55 9.5.76 10.22-10.28 10.23-10.28-.84-9.68-.84-9.68-36.79-36.78-36.78-36.8 3.53-3.53 3.54-3.53 6.54 6.54c19.7 19.68 39.1 29.76 62.64 32.5 22.79 2.67 44.11-3.48 62.84-18.1 7.05-5.51 7.45-5.69 9.44-4.16 4.88 3.72 5.08 4.96 1.4 8.64-8.58 8.59-26.61 18.48-39.54 21.7-17.39 4.33-33.4 4.1-51.39-.77l-6.68-1.8 15.56 16.26 15.55 16.26 1.23 13.08 1.23 13.08-7.13 8.1c-3.92 4.44-8.16 8.7-9.43 9.46-3.44 2.06-1.9 2.65 6.68 2.6l7.73-.05 10.75 10.75 10.75 10.75-.45 11.89-.45 11.88 13.07.03 13.07.03 10.56 10.56L726.07 495l-.12 8.37c-.06 4.6.03 8.51.22 8.7.18.17 14.36-13.72 31.51-30.87l31.2-31.19.9-19.1c.5-10.5 1.5-32.17 2.24-48.15l1.34-29.07 24.55-24.6 24.55-24.59-57.63-57.63-57.63-57.63-21.67 21.67-21.67 21.67-16.5.61c-9.09.34-31.02 1.06-48.74 1.62-17.73.55-35.03 1.14-38.45 1.31l-6.22.3-24.65 24.7-24.64 24.68-2.66 23.9-2.64 23.87 45.46 45.34 45.46 45.35z"/></svg>
+    </button>
+
+    <!-- Full-screen modal overlay -->
+    <div x-show="showFistsMenu" x-cloak
+        role="dialog" aria-modal="true" aria-label="Fists combat"
+        x-trap="showFistsMenu" @keydown.escape.window="showFistsMenu = false"
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+        x-effect="if (showFistsMenu) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                var fc = document.getElementById('fists-container');
+                if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists', {target:'#fists-container', swap:'innerHTML'});
+            }
+        })">
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showFistsMenu = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-3 border-b border-slate-300">
+                <p class="text-lg font-bold text-kip-drk-sienna">Fists Combat</p>
+                <p class="text-xs text-slate-500">Multiplayer room combat</p>
+            </div>
+
+            <!-- Fists combat section -->
+            <div id="fists-container"
+              hx-get="/api/room/fists"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+                        <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showFistsMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    
+      <!-- Phase B: Affinity tracking tool (Pattern 11).
+     Declare archetypal affinity once per day. Active affinity grants +1 roll
+     bonus on matching cards during fists combat. State stored in PLAYER_DOC. -->
+<div x-data="{ showAffinity: false }"
+     class="relative place-content-center">
+
+    <!-- Trigger button — heart icon representing archetypal affinity -->
+    <button @click="showAffinity = !showAffinity" class="toolbar-tile" aria-label="Archetypal Affinity">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+            class="toolbar-tile-icon text-kip-drk-goldenrod hover:text-kip-red">
+            <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        </svg>
+    </button>
+
+    <!-- Modal overlay -->
+    <div x-show="showAffinity" x-cloak
+        role="dialog" aria-modal="true" aria-label="Archetypal Affinity"
+        x-trap="showAffinity" @keydown.escape.window="showAffinity = false"
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+        x-effect="if (showAffinity) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                var today = new Date().toISOString().slice(0,10);
+                htmx.ajax('GET', '/api/player/affinity?today=' + today,
+                    {target:'#affinity-container', swap:'innerHTML'});
+            }
+        })">
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showAffinity = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+
+            <!-- HTMX container — WASM renders the affinity panel -->
+            <div id="affinity-container"
+              hx-get="/api/player/affinity"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- Close button -->
+            <button @click="showAffinity = false"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm">
+              Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Supply today's date to the initial hx-get on page load -->
+<script>
+(function() {
+  var el = document.getElementById('affinity-container');
+  if (el) {
+    var today = new Date().toISOString().slice(0,10);
+    el.setAttribute('hx-get', '/api/player/affinity?today=' + today);
+  }
+})();
+</script>
+
+    
+
+    
+        <!-- Phase 3b: Turn tracker with HTMX + WASM state management.
+     The popover toggle (showTurnTracker) stays Alpine — purely visual.
+     Timer creation form is loaded from WASM. Alarm state lives in WASM memory.
+     Hides when multiplayer room is connected (multiplayer_turn_tool.html takes over). -->
+<div x-data="{ showTurnTracker: false, roomConnected: false }"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false">
+    <button @click="showTurnTracker = !showTurnTracker"
+        x-show="!roomConnected" x-cloak
+        x-ref="turnTracker" aria-label="Turn Timer" class="toolbar-tile">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+    </button>
+
+    <div x-show="showTurnTracker && !roomConnected" x-cloak
+    role="dialog" aria-label="Turn timer" @keydown.escape.window="showTurnTracker = false"
+    x-anchor.right-end.offset.10="$refs.turnTracker"
+    x-transition.duration.350ms
+    x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
+      }
+    })"
+    class="
+    z-40 gap-2 text-kip-drk-goldenrod bg-amber-50 mt-2 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition-opacity duration-300
+   grid grid-cols-1 h-fit w-56"
+    id="turn-tracker-panel"
+    hx-get="/api/game/turns"
+    hx-trigger="load"
+    hx-swap="innerHTML">
+    </div>
+</div>
+
+<!-- Floating alarm display — loaded from WASM, positioned top-left -->
+<div id="turn-alarms" class="fixed top-0 left-0 m-6 grid grid-cols-1"
+     hx-get="/api/game/turns?display=alarms"
+     hx-trigger="load"
+     hx-swap="innerHTML"
+     hx-target="this">
+</div>
+
+    
+
+    
+        <!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
+<div x-data="{ showTurnMenu: false, roomConnected: false }"
+     class="relative place-content-center"
+     @room-connected.window="roomConnected = true"
+     @room-disconnected.window="roomConnected = false"
+     x-init="
+       $watch('roomConnected', value => { if (!value) showTurnMenu = false });
+     ">
+    <button @click="showTurnMenu = !showTurnMenu" aria-label="Toggle Shared Turn Timer" x-show="roomConnected" x-cloak class="toolbar-tile">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+    </button>
+
+    <!-- Full-screen modal overlay -->
+    <div x-show="showTurnMenu" x-cloak
+        role="dialog" aria-modal="true" aria-label="Shared turn timer"
+        x-trap="showTurnMenu" @keydown.escape.window="showTurnMenu = false"
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms
+        x-effect="if (showTurnMenu) $nextTick(() => {
+            if (typeof htmx !== 'undefined') {
+                var tc = document.getElementById('turn-container');
+                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
+            }
+        })">
+
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTurnMenu = false"></div>
+
+        <!-- Modal content -->
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-3 border-b border-slate-300">
+                <p class="text-lg font-bold text-kip-drk-sienna">Shared Turn Timer</p>
+                <p class="text-xs text-slate-500">Synced with multiplayer room</p>
+            </div>
+
+            <!-- Turn timer section -->
+            <div id="turn-container"
+              hx-get="/api/game/turns"
+              hx-trigger="load"
+              hx-swap="innerHTML">
+            </div>
+
+            <!-- Close button -->
+            <div class="border-t border-slate-300 p-3">
+                <button @click="showTurnMenu = false"
+                  class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+                  Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+
+    
+
+    
+      <!-- Phase 4: Multiplayer room management (wifi icon) — room connection only, no fists combat -->
+<div x-data="{ showMultiplayer: false }" class="relative place-content-center"
+     @close-multiplayer.window="showMultiplayer = false">
+  <!-- Multiplayer toggle button (wifi icon) -->
+  <button aria-label="Toggle Multiplayer" @click="window.kipukasLoadMultiplayer().then(function() { showMultiplayer = !showMultiplayer })" class="toolbar-tile">
+    <svg xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red">
+      <path fill-rule="evenodd" d="M1.371 8.143c5.858-5.857 15.356-5.857 21.213 0a.75.75 0 0 1 0 1.061.75.75 0 0 1-1.06 0c-5.273-5.272-13.821-5.272-19.092 0a.75.75 0 0 1-1.06-1.06Zm3.182 3.182c4.1-4.1 10.749-4.1 14.85 0a.75.75 0 1 1-1.061 1.06 8.25 8.25 0 0 0-12.728 0 .75.75 0 0 1-1.06-1.06Zm3.182 3.182a6 6 0 0 1 8.486 0 .75.75 0 1 1-1.06 1.06 4.5 4.5 0 0 0-6.364 0 .75.75 0 0 1-1.06-1.06ZM12 18a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H12.75A.75.75 0 0 1 12 18Z" clip-rule="evenodd" />
+    </svg>
+  </button>
+
+  <!-- Full-screen modal overlay (room management only) -->
+  <div x-show="showMultiplayer" x-cloak
+    role="dialog" aria-modal="true" aria-label="Multiplayer room"
+    x-trap="showMultiplayer" @keydown.escape.window="showMultiplayer = false"
+    class="fixed inset-0 flex items-center justify-center z-50"
+    x-transition.duration.350ms
+    x-effect="if (showMultiplayer) $nextTick(() => {
+      if (typeof htmx !== 'undefined') {
+        htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
+      }
+    })">
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
+
+    <!-- Modal content (room status only) -->
+    <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+      <div id="room-status"
+        hx-get="/api/room/status"
+        hx-trigger="load"
+        hx-swap="innerHTML">
+      </div>
+
+      <!-- Close button -->
+      <div class="border-t border-slate-300 p-3">
+        <button @click="showMultiplayer = false"
+          class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+    
+
+    
+      <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
+    <div x-show="showFilter" id="filter-popover" role="region" aria-label="Card filters"
+        x-anchor.right-end.offset.10="$refs.filter"
+        x-transition.duration.350ms
+        class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden transition-opacity duration-300">
+        <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :checked="filter.all" @click="filter.all = !filter.all; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="All" checked><label for="All">Show All - <strong>56</strong></label></div>
+        <button type="button" class="flex w-full items-center text-left" @click="showVariation = !showVariation" :aria-expanded="showVariation" aria-controls="filter-variations">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showVariation }"
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <span>Variations</span>
+        </button>
+        <div x-show="showVariation" id="filter-variations">
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Character = !filter.Character; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Character"><label for="Character">Character</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Species = !filter.Species; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Species"><label for="Species">Species</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.TerrainFeature = !filter.TerrainFeature; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="TerrainFeature"><label for="TerrainFeature">TerrainFeature</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Trap = !filter.Trap; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Trap"><label for="Trap">Trap</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Sabotage = !filter.Sabotage; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Sabotage"><label for="Sabotage">Sabotage</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.PersonalEffect = !filter.PersonalEffect; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="PersonalEffect"><label for="PersonalEffect">PersonalEffect</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Item = !filter.Item; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Item"><label for="Item">Item</label></div>
+            
+            <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.card = !filter.card; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Other"><label for="Other">Other</label></div>
+        </div>
+        <button type="button" class="flex w-full items-center text-left" @click="showSoulType = !showSoulType" :aria-expanded="showSoulType" aria-controls="filter-soultypes">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showSoulType }"
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <span>Soul Types</span>
+        </button>
+        <div x-show="showSoulType" id="filter-soultypes">
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Cenozoic = !filter.Cenozoic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Cenozoic"><label for="Cenozoic">Cenozoic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Decrepit = !filter.Decrepit; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Decrepit"><label for="Decrepit">Decrepit</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Angelic = !filter.Angelic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Angelic"><label for="Angelic">Angelic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Brutal = !filter.Brutal; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Brutal"><label for="Brutal">Brutal</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Arboreal = !filter.Arboreal; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Arboreal"><label for="Arboreal">Arboreal</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Astral = !filter.Astral; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Astral"><label for="Astral">Astral</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Telekinetic = !filter.Telekinetic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Telekinetic"><label for="Telekinetic">Telekinetic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Glitch = !filter.Glitch; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Glitch"><label for="Glitch">Glitch</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Magic = !filter.Magic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Magic"><label for="Magic">Magic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Endothermic = !filter.Endothermic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Endothermic"><label for="Endothermic">Endothermic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Avian = !filter.Avian; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Avian"><label for="Avian">Avian</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Mechanical = !filter.Mechanical; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Mechanical"><label for="Mechanical">Mechanical</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Algorithmic = !filter.Algorithmic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Algorithmic"><label for="Algorithmic">Algorithmic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Energetic = !filter.Energetic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Energetic"><label for="Energetic">Energetic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Entropic = !filter.Entropic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Entropic"><label for="Entropic">Entropic</label></div>
+            
+        </div>
+        <button type="button" class="flex w-full items-center text-left" @click="showMotivation = !showMotivation" :aria-expanded="showMotivation" aria-controls="filter-motivations">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showMotivation }"
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <span>Motivations</span>
+        </button>
+        <div x-show="showMotivation" id="filter-motivations">
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Spirit = !filter.Spirit; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Spirit"><label for="Spirit">Spirit</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Service = !filter.Service; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Service"><label for="Service">Service</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Survival = !filter.Survival; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Survival"><label for="Survival">Survival</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Possessor = !filter.Possessor; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Possessor"><label for="Possessor">Possessor</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Satisfaction = !filter.Satisfaction; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Satisfaction"><label for="Satisfaction">Satisfaction</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Sacrifice = !filter.Sacrifice; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Sacrifice"><label for="Sacrifice">Sacrifice</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Conscience = !filter.Conscience; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Conscience"><label for="Conscience">Conscience</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Passion = !filter.Passion; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Passion"><label for="Passion">Passion</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Duty = !filter.Duty; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Duty"><label for="Duty">Duty</label></div>
+            
+        </div>
+        <button type="button" class="flex w-full items-center text-left" @click="showHabitat = !showHabitat" :aria-expanded="showHabitat" aria-controls="filter-habitats">
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                :class="{ 'rotate-90': showHabitat }"
+                class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+            <span>Habitats</span>
+        </button>
+        <div x-show="showHabitat" id="filter-habitats">
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Mountain = !filter.Mountain; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Mountain"><label for="Mountain">Mountain</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Forest = !filter.Forest; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Forest"><label for="Forest">Forest</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Plains = !filter.Plains; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Plains"><label for="Plains">Plains</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Water = !filter.Water; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Water"><label for="Water">Water</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Heavens = !filter.Heavens; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Heavens"><label for="Heavens">Heavens</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Volcanic = !filter.Volcanic; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Volcanic"><label for="Volcanic">Volcanic</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Underground = !filter.Underground; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Underground"><label for="Underground">Underground</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.DigitalCloud = !filter.DigitalCloud; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="DigitalCloud"><label for="DigitalCloud">DigitalCloud</label></div>
+            
+                <div><input type="checkbox" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100" :disabled="filter.all" @click="filter.Nomad = !filter.Nomad; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Nomad"><label for="Nomad">Nomad</label></div>
+            
+        </div>
+    </div>
+    <button aria-label="show filter options" :aria-expanded="showFilter" aria-controls="filter-popover" @click="showFilter = !showFilter" x-ref="filter" class="toolbar-tile">
+        <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"
+        class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+        </svg>
+    </button>
+</div>
+    
+
+    
+
+    
+
+    
+      <a :href="previousURL" aria-label="Go to last visited page" class="toolbar-tile hidden lg:inline-flex">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </a>
+    
+    
+  </div>
+  
+  <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
+    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"
+    class="toolbar-tile-pill mb-2 place-self-center">
+    <svg xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate-180': !showTools }"
+      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+    </svg>
+  </button>
+  
+
+</div>
+
+
+
+  <!-- Player Data Export/Import — Phase D signed + encrypted backup.
+     Lives in the hamburger menu. Uses Pattern 11 (modal) with Pattern 6
+     (postToWasmWithCallback) for the WASM → JS → encrypt → download flow.
+     
+     Two-layer protection:
+     1. Integrity (Rust): HMAC-SHA256 signs PLAYER_DOC with passphrase
+     2. Confidentiality (JS): AES-GCM encrypts the signed payload via Web Crypto
+-->
+<div x-data="{
+  showPlayerData: false,
+  mode: 'menu',
+  passphrase: '',
+  confirmPassphrase: '',
+  importFile: null,
+  statusMsg: '',
+  statusOk: false,
+  working: false,
+  reset() {
+    this.mode = 'menu';
+    this.passphrase = '';
+    this.confirmPassphrase = '';
+    this.importFile = null;
+    this.statusMsg = '';
+    this.statusOk = false;
+    this.working = false;
+  }
+}" @open-player-data.window="showPlayerData = true; reset()">
+
+  <!-- Modal overlay -->
+  <div x-show="showPlayerData" x-cloak
+    class="fixed inset-0 flex items-center justify-center z-50"
+    x-transition.duration.350ms>
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showPlayerData = false; reset()"></div>
+
+    <!-- Modal card -->
+    <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+      <div class="p-4 text-kip-drk-sienna">
+        <p class="text-lg font-bold text-center mb-1">Player Data</p>
+        <p class="text-xs text-slate-500 text-center mb-4">Backup and restore your game progress</p>
+
+        <!-- Status message -->
+        <div x-show="statusMsg" x-cloak class="text-center text-sm mb-3 p-2 rounded"
+          :class="statusOk ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-kip-red'">
+          <span x-text="statusMsg"></span>
+        </div>
+
+        <!-- Main menu -->
+        <template x-if="mode === 'menu'">
+          <div class="grid gap-2">
+            <button @click="mode = 'export'"
+              class="w-full bg-kip-drk-goldenrod hover:bg-yellow-700 active:bg-yellow-800 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export Backup
+            </button>
+            <button @click="mode = 'import'"
+              class="w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              Import Backup
+            </button>
+            <p class="text-xs text-slate-400 text-center mt-2">
+              Exports are signed and encrypted with your passphrase.
+              <br>Keep your passphrase safe — it cannot be recovered.
+            </p>
+          </div>
+        </template>
+
+        <!-- Export form -->
+        <template x-if="mode === 'export'">
+          <div class="grid gap-3">
+            <label for="export-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="export-passphrase" type="password" x-model="passphrase" placeholder="Enter a passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+            <label for="export-confirm" class="text-sm font-medium">Confirm Passphrase</label>
+            <input id="export-confirm" type="password" x-model="confirmPassphrase" placeholder="Confirm passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+
+            <button @click="
+              statusMsg = '';
+              if (!passphrase || passphrase.length < 4) {
+                statusMsg = 'Passphrase must be at least 4 characters'; statusOk = false; return;
+              }
+              if (passphrase !== confirmPassphrase) {
+                statusMsg = 'Passphrases do not match'; statusOk = false; return;
+              }
+              working = true;
+              const ch = new MessageChannel();
+              ch.port1.onmessage = async function(msg) {
+                try {
+                  const innerJSON = msg.data.html;
+                  if (innerJSON.includes('error')) {
+                    statusMsg = 'Export failed: ' + innerJSON; statusOk = false; working = false; return;
+                  }
+                  const { encryptExport } = await import('/assets/js/kipukas-crypto.js');
+                  const encrypted = await encryptExport(passphrase, innerJSON);
+                  const blob = new Blob([encrypted], { type: 'application/json' });
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(blob);
+                  const date = new Date().toISOString().slice(0, 10);
+                  a.download = 'kipukas-player-backup-' + date + '.kipukas';
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                  statusMsg = '✓ Backup exported successfully'; statusOk = true;
+                  working = false;
+                } catch(e) {
+                  statusMsg = 'Encryption error: ' + e.message; statusOk = false; working = false;
+                }
+              };
+              const exportedAt = new Date().toISOString();
+              kipukasWorker.postMessage(
+                { method: 'POST', pathname: '/api/player/export/signed',
+                  search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&exported_at=' + encodeURIComponent(exportedAt) },
+                [ch.port2]
+              );
+            " :disabled="working"
+              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              <span x-show="!working">Export</span>
+              <span x-show="working" x-cloak>Encrypting…</span>
+            </button>
+            <button @click="mode = 'menu'; statusMsg = ''"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Back
+            </button>
+          </div>
+        </template>
+
+        <!-- Import form -->
+        <template x-if="mode === 'import'">
+          <div class="grid gap-3">
+            <label for="import-file" class="text-sm font-medium">Select backup file</label>
+            <input id="import-file" type="file" accept=".kipukas" @change="importFile = $event.target.files[0]"
+              class="w-full text-sm text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-kip-drk-sienna hover:file:bg-slate-200">
+
+            <label for="import-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="import-passphrase" type="password" x-model="passphrase" placeholder="Enter backup passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+
+            <button @click="
+              statusMsg = '';
+              if (!importFile) { statusMsg = 'Please select a .kipukas file'; statusOk = false; return; }
+              if (!passphrase) { statusMsg = 'Please enter the passphrase'; statusOk = false; return; }
+              working = true;
+              const reader = new FileReader();
+              reader.onload = async function(e) {
+                try {
+                  const { decryptImport } = await import('/assets/js/kipukas-crypto.js');
+                  const innerJSON = await decryptImport(passphrase, e.target.result);
+                  const ch = new MessageChannel();
+                  ch.port1.onmessage = function(msg) {
+                    const html = msg.data.html;
+                    if (html.includes('successfully')) {
+                      statusMsg = '✓ Player data restored! Reloading…'; statusOk = true;
+                      // Persist the restored PLAYER_DOC to localStorage
+                      const pch = new MessageChannel();
+                      pch.port1.onmessage = function(pmsg) {
+                        if (pmsg.data.html) localStorage.setItem('kipukas_player_doc', pmsg.data.html);
+                        setTimeout(function() { location.reload(); }, 800);
+                      };
+                      kipukasWorker.postMessage(
+                        { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
+                        [pch.port2]
+                      );
+                    } else {
+                      statusMsg = html.replace(/<[^>]*>/g, ''); statusOk = false;
+                    }
+                    working = false;
+                  };
+                  kipukasWorker.postMessage(
+                    { method: 'POST', pathname: '/api/player/import/signed',
+                      search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&payload=' + encodeURIComponent(innerJSON) },
+                    [ch.port2]
+                  );
+                } catch(err) {
+                  statusMsg = err.message; statusOk = false; working = false;
+                }
+              };
+              reader.readAsText(importFile);
+            " :disabled="working"
+              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              <span x-show="!working">Import</span>
+              <span x-show="working" x-cloak>Verifying…</span>
+            </button>
+            <button @click="mode = 'menu'; statusMsg = ''"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Back
+            </button>
+          </div>
+        </template>
+
+      </div>
+
+      <!-- Close button -->
+      <button @click="showPlayerData = false; reset()"
+        class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- _includes/device_sync_tool.html — Cross-device sync modal (Phase E, Pattern 11) -->
+<div x-data="{
+  showSync: false,
+  screen: 'menu',
+  passphrase: '',
+  joinCode: '',
+  roomCode: '',
+  status: '',
+  error: '',
+  syncing: false,
+  syncDone: false,
+
+  async createRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    this.error = '';
+    this.status = 'Creating sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.createRoom(this.passphrase);
+  },
+
+  async joinRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    if (this.joinCode.trim().length !== 4) { this.error = 'Enter a 4-character room code'; return; }
+    this.error = '';
+    this.status = 'Joining sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.joinRoom(this.joinCode, this.passphrase);
+  },
+
+  cleanup() {
+    if (window.kipukasSync) kipukasSync.disconnect();
+    this.screen = 'menu';
+    this.passphrase = '';
+    this.joinCode = '';
+    this.roomCode = '';
+    this.status = '';
+    this.error = '';
+    this.syncing = false;
+    this.syncDone = false;
+    this.showSync = false;
+  }
+}"
+     class="relative"
+     @open-device-sync.window="showSync = true; screen = 'menu'; error = ''; status = ''; syncDone = false"
+
+     @sync-room-created.window="roomCode = $event.detail.code; status = 'Room created! Share this code with your other device:'; screen = 'paired'"
+     @sync-room-joined.window="roomCode = $event.detail.code; status = 'Joined room. Waiting for authentication…'; screen = 'paired'"
+     @sync-peer-joined.window="status = 'Peer device connected. Authenticating…'"
+     @sync-authenticated.window="status = 'Authenticated! Syncing player data…'; syncing = true"
+     @sync-updated.window="status = '✓ Sync complete! Player data merged.'; syncing = false; syncDone = true"
+     @sync-peer-left.window="if (!syncDone) { status = 'Peer device disconnected.'; syncing = false; }"
+     @sync-auth-failed.window="error = $event.detail.message || 'Authentication failed'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-error.window="error = $event.detail.message || 'Connection error'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-disconnected.window="if (syncing) { status = 'Disconnected during sync'; syncing = false; }">
+
+    <!-- Modal -->
+    <div x-show="showSync" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
+
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="cleanup()"></div>
+
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-4 text-kip-drk-sienna">
+                <p class="text-lg font-bold text-center mb-1">🔄 Sync Devices</p>
+                <p class="text-xs text-slate-500 text-center mb-3">
+                    Merge your player data between two devices
+                </p>
+
+                <!-- Error display -->
+                <template x-if="error">
+                    <div class="bg-red-50 border border-red-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-kip-red" x-text="error"></p>
+                    </div>
+                </template>
+
+                <!-- Status display -->
+                <template x-if="status && !error">
+                    <div class="bg-blue-50 border border-blue-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-blue-700" x-text="status"></p>
+                    </div>
+                </template>
+
+                <!-- ── Screen: Menu ── -->
+                <div x-show="screen === 'menu'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Shared Passphrase</label>
+                        <input type="password" x-model="passphrase"
+                            placeholder="Same passphrase on both devices"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white">
+                        <p class="text-xs text-slate-400 mt-0.5">Both devices must use the same passphrase</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="createRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Create Room
+                        </button>
+                        <button @click="screen = 'join'"
+                            class="bg-slate-600 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-700 active:bg-slate-800">
+                            Join Room
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-slate-400 text-center">
+                        <p>Create a room on one device, then join from the other.</p>
+                        <p class="mt-1">Data merges using conflict-free replication (CRDT).</p>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Join ── -->
+                <div x-show="screen === 'join'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Room Code</label>
+                        <input type="text" x-model="joinCode"
+                            placeholder="4-letter code" maxlength="4"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 bg-white uppercase text-center font-mono text-lg tracking-widest"
+                            @keyup.enter="joinRoom()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="screen = 'menu'; error = ''"
+                            class="bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500">
+                            ← Back
+                        </button>
+                        <button @click="joinRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Join
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Paired / Waiting ── -->
+                <div x-show="screen === 'paired' || screen === 'waiting'">
+                    <!-- Room code display -->
+                    <template x-if="roomCode">
+                        <div class="bg-white border-2 border-slate-300 rounded-lg p-3 mb-3 text-center">
+                            <p class="text-xs text-slate-500 mb-1">Room Code</p>
+                            <p class="text-3xl font-mono font-bold tracking-widest text-kip-drk-sienna" x-text="roomCode"></p>
+                        </div>
+                    </template>
+
+                    <!-- Sync progress -->
+                    <template x-if="syncing">
+                        <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="animate-spin h-4 w-4 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="text-xs text-slate-600">Syncing…</span>
+                        </div>
+                    </template>
+
+                    <!-- Sync complete -->
+                    <template x-if="syncDone">
+                        <div class="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3 text-center">
+                            <p class="text-sm font-bold text-emerald-700">✓ Sync Complete</p>
+                            <p class="text-xs text-emerald-600 mt-1">Player data has been merged on both devices.</p>
+                            <p class="text-xs text-slate-400 mt-1">Reload the page to see updated data.</p>
+                        </div>
+                    </template>
+
+                    <button @click="cleanup()"
+                        class="w-full bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500"
+                        x-text="syncDone ? 'Done' : 'Cancel'">
+                    </button>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button @click="cleanup()"
+                class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm"
+                x-show="screen === 'menu' || screen === 'join'">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Card grid: HTMX infinite scroll powered by WASM /api/cards -->
+<!-- Uses CSS Grid with dynamic batch sizing based on viewport -->
+ <template x-if="true">
+  <!-- Mobile: 160px min, Desktop (lg+): 200px min for better desktop experience -->
+  <div id="card-grid"
+    class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
+    hx-get="/api/cards?page=0&per=12&all=true"
+    hx-trigger="load"
+    hx-swap="innerHTML swap:150ms"></div>
+  </div>
+</template>
+<!-- Idiomorph extension for smooth DOM morphing on filter/search (bundled locally) -->
+<script src="/assets/js/idiomorph-ext.min.js" defer></script>
+
+<script>
+  // Dynamic batch sizing based on viewport
+  // Calculates optimal number of cards to load based on visible grid columns
+  window.kipukasBatchSize = (function() {
+    var cardMinWidth = 160; // minmax(160px, 1fr)
+    var gap = 20; // gap-5 = 1.25rem = 20px
+    var padding = 32; // px-4 = 1rem = 16px each side = 32px total
+    var desiredRows = 3; // Load 3 rows at a time for smooth scrolling
+
+    function calculateBatchSize() {
+      var viewportWidth = window.innerWidth;
+      var availableWidth = viewportWidth - padding;
+      var cardsPerRow = Math.floor((availableWidth + gap) / (cardMinWidth + gap));
+      // Ensure at least 2 cards per row on very small screens
+      cardsPerRow = Math.max(cardsPerRow, 2);
+      return cardsPerRow * desiredRows;
+    }
+
+    return {
+      get: calculateBatchSize,
+      getColumns: function() {
+        var viewportWidth = window.innerWidth;
+        var availableWidth = viewportWidth - padding;
+        return Math.max(Math.floor((availableWidth + gap) / (cardMinWidth + gap)), 2);
+      }
+    };
+  })();
+
+  // Update initial load with dynamic batch size
+  document.addEventListener('DOMContentLoaded', function() {
+    var cardGrid = document.getElementById('card-grid');
+    if (cardGrid) {
+      var optimalBatch = window.kipukasBatchSize.get();
+      // Update the hx-get attribute with optimal batch size
+      var currentUrl = cardGrid.getAttribute('hx-get');
+      var newUrl = currentUrl.replace(/per=\d+/, 'per=' + optimalBatch);
+      cardGrid.setAttribute('hx-get', newUrl);
+    }
+  });
+
+  // Called by filter checkboxes and search input to refresh the card grid.
+  // Reads Alpine reactive state, builds query string, calls htmx.ajax()
+  // through the same WASM bridge path (Phase 2 lesson #4).
+  window.kipukasRefreshCards = function() {
+    if (typeof Alpine === 'undefined' || typeof htmx === 'undefined') return;
+
+    var data = Alpine.$data(document.body);
+    var filter = data.filter || {};
+    var search = (data.searchQuery || '').trim();
+    
+    // Use dynamic batch size based on viewport
+    var optimalBatch = window.kipukasBatchSize ? window.kipukasBatchSize.get() : 12;
+    var params = ['page=0', 'per=' + optimalBatch];
+
+    if (search) {
+      // Search mode: search across all cards regardless of filters
+      params.push('search=' + encodeURIComponent(search));
+    } else if (filter.all) {
+      // Show All mode
+      params.push('all=true');
+    } else {
+      // Filter mode: collect active filter keys
+      var active = [];
+      var keys = Object.keys(filter);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== 'all' && filter[keys[i]] === true) {
+          active.push(keys[i]);
+        }
+      }
+      if (active.length > 0) {
+        params.push('filter=' + encodeURIComponent(active.join(',')));
+      }
+      // If no active filters, params has no filter/all/search → WASM returns empty grid
+    }
+
+    var url = '/api/cards?' + params.join('&');
+    // Use morph swap for filter/search to preserve DOM state where possible
+    htmx.ajax('GET', url, {target: '#card-grid', swap: 'morph:innerHTML'});
+  };
+
+  // Image preloading for smoother infinite scroll experience
+  // Preloads images from the next batch when cards are rendered
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    // Only process card grid updates
+    if (!evt.detail.target || evt.detail.target.id !== 'card-grid') return;
+
+    // Find all image srcset URLs in the newly added content and preload them
+    var images = evt.detail.target.querySelectorAll('img[srcset]');
+    images.forEach(function(img) {
+      // Preload the image
+      var preloadImg = new Image();
+      preloadImg.src = img.src;
+    });
+
+    // Look for sentinel and preload next batch images (if any are embedded in response)
+    var sentinel = evt.detail.target.querySelector('[data-scroll-load="true"]');
+    if (sentinel && sentinel.dataset.nextImages) {
+      try {
+        var nextImages = JSON.parse(sentinel.dataset.nextImages);
+        nextImages.forEach(function(src) {
+          var img = new Image();
+          img.src = src;
+        });
+      } catch (e) {
+        // Silently fail if parsing fails
+      }
+    }
+  });
+</script>
+</main>
+  </body>
+</html>

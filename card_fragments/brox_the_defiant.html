@@ -1,0 +1,178 @@
+<h1 class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">Brox The Defiant</h1>
+          <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    card variation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Character
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    movement range
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        1
+      
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    game effects
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         No Additional Effects 
+      
+  </p>
+</div>
+
+
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    die rolls
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        
+    Always Rolls: D20
+  
+      
+  </p>
+</div>
+
+
+
+<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
+     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
+
+     DOM Residency Model:
+     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
+     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
+       via a single x-data scope rendered by WASM inside the tracker HTML
+     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
+       with no HTMX swap — Alpine handles the immediate visual update
+
+     The WASM-rendered HTML contains:
+     - x-data with slots state, wasted state, and helper methods
+     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
+     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
+     - :class="slotClass(n)" for reactive circle color transitions -->
+<style>
+  .final-blows-section { display: none; }
+  .show-final-blows .final-blows-section { display: block; }
+</style>
+<div id="keal-damage-brox_the_defiant" class="w-full grid grid-cols-1 place-self-center" hx-get="/api/game/damage?card=brox_the_defiant" hx-trigger="load" hx-swap="innerHTML">
+</div>
+
+<!-- <div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize" >
+    keal means
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        {"Crushing Hope" => {"genetics" => ["Brutal", "Angelic"], "count" => 1}, "Chain Raid" => {"genetics" => ["Brutal", "Mechanical"], "count" => 2}}
+      
+  </p>
+</div>
+ -->
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    brawl power
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        FOFE
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Habitat
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Plains
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    archetypal adaptation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Brutal
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    motivation
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Service
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    Scarcity
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+        Founder's Deck
+      
+  </p>
+</div>
+
+<div x-data="{ play_data: true }" class="z-30 w-11/12 md:w-2/3 xl:w-1/2 pb-2 place-self-center">
+  <p class="capitalize">
+    History
+  </p>
+  <div x-show="play_data" class="mt-1 h-0.5 w-1/2 bg-kip-red lg:bg-slate-400 justify-self-center"></div>
+  <div x-show="play_data" class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>
+  <p x-show="play_data" class="text-center">
+      
+         Some men train their bodies for the most excruitiating of physical tasks by choice, mostly to prove their exemplary masculinity. Other men have their bodies trained for them, so that they are not just a slave to their masters, but also a slave to their own body. In times past slaves were kept weak for fear of strong slaves leading a rebellion. However, due to a great equalization in power thanks to ranged weapons, great physicalliy adds little to one's personal power. Brox is one such person possessing brutal strength not by his own choice. He is no greater than a dog fighting for his master's gain and whimsy, and only feigns to the crowd a better position. However, the spirit in Brox has not diminished. He knows it is the only aspect of his life that is freely his own, and he continues on in hopes to one day serve a future brighter than his own. 
+      
+  </p>
+</div>
+
+
+          <p class="font-hairline text-slate-200 text-sm mt-6"></p>
+          <p class="font-hairline text-slate-300 text-xs italic"></p>

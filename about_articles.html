@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>About Kipukas | Kipukas</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="About Kipukas" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Delve into the latest news, achievements, and insights from Kipukas. Explore our collection of articles highlighting company milestones, innovation, culture, and more." />
+<meta property="og:description" content="Delve into the latest news, achievements, and insights from Kipukas. Explore our collection of articles highlighting company milestones, innovation, culture, and more." />
+<link rel="canonical" href="https://www.kipukas.cards/about_articles" />
+<meta property="og:url" content="https://www.kipukas.cards/about_articles" />
+<meta property="og:site_name" content="Kipukas" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="About Kipukas" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Delve into the latest news, achievements, and insights from Kipukas. Explore our collection of articles highlighting company milestones, innovation, culture, and more.","headline":"About Kipukas","url":"https://www.kipukas.cards/about_articles"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>About Kipukas</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
+    
+    <!-- Preload critical scripts to reduce parse/evaluation time -->
+    <link rel="preload" href="/assets/js/htmx.min.js" as="script">
+    <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
+    <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!--favicon code realfavicongenerator.net-->
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <link rel="mask-icon" href="/assets/ico/safari-pinned-tab.svg" color="#9b2c2c">
+    <link rel="shortcut icon" href="/assets/ico/favicon.ico">
+    <meta name="apple-mobile-web-app-title" content="Kipukas">
+    <meta name="application-name" content="Kipukas">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
+    <meta name="theme-color" content="#9b2c2c">
+
+    <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/htmx.min.js"></script>
+
+    <!-- PWA: service worker registration + update-then-refresh flow -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
+
+    <!-- Lazy loading helpers for feature-specific scripts -->
+    <script>
+      // Lazy load QR camera only when needed
+      window.kipukasLoadQR = function() {
+        if (window.kipukasQRLoaded) return Promise.resolve();
+        // Warm the QR decoder in the WASM worker on this first click so it preps
+        // while the user reads/accepts the privacy modal (worker init is idempotent).
+        try {
+          if (globalThis.kipukasWorker) {
+            const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
+            globalThis.kipukasWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled: cvEnabled });
+          }
+        } catch (_e) { /* worker not ready yet — initQR runs again at scan start */ }
+        return import('/assets/js/qr-camera.js')
+          .then(function() {
+            window.kipukasQRLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+      };
+
+      // Lazy load Multiplayer only when needed
+      window.kipukasLoadMultiplayer = function() {
+        if (window.kipukasMultiplayerLoaded) return Promise.resolve();
+        return import('/assets/js/kipukas-multiplayer.js')
+          .then(function() {
+            window.kipukasMultiplayerLoaded = true;
+          })
+          .catch(function(err) {
+            console.error('Failed to load multiplayer:', err);
+          });
+      };
+    </script>
+
+  </head>
+
+  <body x-data="{ 
+                  filter: { all: true }, 
+                  showInstallModal: false,
+                  searchQuery: '',
+                  top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
+                  hideInstallButton: $persist(false),
+                }" 
+        class="bg-hero-pattern z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
+    <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+</div>
+
+    <main id="main-content"><!-- includes available
+hamburger
+qr_scanner
+type_matchup
+damage_tracker
+showCardInfo
+lastPage
+logo
+goHome
+hideTools
+base_fill
+base_stroke
+background_color
+  
+-->
+
+
+<div class="w-screen h-fit z-0 justify-center flex place-items-center mb-2">
+  <a href="./" class="block w-full max-w-md" title="Binder Home">
+    <img class="w-full h-auto transition hover:scale-95 active:transform-none" width="640" height="320" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection" fetchpriority="high"></img>
+  </a>
+</div>
+
+
+<div x-cloak
+  x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true), toolbarIdle: false, _idleTimer: null, pokeToolbar() { this.toolbarIdle = false; clearTimeout(this._idleTimer); this._idleTimer = setTimeout(() => { this.toolbarIdle = true; }, 4000); } }"
+  x-init="pokeToolbar()"
+  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+  @keydown.capture="pokeToolbar()"
+  :class="{ 'toolbar-idle': toolbarIdle }"
+  class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+  
+
+  
+
+  
+  
+
+  
+    <div x-show="showHamburger"
+    id="hamburger-menu" role="navigation" aria-label="Site menu"
+    x-anchor.right-end.offset.10="$refs.hamburger"
+    x-transition.duration.350ms
+    x-cloak
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
+    <div><a href="/" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+    <div><a href="/game_rules/index.html" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+    <div><a href="/recipes" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+    <div><button @click="$dispatch('open-player-data'); showHamburger = false" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Manage Player Data</button></div>
+    <!--<div><button @click="$dispatch('open-device-sync'); showHamburger = false" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Sync Devices</button></div>-->
+    <div><a href="/privacy_policy" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+    <div><a href="/about_articles" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+</div>
+
+<div class="flex justify-center">
+    <button class="toolbar-tile text-kip-drk-goldenrod relative"
+            @click="showHamburger = !showHamburger"
+            x-ref="hamburger"
+            aria-label="extra nav menu"
+            :aria-expanded="showHamburger"
+            aria-controls="hamburger-menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
+  
+
+  
+  <!-- Branded Home tile — sits just below the hamburger, always visible (outside
+       the collapsible tools group). The "k" mark carries its own brand colors. -->
+  <a href="/" aria-label="Go to home page" class="toolbar-tile">
+    <img src="/assets/utility_images/k_plain.svg" alt="Home" class="h-9 w-auto">
+  </a>
+  
+
+  <div x-show="showTools"  class="toolbar-tools flex flex-col items-center gap-2">
+    
+      <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default behavior (which would be to show the install prompt automatically)
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    });
+
+    // ============================================
+    // AUTO-HIDE: detect if the PWA is already installed
+    // ============================================
+
+    // Layer 1: If running in standalone / fullscreen mode, the PWA is installed.
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        navigator.standalone === true) {
+      // We need to wait for Alpine to initialise the data stack before setting.
+      document.addEventListener('alpine:init', () => {
+        Alpine.store('__pwaInstalled', true);
+      });
+      // Also set via DOM once body x-data is ready (belt-and-suspenders)
+      document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        if (body && body._x_dataStack) {
+          body._x_dataStack[0].hideInstallButton = true;
+        }
+      });
+      // Installed PWA launch: warm/resume the offline cache (idempotent — skips
+      // already-cached entries, so re-running each launch finishes an interrupted warm).
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.ready.then((reg) => {
+          if (reg.active) reg.active.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+        });
+      }
+    }
+
+    // Layer 2: Listen for the appinstalled event (fires when user completes install).
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed — hiding install button');
+      // Set Alpine persisted state so the button stays hidden on future visits
+      const body = document.body;
+      if (body && body._x_dataStack) {
+        body._x_dataStack[0].hideInstallButton = true;
+      }
+      deferredPrompt = null;
+
+      // Notify the Service Worker so it can track install state independently,
+      // and ask it to warm the full offline cache (card art + QR decoder).
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'PWA_INSTALLED' });
+        navigator.serviceWorker.controller.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+      }
+    });
+
+    // Layer 3: Ask the Service Worker if it already knows the PWA was installed.
+    // This covers cases where localStorage was cleared but the SW persists.
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (!registration.active) return;
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (msg) => {
+          if (msg.data && msg.data.installed === true) {
+            const body = document.body;
+            if (body && body._x_dataStack) {
+              body._x_dataStack[0].hideInstallButton = true;
+            }
+          }
+        };
+        registration.active.postMessage({ type: 'PWA_INSTALL_CHECK' }, [ch.port2]);
+      });
+    }
+
+    // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+
+        // Wait for the user to make a choice
+        deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('[PWA] Install choice:', choiceResult.outcome);
+            if (choiceResult.outcome === 'accepted') {
+                // The appinstalled event will fire and handle hiding,
+                // but set it here too for immediate feedback.
+                const body = document.body;
+                if (body && body._x_dataStack) {
+                    body._x_dataStack[0].hideInstallButton = true;
+                }
+            }
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
+        });
+    } else {
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        const body = document.body;
+        if (body && body._x_dataStack) {
+            body._x_dataStack[0].hideInstallButton = true;
+        }
+    }
+}
+    
+</script>
+<template x-if="true">
+    <button class="toolbar-tile" x-show="!hideInstallButton" @click="showInstallModal = !showInstallModal" aria-label="Install app">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"
+            class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+    </button>
+</template>
+
+
+
+<div x-show="showInstallModal"
+     role="dialog" aria-modal="true" aria-labelledby="modal-title-install-notice"
+     x-trap="showInstallModal"
+     @keydown.escape.window="showInstallModal = false"
+     class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 id="modal-title-install-notice" class="text-xl font-semibold mb-4 text-kip-drk-sienna">Install Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          I'll use the website as is.
+        </button>
+        
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+
+      </div>
+    </template>
+  </div>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+      <a :href="previousURL" aria-label="Go to last visited page" class="toolbar-tile hidden lg:inline-flex">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </a>
+    
+    
+  </div>
+  
+  <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
+    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"
+    class="toolbar-tile-pill mb-2 place-self-center">
+    <svg xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate-180': !showTools }"
+      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+    </svg>
+  </button>
+  
+
+</div>
+
+
+
+  <!-- Player Data Export/Import — Phase D signed + encrypted backup.
+     Lives in the hamburger menu. Uses Pattern 11 (modal) with Pattern 6
+     (postToWasmWithCallback) for the WASM → JS → encrypt → download flow.
+     
+     Two-layer protection:
+     1. Integrity (Rust): HMAC-SHA256 signs PLAYER_DOC with passphrase
+     2. Confidentiality (JS): AES-GCM encrypts the signed payload via Web Crypto
+-->
+<div x-data="{
+  showPlayerData: false,
+  mode: 'menu',
+  passphrase: '',
+  confirmPassphrase: '',
+  importFile: null,
+  statusMsg: '',
+  statusOk: false,
+  working: false,
+  reset() {
+    this.mode = 'menu';
+    this.passphrase = '';
+    this.confirmPassphrase = '';
+    this.importFile = null;
+    this.statusMsg = '';
+    this.statusOk = false;
+    this.working = false;
+  }
+}" @open-player-data.window="showPlayerData = true; reset()">
+
+  <!-- Modal overlay -->
+  <div x-show="showPlayerData" x-cloak
+    class="fixed inset-0 flex items-center justify-center z-50"
+    x-transition.duration.350ms>
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showPlayerData = false; reset()"></div>
+
+    <!-- Modal card -->
+    <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+      <div class="p-4 text-kip-drk-sienna">
+        <p class="text-lg font-bold text-center mb-1">Player Data</p>
+        <p class="text-xs text-slate-500 text-center mb-4">Backup and restore your game progress</p>
+
+        <!-- Status message -->
+        <div x-show="statusMsg" x-cloak class="text-center text-sm mb-3 p-2 rounded"
+          :class="statusOk ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-kip-red'">
+          <span x-text="statusMsg"></span>
+        </div>
+
+        <!-- Main menu -->
+        <template x-if="mode === 'menu'">
+          <div class="grid gap-2">
+            <button @click="mode = 'export'"
+              class="w-full bg-kip-drk-goldenrod hover:bg-yellow-700 active:bg-yellow-800 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export Backup
+            </button>
+            <button @click="mode = 'import'"
+              class="w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              Import Backup
+            </button>
+            <p class="text-xs text-slate-400 text-center mt-2">
+              Exports are signed and encrypted with your passphrase.
+              <br>Keep your passphrase safe — it cannot be recovered.
+            </p>
+          </div>
+        </template>
+
+        <!-- Export form -->
+        <template x-if="mode === 'export'">
+          <div class="grid gap-3">
+            <label for="export-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="export-passphrase" type="password" x-model="passphrase" placeholder="Enter a passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+            <label for="export-confirm" class="text-sm font-medium">Confirm Passphrase</label>
+            <input id="export-confirm" type="password" x-model="confirmPassphrase" placeholder="Confirm passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+
+            <button @click="
+              statusMsg = '';
+              if (!passphrase || passphrase.length < 4) {
+                statusMsg = 'Passphrase must be at least 4 characters'; statusOk = false; return;
+              }
+              if (passphrase !== confirmPassphrase) {
+                statusMsg = 'Passphrases do not match'; statusOk = false; return;
+              }
+              working = true;
+              const ch = new MessageChannel();
+              ch.port1.onmessage = async function(msg) {
+                try {
+                  const innerJSON = msg.data.html;
+                  if (innerJSON.includes('error')) {
+                    statusMsg = 'Export failed: ' + innerJSON; statusOk = false; working = false; return;
+                  }
+                  const { encryptExport } = await import('/assets/js/kipukas-crypto.js');
+                  const encrypted = await encryptExport(passphrase, innerJSON);
+                  const blob = new Blob([encrypted], { type: 'application/json' });
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(blob);
+                  const date = new Date().toISOString().slice(0, 10);
+                  a.download = 'kipukas-player-backup-' + date + '.kipukas';
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                  statusMsg = '✓ Backup exported successfully'; statusOk = true;
+                  working = false;
+                } catch(e) {
+                  statusMsg = 'Encryption error: ' + e.message; statusOk = false; working = false;
+                }
+              };
+              const exportedAt = new Date().toISOString();
+              kipukasWorker.postMessage(
+                { method: 'POST', pathname: '/api/player/export/signed',
+                  search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&exported_at=' + encodeURIComponent(exportedAt) },
+                [ch.port2]
+              );
+            " :disabled="working"
+              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              <span x-show="!working">Export</span>
+              <span x-show="working" x-cloak>Encrypting…</span>
+            </button>
+            <button @click="mode = 'menu'; statusMsg = ''"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Back
+            </button>
+          </div>
+        </template>
+
+        <!-- Import form -->
+        <template x-if="mode === 'import'">
+          <div class="grid gap-3">
+            <label for="import-file" class="text-sm font-medium">Select backup file</label>
+            <input id="import-file" type="file" accept=".kipukas" @change="importFile = $event.target.files[0]"
+              class="w-full text-sm text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-kip-drk-sienna hover:file:bg-slate-200">
+
+            <label for="import-passphrase" class="text-sm font-medium">Passphrase</label>
+            <input id="import-passphrase" type="password" x-model="passphrase" placeholder="Enter backup passphrase"
+              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
+
+            <button @click="
+              statusMsg = '';
+              if (!importFile) { statusMsg = 'Please select a .kipukas file'; statusOk = false; return; }
+              if (!passphrase) { statusMsg = 'Please enter the passphrase'; statusOk = false; return; }
+              working = true;
+              const reader = new FileReader();
+              reader.onload = async function(e) {
+                try {
+                  const { decryptImport } = await import('/assets/js/kipukas-crypto.js');
+                  const innerJSON = await decryptImport(passphrase, e.target.result);
+                  const ch = new MessageChannel();
+                  ch.port1.onmessage = function(msg) {
+                    const html = msg.data.html;
+                    if (html.includes('successfully')) {
+                      statusMsg = '✓ Player data restored! Reloading…'; statusOk = true;
+                      // Persist the restored PLAYER_DOC to localStorage
+                      const pch = new MessageChannel();
+                      pch.port1.onmessage = function(pmsg) {
+                        if (pmsg.data.html) localStorage.setItem('kipukas_player_doc', pmsg.data.html);
+                        setTimeout(function() { location.reload(); }, 800);
+                      };
+                      kipukasWorker.postMessage(
+                        { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
+                        [pch.port2]
+                      );
+                    } else {
+                      statusMsg = html.replace(/<[^>]*>/g, ''); statusOk = false;
+                    }
+                    working = false;
+                  };
+                  kipukasWorker.postMessage(
+                    { method: 'POST', pathname: '/api/player/import/signed',
+                      search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&payload=' + encodeURIComponent(innerJSON) },
+                    [ch.port2]
+                  );
+                } catch(err) {
+                  statusMsg = err.message; statusOk = false; working = false;
+                }
+              };
+              reader.readAsText(importFile);
+            " :disabled="working"
+              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              <span x-show="!working">Import</span>
+              <span x-show="working" x-cloak>Verifying…</span>
+            </button>
+            <button @click="mode = 'menu'; statusMsg = ''"
+              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
+              Back
+            </button>
+          </div>
+        </template>
+
+      </div>
+
+      <!-- Close button -->
+      <button @click="showPlayerData = false; reset()"
+        class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- _includes/device_sync_tool.html — Cross-device sync modal (Phase E, Pattern 11) -->
+<div x-data="{
+  showSync: false,
+  screen: 'menu',
+  passphrase: '',
+  joinCode: '',
+  roomCode: '',
+  status: '',
+  error: '',
+  syncing: false,
+  syncDone: false,
+
+  async createRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    this.error = '';
+    this.status = 'Creating sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.createRoom(this.passphrase);
+  },
+
+  async joinRoom() {
+    if (this.passphrase.length < 4) { this.error = 'Passphrase must be at least 4 characters'; return; }
+    if (this.joinCode.trim().length !== 4) { this.error = 'Enter a 4-character room code'; return; }
+    this.error = '';
+    this.status = 'Joining sync room…';
+    this.screen = 'waiting';
+    await import('/assets/js/kipukas-sync.js');
+    kipukasSync.joinRoom(this.joinCode, this.passphrase);
+  },
+
+  cleanup() {
+    if (window.kipukasSync) kipukasSync.disconnect();
+    this.screen = 'menu';
+    this.passphrase = '';
+    this.joinCode = '';
+    this.roomCode = '';
+    this.status = '';
+    this.error = '';
+    this.syncing = false;
+    this.syncDone = false;
+    this.showSync = false;
+  }
+}"
+     class="relative"
+     @open-device-sync.window="showSync = true; screen = 'menu'; error = ''; status = ''; syncDone = false"
+
+     @sync-room-created.window="roomCode = $event.detail.code; status = 'Room created! Share this code with your other device:'; screen = 'paired'"
+     @sync-room-joined.window="roomCode = $event.detail.code; status = 'Joined room. Waiting for authentication…'; screen = 'paired'"
+     @sync-peer-joined.window="status = 'Peer device connected. Authenticating…'"
+     @sync-authenticated.window="status = 'Authenticated! Syncing player data…'; syncing = true"
+     @sync-updated.window="status = '✓ Sync complete! Player data merged.'; syncing = false; syncDone = true"
+     @sync-peer-left.window="if (!syncDone) { status = 'Peer device disconnected.'; syncing = false; }"
+     @sync-auth-failed.window="error = $event.detail.message || 'Authentication failed'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-error.window="error = $event.detail.message || 'Connection error'; status = ''; screen = 'menu'; if (window.kipukasSync) kipukasSync.disconnect()"
+     @sync-disconnected.window="if (syncing) { status = 'Disconnected during sync'; syncing = false; }">
+
+    <!-- Modal -->
+    <div x-show="showSync" x-cloak
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
+
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="cleanup()"></div>
+
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div class="p-4 text-kip-drk-sienna">
+                <p class="text-lg font-bold text-center mb-1">🔄 Sync Devices</p>
+                <p class="text-xs text-slate-500 text-center mb-3">
+                    Merge your player data between two devices
+                </p>
+
+                <!-- Error display -->
+                <template x-if="error">
+                    <div class="bg-red-50 border border-red-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-kip-red" x-text="error"></p>
+                    </div>
+                </template>
+
+                <!-- Status display -->
+                <template x-if="status && !error">
+                    <div class="bg-blue-50 border border-blue-200 rounded p-2 mb-3 text-center">
+                        <p class="text-xs text-blue-700" x-text="status"></p>
+                    </div>
+                </template>
+
+                <!-- ── Screen: Menu ── -->
+                <div x-show="screen === 'menu'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Shared Passphrase</label>
+                        <input type="password" x-model="passphrase"
+                            placeholder="Same passphrase on both devices"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white">
+                        <p class="text-xs text-slate-400 mt-0.5">Both devices must use the same passphrase</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="createRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Create Room
+                        </button>
+                        <button @click="screen = 'join'"
+                            class="bg-slate-600 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-700 active:bg-slate-800">
+                            Join Room
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-slate-400 text-center">
+                        <p>Create a room on one device, then join from the other.</p>
+                        <p class="mt-1">Data merges using conflict-free replication (CRDT).</p>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Join ── -->
+                <div x-show="screen === 'join'">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium mb-1">Room Code</label>
+                        <input type="text" x-model="joinCode"
+                            placeholder="4-letter code" maxlength="4"
+                            class="w-full border border-slate-300 rounded px-2 py-1.5 bg-white uppercase text-center font-mono text-lg tracking-widest"
+                            @keyup.enter="joinRoom()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button @click="screen = 'menu'; error = ''"
+                            class="bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500">
+                            ← Back
+                        </button>
+                        <button @click="joinRoom()"
+                            class="bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800">
+                            Join
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── Screen: Paired / Waiting ── -->
+                <div x-show="screen === 'paired' || screen === 'waiting'">
+                    <!-- Room code display -->
+                    <template x-if="roomCode">
+                        <div class="bg-white border-2 border-slate-300 rounded-lg p-3 mb-3 text-center">
+                            <p class="text-xs text-slate-500 mb-1">Room Code</p>
+                            <p class="text-3xl font-mono font-bold tracking-widest text-kip-drk-sienna" x-text="roomCode"></p>
+                        </div>
+                    </template>
+
+                    <!-- Sync progress -->
+                    <template x-if="syncing">
+                        <div class="flex items-center justify-center gap-2 mb-3">
+                            <svg class="animate-spin h-4 w-4 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="text-xs text-slate-600">Syncing…</span>
+                        </div>
+                    </template>
+
+                    <!-- Sync complete -->
+                    <template x-if="syncDone">
+                        <div class="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3 text-center">
+                            <p class="text-sm font-bold text-emerald-700">✓ Sync Complete</p>
+                            <p class="text-xs text-emerald-600 mt-1">Player data has been merged on both devices.</p>
+                            <p class="text-xs text-slate-400 mt-1">Reload the page to see updated data.</p>
+                        </div>
+                    </template>
+
+                    <button @click="cleanup()"
+                        class="w-full bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500"
+                        x-text="syncDone ? 'Done' : 'Cancel'">
+                    </button>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button @click="cleanup()"
+                class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm"
+                x-show="screen === 'menu' || screen === 'join'">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<template x-if="true">
+  <div x-data="{
+  
+  
+  inViewabout_the_binder: true,
+  
+  inViewknown_issues: true,
+  
+  inViewmechanics_development: true,
+  
+  inViewopen_stack: true,
+  
+  inViewusing_the_binder: true,
+  
+  }
+  " 
+  class="flex flex-wrap gap-x-5 content-auto place-content-center">
+    
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewabout_the_binder = true" x-intersect:leave="inViewabout_the_binder = false">
+      <a href="/about_the_binder"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewabout_the_binder
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">About the Binder</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewknown_issues = true" x-intersect:leave="inViewknown_issues = false">
+      <a href="/known_issues"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewknown_issues
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Browser Support & Troubleshooting</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewmechanics_development = true" x-intersect:leave="inViewmechanics_development = false">
+      <a href="/mechanics_development"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewmechanics_development
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Game Mechanics Dev</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewopen_stack = true" x-intersect:leave="inViewopen_stack = false">
+      <a href="/open_stack"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewopen_stack
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Open Stack &amp; Licenses</div>
+      </a>
+    </div>
+    
+      
+      
+      
+      <!-- div to trigger transition animation when entering and leaving the screen -->
+      <div class="w-40 md:w-60 h-20   my-2.5"
+      x-intersect="inViewusing_the_binder = true" x-intersect:leave="inViewusing_the_binder = false">
+      <a href="/using_the_binder"
+          x-cloak
+          x-transition.duration.250ms
+          x-show="
+            inViewusing_the_binder
+          "
+        class="grid grid-cols-1 w-40 md:w-60  h-20  pt-4 my-auto bg-amber-50 active:shadow-inner inline-block active:bg-amber-100 hover:bg-amber-100 shadow-lg font-semibold text-kip-drk-goldenrod rounded" 
+        >
+        <div x-data="{ 
+          isLargeScreen: window.innerWidth >= 768, 
+          screenWidth: window.innerWidth 
+        }" x-init="window.addEventListener('resize', () => { $data.isLargeScreen = window.innerWidth >= 768; $data.screenWidth = window.innerWidth })">
+        
+        </div>  
+        <div class="text-center text-wrap">Using the Binder</div>
+      </a>
+    </div>
+    
+  </div>
+</template> 
+
+</main>
+  </body>
+</html>
