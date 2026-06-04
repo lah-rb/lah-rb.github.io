@@ -205,7 +205,7 @@
     <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50 bg-hero-pattern">
         <!-- Rules masthead banner (sits above the build-injected #rules-content,
              which the build replaces wholesale, so it must live outside it). -->
-        <div class="max-w-md mx-auto px-4 pt-6 pb-2">
+        <div class="max-w-md mx-auto px-4 pb-2">
             <img src="/assets/utility_images/kipukas_game_rules.svg" alt="Kipukas Game Rules"
                  width="640" height="320" class="w-full h-auto">
         </div>
@@ -231,11 +231,11 @@
     <!-- Chat Widget (Kippa) -->
     <div class="fixed bottom-5 right-5 z-50">
         <!-- Chat toggle button -->
-        <button @click="toggleChat()" class="w-14 h-14 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
-            <svg x-show="!chatOpen" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-            </svg>
-            <svg x-show="chatOpen" x-cloak class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button @click="toggleChat()" :aria-label="chatOpen ? 'Close chat' : 'Open Kippa chat'"
+            class="w-14 h-14 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105">
+            <img x-show="!chatOpen" src="/assets/utility_images/kippa.svg" alt="" aria-hidden="true"
+                width="250" height="225" class="w-9 h-auto">
+            <svg x-show="chatOpen" x-cloak class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
