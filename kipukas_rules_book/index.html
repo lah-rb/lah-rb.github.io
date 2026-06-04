@@ -203,6 +203,12 @@
 
     <!-- Content (full-width scroller; only element that scrolls) -->
     <main id="content-scroll" class="flex-1 overflow-y-auto bg-emerald-50">
+        <!-- Rules masthead banner (sits above the build-injected #rules-content,
+             which the build replaces wholesale, so it must live outside it). -->
+        <div class="max-w-xl mx-auto px-4 pt-6 pb-2">
+            <img src="/assets/utility_images/kipukas_game_rules.svg" alt="Kipukas Game Rules"
+                 width="640" height="320" class="w-full h-auto">
+        </div>
         <div id="rules-content"
              class="prose prose-sky lg:prose-lg max-w-4xl mx-auto px-4 sm:px-8 pt-8 pb-8 bg-white shadow-sm min-h-full"
              @click="handleContentClick($event)">
