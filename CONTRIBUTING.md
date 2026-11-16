@@ -62,10 +62,10 @@ All data is tracked across three distinct stores. Rust is the single source of t
 | Scope | Store | Persistence | Synced? | Examples |
 |-------|-------|-------------|---------|----------|
 | **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary) | Yes — opt-in cross-device sync via WebSocket relay (HMAC-authenticated) | Card damage, turn alarms, settings, affinity, loyalty |
-| **Room** (ephemeral state) | `RoomState` (RefCell) | `kipukas_room` in sessionStorage (JSON bootstrap) | Partially — fists combat via relay | Room code, player name, fists submissions, combat role |
-| **Room** (ephemeral CRDT) | `ROOM_DOC` (yrs Doc) | `kipukas_crdt_state` in sessionStorage (base64) | Yes — yrs sync protocol | Shared turn timers (converges via `yrs_update` messages) |
+| **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
+| **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), saved after every change | Yes — yrs sync protocol | Shared turn timers (`timers`, keyed by timer id) and fists combat (`fists`, one entry per round per player) |
 
-A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Single-player behavior is completely unaffected by multiplayer code. The JavaScript persistence layer (kipukas-api.js) handles the localStorage/sessionStorage read/write because WASM runs in a Web Worker that cannot access browser storage APIs directly — Rust owns the state, JS owns the I/O bridge.
+A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Anything both players must agree on goes in `ROOM_DOC`: it is the only thing that is synced, persisted across page loads and repaired after a dropped connection. `RoomState.fists` is just a cache of the current round for the renderers. Single-player behavior is completely unaffected by multiplayer code. The JavaScript persistence layer (kipukas-api.js) handles the localStorage read/write because WASM runs in a Web Worker that cannot access browser storage APIs directly — Rust owns the state, JS owns the I/O bridge.
 
 ### Minimal Infrastructure
 
@@ -128,7 +128,13 @@ Player A's Browser                     Player B's Browser
                  (forwards game messages)
 ```
 
-The relay server handles room management (create/join/rejoin) and message forwarding. It never inspects game message payloads — game logic stays 100% client-side in WASM. Auto-reconnect with exponential backoff handles mobile browser sleep and network transitions.
+The relay server handles room management (create/join/rejoin) and message forwarding. It never inspects game message payloads — game logic stays 100% client-side in WASM.
+
+**Every page change is a full page load**, which restarts the game engine worker and the socket. Multiplayer is built to make that harmless rather than to avoid it:
+
+- All shared state is in `ROOM_DOC`, saved to localStorage after every change and restored before the first render of the next page (`POST /api/room/resume`).
+- Whenever the two players (re)connect they exchange yrs state vectors, so anything either missed while away arrives then. Nothing depends on a one-off message being delivered.
+- The socket is owned by one small state machine (`kipukas-link.js`) that retries for as long as the player is in a room.
 
 ### Key Files
 
@@ -139,11 +145,16 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/routes/player.rs` | Player routes — affinity, loyalty, signed export/import, cross-device sync |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
 | `kipukas-server/src/game/crypto.rs` | HMAC-SHA256 signing/verification for tamper-resistant exports |
-| `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room/combat state, CRDT sync |
+| `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room state, CRDT sync |
+| `kipukas-server/src/game/crdt.rs` | The room document (`ROOM_DOC`): shared timers, persistence, sync handshake |
+| `kipukas-server/src/game/fists.rs` | Fists combat in the room document — pure functions over a `Doc`, tested with two documents |
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
-| `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook |
+| `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
-| `assets/js/kipukas-multiplayer.js` | WebSocket relay multiplayer manager + game message protocol |
+| `assets/js/kipukas-multiplayer.js` | Multiplayer manager — what to send when the socket opens, room-document sync, fists and timer actions |
+| `assets/js/kipukas-link.js` | The relay socket's state machine: one socket, one retry timer, backoff, heartbeat. No DOM access, so it runs under `deno test` |
+| `tests/link_test.ts` | Tests for `kipukas-link.js`, including two clients through a local relay |
+| `_includes/room_status.html` | Status pill shown on every page while in a room |
 | `assets/js/kipukas-crypto.js` | AES-GCM encryption/decryption for signed exports (lazy-loaded) |
 | `assets/js/kipukas-sync.js` | Cross-device sync module — signaling, HMAC auth, yrs handshake (lazy-loaded) |
 | `assets/js/qr-camera.js` | Camera + ZXing QR scan loop |
@@ -214,10 +225,9 @@ x-effect="if (showMultiplayer) $nextTick(() => {
 **The pattern:** After WASM auto-marks damage (e.g., from combat outcome), the keal damage tracker on the card page is stale. A JavaScript helper finds the tracker element, fetches the updated damage state as JSON from WASM, and updates the existing Alpine scope's reactive properties directly:
 
 ```javascript
-function refreshKealTracker() {
-  const tracker = document.querySelector('[id^="keal-damage-"]');
+function refreshKealTracker(slug) {
+  const tracker = document.getElementById('keal-damage-' + slug);
   if (!tracker) { persistState(); return; }
-  const slug = tracker.id.replace('keal-damage-', '');
   const alpineEl = tracker.querySelector('[x-data]');
   if (alpineEl && typeof Alpine !== 'undefined') {
     // Preferred: update Alpine scope directly — no innerHTML, no initTree
@@ -233,6 +243,8 @@ function refreshKealTracker() {
   }
 }
 ```
+
+The engine names the cards it marked (the `damage` list in fists replies), so the right tracker is refreshed on pages that show several (the hand view).
 
 **Why it works:** The WASM state is authoritative. When state changes programmatically (not from a user click), the DOM must be explicitly refreshed. A small `setTimeout(refreshKealTracker, 150)` delay ensures the WASM worker has finished processing before the refresh request arrives. The JSON route (`GET /api/game/damage/state?card=SLUG`) returns `{"slots":{"1":true,...},"wasted":false}` — Alpine reactive assignments to `scope.slots[n]` and `scope.wasted` trigger all `:class` bindings automatically.
 
@@ -296,7 +308,7 @@ thread_local! {
 }
 ```
 
-**Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it. Each store has its own lifecycle: PLAYER_DOC persists to localStorage forever, RoomState lives in sessionStorage for the browser session, and ROOM_DOC is created/destroyed per multiplayer room.
+**Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. The `RefCell` borrow checker prevents concurrent access at runtime, though in practice the single-threaded worker never triggers it. Each store has its own lifecycle: PLAYER_DOC persists to localStorage forever; RoomState and ROOM_DOC exist for as long as the player is in a room, are saved to localStorage, and are rebuilt from it on every page load.
 
 ### Pattern 9: WebSocket Relay Protocol
 
@@ -304,39 +316,49 @@ thread_local! {
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
-| `fists_submission` | Both → peer | `{ data: FistsSubmission }` | Sync combat choice |
-| `fists_reset` | Both → peer | (none) | Reset for next round |
-| `fists_outcome` | Both → peer | `{ attacker_won: bool }` | Sync "Did you win?" result |
-| `final_blows_submission` | Both → peer | `{ data: FinalBlowsSubmission }` | Sync Final Blows choice |
+| `hello` | Both → peer | `{ proto: 2, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
 | `yrs_sv` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector (sync handshake step 1) |
 | `yrs_sv_reply` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector reply (sync handshake step 2) |
-| `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (mutation broadcast) |
+| `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (a change to timers or fists combat) |
+
+There are no per-feature messages. A feature changes `ROOM_DOC` and the resulting update is relayed; the opponent applies it. If the update is lost (the relay drops messages for a player whose socket is gone, and a page change closes the socket), the state-vector handshake that runs on every `peer_joined` delivers it.
 
 **Why JSON over binary:** With 56 cards and simple turn-based interactions, message frequency is ~1-2 per combat round. JSON is human-readable for debugging and trivially parsed. Binary would add complexity for negligible performance gain.
 
-**Outcome sync pattern:** When a player answers "Did you win?", the JS derives `attacker_won` from the local role + answer, sends it to the peer via `sendToPeer()`, and both sides independently process the outcome via `POST /api/room/fists/outcome`. The defender's WASM auto-marks damage on their local card. Each side sees a role-appropriate message.
+**Protocol version:** `hello.proto` is bumped when the room document's shape changes. Site updates are applied when each user accepts the update prompt, so two players can be on different copies. A player whose opponent sends no `hello` (an older copy) or a different `proto` sees "Opponent needs to update" in the status pill; timers and combat do not sync until both are current.
 
-**Connection lifecycle:** The WebSocket connection to the signaling server handles both room management (create/join/rejoin) and game message relay. Auto-reconnect with exponential backoff (up to 8 attempts) handles mobile browser sleep, network transitions, and temporary server issues. A 5-minute grace period on the server preserves the room slot during page navigation, mobile sleep, and slow reconnections.
+**Fists combat in the document:** the `fists` map holds one entry per round per player, keyed `<round>:<playerId>` and written only by that player (`game/fists.rs`).
 
-**Cross-page auto-reconnect:** `kipukas-multiplayer.js` is normally lazy-loaded when the user clicks the multiplayer button. To support seamless page navigation, `kipukas-api.js` checks `sessionStorage` for a saved room session on every page load. If found, it eagerly imports the multiplayer module, which triggers `autoReconnect()` → WebSocket connects → `rejoin` sent → both peers receive `peer_joined` → fists tool appears automatically.
+- The current round is the highest round present. Starting a new round is writing an empty entry at `round + 1`, so cancelling never needs the opponent's cooperation, and two players doing it at once converge.
+- Earlier rounds stay. A player who was away when a round ended still finds its outcome and applies it, even if the opponent has already moved on.
+- "Did you win?" is recorded as `attacker_won` in the answering player's entry. Each player applies a finished round once on their own device (the defender's card takes the damage) and records `settled` in their entry, so a reload, a reconnect or both players answering cannot mark damage twice. Conflicting answers are shown as disputed and mark nothing.
+- Closing the fists dialog only hides it. "Cancel round" in the waiting view starts a new round for both players.
 
-### Pattern 10: Session Persistence via sessionStorage
+**Shared timers in the document:** the `timers` map is keyed by a stable timer id that travels with the timer between a player's own timers and a room. Both players seed their own timers on create and join; the same timer held by both (each keeps a copy when a session ends) lands on one key and stays one timer.
 
-**The pattern:** Room connection info is saved to `sessionStorage` on create/join and restored on page load for auto-reconnect:
+**Connection lifecycle:** `kipukas-link.js` owns the socket: one socket and one retry timer at a time, capped exponential backoff that never gives up while the player is in a room, a connect timeout, a 20 s ping, and an immediate retry when the tab becomes visible, the network returns, or the page is restored. A reconnect is always a *resume*: only a create or join the user asked for initialises the engine's room. The relay keeps a room slot for 5 minutes after a socket closes.
 
-```javascript
-function saveSession() {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ code, name, creator }));
-}
-// On page load:
-async function autoReconnect() {
-  const session = loadSession();
-  if (!session) return;
-  // Reconnect WebSocket and rejoin signaling server room
-}
-```
+**Across a page change:** `kipukas-api.js` posts `/api/room/resume` (room, ids and the saved room document) before HTMX issues its first request, so the new page renders in room mode with shared state from the start. It then loads `kipukas-multiplayer.js`, which opens the socket and sends `rejoin`. On `peer_joined` both sides say `hello` and run the handshake.
 
-**Why sessionStorage (not localStorage):** Room connections are ephemeral — they should survive page navigation within a session but not persist across browser restarts. `sessionStorage` provides exactly this lifecycle. Player state (damage, turns, settings) is owned by `PLAYER_DOC` in Rust and persisted to `localStorage` as base64 binary via the kipukas-api.js I/O bridge. Note: `sessionStorage` here stores only the reconnection bootstrap info (code, name, creator) — Rust's `RoomState` owns the actual room state in-memory.
+**Known limits with the current relay:** if both players' sockets are closed for more than 5 minutes (two locked phones), the relay deletes the room and the next rejoin is told "Room not found"; the status pill shows "Room expired" and the players start a new room (their timers come with them). The relay also does not tell a player that the opponent has gone until that grace period ends.
+
+### Pattern 10: Room Persistence in localStorage, One Tab at a Time
+
+**The pattern:** `kipukas-api.js` owns room storage through `globalThis.kipukasRoomSession`:
+
+| Key | Contents |
+|-----|----------|
+| `kipukas_room` | `{ v, code, name, creator, playerId, peerId, ts }` — forgotten after 12 hours without use |
+| `kipukas_room_doc` | The room document (base64), saved after every POST to `/api/room/*` via the worker's `PERSIST_STATE` message |
+| `kipukas_room_tab` | Id of the tab that holds the room connection |
+
+**Why localStorage (not sessionStorage):** sessionStorage is per tab. A card opened from the phone's camera app lands in a new tab, which then had no room. localStorage is shared by every tab of the browser, so the new tab resumes the same room as the same player.
+
+**Why one tab at a time:** the relay gives each player one slot, and each tab runs its own engine loaded from storage. Saving the session claims the room for this tab (`kipukas_room_tab`). Other tabs see the `storage` event, close their socket and show "Open in another tab". A tab that no longer holds the room does not save the room document, and any tab whose stored state was changed by another tab reloads the next time it is shown instead of writing stale state back. Showing a tab is therefore what hands the room to it.
+
+**Limits:** an iOS home-screen app and Safari do not share storage, so a camera-app scan (which opens Safari) cannot resume a room that lives in the installed app. The same holds on Android when the default browser is not the one that installed the app. Use the in-site scanner there.
+
+**Testing note:** two tabs of one browser are now one player. To play both sides on one machine, use a private window or a second browser profile for the second player.
 
 ### Pattern 11: Self-Contained Tool Component (Alpine × HTMX × Tailwind)
 
@@ -348,7 +370,8 @@ async function autoReconnect() {
 
 | Layer | Technology | Role in the component |
 |-------|-----------|----------------------|
-| **UI state** | Alpine `x-data` | Local booleans like `showFistsMenu`, `roomConnected` — purely visual, never persisted |
+| **UI state** | Alpine `x-data` | Local booleans like `showFistsMenu` — purely visual, never persisted |
+| **Room state** | `$store.room` | `{ inRoom, link, peer, outdated }`, registered by `kipukas-api.js` and kept current by `kipukas-multiplayer.js`. Read at initialisation, so a tool is right from the first render after a page change |
 | **Behavior** | Alpine `@click`, `$watch`, `x-effect` | `@click` toggles visibility; `$watch` handles side effects; `x-effect` bridges to HTMX |
 | **Data fetching** | HTMX `hx-get` + `hx-trigger` | Declarative WASM endpoint on the container div; `x-effect` re-fetches via `htmx.ajax()` on reopen |
 | **Styling** | Tailwind utilities | Layout, theming, spacing, responsiveness — all inline classes, zero custom CSS |
@@ -357,22 +380,20 @@ async function autoReconnect() {
 **How the layers connect (annotated from `multiplayer_fists_tool.html`):**
 
 ```html
-<!-- 1. Alpine x-data: declare ALL visual state locally -->
-<div x-data="{ showFistsMenu: false, roomConnected: false }"
+<!-- 1. Alpine x-data: declare the tool's own visual state locally -->
+<div x-data="{ showFistsMenu: false }"
      class="relative place-content-center"
 
-     <!-- 2. Window events: receive cross-component signals (from kipukas-multiplayer.js) -->
-     @room-connected.window="roomConnected = true"
-     @room-disconnected.window="roomConnected = false"
-
-     <!-- 3. $watch: side effects when state changes -->
+     <!-- 2. $watch: side effects when state changes. Room state comes from $store.room.
+          Closing the dialog does not cancel a round: closeFists() only starts a new
+          round if the current one has finished. -->
      x-init="
-       $watch('roomConnected', value => { if (!value) showFistsMenu = false });
-       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.resetFists(); });
+       $watch('$store.room.inRoom', value => { if (!value) showFistsMenu = false });
+       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.closeFists(); });
      ">
 
-    <!-- 4. @click: toggle visibility (Alpine handles show/hide) -->
-    <button x-show="roomConnected" x-cloak>
+    <!-- 3/4. Shown while in a room; @click toggles visibility (Alpine handles show/hide) -->
+    <button x-show="$store.room.inRoom" x-cloak>
         <svg @click="showFistsMenu = !showFistsMenu" ...>...</svg>
     </button>
 
@@ -415,7 +436,7 @@ async function autoReconnect() {
 
 **Why it works:**
 
-- **No global state pollution.** All UI state is scoped to the `x-data` block. External signals arrive via custom window events (`@room-connected.window`), not shared Alpine stores or global variables.
+- **Local state stays local.** A tool's own UI state is scoped to its `x-data` block. The one piece of shared state is `$store.room`: whether the player is in a room is the same fact for every tool on the page, and reading it from a store means a tool is correct when it initialises. (It used to arrive as window events, which a tool created after the event had fired never saw; every page change began with the multiplayer tools hidden.)
 - **Fresh data on every open.** `hx-trigger="load"` handles the first page load. `x-effect` handles every subsequent open by calling `htmx.ajax()` — this avoids stale DOM from a previous session (see Pattern 4).
 - **Rust is the single source of truth.** The component never reads or writes localStorage directly. It asks Rust for current state via HTMX, and Rust's `PLAYER_DOC` state is auto-persisted to localStorage as base64 yrs binary by the `kipukas-api.js` bridge after every game mutation (via Worker `PERSIST_STATE` message). On page load the bridge restores the binary state → Rust before any component renders.
 - **Single-file portability.** Because styling is Tailwind utilities, behavior is Alpine attributes, and data fetching is HTMX attributes, the entire component is one `_includes/*.html` partial with zero dependencies beyond the global Alpine/HTMX/Tailwind setup.
@@ -677,6 +698,12 @@ deno task build:sw         # Rebuild service worker only (after jekyll build)
 cd kipukas-server && cargo test
 ```
 
+**Connection state machine tests** (fake socket and clock, plus two clients through the relay code in `signaling-server/main.ts` started locally):
+
+```bash
+deno test -A tests/
+```
+
 **Browser integration checks** (DevTools console):
 
 | Message | Confirms |
@@ -685,11 +712,12 @@ cd kipukas-server && cargo test
 | `[kipukas-worker] ZXing WASM initialized` | QR decode capability ready |
 | `[kipukas-api] No SW controller, routing directly:` | Dev fallback active (expected during `jekyll serve`) |
 | `[qr-camera] Camera started, scanning at 2 fps` | Camera + scan loop running |
-| `[multiplayer] Signaling connected` | WebSocket to signaling server open |
+| `[multiplayer] Link: connecting → open` | WebSocket to the relay open |
 | `[multiplayer] Peer connected via WebSocket relay!` | Game message relay established |
 
 **Multiplayer testing:**
-- Two browser tabs on same machine
+- One machine: a normal window and a private window (two tabs of one browser are the same player — see Pattern 10)
+- To use a local relay instead of the deployed one: `cd signaling-server && deno task dev`, then in each window's console `localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')` and reload
 - Two devices on same network
 - Two devices on different networks (works everywhere — WebSocket relay traverses all firewalls/NATs)
 
