@@ -44,59 +44,142 @@ globalThis.kipukasRelayUrl = function () {
 // ROOM SESSION — how a multiplayer room is remembered between page loads
 // ============================================
 // Every page load starts a fresh game engine and a fresh socket, so the room
-// has to be put back each time. Two things are kept in browser storage:
-//   kipukas_room        { code, name, creator, playerId, peerId } — which room
-//                       this player is in, who they are in it, and who the
-//                       opponent is (once known)
-//   kipukas_crdt_state  the shared room document (base64): timers and fists
-//                       combat, saved after every change
+// has to be put back each time. It is kept in localStorage, which every tab
+// of this browser shares, so a card opened in a new tab (a QR code scanned
+// with the phone's camera app, for instance) is still in the room:
+//   kipukas_room      { v, code, name, creator, playerId, peerId, ts } — which
+//                     room this player is in, who they are in it, and who
+//                     the opponent is (once known). Forgotten after 12 hours
+//                     without use.
+//   kipukas_room_doc  the shared room document (base64): timers and fists
+//                     combat, saved after every change
+//   kipukas_room_tab  the id of the tab that holds the room connection
 // This file reads them on load (see "RESUME ROOM" below); kipukas-multiplayer.js
 // writes the session when a room is created, joined or left.
 const ROOM_KEY = 'kipukas_room';
-const ROOM_DOC_KEY = 'kipukas_crdt_state';
+const ROOM_DOC_KEY = 'kipukas_room_doc';
+const ROOM_TAB_KEY = 'kipukas_room_tab';
+const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
+
+/** Random hex string of `bytes` bytes. */
+function randomHex(bytes) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Identifies this tab (this page load) among the tabs sharing the room.
+const TAB_ID = randomHex(8);
 
 globalThis.kipukasRoomSession = {
   /** The saved room, or null when this player is not in one. */
   load() {
     try {
-      const raw = sessionStorage.getItem(ROOM_KEY);
+      const raw = localStorage.getItem(ROOM_KEY);
       const session = raw ? JSON.parse(raw) : null;
-      return session && session.code ? session : null;
+      if (!session || !session.code) return null;
+      if (!session.ts || Date.now() - session.ts > ROOM_TTL_MS) {
+        this.clear(); // left over from an earlier day
+        return null;
+      }
+      return session;
     } catch (_) {
       return null;
     }
   },
+  /** Save the room, and make this tab the one that holds its connection. */
   save(session) {
     try {
-      sessionStorage.setItem(ROOM_KEY, JSON.stringify(session));
+      localStorage.setItem(ROOM_KEY, JSON.stringify({ ...session, v: 2, ts: Date.now() }));
     } catch (_) { /* storage unavailable */ }
+    this.claim();
   },
   /** Forget the room and its shared document. */
   clear() {
     try {
-      sessionStorage.removeItem(ROOM_KEY);
-      sessionStorage.removeItem(ROOM_DOC_KEY);
+      localStorage.removeItem(ROOM_KEY);
+      localStorage.removeItem(ROOM_DOC_KEY);
+      localStorage.removeItem(ROOM_TAB_KEY);
     } catch (_) { /* storage unavailable */ }
   },
   loadDoc() {
     try {
-      return sessionStorage.getItem(ROOM_DOC_KEY) || '';
+      return localStorage.getItem(ROOM_DOC_KEY) || '';
     } catch (_) {
       return '';
     }
   },
   saveDoc(state) {
     try {
-      sessionStorage.setItem(ROOM_DOC_KEY, state);
+      localStorage.setItem(ROOM_DOC_KEY, state);
     } catch (_) { /* quota or storage unavailable */ }
   },
   /** A fresh random id for this player in a room (24 hex characters). */
   newPlayerId() {
-    const bytes = new Uint8Array(12);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return randomHex(12);
+  },
+  /**
+   * Make this tab the one that holds the room connection. Other tabs see the
+   * change (a `storage` event) and go quiet: the relay gives each player one
+   * slot, so two tabs of the same player must not both connect.
+   */
+  claim() {
+    try {
+      localStorage.setItem(ROOM_TAB_KEY, TAB_ID);
+    } catch (_) { /* storage unavailable */ }
+  },
+  /** Whether this tab holds the room connection (true if no tab has claimed it). */
+  isOwner() {
+    try {
+      const owner = localStorage.getItem(ROOM_TAB_KEY);
+      return !owner || owner === TAB_ID;
+    } catch (_) {
+      return true;
+    }
   },
 };
+
+// ============================================
+// ONE TAB AT A TIME
+// ============================================
+// Each tab runs its own game engine, loaded from storage when the page
+// loaded. If another tab changes what is in storage (takes over the room,
+// marks damage, changes a timer), this tab's engine is out of date. Rather
+// than let it write stale state back, it reloads the next time it is shown.
+let tabStale = false;
+
+globalThis.addEventListener('storage', (event) => {
+  if (event.key === ROOM_TAB_KEY) {
+    // Read the current owner rather than trusting the event: two tabs loading
+    // at once both write the key, and the last write is the one that counts.
+    if (!globalThis.kipukasRoomSession.isOwner()) {
+      tabStale = true;
+      globalThis.dispatchEvent(new CustomEvent('kipukas-room-moved'));
+    }
+    return;
+  }
+  if (event.key === 'kipukas_player_doc' || event.key === ROOM_KEY || event.key === ROOM_DOC_KEY) {
+    tabStale = true;
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && tabStale) location.reload();
+});
+
+// A page restored from the back/forward cache received no storage events
+// while it was frozen.
+globalThis.addEventListener('pageshow', (event) => {
+  if (event.persisted && (tabStale || !globalThis.kipukasRoomSession.isOwner())) {
+    location.reload();
+  }
+});
+
+// Sessions used to live in sessionStorage (one per tab). Tidy up the old keys.
+try {
+  sessionStorage.removeItem('kipukas_room');
+  sessionStorage.removeItem('kipukas_crdt_state');
+} catch (_) { /* storage unavailable */ }
 
 // Room state for the UI, as an Alpine store. Toolbar tools read it when they
 // initialise, so they are right from the first render instead of waiting for
@@ -108,7 +191,8 @@ document.addEventListener('alpine:init', () => {
   const inRoom = !!globalThis.kipukasRoomSession.load();
   globalThis.Alpine.store('room', {
     inRoom, // this player is in a room (created or joined), peer present or not
-    link: inRoom ? 'connecting' : 'idle', // idle | connecting | open | waiting | expired
+    // idle | connecting | open | waiting | expired | moved (to another tab)
+    link: inRoom ? 'connecting' : 'idle',
     peer: false, // the other player is present
     outdated: false, // the other player is on an older copy of the site
   });
@@ -274,6 +358,8 @@ wasmWorker.addEventListener('message', (event) => {
 function persistRoomDoc() {
   const session = globalThis.kipukasRoomSession.load();
   if (!session) return;
+  // Another tab holds the room now; its document is the current one.
+  if (!globalThis.kipukasRoomSession.isOwner()) return;
   const ch = new MessageChannel();
   ch.port1.onmessage = (msg) => {
     const state = msg.data.html;
@@ -330,8 +416,10 @@ function persistRoomDoc() {
   // A session saved before player ids existed gets one now.
   if (!session.playerId) {
     session.playerId = globalThis.kipukasRoomSession.newPlayerId();
-    globalThis.kipukasRoomSession.save(session);
   }
+  // Saving refreshes the session's age and makes this tab the one that holds
+  // the room: any other tab of this player goes quiet.
+  globalThis.kipukasRoomSession.save(session);
 
   console.log('[kipukas-api] Resuming room', session.code);
   const body = 'code=' + encodeURIComponent(session.code) +

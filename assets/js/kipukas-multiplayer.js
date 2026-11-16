@@ -131,6 +131,19 @@ function markPeerGone() {
   refreshRoomStatus();
 }
 
+// This player opened the room in another tab (a card opened from the phone's
+// camera app, for example). The relay gives each player one slot, so this tab
+// lets go of the connection. kipukas-api.js reloads it the next time it is
+// shown, at which point it takes the room back.
+globalThis.addEventListener('kipukas-room-moved', () => {
+  if (!roomCode) return;
+  console.log('[multiplayer] Room is now open in another tab; this tab goes quiet');
+  peerPresent = false;
+  clearTimeout(helloTimer);
+  link.stop();
+  setRoomStore({ link: 'moved', peer: false });
+});
+
 // Anything that suggests the network is back: retry now rather than waiting
 // out the backoff (phone woke up, tab came to the front, page was restored
 // from the back/forward cache).
