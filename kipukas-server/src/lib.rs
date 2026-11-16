@@ -45,16 +45,16 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/create", "room_create").ok();
     router.insert("/api/room/join", "room_join").ok();
     router.insert("/api/room/resume", "room_resume").ok();
+    router.insert("/api/room/peer", "room_peer").ok();
     router.insert("/api/room/connected", "room_connected").ok();
     router.insert("/api/room/disconnect", "room_disconnect").ok();
     router.insert("/api/room/peer_left", "room_peer_left").ok();
     router.insert("/api/room/fists", "room_fists").ok();
-    router.insert("/api/room/fists/sync", "room_fists_sync").ok();
     router.insert("/api/room/fists/poll", "room_fists_poll").ok();
     router.insert("/api/room/fists/reset", "room_fists_reset").ok();
+    router.insert("/api/room/fists/close", "room_fists_close").ok();
     router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
     router.insert("/api/room/fists/final", "room_fists_final").ok();
-    router.insert("/api/room/fists/final/sync", "room_fists_final_sync").ok();
     router.insert("/api/room/state", "room_state").ok();
 
     // Player document routes
@@ -106,15 +106,15 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_create", "POST") => routes::room::handle_create_post(body),
             ("room_join", "POST") => routes::room::handle_join_post(body),
             ("room_resume", "POST") => routes::room::handle_resume_post(body),
+            ("room_peer", "POST") => routes::room::handle_peer_post(body),
             ("room_connected", "POST") => routes::room::handle_connected_post(body),
             ("room_disconnect", "POST") => routes::room::handle_disconnect_post(body),
             ("room_peer_left", "POST") => routes::room::handle_peer_left_post(body),
             ("room_fists", "POST") => routes::room::handle_fists_post(body),
-            ("room_fists_sync", "POST") => routes::room::handle_fists_sync_post(body),
             ("room_fists_reset", "POST") => routes::room::handle_fists_reset_post(body),
+            ("room_fists_close", "POST") => routes::room::handle_fists_close_post(body),
             ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
             ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
-            ("room_fists_final_sync", "POST") => routes::room::handle_final_blows_sync_post(body),
 
             // Player document routes
             ("player_state", "GET") => routes::game::handle_player_state_get(query),

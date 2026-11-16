@@ -305,6 +305,7 @@
              if (room.link === 'expired') { tone = 'bad'; label = 'Room expired'; }
              else if (room.inRoom && room.link !== 'open') { tone = 'warn'; label = 'Reconnecting…'; }
              else if (room.inRoom && !room.peer) { tone = 'warn'; label = 'Waiting for opponent'; }
+             else if (room.inRoom && room.outdated) { tone = 'warn'; label = 'Opponent needs to update'; }
              else if (room.inRoom) { tone = 'ok'; label = 'Connected'; }
 
              clearTimeout(this.$el._roomStatusTimer);

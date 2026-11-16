@@ -3,12 +3,13 @@
 //! lifetime of the Web Worker.
 //!
 //! Phase 3b: Single-player state management (local user state).
-//! Phase 4: Room state (global/shared) for multiplayer via WebRTC.
-//! All structs derive Serialize/Deserialize for WebRTC diffs.
+//! Phase 4: Room state for multiplayer. Shared state (timers, fists combat)
+//! lives in a yrs room document synced through the WebSocket relay.
 
 pub mod crdt;
 pub mod crypto;
 pub mod damage;
+pub mod fists;
 pub mod player_doc;
 pub mod room;
 pub mod state;

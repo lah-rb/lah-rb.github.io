@@ -1,15 +1,18 @@
 //! `/api/room/*` routes — multiplayer room management and fists combat.
 //!
-//! Phase 4: Room state is global (shared between peers via WebRTC).
+//! Shared state (timers, fists combat) lives in the room document, which the
+//! two players sync through the WebSocket relay; see `game::crdt` and `game::fists`.
 //! Local game state (damage, turns) remains per-user.
 
 use crate::cards_generated::CARDS;
 use crate::game::crdt;
 use crate::game::damage;
+use crate::game::fists;
 use crate::game::player_doc;
 use crate::game::room::{self, CombatRole, FistsSubmission};
+use crate::game::state::new_alarm_id;
 use crate::game::turns;
-use crate::routes::util::{get_param, parse_form_body, parse_query};
+use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
 use crate::typing;
 
 fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
@@ -101,11 +104,14 @@ pub fn handle_create_post(body: &str) -> String {
     let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
     let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
+    let player = get_param(&params, "player").unwrap_or("");
 
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
         r.room_name = name.to_string();
         r.connected = false;
+        r.player_id = player_id_or_new(player);
+        r.peer_id.clear();
         r.fists.reset();
     });
 
@@ -131,6 +137,7 @@ pub fn handle_join_post(body: &str) -> String {
     let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
     let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
+    let player = get_param(&params, "player").unwrap_or("");
 
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
@@ -138,6 +145,8 @@ pub fn handle_join_post(body: &str) -> String {
             r.room_name = name.to_string();
         }
         r.connected = false;
+        r.player_id = player_id_or_new(player);
+        r.peer_id.clear();
         r.fists.reset();
     });
 
@@ -155,17 +164,20 @@ pub fn handle_join_post(body: &str) -> String {
 
 /// Put this player back in a room after a page load.
 ///
-/// Body: `code=<code>&name=<name>&state=<url-safe base64 room document>`
+/// Body: `code=<code>&name=<name>&player=<this player's id>&peer=<opponent's
+/// id, if known>&state=<url-safe base64 room document>`
 ///
 /// Unlike create/join this is not the start of a session: it never seeds the
 /// room document from local timers and never resets combat. It restores the
 /// room document exactly as it was persisted, so the first render on the new
-/// page already shows shared state. The peer is marked absent until the relay
-/// reports `peer_joined`.
+/// page already shows shared state — timers and the round in progress. The
+/// peer is marked absent until the relay reports `peer_joined`.
 pub fn handle_resume_post(body: &str) -> String {
     let params = parse_form_body(body);
     let code = get_param(&params, "code").unwrap_or("");
     let name = get_param(&params, "name").unwrap_or("");
+    let player = get_param(&params, "player").unwrap_or("");
+    let peer = get_param(&params, "peer").unwrap_or("");
     let state = get_param(&params, "state").unwrap_or("");
 
     if code.is_empty() {
@@ -176,13 +188,55 @@ pub fn handle_resume_post(body: &str) -> String {
         r.room_code = code.to_uppercase();
         r.room_name = name.to_string();
         r.connected = false;
+        r.player_id = player_id_or_new(player);
+        r.peer_id = if fists::is_valid_player_id(peer) {
+            peer.to_string()
+        } else {
+            String::new()
+        };
     });
 
     crdt::init_doc();
-    match crdt::restore_from_state(state) {
+    let restored = crdt::restore_from_state(state);
+
+    // A finished round may be waiting to be applied (the page was left before
+    // it could be). The opponent learns of it on the next sync handshake.
+    settle_fists();
+    sync_fists_view();
+
+    match restored {
         Ok(()) => "ok".to_string(),
         Err(e) => format!(r#"{{"error":"{}"}}"#, e),
     }
+}
+
+/// This player's id for the room. The page always supplies one; a random one
+/// is used if it is missing or malformed, so two players can never share an id.
+fn player_id_or_new(player: &str) -> String {
+    if fists::is_valid_player_id(player) {
+        player.to_string()
+    } else {
+        new_alarm_id()
+    }
+}
+
+// ── POST /api/room/peer ───────────────────────────────────────────
+
+/// Record the opponent's id (from their hello). Only that player's entries
+/// then count as the opponent's submissions.
+/// Body: `id=<opponent's id>`. Returns JSON `{ phase, remote_ready }`.
+pub fn handle_peer_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let id = get_param(&params, "id").unwrap_or("");
+    if fists::is_valid_player_id(id) {
+        room::with_room_mut(|r| r.peer_id = id.to_string());
+    }
+    let view = sync_fists_view();
+    serde_json::json!({
+        "phase": view.phase().as_str(),
+        "remote_ready": view.remote_ready(),
+    })
+    .to_string()
 }
 
 // ── POST /api/room/connected ──────────────────────────────────────
@@ -230,40 +284,134 @@ pub fn handle_peer_left_post(_body: &str) -> String {
     room::with_room(|r| render_waiting_status(r))
 }
 
+// ── Fists combat ───────────────────────────────────────────────────
+//
+// Combat state lives in the room document (see `game::fists`). These routes
+// read this player's view of it and write this player's entries. Every route
+// that changes the document returns the change as an update for the page to
+// relay to the opponent.
+
+fn player_ids() -> (String, String) {
+    room::with_room(|r| (r.player_id.clone(), r.peer_id.clone()))
+}
+
+/// Recompute this player's view of combat from the room document, and cache
+/// the round's submissions in RoomState for the result renderers.
+fn sync_fists_view() -> fists::View {
+    let (me, peer) = player_ids();
+    let view = crdt::with_doc(|doc| fists::view(doc, &me, &peer));
+    room::with_room_mut(|r| r.fists = view.combat.clone());
+    view
+}
+
+/// Apply every finished round this player has not applied yet: if this
+/// player defended and lost, mark the damage on their card.
+///
+/// Each round is applied once. The `settled` flag is written to the room
+/// document, so a reload, a reconnect, or the opponent reporting the same
+/// result again cannot apply it a second time.
+///
+/// Returns the cards whose damage changed, and whether the room document
+/// changed (so the caller knows there is an update to relay).
+fn settle_fists() -> (Vec<String>, bool) {
+    let (me, peer) = player_ids();
+    let pending = crdt::with_doc(|doc| fists::unsettled(doc, &me, &peer));
+    let changed = !pending.is_empty();
+    let mut damaged = Vec::new();
+    for p in pending {
+        let marked = apply_outcome(&p);
+        if marked {
+            damaged.push(p.mine.card().to_string());
+        }
+        crdt::with_doc(|doc| fists::mark_settled(doc, p.round, &me, marked));
+    }
+    (damaged, changed)
+}
+
+/// Apply one finished round to this player's own card. Returns whether
+/// anything was marked.
+fn apply_outcome(p: &fists::Pending) -> bool {
+    // Only the defender's card takes damage, and only if the attacker won.
+    // A disputed result applies nothing.
+    if p.outcome != fists::Outcome::AttackerWon || p.mine.role() != Some(CombatRole::Defending) {
+        return false;
+    }
+    let card = p.mine.card();
+    if card.is_empty() {
+        return false;
+    }
+    if p.final_blows {
+        // Final Blows: the defender lost, so the card is wasted.
+        damage::toggle_wasted(card);
+        true
+    } else {
+        auto_mark_damage(card, p.mine.keal_idx())
+    }
+}
+
+/// JSON reply for the fists routes:
+///   html          the dialog contents
+///   update        room-document update to relay to the opponent ("" if none)
+///   damage        cards whose damage tracker needs refreshing
+///   phase         form | waiting | result | outcome
+///   remote_ready  the opponent has locked in
+fn fists_reply(html: &str, update: &str, damaged: &[String], view: &fists::View) -> String {
+    serde_json::json!({
+        "html": html,
+        "update": update,
+        "damage": damaged,
+        "phase": view.phase().as_str(),
+        "remote_ready": view.remote_ready(),
+    })
+    .to_string()
+}
+
 // ── GET /api/room/fists ────────────────────────────────────────────
 
 pub fn handle_fists_get(query: &str) -> String {
     let params = parse_query(query);
     let slug = get_param(&params, "card").unwrap_or("");
 
-    let (connected, in_room) = room::with_room(|r| (r.connected, !r.room_code.is_empty()));
-    if !connected {
-        if in_room {
-            return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm text-amber-600">Waiting for peer to connect…</p></div>"#.to_string();
-        }
+    // Being in a room is enough. The opponent may be away for a moment (a
+    // page change, a locked phone): a choice locked in meanwhile is in the
+    // room document and reaches them when they are back.
+    if !room::in_room() {
         return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm text-kip-red">Not connected to a room. Use the fields above to create or join one.</p></div>"#.to_string();
     }
 
-    // Check if we already have a result
-    let is_complete = room::with_room(|r| r.fists.is_complete());
-    if is_complete {
-        return render_fists_result();
-    }
-
-    // Check if local already submitted (waiting for remote)
-    let local_submitted = room::with_room(|r| r.fists.local.is_some());
-    if local_submitted {
-        return render_fists_waiting();
-    }
-
-    // Check if local submitted Final Blows (waiting for remote)
-    let local_final_submitted = room::with_room(|r| r.fists.local_final_blows.is_some());
-    if local_final_submitted {
-        return render_final_blows_waiting();
-    }
-
-    render_fists_form(slug)
+    render_fists_view(&sync_fists_view(), slug)
 }
+
+/// The dialog contents for the phase this player is in.
+fn render_fists_view(view: &fists::View, slug: &str) -> String {
+    match view.phase() {
+        fists::Phase::Outcome => render_fists_outcome(view),
+        fists::Phase::Result => render_fists_result(),
+        fists::Phase::Waiting => {
+            if view.combat.local_final_blows.is_some() {
+                render_final_blows_waiting(slug)
+            } else {
+                render_fists_waiting(slug)
+            }
+        }
+        fists::Phase::Form => {
+            let form = render_fists_form(slug);
+            if view.remote_ready() {
+                // Fill the form's message area (also what the page script
+                // writes to when the opponent locks in while the form is open).
+                form.replace(
+                    FISTS_MESSAGE_EMPTY,
+                    r#"<div id="fists-message" class="mt-2 text-center"><p class="text-sm text-emerald-600">&#x2713; Opponent has locked in their choice!</p></div>"#,
+                )
+            } else {
+                form
+            }
+        }
+    }
+}
+
+/// The empty message area the fists forms end with.
+const FISTS_MESSAGE_EMPTY: &str = r#"<div id="fists-message" class="mt-2 text-center"></div>"#;
 
 /// Check if ALL keal means groups on a card are fully exhausted (every damage slot checked).
 fn all_keal_means_exhausted(slug: &str) -> bool {
@@ -326,22 +474,37 @@ fn render_final_blows(card: &crate::cards_generated::Card) -> String {
     ));
 
     // Dedicated message area at the bottom
-    h.push_str(r#"<div id="fists-message" class="mt-2 text-center"></div>"#);
+    h.push_str(FISTS_MESSAGE_EMPTY);
 
     h.push_str(r#"</div>"#);
     h
 }
 
 /// Render the "waiting for opponent" state when Final Blows has been stated.
-fn render_final_blows_waiting() -> String {
+fn render_final_blows_waiting(slug: &str) -> String {
     let mut h = String::with_capacity(512);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
     h.push_str(r#"<p class="text-lg font-bold mb-2">Final Blows Stated!</p>"#);
     h.push_str(r#"<div class="animate-pulse text-kip-red text-2xl mb-2">&#9876;</div>"#);
     h.push_str(r#"<p class="text-sm">Waiting for opponent to submit...</p>"#);
-    // Poll for result every 2s via HTMX
-    h.push_str(r##"<div hx-get="/api/room/fists/poll" hx-trigger="every 2s" hx-target="#fists-container" hx-swap="innerHTML"></div>"##);
+    h.push_str(&waiting_controls(slug));
     h.push_str(r#"</div>"#);
+    h
+}
+
+/// What both waiting views end with: a poll that swaps in the result when the
+/// opponent submits, and a way to call the round off.
+///
+/// The poll carries the page's card so that, if the opponent cancels the
+/// round, the form it falls back to is the form for this card.
+fn waiting_controls(slug: &str) -> String {
+    let mut h = String::with_capacity(512);
+    h.push_str(&format!(
+        r##"<div hx-get="/api/room/fists/poll?card={}" hx-trigger="every 2s" hx-target="#fists-container" hx-swap="innerHTML"></div>"##,
+        escape_html(slug)
+    ));
+    // Closing the dialog no longer cancels a round, so cancelling is explicit.
+    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="mt-4 text-xs underline text-slate-500 hover:text-kip-red cursor-pointer">Cancel round</button>"#);
     h
 }
 
@@ -418,7 +581,7 @@ fn render_fists_form(slug: &str) -> String {
     ));
 
     // Dedicated message area at the bottom (used by JS for status messages)
-    h.push_str(r#"<div id="fists-message" class="mt-2 text-center"></div>"#);
+    h.push_str(FISTS_MESSAGE_EMPTY);
 
     h.push_str(r#"</div>"#);
     h
@@ -428,14 +591,13 @@ fn render_fists_no_card() -> String {
     r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm">Navigate to a Character or Species card page, then open the Fists tool to select your keal means for combat.</p></div>"#.to_string()
 }
 
-fn render_fists_waiting() -> String {
+fn render_fists_waiting(slug: &str) -> String {
     let mut h = String::with_capacity(512);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
     h.push_str(r#"<p class="text-lg font-bold mb-2">Choice Locked In!</p>"#);
     h.push_str(r#"<div class="animate-pulse text-kip-red text-2xl mb-2">&#9876;</div>"#);
     h.push_str(r#"<p class="text-sm">Waiting for opponent...</p>"#);
-    // Poll for result every 2s via HTMX
-    h.push_str(r##"<div hx-get="/api/room/fists/poll" hx-trigger="every 2s" hx-target="#fists-container" hx-swap="innerHTML"></div>"##);
+    h.push_str(&waiting_controls(slug));
     h.push_str(r#"</div>"#);
     h
 }
@@ -457,6 +619,9 @@ fn render_role_conflict(role_name: &str) -> String {
 
 // ── POST /api/room/fists ───────────────────────────────────────────
 
+/// Lock in this player's choice for the round.
+/// Body: `role=attacking|defending&card=<slug>&keal=<n>&today=<yyyy-mm-dd>`
+/// Returns the fists JSON reply (see `fists_reply`).
 pub fn handle_fists_post(body: &str) -> String {
     let params = parse_form_body(body);
     let role_str = get_param(&params, "role").unwrap_or("");
@@ -468,14 +633,14 @@ pub fn handle_fists_post(body: &str) -> String {
         "attacking" => CombatRole::Attacking,
         "defending" => CombatRole::Defending,
         _ => {
-            return r#"<span class="text-kip-red text-sm">Please select Attacking or Defending</span>"#.to_string();
+            return fists_error("Please select Attacking or Defending");
         }
     };
 
     let keal_idx: u8 = keal_str.parse().unwrap_or(1);
 
     if card.is_empty() {
-        return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+        return fists_error("Missing card");
     }
 
     // Phase C: Increment loyalty for Character/Species cards used in combat
@@ -487,89 +652,53 @@ pub fn handle_fists_post(body: &str) -> String {
         }
     }
 
-    room::with_room_mut(|r| {
-        r.fists.local = Some(FistsSubmission {
-            role,
-            card: card.to_string(),
-            keal_idx,
-        });
+    let (me, peer) = player_ids();
+    let submission = FistsSubmission {
+        role,
+        card: card.to_string(),
+        keal_idx,
+    };
+    let update = crdt::capture_update(|| {
+        crdt::with_doc(|doc| fists::submit(doc, &me, &peer, submission));
+        true
     });
 
-    // Always send local submission to peer via data channel
-    let fists_json = room::export_fists_json();
-
-    // Check if both submitted
-    let is_complete = room::with_room(|r| r.fists.is_complete());
-    if is_complete {
-        let mut h = render_fists_result();
-        h.push_str(&format!(
-            r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFists({});</script>"#,
-            fists_json
-        ));
-        h
-    } else {
-        // Return the local submission as JSON for WebRTC send, plus waiting UI
-        let mut h = render_fists_waiting();
-        h.push_str(&format!(
-            r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFists({});</script>"#,
-            fists_json
-        ));
-        h
-    }
+    let view = sync_fists_view();
+    fists_reply(&render_fists_view(&view, card), &update, &[], &view)
 }
 
-// ── POST /api/room/fists/sync ──────────────────────────────────────
-
-pub fn handle_fists_sync_post(body: &str) -> String {
-    // Body is JSON: a FistsSubmission from the remote peer
-    match serde_json::from_str::<FistsSubmission>(body) {
-        Ok(submission) => {
-            room::with_room_mut(|r| {
-                r.fists.remote = Some(submission);
-            });
-
-            let is_complete = room::with_room(|r| r.fists.is_complete());
-            if is_complete {
-                render_fists_result()
-            } else {
-                r#"<span class="text-emerald-600 text-sm">Opponent's choice received. Waiting for your submission.</span>"#.to_string()
-            }
-        }
-        Err(e) => {
-            format!(
-                r#"<span class="text-kip-red text-sm">Sync error: {}</span>"#,
-                e
-            )
-        }
-    }
+/// A fists reply carrying only a message (nothing changed).
+fn fists_error(message: &str) -> String {
+    let view = sync_fists_view();
+    fists_reply(
+        &format!(r#"<span class="text-kip-red text-sm">{}</span>"#, message),
+        "",
+        &[],
+        &view,
+    )
 }
 
 // ── GET /api/room/fists/poll ───────────────────────────────────────
 
-pub fn handle_fists_poll_get(_query: &str) -> String {
-    let is_complete = room::with_room(|r| r.fists.is_complete());
-    if is_complete {
-        render_fists_result()
-    } else {
-        let is_final = room::with_room(|r| r.fists.local_final_blows.is_some());
-        if is_final {
-            render_final_blows_waiting()
-        } else {
-            render_fists_waiting()
-        }
-    }
+/// Polled by the waiting view. Returns whatever this player should see now:
+/// still waiting, the result, or (if the opponent cancelled) the form again.
+pub fn handle_fists_poll_get(query: &str) -> String {
+    let params = parse_query(query);
+    let slug = get_param(&params, "card").unwrap_or("");
+    render_fists_view(&sync_fists_view(), slug)
 }
 
 // ── POST /api/room/fists/final ─────────────────────────────────────
 
-/// Handle Final Blows submission from a player with exhausted keal means.
+/// State Final Blows for a card whose keal means are all exhausted.
+/// Body: `card=<slug>&today=<yyyy-mm-dd>`. Returns the fists JSON reply.
 pub fn handle_final_blows_post(body: &str) -> String {
     let params = parse_form_body(body);
     let card = get_param(&params, "card").unwrap_or("");
     let today = get_param(&params, "today").unwrap_or("");
 
     if card.is_empty() {
-        return r#"<span class="text-kip-red text-sm">Missing card</span>"#.to_string();
+        return fists_error("Missing card");
     }
 
     // Phase C: Increment loyalty for Character/Species cards used in Final Blows
@@ -581,161 +710,139 @@ pub fn handle_final_blows_post(body: &str) -> String {
         }
     }
 
-    room::with_room_mut(|r| {
-        r.fists.local_final_blows = Some(room::FinalBlowsSubmission {
-            card: card.to_string(),
-        });
+    let (me, peer) = player_ids();
+    let submission = room::FinalBlowsSubmission {
+        card: card.to_string(),
+    };
+    let update = crdt::capture_update(|| {
+        crdt::with_doc(|doc| fists::final_blows(doc, &me, &peer, submission));
+        true
     });
 
-    // Send to peer via data channel
-    let json = serde_json::json!({ "card": card }).to_string();
-
-    // Check if both sides have submitted (remote might have already submitted via normal fists)
-    let is_complete = room::with_room(|r| r.fists.is_complete());
-    if is_complete {
-        let mut h = render_fists_result();
-        h.push_str(&format!(
-            r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFinalBlows({});</script>"#,
-            json
-        ));
-        h
-    } else {
-        let mut h = render_final_blows_waiting();
-        h.push_str(&format!(
-            r#"<script>if(window.kipukasMultiplayer)kipukasMultiplayer.sendFinalBlows({});</script>"#,
-            json
-        ));
-        h
-    }
-}
-
-// ── POST /api/room/fists/final/sync ────────────────────────────────
-
-/// Handle Final Blows sync from remote peer.
-pub fn handle_final_blows_sync_post(body: &str) -> String {
-    // Body is JSON: { "card": "slug" }
-    match serde_json::from_str::<room::FinalBlowsSubmission>(body) {
-        Ok(submission) => {
-            room::with_room_mut(|r| {
-                r.fists.remote_final_blows = Some(submission);
-            });
-
-            let is_complete = room::with_room(|r| r.fists.is_complete());
-            if is_complete {
-                render_fists_result()
-            } else {
-                r#"<span class="text-emerald-600 text-sm">Opponent has submitted. Waiting for your submission.</span>"#.to_string()
-            }
-        }
-        Err(e) => {
-            format!(
-                r#"<span class="text-kip-red text-sm">Final Blows sync error: {}</span>"#,
-                e
-            )
-        }
-    }
+    let view = sync_fists_view();
+    fists_reply(&render_fists_view(&view, card), &update, &[], &view)
 }
 
 // ── POST /api/room/fists/reset ─────────────────────────────────────
 
+/// Start a new round for both players: "New Round", "Try Again" and
+/// "Cancel round". Returns the fists JSON reply.
 pub fn handle_fists_reset_post(_body: &str) -> String {
-    room::with_room_mut(|r| r.fists.reset());
-    r#"<div class="p-4 text-center text-emerald-600 text-sm">Combat reset. Ready for next round.</div>"#.to_string()
+    let (me, _) = player_ids();
+    let update = crdt::capture_update(|| crdt::with_doc(|doc| fists::new_round(doc, &me)));
+    let view = sync_fists_view();
+    fists_reply(
+        r#"<div class="p-4 text-center text-emerald-600 text-sm">Combat reset. Ready for next round.</div>"#,
+        &update,
+        &[],
+        &view,
+    )
+}
+
+// ── POST /api/room/fists/close ─────────────────────────────────────
+
+/// The fists dialog was closed. A round in progress carries on untouched; a
+/// finished round gives way to a new one so reopening shows a fresh form.
+/// Returns the fists JSON reply (with empty html).
+pub fn handle_fists_close_post(_body: &str) -> String {
+    let (me, peer) = player_ids();
+    let update = crdt::capture_update(|| crdt::with_doc(|doc| fists::close(doc, &me, &peer)));
+    let view = sync_fists_view();
+    fists_reply("", &update, &[], &view)
 }
 
 // ── POST /api/room/fists/outcome ───────────────────────────────────
 
-/// Handle the "Did you win?" answer.
+/// Handle this player's answer to "Did you win?".
+/// Body: `won=yes|no`. Returns the fists JSON reply.
 ///
-/// Accepts either:
-///   - `won=yes|no` — from the local player clicking a button
-///   - `attacker_won=true|false` — from a peer sync via data channel
-///
-/// Logic:
-///   1. Derive `attacker_won` from the local role and the `won` param (or use directly).
-///   2. If attacker won AND the local player is the defender → auto-mark damage on the
-///      next unchecked slot of the local card's keal means group that was used in combat.
-///   3. Return role-aware HTML message with appropriate buttons.
+/// The answer is recorded in the room document as `attacker_won`, which is
+/// how the opponent learns of it. This player's side of the round is then
+/// applied: if the attacker won and this player defended, the next unchecked
+/// slot of the keal means used is marked on their card (see `settle_fists`).
 pub fn handle_fists_outcome_post(body: &str) -> String {
     let params = parse_form_body(body);
+    let won = get_param(&params, "won").unwrap_or("");
 
-    // Determine the effective local role. For Final Blows (no regular submission),
-    // the Final Blows card is always the defender.
-    let (local_role, is_final_blows) = room::with_room(|r| {
-        let role = r.fists.local.as_ref().map(|s| s.role)
-            .or_else(|| {
-                // If local submitted Final Blows, treat as Defending
-                r.fists.local_final_blows.as_ref().map(|_| CombatRole::Defending)
-            });
-        (role, r.fists.is_final_blows())
-    });
-
-    // Determine if attacker won
-    let attacker_won = if let Some(aw) = get_param(&params, "attacker_won") {
-        // Peer sync path — attacker_won is already resolved
-        aw == "true"
-    } else if let Some(won) = get_param(&params, "won") {
-        // Local click path — derive from role
-        match (local_role, won) {
-            (Some(CombatRole::Attacking), "yes") => true,
-            (Some(CombatRole::Attacking), "no") => false,
-            (Some(CombatRole::Defending), "yes") => false,
-            (Some(CombatRole::Defending), "no") => true,
-            _ => {
-                return r#"<div class="p-4 text-kip-red text-sm">Error: No combat data.</div>"#
-                    .to_string();
-            }
-        }
-    } else {
-        return r#"<div class="p-4 text-kip-red text-sm">Error: Missing outcome param.</div>"#
-            .to_string();
+    let view = sync_fists_view();
+    // For Final Blows (no regular submission) the Final Blows card defends.
+    let Some(local_role) = view.mine.as_ref().and_then(|e| e.role()) else {
+        return fists_reply(
+            r#"<div class="p-4 text-kip-red text-sm">Error: No combat data.</div>"#,
+            "",
+            &[],
+            &view,
+        );
     };
 
-    let local_role = local_role.unwrap_or(CombatRole::Attacking);
-
-    // Get local card and keal info from either regular or Final Blows submission
-    let (local_card, local_keal_idx) = room::with_room(|r| {
-        if let Some(ref s) = r.fists.local {
-            (s.card.clone(), s.keal_idx)
-        } else if let Some(ref f) = r.fists.local_final_blows {
-            (f.card.clone(), 0)
-        } else {
-            (String::new(), 0)
+    let attacker_won = match (local_role, won) {
+        (CombatRole::Attacking, "yes") => true,
+        (CombatRole::Attacking, "no") => false,
+        (CombatRole::Defending, "yes") => false,
+        (CombatRole::Defending, "no") => true,
+        _ => {
+            return fists_reply(
+                r#"<div class="p-4 text-kip-red text-sm">Error: Missing outcome param.</div>"#,
+                "",
+                &[],
+                &view,
+            );
         }
+    };
+
+    let (me, _) = player_ids();
+    let mut damaged = Vec::new();
+    let update = crdt::capture_update(|| {
+        let reported = crdt::with_doc(|doc| fists::report_outcome(doc, &me, attacker_won));
+        let (cards, settled) = settle_fists();
+        damaged = cards;
+        reported || settled
     });
+
+    let view = sync_fists_view();
+    fists_reply(&render_fists_view(&view, ""), &update, &damaged, &view)
+}
+
+/// The outcome screen for this player. Pure: applying the outcome (marking
+/// damage) is done once by `settle_fists`, and this only reports what it did.
+fn render_fists_outcome(view: &fists::View) -> String {
+    let mine = view.mine.clone().unwrap_or_default();
+    let local_role = mine.role().unwrap_or(CombatRole::Attacking);
+    let is_final_blows = view.combat.is_final_blows();
+    let local_card = mine.card();
+
+    const NEW_ROUND: &str = r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#;
 
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
 
-    if attacker_won {
-        // Attacker won — defender lost
-        if local_role == CombatRole::Defending {
-            if is_final_blows && !local_card.is_empty() {
-                // Final Blows: defender lost → card is wasted
-                h.push_str(r#"<p class="text-2xl mb-2">&#x1F480;</p>"#);
-                h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Yikes! Your card was wasted, remove it from the field.</p>"#);
-
-                // Auto-mark the wasted checkbox on the local card
-                damage::toggle_wasted(&local_card);
-                h.push_str(r#"<p class="text-sm mb-3">The final blows indicator has been marked.</p>"#);
-
-            } else {
-                // Regular combat: defender lost — auto-mark damage
-                h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
-                h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
-
-                let marked = auto_mark_damage(&local_card, local_keal_idx);
-                if marked {
-                    h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
+    match view.outcome {
+        Some(fists::Outcome::Disputed) => {
+            h.push_str(r#"<p class="text-2xl mb-2">&#x1F914;</p>"#);
+            h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">You and your opponent reported different results.</p>"#);
+            h.push_str(r#"<p class="text-sm mb-3">Nothing was marked. Settle it at the table, mark any damage by hand, then start a new round.</p>"#);
+            h.push_str(NEW_ROUND);
+        }
+        Some(fists::Outcome::AttackerWon) => {
+            // Attacker won — defender lost
+            if local_role == CombatRole::Defending {
+                if is_final_blows && !local_card.is_empty() {
+                    // Final Blows: defender lost → card is wasted
+                    h.push_str(r#"<p class="text-2xl mb-2">&#x1F480;</p>"#);
+                    h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Yikes! Your card was wasted, remove it from the field.</p>"#);
+                    h.push_str(r#"<p class="text-sm mb-3">The final blows indicator has been marked.</p>"#);
                 } else {
-                    h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
+                    // Regular combat: defender lost — damage was auto-marked
+                    h.push_str(r#"<p class="text-2xl mb-2">&#x1F4A5;</p>"#);
+                    h.push_str(r#"<p class="text-lg font-bold mb-2 text-kip-red">Ouch, let me mark that for you.</p>"#);
+                    if mine.marked {
+                        h.push_str(r#"<p class="text-sm mb-3">Damage has been recorded on your card.</p>"#);
+                    } else {
+                        h.push_str(r#"<p class="text-sm mb-3">All slots in that keal means are already marked.</p>"#);
+                    }
+                    h.push_str(NEW_ROUND);
                 }
-
-                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
-            }
-        } else {
-            // I'm the attacker and I won
-            if is_final_blows {
+            } else if is_final_blows {
                 // Final Blows: attacker won → opponent's card is wasted
                 h.push_str(r#"<p class="text-2xl mb-2">&#x1F3C6;</p>"#);
                 h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">You clinched victory! Keep pushing.</p>"#);
@@ -743,19 +850,20 @@ pub fn handle_fists_outcome_post(body: &str) -> String {
                 // Regular combat: attacker won
                 h.push_str(r#"<p class="text-2xl mb-2">&#x2694;</p>"#);
                 h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Nice Play! Damage is now reflected on the opponent.</p>"#);
-
-                h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#);
+                h.push_str(NEW_ROUND);
             }
         }
-    } else {
-        // Defender won — same messaging for both regular and Final Blows.
-        if local_role == CombatRole::Defending {
-            h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
-            h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
-        } else {
-            h.push_str(r#"<p class="text-2xl mb-2">&#x1F614;</p>"#);
-            h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">Too bad, try next turn!</p>"#);
+        Some(fists::Outcome::DefenderWon) => {
+            // Defender won — same messaging for both regular and Final Blows.
+            if local_role == CombatRole::Defending {
+                h.push_str(r#"<p class="text-2xl mb-2">&#x1F6E1;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-emerald-600">Great defense, keep it up!</p>"#);
+            } else {
+                h.push_str(r#"<p class="text-2xl mb-2">&#x1F614;</p>"#);
+                h.push_str(r#"<p class="text-lg font-bold mb-2 text-amber-600">Too bad, try next turn!</p>"#);
+            }
         }
+        None => {}
     }
 
     h.push_str(r#"</div>"#);
@@ -823,7 +931,15 @@ pub fn handle_yrs_diff_post(body: &str) -> String {
 }
 
 /// POST /api/room/yrs/apply — apply a base64-encoded update from peer.
-/// Returns fresh alarm list HTML for the multiplayer turn tracker.
+///
+/// The update may carry timers, combat, or both. Returns JSON:
+///   alarms        refreshed alarm list HTML
+///   phase         this player's fists phase after the update
+///   remote_ready  the opponent has locked in
+///   update        a follow-up update to relay back ("" if none): applying a
+///                 finished round records that it was applied
+///   damage        cards whose damage tracker needs refreshing
+/// or `{ "error": "..." }`.
 pub fn handle_yrs_apply_post(body: &str) -> String {
     let params = parse_form_body(body);
     let update = get_param(&params, "update").unwrap_or(body.trim());
@@ -833,12 +949,26 @@ pub fn handle_yrs_apply_post(body: &str) -> String {
             // the local mutation routes below do. If the session ends without
             // a clean disconnect, this player's own timers are still current.
             crdt::export_to_local();
-            turns::render_alarm_list()
+
+            // The update may have delivered the outcome of a round.
+            let mut damaged = Vec::new();
+            let reply = crdt::capture_update(|| {
+                let (cards, changed) = settle_fists();
+                damaged = cards;
+                changed
+            });
+
+            let view = sync_fists_view();
+            serde_json::json!({
+                "alarms": turns::render_alarm_list(),
+                "phase": view.phase().as_str(),
+                "remote_ready": view.remote_ready(),
+                "update": reply,
+                "damage": damaged,
+            })
+            .to_string()
         }
-        Err(e) => format!(
-            r#"<span class="text-kip-red text-sm">CRDT apply error: {}</span>"#,
-            e
-        ),
+        Err(e) => serde_json::json!({ "error": e }).to_string(),
     }
 }
 
@@ -1364,9 +1494,67 @@ fn build_result_html(
 mod tests {
     use super::*;
 
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    use base64::Engine;
+    use yrs::updates::decoder::Decode;
+    use yrs::{Doc, ReadTxn, Transact, Update};
+
+    const ME: &str = "me";
+    const THEM: &str = "them";
+
     fn reset() {
         room::reset_room();
+        crdt::reset_doc();
         crate::game::player_doc::init_player_doc();
+    }
+
+    /// Put this player in a room as ME, with the opponent known as THEM.
+    /// The opponent is not marked connected: none of the fists routes need
+    /// them to be.
+    fn enter_room() {
+        handle_create_post(&format!("code=ABCD&name=Test&player={}", ME));
+        handle_peer_post(&format!("id={}", THEM));
+    }
+
+    /// Act as the opponent's device: start from the room document as we have
+    /// it, change it with `f`, and deliver the change the way the relay
+    /// would, as a peer update. Returns the JSON reply of the apply route.
+    fn opponent(f: impl FnOnce(&Doc)) -> serde_json::Value {
+        let theirs = Doc::new();
+        let ours = URL_SAFE_NO_PAD.decode(crdt::encode_full_state()).unwrap();
+        theirs
+            .transact_mut()
+            .apply_update(Update::decode_v1(&ours).unwrap())
+            .unwrap();
+        let before = theirs.transact().state_vector();
+        f(&theirs);
+        let diff = theirs.transact().encode_diff_v1(&before);
+        let reply = handle_yrs_apply_post(&format!("update={}", URL_SAFE_NO_PAD.encode(diff)));
+        serde_json::from_str(&reply).expect("apply returns JSON")
+    }
+
+    fn json(reply: &str) -> serde_json::Value {
+        serde_json::from_str(reply).expect("fists routes return JSON")
+    }
+
+    fn html(reply: &serde_json::Value) -> &str {
+        reply["html"].as_str().unwrap_or("")
+    }
+
+    fn their_attack(card: &str) -> FistsSubmission {
+        FistsSubmission {
+            role: CombatRole::Attacking,
+            card: card.to_string(),
+            keal_idx: 1,
+        }
+    }
+
+    fn their_defence(card: &str) -> FistsSubmission {
+        FistsSubmission {
+            role: CombatRole::Defending,
+            card: card.to_string(),
+            keal_idx: 1,
+        }
     }
 
     #[test]
@@ -1401,22 +1589,6 @@ mod tests {
         assert_eq!(local.len(), 1);
         assert_eq!(local[0].name, "solo");
 
-        crdt::reset_doc();
-        reset();
-    }
-
-    #[test]
-    fn resume_does_not_reset_combat() {
-        reset();
-        room::with_room_mut(|r| {
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-        });
-        handle_resume_post("code=ABCD&name=table&state=");
-        room::with_room(|r| assert!(r.fists.local.is_some()));
         crdt::reset_doc();
         reset();
     }
@@ -1472,7 +1644,7 @@ mod tests {
     fn join_stores_room_but_not_connected() {
         reset();
         let html = handle_join_post("code=WXYZ&name=Fun+Room");
-        // Join no longer sets connected=true; that happens after WebRTC connects
+        // Join does not set connected=true; that happens when the relay reports the peer
         assert!(html.contains("Waiting for peer"));
         assert!(html.contains("WXYZ"));
         room::with_room(|r| {
@@ -1536,9 +1708,10 @@ mod tests {
     }
 
     #[test]
-    fn fists_get_shows_form_when_connected() {
+    fn fists_get_shows_form_in_a_room_even_while_the_opponent_is_away() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
+        enter_room();
+        assert!(!room::is_peer_connected());
         let html = handle_fists_get("?card=brox_the_defiant");
         assert!(html.contains("Brox The Defiant"));
         assert!(html.contains("Crushing Hope"));
@@ -1549,13 +1722,17 @@ mod tests {
     }
 
     #[test]
-    fn fists_post_stores_local() {
+    fn fists_post_locks_in_and_returns_an_update_to_relay() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
-        let html = handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
-        assert!(html.contains("Waiting for opponent"));
+        enter_room();
+        let reply = json(&handle_fists_post("role=attacking&card=brox_the_defiant&keal=1"));
+        assert!(html(&reply).contains("Waiting for opponent"));
+        assert!(html(&reply).contains("Cancel round"));
+        // The poll keeps the page's card so a cancelled round falls back to its form.
+        assert!(html(&reply).contains("/api/room/fists/poll?card=brox_the_defiant"));
+        assert_eq!(reply["phase"], "waiting");
+        assert!(!reply["update"].as_str().unwrap().is_empty());
         room::with_room(|r| {
-            assert!(r.fists.local.is_some());
             let local = r.fists.local.as_ref().unwrap();
             assert_eq!(local.role, CombatRole::Attacking);
             assert_eq!(local.card, "brox_the_defiant");
@@ -1564,13 +1741,88 @@ mod tests {
     }
 
     #[test]
-    fn fists_sync_stores_remote() {
+    fn fists_post_rejects_a_missing_role_without_changing_anything() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
-        let json = r#"{"role":"Defending","card":"liliel_healing_fairy","keal_idx":1}"#;
-        let html = handle_fists_sync_post(json);
-        assert!(html.contains("Waiting for your submission") || html.contains("Combat Result"));
-        room::with_room(|r| assert!(r.fists.remote.is_some()));
+        enter_room();
+        let reply = json(&handle_fists_post("card=brox_the_defiant&keal=1"));
+        assert!(html(&reply).contains("Please select Attacking or Defending"));
+        assert_eq!(reply["update"], "");
+        assert_eq!(reply["phase"], "form");
+        reset();
+    }
+
+    #[test]
+    fn the_opponents_submission_completes_the_round() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        let reply = opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
+        });
+        assert_eq!(reply["phase"], "result");
+        assert_eq!(reply["update"], "", "nothing to send back");
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Combat Result"));
+        assert!(html.contains("Did you win"));
+        reset();
+    }
+
+    #[test]
+    fn the_opponent_locking_in_first_is_noted_on_the_form() {
+        reset();
+        enter_room();
+        let reply = opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
+        });
+        assert_eq!(reply["phase"], "form");
+        assert_eq!(reply["remote_ready"], true);
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Lock In Choice"));
+        assert!(html.contains("Opponent has locked in their choice"));
+        reset();
+    }
+
+    #[test]
+    fn the_poll_falls_back_to_this_cards_form_when_the_opponent_cancels() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        let reply = opponent(|doc| {
+            assert!(fists::new_round(doc, THEM));
+        });
+        assert_eq!(reply["phase"], "form");
+        let html = handle_fists_poll_get("?card=brox_the_defiant");
+        assert!(html.contains("Brox The Defiant"));
+        assert!(html.contains("Lock In Choice"));
+        reset();
+    }
+
+    #[test]
+    fn resume_restores_a_round_in_progress() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        let state = crdt::encode_full_state();
+
+        // A page change: the engine starts from nothing.
+        reset();
+        assert!(!room::in_room());
+
+        handle_resume_post(&format!(
+            "code=ABCD&name=Test&player={}&peer={}&state={}",
+            ME, THEM, state
+        ));
+        let html = handle_fists_get("?card=liliel_healing_fairy");
+        assert!(html.contains("Choice Locked In"));
+        room::with_room(|r| {
+            assert_eq!(r.fists.local.as_ref().unwrap().card, "brox_the_defiant");
+        });
+
+        // The opponent, who stayed, locks in: the round completes here.
+        let reply = opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
+        });
+        assert_eq!(reply["phase"], "result");
         reset();
     }
 
@@ -1605,91 +1857,245 @@ mod tests {
     #[test]
     fn fists_outcome_attacker_wins_marks_defender_damage() {
         reset();
-        crate::game::player_doc::init_player_doc();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        let html = handle_fists_outcome_post("won=no"); // defender says no → attacker won
-        assert!(html.contains("Ouch"));
-        assert!(html.contains("Damage has been recorded"));
-        assert!(html.contains("New Round"));
+        enter_room();
+        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+
+        let reply = json(&handle_fists_outcome_post("won=no")); // defender says no → attacker won
+        assert!(html(&reply).contains("Ouch"));
+        assert!(html(&reply).contains("Damage has been recorded"));
+        assert!(html(&reply).contains("New Round"));
+        assert_eq!(reply["phase"], "outcome");
+        assert_eq!(reply["damage"][0], "brox_the_defiant");
+        assert!(!reply["update"].as_str().unwrap().is_empty());
         // Verify slot 1 of brox was toggled in PLAYER_DOC
         assert!(player_doc::get_slot("brox_the_defiant", 1));
+        assert!(!player_doc::get_slot("brox_the_defiant", 2));
+        reset();
+    }
+
+    #[test]
+    fn damage_is_marked_once_when_both_players_answer() {
+        reset();
+        enter_room();
+        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+
+        // This player answers...
+        handle_fists_outcome_post("won=no");
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        // ...and so does the opponent, with the same result.
+        let reply = opponent(|doc| {
+            assert!(fists::report_outcome(doc, THEM, true));
+        });
+        assert_eq!(reply["phase"], "outcome");
+        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        assert_eq!(reply["update"], "");
+
+        // Reopening the dialog, or the answer arriving again, marks nothing more.
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Damage has been recorded"));
+        opponent(|doc| {
+            fists::report_outcome(doc, THEM, true);
+        });
+        assert!(!player_doc::get_slot("brox_the_defiant", 2));
+        reset();
+    }
+
+    #[test]
+    fn an_outcome_reported_by_the_opponent_marks_damage_here() {
+        reset();
+        enter_room();
+        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+
+        let reply = opponent(|doc| {
+            assert!(fists::report_outcome(doc, THEM, true));
+        });
+        assert_eq!(reply["phase"], "outcome");
+        assert_eq!(reply["damage"][0], "brox_the_defiant");
+        // Applying it is recorded in the room document and sent back.
+        assert!(!reply["update"].as_str().unwrap().is_empty());
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Ouch"));
+        reset();
+    }
+
+    #[test]
+    fn a_finished_round_is_applied_even_if_the_opponent_already_moved_on() {
+        reset();
+        enter_room();
+        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+
+        // While this player was away the opponent attacked, reported a win,
+        // closed the dialog and locked in for the next round. It all arrives
+        // at once.
+        let reply = opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy"));
+            assert!(fists::report_outcome(doc, THEM, true));
+            assert!(fists::close(doc, THEM, ME));
+            fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy"));
+        });
+        assert_eq!(reply["phase"], "form");
+        assert_eq!(reply["remote_ready"], true);
+        assert_eq!(reply["damage"][0], "brox_the_defiant");
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+        reset();
+    }
+
+    #[test]
+    fn a_disputed_outcome_is_reported_and_marks_nothing_more() {
+        reset();
+        enter_room();
+        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+
+        // This player says the defence held; the opponent says the attack won.
+        handle_fists_outcome_post("won=yes");
+        let reply = opponent(|doc| {
+            assert!(fists::report_outcome(doc, THEM, true));
+        });
+        assert_eq!(reply["phase"], "outcome");
+        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        assert!(!player_doc::get_slot("brox_the_defiant", 1));
+
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("reported different results"));
+        assert!(html.contains("New Round"));
         reset();
     }
 
     #[test]
     fn fists_outcome_defender_wins_shows_message_no_buttons() {
         reset();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        let html = handle_fists_outcome_post("won=no"); // attacker says no → defender won
-        assert!(html.contains("Too bad"));
-        // Defender-won outcomes have no action buttons — modal Close resets both clients
-        assert!(!html.contains("New Round"));
-        assert!(!html.contains("resetFists"));
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+
+        let reply = json(&handle_fists_outcome_post("won=no")); // attacker says no → defender won
+        assert!(html(&reply).contains("Too bad"));
+        // Defender-won outcomes have no action buttons — closing the dialog
+        // after an outcome starts the next round.
+        assert!(!html(&reply).contains("New Round"));
+        assert!(!html(&reply).contains("resetFists"));
+        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
         reset();
     }
 
     #[test]
-    fn fists_outcome_peer_sync_attacker_won() {
+    fn fists_outcome_attacker_sees_the_win() {
         reset();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "brox_the_defiant".to_string(),
-                keal_idx: 1,
-            });
-            r.fists.remote = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "liliel_healing_fairy".to_string(),
-                keal_idx: 1,
-            });
-        });
-        let html = handle_fists_outcome_post("attacker_won=true");
-        assert!(html.contains("Nice Play"));
-        assert!(html.contains("New Round"));
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+
+        let reply = json(&handle_fists_outcome_post("won=yes"));
+        assert!(html(&reply).contains("Nice Play"));
+        assert!(html(&reply).contains("New Round"));
+        // The attacker's own card is untouched.
+        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        assert!(!player_doc::get_slot("brox_the_defiant", 1));
         reset();
     }
 
     #[test]
-    fn fists_reset_clears() {
+    fn fists_outcome_without_a_submission_is_an_error() {
         reset();
-        room::with_room_mut(|r| {
-            r.connected = true;
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Attacking,
-                card: "test".to_string(),
-                keal_idx: 1,
-            });
-        });
-        handle_fists_reset_post("");
+        enter_room();
+        let reply = json(&handle_fists_outcome_post("won=yes"));
+        assert!(html(&reply).contains("No combat data"));
+        assert_eq!(reply["update"], "");
+        reset();
+    }
+
+    #[test]
+    fn fists_reset_starts_a_new_round_for_both() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+
+        let reply = json(&handle_fists_reset_post(""));
+        assert_eq!(reply["phase"], "form");
+        assert_eq!(reply["remote_ready"], false);
+        assert!(!reply["update"].as_str().unwrap().is_empty());
         room::with_room(|r| {
             assert!(r.fists.local.is_none());
             assert!(r.fists.remote.is_none());
         });
+
+        // Nothing to reset: nothing to send.
+        let again = json(&handle_fists_reset_post(""));
+        assert_eq!(again["update"], "");
+        reset();
+    }
+
+    #[test]
+    fn closing_the_dialog_keeps_a_round_in_progress() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+
+        let reply = json(&handle_fists_close_post(""));
+        assert_eq!(reply["update"], "", "closing mid-round changes nothing");
+        assert_eq!(reply["phase"], "waiting");
+        room::with_room(|r| assert!(r.fists.local.is_some()));
+
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        let reply = json(&handle_fists_close_post(""));
+        assert_eq!(reply["update"], "", "closing on the result changes nothing");
+        assert_eq!(reply["phase"], "result");
+        reset();
+    }
+
+    #[test]
+    fn closing_the_dialog_after_an_outcome_starts_the_next_round() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        handle_fists_outcome_post("won=no");
+
+        let reply = json(&handle_fists_close_post(""));
+        assert!(!reply["update"].as_str().unwrap().is_empty());
+        assert_eq!(reply["phase"], "form");
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Lock In Choice"));
+        reset();
+    }
+
+    #[test]
+    fn create_and_join_start_with_no_combat_and_no_known_opponent() {
+        reset();
+        enter_room();
+        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        handle_disconnect_post("");
+
+        handle_join_post("code=WXYZ&name=Other&player=me2");
+        room::with_room(|r| {
+            assert_eq!(r.player_id, "me2");
+            assert!(r.peer_id.is_empty());
+            assert!(r.fists.local.is_none());
+        });
+        let html = handle_fists_get("?card=brox_the_defiant");
+        assert!(html.contains("Lock In Choice"));
+        reset();
+    }
+
+    #[test]
+    fn a_missing_or_malformed_player_id_gets_a_random_one() {
+        reset();
+        handle_create_post("code=ABCD&name=Test");
+        let first = room::with_room(|r| r.player_id.clone());
+        assert!(fists::is_valid_player_id(&first));
+        handle_disconnect_post("");
+        handle_create_post("code=ABCD&name=Test&player=bad%20id");
+        let second = room::with_room(|r| r.player_id.clone());
+        assert!(fists::is_valid_player_id(&second));
+        assert_ne!(first, second);
         reset();
     }
 
@@ -1721,7 +2127,7 @@ mod tests {
     #[test]
     fn fists_form_shows_final_blows_when_all_keal_exhausted() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
+        enter_room();
         // Brox has keal means — mark ALL slots as checked
         let card = find_card("brox_the_defiant").unwrap();
         let total: u8 = card.keal_means.iter().map(|k| k.count).sum();
@@ -1743,7 +2149,7 @@ mod tests {
     #[test]
     fn fists_form_normal_when_keal_not_exhausted() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
+        enter_room();
         let html = handle_fists_get("?card=brox_the_defiant");
         assert!(!html.contains("Final Blows"));
         assert!(html.contains("Your Role"));
@@ -1754,7 +2160,7 @@ mod tests {
     #[test]
     fn fists_no_card_shows_guidance() {
         reset();
-        room::with_room_mut(|r| r.connected = true);
+        enter_room();
         let html = handle_fists_get("");
         assert!(html.contains("Navigate to a Character"));
         reset();

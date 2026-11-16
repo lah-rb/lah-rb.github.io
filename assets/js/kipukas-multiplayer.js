@@ -23,6 +23,23 @@ let roomName = '';
 let isCreator = false;
 let peerPresent = false; // Whether the other peer is in the room
 
+// Who this player and the opponent are in the room. This player's id is
+// chosen when the room is created or joined; it keys their entries in the
+// room document (fists combat). The opponent's id arrives in their hello.
+let playerId = '';
+let peerId = '';
+
+// Both players' pages must speak the same room-document format. Each says
+// hello with its protocol version when the opponent appears; an opponent who
+// never does is running an older copy of the site.
+const PROTOCOL = 2;
+const HELLO_TIMEOUT_MS = 3000;
+let helloTimer = null;
+
+// The fists phase (form | waiting | result | outcome) the dialog last showed,
+// so it is only redrawn when the phase really changes.
+let fistsPhase = null;
+
 // What the user just asked for, if anything: set only by createRoom() and
 // joinRoom(). While it is null, a socket that opens is a *resume*: we send
 // `rejoin` and never re-initialise the engine's room, so shared timers and
@@ -39,7 +56,13 @@ const roomSession = globalThis.kipukasRoomSession;
 /** Save the current room session. */
 function saveSession() {
   if (!roomCode) return;
-  roomSession.save({ code: roomCode, name: roomName, creator: isCreator });
+  roomSession.save({
+    code: roomCode,
+    name: roomName,
+    creator: isCreator,
+    playerId,
+    peerId,
+  });
   setRoomStore({ inRoom: true });
 }
 
@@ -102,6 +125,7 @@ function onLinkState(next, prev) {
 /** The peer is no longer reachable (their socket or ours is gone). */
 function markPeerGone() {
   peerPresent = false;
+  clearTimeout(helloTimer);
   setRoomStore({ peer: false });
   postToWasm('POST', '/api/room/peer_left', '');
   refreshRoomStatus();
@@ -133,7 +157,7 @@ function handleSignalingMessage(msg) {
         postToWasm(
           'POST',
           '/api/room/create',
-          `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+          `code=${roomCode}&name=${encodeURIComponent(roomName)}&player=${playerId}`,
         );
       }
       pendingAction = null;
@@ -153,7 +177,7 @@ function handleSignalingMessage(msg) {
         postToWasm(
           'POST',
           '/api/room/join',
-          `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
+          `code=${roomCode}&name=${encodeURIComponent(roomName)}&player=${playerId}`,
         );
       }
       pendingAction = null;
@@ -217,8 +241,12 @@ function leaveRoom({ refreshStatus = true } = {}) {
   pendingAction = null;
   roomCode = '';
   roomName = '';
+  playerId = '';
+  peerId = '';
+  fistsPhase = null;
+  clearTimeout(helloTimer);
   link.stop();
-  setRoomStore({ inRoom: false, peer: false, link: 'idle' });
+  setRoomStore({ inRoom: false, peer: false, link: 'idle', outdated: false });
   // POST disconnect runs export_to_local() in WASM, copying shared CRDT
   // alarms back to the local player document. After it completes, refresh
   // the alarm display in local mode so exported timers appear.
@@ -239,13 +267,20 @@ function onPeerConnected() {
   setRoomStore({ peer: true });
   refreshRoomStatus();
 
-  // Switch alarm display to multiplayer mode (reads from CRDT Doc,
-  // shows sync buttons). Seeded alarms from local GameState are
-  // already in the Doc via seed_from_local() on room create/join.
+  // Say who we are and which room-document format we speak. An opponent on
+  // an older copy of the site never answers; tell this player after a moment.
+  sendToPeer({ type: 'hello', proto: PROTOCOL, playerId });
+  clearTimeout(helloTimer);
+  helloTimer = setTimeout(() => {
+    console.warn('[multiplayer] No hello from opponent: they need to update');
+    setRoomStore({ outdated: true });
+  }, HELLO_TIMEOUT_MS);
+
   refreshAlarms();
 
-  // Initiate yrs CRDT sync handshake — exchange state vectors so both
-  // peers converge on the same Doc state after (re)connect.
+  // Exchange state vectors so both room documents converge after every
+  // (re)connect. This is what repairs anything missed while either player
+  // was away: timers and fists combat both live in the room document.
   initiateYrsSync();
 }
 
@@ -271,78 +306,26 @@ function sendToPeer(data) {
 /** Handle game messages received via the WebSocket relay from the peer. */
 function handleRelayedMessage(msg) {
   switch (msg.type) {
-    case 'fists_submission': {
-      // Remote peer sent their fists combat choice.
-      const json = JSON.stringify(msg.data);
-      console.log('[multiplayer] Received fists submission:', json);
-
-      // Store in WASM
-      postToWasmWithCallback('POST', '/api/room/fists/sync', json, (html) => {
-        // Check if the response contains a result page (regular or Final Blows)
-        if (html && html.includes('reportOutcome')) {
-          const container = document.getElementById('fists-container');
-          if (container) {
-            container.innerHTML = html;
-            if (typeof htmx !== 'undefined') htmx.process(container);
-            execScripts(container);
-          }
-        } else {
-          // Local hasn't submitted yet — just show a message
-          showFistsMessage('\u2713 Opponent has locked in their choice!', 'text-emerald-600');
-        }
-      });
-      break;
-    }
-
-    case 'fists_reset': {
-      console.log('[multiplayer] Remote peer reset fists');
-      postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
-        const container = document.getElementById('fists-container');
-        if (container) {
-          container.innerHTML = html;
-          if (typeof htmx !== 'undefined') htmx.process(container);
-        }
-        refreshRoomStatus();
-      });
-      break;
-    }
-
-    case 'fists_outcome': {
-      const attackerWon = msg.attacker_won;
-      console.log('[multiplayer] Received fists outcome: attacker_won=' + attackerWon);
-      postToWasmWithCallback(
-        'POST',
-        '/api/room/fists/outcome',
-        'attacker_won=' + (attackerWon ? 'true' : 'false'),
-        (html) => {
-          const container = document.getElementById('fists-container');
-          if (container) {
-            container.innerHTML = html;
-            if (typeof htmx !== 'undefined') htmx.process(container);
-            execScripts(container);
-          }
-          setTimeout(refreshKealTracker, 150);
-        },
-      );
-      break;
-    }
-
-    case 'final_blows_submission': {
-      const json = JSON.stringify(msg.data);
-      console.log('[multiplayer] Received Final Blows submission:', json);
-
-      postToWasmWithCallback('POST', '/api/room/fists/final/sync', json, (html) => {
-        if (html && html.includes('reportOutcome')) {
-          const container = document.getElementById('fists-container');
-          if (container) {
-            container.innerHTML = html;
-            if (typeof htmx !== 'undefined') htmx.process(container);
-            execScripts(container);
-          }
-        } else {
-          showFistsMessage('\u2713 Opponent stated Final Blows!', 'text-emerald-600');
-        }
-      });
+    case 'hello': {
+      // The opponent's id and protocol version.
+      clearTimeout(helloTimer);
+      const compatible = msg.proto === PROTOCOL;
+      setRoomStore({ outdated: !compatible });
+      if (!compatible) {
+        console.warn('[multiplayer] Opponent speaks protocol', msg.proto, 'we speak', PROTOCOL);
+      }
+      if (typeof msg.playerId === 'string' && msg.playerId && msg.playerId !== peerId) {
+        peerId = msg.playerId;
+        saveSession();
+        postToWasmWithCallback(
+          'POST',
+          '/api/room/peer',
+          'id=' + encodeURIComponent(peerId),
+          (r) => {
+            showFistsPhase(parseReply(r));
+          },
+        );
+      }
       break;
     }
 
@@ -379,15 +362,23 @@ function handleRelayedMessage(msg) {
     }
 
     case 'yrs_update': {
-      // Peer sent a yrs binary update — apply it to our local Doc.
+      // Peer sent a room-document update (timers, fists combat, or both).
       console.log('[multiplayer] Received yrs update from peer');
-      postToWasmWithCallback('POST', '/api/room/yrs/apply', 'update=' + msg.update, (html) => {
-        // html is the refreshed alarm list from the yrs Doc
+      postToWasmWithCallback('POST', '/api/room/yrs/apply', 'update=' + msg.update, (response) => {
+        const reply = parseReply(response);
+        if (!reply || reply.error) {
+          console.warn('[multiplayer] Could not apply peer update:', reply && reply.error);
+          return;
+        }
         const alarms = document.getElementById('turn-alarms');
-        if (alarms && html) {
-          alarms.innerHTML = html;
+        if (alarms && reply.alarms != null) {
+          alarms.innerHTML = reply.alarms;
           if (typeof htmx !== 'undefined') htmx.process(alarms);
         }
+        // Applying a finished round records that it was applied: send that back.
+        if (reply.update) sendToPeer({ type: 'yrs_update', update: reply.update });
+        refreshDamage(reply.damage);
+        showFistsPhase(reply);
       });
       break;
     }
@@ -403,6 +394,68 @@ function showFistsMessage(text, colorClass) {
   if (msgEl) {
     msgEl.innerHTML = `<p class="text-sm ${colorClass || 'text-kip-drk-sienna'}">${text}</p>`;
   }
+}
+
+/** Parse a JSON reply from the engine (null if it is not JSON). */
+function parseReply(text) {
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Re-fetch the fists dialog contents for this page's card. */
+function refreshFists() {
+  const fists = document.getElementById('fists-container');
+  if (!fists || typeof htmx === 'undefined') return;
+  const url = fists.getAttribute('hx-get') || '/api/room/fists';
+  htmx.ajax('GET', url, { target: '#fists-container', swap: 'innerHTML' });
+}
+
+/**
+ * Put a fists reply's HTML into the dialog, relay its room-document update
+ * to the opponent, and refresh any damage tracker it changed.
+ */
+function applyFistsReply(response, { render = true } = {}) {
+  const reply = parseReply(response);
+  if (!reply) return null;
+  if (render && reply.html != null) {
+    const container = document.getElementById('fists-container');
+    if (container) {
+      container.innerHTML = reply.html;
+      if (typeof htmx !== 'undefined') htmx.process(container);
+    }
+  }
+  if (reply.update) sendToPeer({ type: 'yrs_update', update: reply.update });
+  refreshDamage(reply.damage);
+  if (reply.phase) fistsPhase = reply.phase;
+  return reply;
+}
+
+/**
+ * The room document changed under us (the opponent did something). Redraw
+ * the fists dialog only if this player's phase changed: redrawing the form
+ * while they are choosing would wipe their selection.
+ */
+function showFistsPhase(reply) {
+  if (!reply || !reply.phase) return;
+  const changed = reply.phase !== fistsPhase;
+  // First news after a page load: the dialog already drew itself from the
+  // restored document, so only redraw if it is past the form.
+  const firstNews = fistsPhase === null;
+  fistsPhase = reply.phase;
+  if (changed && !(firstNews && reply.phase === 'form')) {
+    refreshFists();
+  } else if (reply.phase === 'form' && reply.remote_ready) {
+    showFistsMessage('\u2713 Opponent has locked in their choice!', 'text-emerald-600');
+  }
+}
+
+/** Refresh the damage trackers of the cards the engine just marked. */
+function refreshDamage(cards) {
+  if (!Array.isArray(cards) || cards.length === 0) return;
+  setTimeout(() => cards.forEach((slug) => refreshKealTracker(slug)), 150);
 }
 
 // ── WASM helpers ───────────────────────────────────────────────────
@@ -444,9 +497,10 @@ function wasmRequest(method, path, search, body, callback) {
   );
 }
 
-/** Refresh the keal damage tracker on the card page behind the modal.
- *  After auto-mark damage changes WASM state, the checkboxes on the
- *  card page are stale.
+/** Refresh the keal damage tracker of one card, if it is on this page.
+ *  After the engine marks damage (a lost round), the checkboxes showing
+ *  that card are stale. A page can show several trackers (the hand view),
+ *  so the card is named rather than taking the first tracker found.
  *
  *  Strategy: update the existing Alpine scope's reactive properties
  *  directly via Alpine.$data() instead of replacing innerHTML and
@@ -458,16 +512,15 @@ function wasmRequest(method, path, search, body, callback) {
  *
  *  Falls back to innerHTML replacement only if the Alpine scope is
  *  not yet initialized (e.g., HTMX initial load hasn't completed). */
-function refreshKealTracker() {
+function refreshKealTracker(slug) {
   // The keal damage tracker has id="keal-damage-{slug}"
-  const tracker = document.querySelector('[id^="keal-damage-"]');
+  const tracker = slug ? document.getElementById('keal-damage-' + slug) : null;
   if (!tracker) {
-    console.log('[multiplayer] No keal damage tracker in DOM, skipping refresh');
-    // Still persist even if tracker isn't in the DOM (e.g. on a different page)
+    console.log('[multiplayer] No keal damage tracker on this page for:', slug);
+    // Still persist: the card may be open on another page later.
     persistState();
     return;
   }
-  const slug = tracker.id.replace('keal-damage-', '');
   console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
 
   // Try to find the existing Alpine scope (the x-data div inside the tracker)
@@ -533,15 +586,6 @@ function persistState() {
   });
 }
 
-/** Re-execute inline scripts after innerHTML swap. */
-function execScripts(el) {
-  el.querySelectorAll('script').forEach((old) => {
-    const s = document.createElement('script');
-    s.textContent = old.textContent;
-    old.parentNode.replaceChild(s, old);
-  });
-}
-
 /** Refresh the alarm display in #turn-alarms.
  *  Rust auto-detects multiplayer via is_peer_connected() and reads from
  *  CRDT Doc (multiplayer) or PLAYER_DOC (local) accordingly. */
@@ -563,11 +607,7 @@ function refreshRoomStatus() {
     if (status) {
       htmx.ajax('GET', '/api/room/status', { target: '#room-status', swap: 'innerHTML' });
     }
-    const fists = document.getElementById('fists-container');
-    if (fists) {
-      const url = fists.getAttribute('hx-get') || '/api/room/fists';
-      htmx.ajax('GET', url, { target: '#fists-container', swap: 'innerHTML' });
-    }
+    refreshFists();
   }, 100);
 }
 
@@ -591,6 +631,8 @@ function resume() {
   roomCode = session.code;
   roomName = session.name || '';
   isCreator = session.creator || false;
+  playerId = session.playerId || '';
+  peerId = session.peerId || '';
 
   // The engine was already put back in this room, with the shared document
   // restored, by kipukas-api.js (POST /api/room/resume) before this module
@@ -609,6 +651,8 @@ const kipukasMultiplayer = {
     const nameInput = document.getElementById('room-name-input');
     roomName = nameInput ? nameInput.value.trim() : '';
     isCreator = true;
+    playerId = roomSession.newPlayerId();
+    peerId = '';
 
     pendingAction = { type: 'create', name: roomName };
     if (link.state() === 'open') link.send(pendingAction);
@@ -627,6 +671,8 @@ const kipukasMultiplayer = {
     }
     isCreator = false;
     roomName = name;
+    playerId = roomSession.newPlayerId();
+    peerId = '';
 
     pendingAction = { type: 'join', code, name };
     if (link.state() === 'open') link.send(pendingAction);
@@ -655,99 +701,44 @@ const kipukasMultiplayer = {
     const role = roleEl.value;
     const keal = kealEl.value;
 
-    // POST to WASM to store local submission (include today for loyalty tracking)
+    // The engine writes the choice into the room document and returns the
+    // update to relay (include today for loyalty tracking).
     const today = new Date().toISOString().slice(0, 10);
     const body = `role=${role}&card=${cardSlug}&keal=${keal}&today=${today}`;
-    postToWasmWithCallback('POST', '/api/room/fists', body, (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-        execScripts(container);
-      }
-    });
-  },
-
-  /** Send fists data to peer. Called by inline script from WASM response. */
-  sendFists(submissionData) {
-    sendToPeer({ type: 'fists_submission', data: submissionData });
-    console.log('[multiplayer] Sent fists submission to peer');
+    postToWasmWithCallback('POST', '/api/room/fists', body, applyFistsReply);
   },
 
   /** Submit Final Blows for a card with exhausted keal means. */
   submitFinalBlows(cardSlug) {
     const today = new Date().toISOString().slice(0, 10);
     const body = `card=${cardSlug}&today=${today}`;
-    postToWasmWithCallback('POST', '/api/room/fists/final', body, (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-        execScripts(container);
-      }
-    });
+    postToWasmWithCallback('POST', '/api/room/fists/final', body, applyFistsReply);
   },
 
-  /** Send Final Blows data to peer. Called by inline script from WASM response. */
-  sendFinalBlows(submissionData) {
-    sendToPeer({ type: 'final_blows_submission', data: submissionData });
-    console.log('[multiplayer] Sent Final Blows submission to peer');
-  },
-
-  /** Reset fists on both local and remote sides. */
+  /** Start a new round for both players (New Round, Try Again, Cancel round). */
   resetFists() {
-    postToWasmWithCallback('POST', '/api/room/fists/reset', '', (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-      }
-      refreshRoomStatus();
+    postToWasmWithCallback('POST', '/api/room/fists/reset', '', (response) => {
+      applyFistsReply(response);
+      refreshFists();
     });
+  },
 
-    // Notify remote peer to reset as well
-    sendToPeer({ type: 'fists_reset' });
-    console.log('[multiplayer] Sent fists reset to peer');
+  /**
+   * The fists dialog was closed. This does NOT cancel a round in progress:
+   * the round stays in the room document and reopening the dialog shows
+   * where it stands. Only a finished round gives way to a new one.
+   */
+  closeFists() {
+    postToWasmWithCallback('POST', '/api/room/fists/close', '', (response) => {
+      applyFistsReply(response, { render: false });
+    });
   },
 
   /** Report combat outcome ("Did you win?" answer). */
   reportOutcome(won) {
-    // Determine attacker_won from local role + answer
-    postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, (html) => {
-      const container = document.getElementById('fists-container');
-      if (container) {
-        container.innerHTML = html;
-        if (typeof htmx !== 'undefined') htmx.process(container);
-        execScripts(container);
-      }
-      setTimeout(refreshKealTracker, 150);
-    });
-
-    // Derive attacker_won for the peer
-    postToWasmWithCallback('GET', '/api/room/state', '', (json) => {
-      try {
-        const state = JSON.parse(json);
-        if (!state || !state.fists) return;
-        let localRole;
-        if (state.fists.local) {
-          localRole = state.fists.local.role;
-        } else if (state.fists.local_final_blows) {
-          localRole = 'Defending';
-        } else {
-          return;
-        }
-        let attackerWon;
-        if (localRole === 'Attacking') {
-          attackerWon = won === 'yes';
-        } else {
-          attackerWon = won === 'no';
-        }
-        sendToPeer({ type: 'fists_outcome', attacker_won: attackerWon });
-        console.log('[multiplayer] Sent fists outcome to peer: attacker_won=' + attackerWon);
-      } catch (e) {
-        console.warn('[multiplayer] Could not parse room state for outcome sync:', e);
-      }
-    });
+    // The engine records the answer in the room document (that is how the
+    // opponent learns of it) and marks this player's damage if they lost.
+    postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, applyFistsReply);
   },
 
   // ── Turn timer sync (yrs CRDT) ─────────────────────────────────────

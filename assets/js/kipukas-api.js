@@ -45,8 +45,11 @@ globalThis.kipukasRelayUrl = function () {
 // ============================================
 // Every page load starts a fresh game engine and a fresh socket, so the room
 // has to be put back each time. Two things are kept in browser storage:
-//   kipukas_room        { code, name, creator } — which room this player is in
-//   kipukas_crdt_state  the shared room document (base64), saved after every change
+//   kipukas_room        { code, name, creator, playerId, peerId } — which room
+//                       this player is in, who they are in it, and who the
+//                       opponent is (once known)
+//   kipukas_crdt_state  the shared room document (base64): timers and fists
+//                       combat, saved after every change
 // This file reads them on load (see "RESUME ROOM" below); kipukas-multiplayer.js
 // writes the session when a room is created, joined or left.
 const ROOM_KEY = 'kipukas_room';
@@ -87,6 +90,12 @@ globalThis.kipukasRoomSession = {
       sessionStorage.setItem(ROOM_DOC_KEY, state);
     } catch (_) { /* quota or storage unavailable */ }
   },
+  /** A fresh random id for this player in a room (24 hex characters). */
+  newPlayerId() {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  },
 };
 
 // Room state for the UI, as an Alpine store. Toolbar tools read it when they
@@ -101,6 +110,7 @@ document.addEventListener('alpine:init', () => {
     inRoom, // this player is in a room (created or joined), peer present or not
     link: inRoom ? 'connecting' : 'idle', // idle | connecting | open | waiting | expired
     peer: false, // the other player is present
+    outdated: false, // the other player is on an older copy of the site
   });
 });
 
@@ -317,9 +327,17 @@ function persistRoomDoc() {
   const session = globalThis.kipukasRoomSession.load();
   if (!session) return;
 
+  // A session saved before player ids existed gets one now.
+  if (!session.playerId) {
+    session.playerId = globalThis.kipukasRoomSession.newPlayerId();
+    globalThis.kipukasRoomSession.save(session);
+  }
+
   console.log('[kipukas-api] Resuming room', session.code);
   const body = 'code=' + encodeURIComponent(session.code) +
     '&name=' + encodeURIComponent(session.name || '') +
+    '&player=' + encodeURIComponent(session.playerId) +
+    '&peer=' + encodeURIComponent(session.peerId || '') +
     '&state=' + globalThis.kipukasRoomSession.loadDoc();
   const ch = new MessageChannel();
   ch.port1.onmessage = (msg) => {

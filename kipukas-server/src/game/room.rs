@@ -1,7 +1,11 @@
-//! Room (global) state — shared state for multiplayer sessions.
+//! Room state — what this player's engine knows about the multiplayer room it
+//! is in: the room code and name, who this player and the opponent are, and
+//! whether the opponent is currently reachable.
 //!
-//! Separate from the local `GameState` which tracks per-user damage/turns.
-//! Room state is synchronized across connected peers via WebRTC data channel.
+//! Shared game state (timers, fists combat) does not live here. It lives in
+//! the room document (`game::crdt`, `game::fists`), which is what is synced
+//! between the two players and persisted across page loads. `RoomState.fists`
+//! is only a cache of the current round for the result renderers.
 //!
 //! Uses its own `thread_local!` so it doesn't pollute localStorage persistence
 //! of local game state.
@@ -34,12 +38,14 @@ pub struct FinalBlowsSubmission {
     pub card: String,
 }
 
-/// The fists combat state shared between both players.
+/// One round of fists combat as this player sees it: their own submission
+/// ("local") and the opponent's ("remote"). Derived from the room document
+/// by `game::fists::view`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FistsCombat {
-    /// Local player's submission (set via POST /api/room/fists)
+    /// This player's submission
     pub local: Option<FistsSubmission>,
-    /// Remote player's submission (set via POST /api/room/fists/sync)
+    /// The opponent's submission
     pub remote: Option<FistsSubmission>,
     /// Local player's Final Blows submission (when keal means exhausted)
     pub local_final_blows: Option<FinalBlowsSubmission>,
@@ -127,9 +133,18 @@ pub struct RoomState {
     pub room_code: String,
     /// Human-readable room name chosen by the creator
     pub room_name: String,
-    /// Whether a peer is currently connected via WebRTC
+    /// Whether a peer is currently connected through the relay
     pub connected: bool,
-    /// Active fists combat session (if any)
+    /// This player's id in the room (chosen by the page when the room is
+    /// created or joined). Keys this player's entries in the room document.
+    #[serde(default)]
+    pub player_id: String,
+    /// The opponent's id, once their hello has arrived. Empty until then.
+    #[serde(default)]
+    pub peer_id: String,
+    /// The current round's submissions as this player sees them. A cache of
+    /// the room document (see `game::fists`), refreshed whenever it changes;
+    /// the result renderers read it.
     pub fists: FistsCombat,
 }
 
@@ -180,20 +195,9 @@ pub fn reset_room() {
     replace_room(RoomState::default());
 }
 
-/// Export room state as JSON (for WebRTC sync).
+/// Export room state as JSON (GET /api/room/state, for debugging).
 pub fn export_room_json() -> String {
     with_room(|room| serde_json::to_string(room).unwrap_or_else(|_| "{}".to_string()))
-}
-
-/// Export just the fists combat state as JSON (for WebRTC data channel).
-pub fn export_fists_json() -> String {
-    with_room(|room| {
-        if let Some(ref local) = room.fists.local {
-            serde_json::to_string(local).unwrap_or_else(|_| "{}".to_string())
-        } else {
-            "null".to_string()
-        }
-    })
 }
 
 #[cfg(test)]
@@ -309,30 +313,6 @@ mod tests {
         assert!(restored.connected);
         assert!(restored.fists.local.is_some());
 
-        reset();
-    }
-
-    #[test]
-    fn export_fists_json_when_none() {
-        reset();
-        let json = export_fists_json();
-        assert_eq!(json, "null");
-        reset();
-    }
-
-    #[test]
-    fn export_fists_json_when_submitted() {
-        reset();
-        with_room_mut(|r| {
-            r.fists.local = Some(FistsSubmission {
-                role: CombatRole::Defending,
-                card: "test_card".to_string(),
-                keal_idx: 2,
-            });
-        });
-        let json = export_fists_json();
-        assert!(json.contains("test_card"));
-        assert!(json.contains("Defending"));
         reset();
     }
 }

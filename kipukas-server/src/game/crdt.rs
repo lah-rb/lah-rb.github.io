@@ -48,6 +48,7 @@ use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{Any, Doc, Map, MapRef, ReadTxn, StateVector, Transact, TransactionMut, Update, WriteTxn};
 
+use crate::game::fists::FISTS;
 use crate::game::player_doc;
 use crate::game::state::{is_valid_alarm_id, new_alarm_id, Alarm};
 
@@ -78,10 +79,11 @@ thread_local! {
 pub fn init_doc() {
     CRDT_DOC.with(|cell| {
         let doc = Doc::new();
-        // Pre-create the "timers" root map so both peers share the same root type.
+        // Pre-create the root maps so both peers share the same root types.
         {
             let mut txn = doc.transact_mut();
             txn.get_or_insert_map(TIMERS);
+            txn.get_or_insert_map(FISTS);
         }
         *cell.borrow_mut() = doc;
     });
@@ -90,6 +92,23 @@ pub fn init_doc() {
 /// Reset the Doc (on disconnect). Replaces with a fresh empty Doc.
 pub fn reset_doc() {
     init_doc();
+}
+
+/// Run `f` with the room doc. Other shared state (fists combat) lives in the
+/// same doc and reads or writes it through this.
+pub fn with_doc<R>(f: impl FnOnce(&Doc) -> R) -> R {
+    CRDT_DOC.with(|cell| f(&cell.borrow()))
+}
+
+/// Run `f`, which may change the room doc, and return everything it changed
+/// as one base64 update for the peer. `f` returns whether it changed
+/// anything; if not, the result is an empty string and nothing needs sending.
+pub fn capture_update(f: impl FnOnce() -> bool) -> String {
+    let before = with_doc(|doc| doc.transact().state_vector());
+    if !f() {
+        return String::new();
+    }
+    with_doc(|doc| encode_diff_since(doc, &before))
 }
 
 // ── Doc persistence (survives page navigation via sessionStorage) ──
