@@ -165,6 +165,16 @@ pub fn is_peer_connected() -> bool {
     with_room(|r| r.connected)
 }
 
+/// Check whether this player is in a room, with or without the peer present.
+///
+/// Shared state (the room document) is used whenever this is true. The peer
+/// being away — mid page-load, phone asleep, brief network loss — must not
+/// drop the player back to solo mode: edits made meanwhile go to the shared
+/// document and reach the peer on the next sync handshake.
+pub fn in_room() -> bool {
+    with_room(|r| !r.room_code.is_empty())
+}
+
 /// Reset room state to disconnected defaults.
 pub fn reset_room() {
     replace_room(RoomState::default());

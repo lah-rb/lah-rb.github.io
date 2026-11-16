@@ -43,11 +43,11 @@ fn color_dot(color_set: &str) -> &str {
 /// This is the content inside the turn tracker popover — includes
 /// the number input, name field, color picker, and "New Timer" button.
 ///
-/// Automatically detects multiplayer mode via `room::is_peer_connected()`.
-/// When multiplayer, the submit button routes through the multiplayer
-/// sync path; otherwise it uses the local HTMX path.
+/// Automatically detects multiplayer mode via `room::in_room()`.
+/// When in a room (peer present or not), the submit button routes through
+/// the multiplayer sync path; otherwise it uses the local HTMX path.
 pub fn render_turn_panel() -> String {
-    let multiplayer = room::is_peer_connected();
+    let multiplayer = room::in_room();
     let mut html = String::with_capacity(2048);
 
     html.push_str(r#"<div class="p-3 text-kip-drk-sienna">"#);
@@ -113,11 +113,12 @@ pub fn render_turn_panel() -> String {
 /// Render the alarm list HTML.
 /// This is the floating alarm display in the top-left corner.
 ///
-/// Automatically detects multiplayer mode via `room::is_peer_connected()`.
-/// When multiplayer, reads alarms from the yrs CRDT Doc (synced between peers)
-/// and renders multiplayer sync buttons. Otherwise reads from PLAYER_DOC.
+/// Automatically detects multiplayer mode via `room::in_room()`.
+/// When in a room (peer present or not), reads alarms from the yrs CRDT Doc
+/// (synced between peers) and renders multiplayer sync buttons. Otherwise
+/// reads from PLAYER_DOC.
 pub fn render_alarm_list() -> String {
-    let multiplayer = room::is_peer_connected();
+    let multiplayer = room::in_room();
     // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
     // When local, read from PLAYER_DOC (persisted to localStorage).
     let (alarms, show_alarms) = if multiplayer {
@@ -344,8 +345,11 @@ mod tests {
     #[test]
     fn render_alarm_list_multiplayer_uses_sync_buttons() {
         reset_state();
-        // Set room as connected so render_alarm_list detects multiplayer
-        room::with_room_mut(|r| r.connected = true);
+        // Being in a room is what makes render_alarm_list use the shared doc
+        room::with_room_mut(|r| {
+            r.room_code = "ABCD".to_string();
+            r.connected = true;
+        });
         crdt::init_doc();
         crdt::add_alarm(3, "", "blue");
         let html = render_alarm_list();
@@ -353,6 +357,38 @@ mod tests {
         assert!(html.contains("kipukasMultiplayer.removeTurn(0)"));
         assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
         crdt::reset_doc();
+        reset_state();
+    }
+
+    #[test]
+    fn render_alarm_list_stays_shared_while_peer_is_away() {
+        reset_state();
+        // In a room, peer not connected (mid page-load, asleep, brief drop).
+        room::with_room_mut(|r| r.room_code = "ABCD".to_string());
+        player_doc::add_alarm(9, "solo copy", "red");
+        crdt::init_doc();
+        crdt::add_alarm(3, "shared", "blue");
+
+        let html = render_alarm_list();
+        assert!(html.contains("shared"));
+        assert!(!html.contains("solo copy"));
+        assert!(html.contains("kipukasMultiplayer.tickTurns()"));
+        assert!(!html.contains("action: 'tick'"));
+
+        let panel = render_turn_panel();
+        assert!(panel.contains("kipukasMultiplayer.addTurn"));
+        crdt::reset_doc();
+        reset_state();
+    }
+
+    #[test]
+    fn render_alarm_list_is_local_outside_a_room() {
+        reset_state();
+        player_doc::add_alarm(9, "solo", "red");
+        let html = render_alarm_list();
+        assert!(html.contains("solo"));
+        assert!(html.contains("action: 'tick'"));
+        assert!(!html.contains("kipukasMultiplayer.tickTurns()"));
         reset_state();
     }
 
@@ -377,8 +413,11 @@ mod tests {
     #[test]
     fn render_turn_panel_multiplayer_uses_sync() {
         reset_state();
-        // Set room as connected so render_turn_panel detects multiplayer
-        room::with_room_mut(|r| r.connected = true);
+        // Being in a room is what makes render_turn_panel use the sync path
+        room::with_room_mut(|r| {
+            r.room_code = "ABCD".to_string();
+            r.connected = true;
+        });
         let html = render_turn_panel();
         assert!(html.contains("kipukasMultiplayer.addTurn"));
         assert!(!html.contains("htmx.ajax")); // multiplayer routes through JS

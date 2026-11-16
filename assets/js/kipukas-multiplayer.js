@@ -18,9 +18,6 @@
 
 import { createLink } from './kipukas-link.js';
 
-const SESSION_KEY = 'kipukas_room';
-const CRDT_STATE_KEY = 'kipukas_crdt_state';
-
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
@@ -32,59 +29,31 @@ let peerPresent = false; // Whether the other peer is in the room
 // combat are left exactly as they were.
 let pendingAction = null;
 
-// ── Session persistence ────────────────────────────────────────────
+// ── Session + UI state ─────────────────────────────────────────────
 
-/** Save current room session to sessionStorage. */
+// Storage is owned by kipukas-api.js (globalThis.kipukasRoomSession), which
+// also restores the room in the engine on page load and saves the shared
+// document after every change.
+const roomSession = globalThis.kipukasRoomSession;
+
+/** Save the current room session. */
 function saveSession() {
   if (!roomCode) return;
-  const data = { code: roomCode, name: roomName, creator: isCreator };
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-  } catch (_) { /* ignore */ }
+  roomSession.save({ code: roomCode, name: roomName, creator: isCreator });
+  setRoomStore({ inRoom: true });
 }
 
-/** Load room session from sessionStorage (returns null if none). */
+/** Load the saved room session (null if none). */
 function loadSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (_) {
-    return null;
-  }
+  return roomSession.load();
 }
 
-/** Clear saved room session. */
-function clearSession() {
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(CRDT_STATE_KEY);
-  } catch (_) { /* ignore */ }
-}
-
-// ── CRDT Doc persistence (survives page navigation) ────────────────
-
-/** Persist the yrs CRDT Doc state to sessionStorage.
- *  Called after every mutation so the Doc survives page navigation. */
-function persistCrdtState() {
-  wasmRequest('GET', '/api/room/yrs/state', '', '', (state) => {
-    if (state) {
-      try {
-        sessionStorage.setItem(CRDT_STATE_KEY, state);
-      } catch (_) { /* ignore quota errors */ }
-    }
-  });
-}
-
-/** Restore the yrs CRDT Doc from sessionStorage (before sync handshake). */
-function restoreCrdtState() {
-  try {
-    const state = sessionStorage.getItem(CRDT_STATE_KEY);
-    if (!state) return;
-    postToWasmWithCallback('POST', '/api/room/yrs/restore', 'state=' + state, () => {
-      console.log('[multiplayer] Restored CRDT Doc from sessionStorage');
-    });
-  } catch (_) { /* ignore */ }
+/** Update the Alpine store the toolbar tools and status pill read. */
+function setRoomStore(patch) {
+  const alpine = globalThis.Alpine;
+  if (!alpine || typeof alpine.store !== 'function') return;
+  const store = alpine.store('room');
+  if (store) Object.assign(store, patch);
 }
 
 // ── Relay connection ───────────────────────────────────────────────
@@ -116,7 +85,7 @@ function onLinkOpen() {
 /** The link changed state (idle / connecting / open / waiting). */
 function onLinkState(next, prev) {
   console.log('[multiplayer] Link:', prev, '→', next);
-  globalThis.dispatchEvent(new CustomEvent('room-link', { detail: { state: next } }));
+  setRoomStore({ link: next });
 
   // Socket lost while in a room: the peer cannot reach us until we are back.
   if (prev === 'open' && next !== 'open' && peerPresent) {
@@ -133,8 +102,8 @@ function onLinkState(next, prev) {
 /** The peer is no longer reachable (their socket or ours is gone). */
 function markPeerGone() {
   peerPresent = false;
+  setRoomStore({ peer: false });
   postToWasm('POST', '/api/room/peer_left', '');
-  globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
   refreshRoomStatus();
 }
 
@@ -206,10 +175,7 @@ function handleSignalingMessage(msg) {
 
     case 'peer_left':
       console.log('[multiplayer] Peer disconnected');
-      peerPresent = false;
-      postToWasm('POST', '/api/room/peer_left', '');
-      globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
-      refreshRoomStatus();
+      markPeerGone();
       break;
 
     case 'error': {
@@ -230,7 +196,7 @@ function handleSignalingMessage(msg) {
         // copied back to this player's own timers by /api/room/disconnect.
         // Skip the status refresh so the explanation below stays on screen.
         leaveRoom({ refreshStatus: false });
-        globalThis.dispatchEvent(new CustomEvent('room-link', { detail: { state: 'expired' } }));
+        setRoomStore({ link: 'expired' });
         showError('This room has expired. Create a new room to keep playing.');
         break;
       }
@@ -246,19 +212,19 @@ function handleSignalingMessage(msg) {
 
 /** Leave the room locally: forget the session and return the engine to solo mode. */
 function leaveRoom({ refreshStatus = true } = {}) {
-  clearSession();
+  roomSession.clear();
   peerPresent = false;
   pendingAction = null;
   roomCode = '';
   roomName = '';
   link.stop();
+  setRoomStore({ inRoom: false, peer: false, link: 'idle' });
   // POST disconnect runs export_to_local() in WASM, copying shared CRDT
   // alarms back to the local player document. After it completes, refresh
   // the alarm display in local mode so exported timers appear.
   postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
     refreshAlarms();
   });
-  globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
   if (refreshStatus) refreshRoomStatus();
 }
 
@@ -270,8 +236,7 @@ function onPeerConnected() {
     '/api/room/connected',
     `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
   );
-  // Notify UI that room is connected
-  globalThis.dispatchEvent(new CustomEvent('room-connected'));
+  setRoomStore({ peer: true });
   refreshRoomStatus();
 
   // Switch alarm display to multiplayer mode (reads from CRDT Doc,
@@ -423,7 +388,6 @@ function handleRelayedMessage(msg) {
           alarms.innerHTML = html;
           if (typeof htmx !== 'undefined') htmx.process(alarms);
         }
-        persistCrdtState();
       });
       break;
     }
@@ -618,32 +582,19 @@ function showError(message) {
 
 // ── Resume on page load ────────────────────────────────────────────
 
-/** Rejoin the room from a saved session (after page navigation). */
+/** Rejoin the relay room from a saved session (after page navigation). */
 function resume() {
   const session = loadSession();
-  if (!session || !session.code) return;
+  if (!session) return;
 
   console.log('[multiplayer] Found saved session, rejoining room:', session.code);
   roomCode = session.code;
   roomName = session.name || '';
   isCreator = session.creator || false;
 
-  // Tell WASM we're in a room (waiting for peer) — this calls init_doc().
-  // Pass skip_seed=true so seed_from_local() is NOT called: the correct
-  // CRDT state is restored from sessionStorage right after. Without this,
-  // stale PLAYER_DOC alarms get seeded into a fresh Doc and survive the
-  // restore (different yrs client IDs), causing timers to reappear or
-  // duplicate after page navigation.
-  postToWasm(
-    'POST',
-    '/api/room/create',
-    `code=${roomCode}&name=${encodeURIComponent(roomName)}&skip_seed=true`,
-  );
-  restoreCrdtState();
-
-  // The worker handles requests strictly in the order they were posted, so
-  // the two above run before anything the socket delivers later. There is no
-  // need to wait for them: open the socket while the engine is still starting.
+  // The engine was already put back in this room, with the shared document
+  // restored, by kipukas-api.js (POST /api/room/resume) before this module
+  // loaded. All that is left is the socket.
   link.start();
 }
 
@@ -826,7 +777,6 @@ const kipukasMultiplayer = {
           if (result.update) {
             sendToPeer({ type: 'yrs_update', update: result.update });
           }
-          persistCrdtState();
         } catch (e) {
           console.warn('[multiplayer] addTurn parse error:', e);
         }
@@ -849,7 +799,6 @@ const kipukasMultiplayer = {
         if (result.update) {
           sendToPeer({ type: 'yrs_update', update: result.update });
         }
-        persistCrdtState();
       } catch (e) {
         console.warn('[multiplayer] tickTurns parse error:', e);
       }
@@ -875,7 +824,6 @@ const kipukasMultiplayer = {
           if (result.update) {
             sendToPeer({ type: 'yrs_update', update: result.update });
           }
-          persistCrdtState();
         } catch (e) {
           console.warn('[multiplayer] removeTurn parse error:', e);
         }

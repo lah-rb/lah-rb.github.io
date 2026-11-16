@@ -44,6 +44,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/status", "room_status").ok();
     router.insert("/api/room/create", "room_create").ok();
     router.insert("/api/room/join", "room_join").ok();
+    router.insert("/api/room/resume", "room_resume").ok();
     router.insert("/api/room/connected", "room_connected").ok();
     router.insert("/api/room/disconnect", "room_disconnect").ok();
     router.insert("/api/room/peer_left", "room_peer_left").ok();
@@ -104,6 +105,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_state", "GET") => routes::room::handle_room_state_get(query),
             ("room_create", "POST") => routes::room::handle_create_post(body),
             ("room_join", "POST") => routes::room::handle_join_post(body),
+            ("room_resume", "POST") => routes::room::handle_resume_post(body),
             ("room_connected", "POST") => routes::room::handle_connected_post(body),
             ("room_disconnect", "POST") => routes::room::handle_disconnect_post(body),
             ("room_peer_left", "POST") => routes::room::handle_peer_left_post(body),

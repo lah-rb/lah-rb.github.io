@@ -40,6 +40,70 @@ globalThis.kipukasRelayUrl = function () {
   return KIPUKAS_RELAY_URL;
 };
 
+// ============================================
+// ROOM SESSION — how a multiplayer room is remembered between page loads
+// ============================================
+// Every page load starts a fresh game engine and a fresh socket, so the room
+// has to be put back each time. Two things are kept in browser storage:
+//   kipukas_room        { code, name, creator } — which room this player is in
+//   kipukas_crdt_state  the shared room document (base64), saved after every change
+// This file reads them on load (see "RESUME ROOM" below); kipukas-multiplayer.js
+// writes the session when a room is created, joined or left.
+const ROOM_KEY = 'kipukas_room';
+const ROOM_DOC_KEY = 'kipukas_crdt_state';
+
+globalThis.kipukasRoomSession = {
+  /** The saved room, or null when this player is not in one. */
+  load() {
+    try {
+      const raw = sessionStorage.getItem(ROOM_KEY);
+      const session = raw ? JSON.parse(raw) : null;
+      return session && session.code ? session : null;
+    } catch (_) {
+      return null;
+    }
+  },
+  save(session) {
+    try {
+      sessionStorage.setItem(ROOM_KEY, JSON.stringify(session));
+    } catch (_) { /* storage unavailable */ }
+  },
+  /** Forget the room and its shared document. */
+  clear() {
+    try {
+      sessionStorage.removeItem(ROOM_KEY);
+      sessionStorage.removeItem(ROOM_DOC_KEY);
+    } catch (_) { /* storage unavailable */ }
+  },
+  loadDoc() {
+    try {
+      return sessionStorage.getItem(ROOM_DOC_KEY) || '';
+    } catch (_) {
+      return '';
+    }
+  },
+  saveDoc(state) {
+    try {
+      sessionStorage.setItem(ROOM_DOC_KEY, state);
+    } catch (_) { /* quota or storage unavailable */ }
+  },
+};
+
+// Room state for the UI, as an Alpine store. Toolbar tools read it when they
+// initialise, so they are right from the first render instead of waiting for
+// an event. kipukas-multiplayer.js keeps it current.
+//
+// This listener must be registered before Alpine starts, which is why this
+// script is loaded ahead of the Alpine bundle.
+document.addEventListener('alpine:init', () => {
+  const inRoom = !!globalThis.kipukasRoomSession.load();
+  globalThis.Alpine.store('room', {
+    inRoom, // this player is in a room (created or joined), peer present or not
+    link: inRoom ? 'connecting' : 'idle', // idle | connecting | open | waiting | expired
+    peer: false, // the other player is present
+  });
+});
+
 // Spawn the WASM Web Worker (module worker for ES import support)
 const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' });
 
@@ -192,8 +256,28 @@ wasmWorker.addEventListener('message', (event) => {
       { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
       [ch.port2],
     );
+    persistRoomDoc();
   }
 });
+
+/** Save the shared room document, if this player is in a room. */
+function persistRoomDoc() {
+  const session = globalThis.kipukasRoomSession.load();
+  if (!session) return;
+  const ch = new MessageChannel();
+  ch.port1.onmessage = (msg) => {
+    const state = msg.data.html;
+    // The room may have been left (or swapped) while this request was in
+    // flight; a stale document must not be saved against another room.
+    const current = globalThis.kipukasRoomSession.load();
+    if (!state || !current || current.code !== session.code) return;
+    globalThis.kipukasRoomSession.saveDoc(state);
+  };
+  wasmWorker.postMessage(
+    { method: 'GET', pathname: '/api/room/yrs/state', search: '', body: '' },
+    [ch.port2],
+  );
+}
 
 // ============================================
 // RESTORE PLAYER_DOC from localStorage on load
@@ -221,6 +305,35 @@ wasmWorker.addEventListener('message', (event) => {
 })();
 
 // ============================================
+// RESUME ROOM — put the engine back in the room before the first render
+// ============================================
+// Posted straight after the player doc restore and before HTMX issues any
+// `hx-trigger="load"` request (the worker handles requests in the order they
+// are posted). The engine is therefore in room mode, with the shared document
+// restored, by the time anything renders: timers and tools show shared state
+// from the start, and edits made while the peer is still reconnecting go to
+// the shared document rather than to a solo copy.
+(function resumeRoom() {
+  const session = globalThis.kipukasRoomSession.load();
+  if (!session) return;
+
+  console.log('[kipukas-api] Resuming room', session.code);
+  const body = 'code=' + encodeURIComponent(session.code) +
+    '&name=' + encodeURIComponent(session.name || '') +
+    '&state=' + globalThis.kipukasRoomSession.loadDoc();
+  const ch = new MessageChannel();
+  ch.port1.onmessage = (msg) => {
+    if (msg.data.html !== 'ok') {
+      console.warn('[kipukas-api] Room resume issue:', msg.data.html);
+    }
+  };
+  wasmWorker.postMessage(
+    { method: 'POST', pathname: '/api/room/resume', search: '', body },
+    [ch.port2],
+  );
+})();
+
+// ============================================
 // AUTO-LOAD multiplayer module if room session exists
 // ============================================
 // kipukas-multiplayer.js is normally lazy-loaded when the user clicks
@@ -228,7 +341,7 @@ wasmWorker.addEventListener('message', (event) => {
 // previous page, we need to eagerly load it so autoReconnect() fires
 // and the WebSocket relay reconnects automatically on page navigation.
 (function autoLoadMultiplayer() {
-  if (!sessionStorage.getItem('kipukas_room')) return;
+  if (!globalThis.kipukasRoomSession.load()) return;
   if (globalThis.kipukasMultiplayerLoaded) return;
 
   console.log('[kipukas-api] Saved room session found, auto-loading multiplayer module');

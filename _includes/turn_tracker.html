@@ -1,12 +1,10 @@
 <!-- Phase 3b: Turn tracker with HTMX + WASM state management.
      The popover toggle (showTurnTracker) stays Alpine — purely visual.
      Timer creation form is loaded from WASM. Alarm state lives in WASM memory.
-     Hides when multiplayer room is connected (multiplayer_turn_tool.html takes over). -->
-<div x-data="{ showTurnTracker: false, roomConnected: false }"
-     @room-connected.window="roomConnected = true"
-     @room-disconnected.window="roomConnected = false">
+     Hides while in a multiplayer room (multiplayer_turn_tool.html takes over). -->
+<div x-data="{ showTurnTracker: false }">
     <button @click="showTurnTracker = !showTurnTracker"
-        x-show="!roomConnected" x-cloak
+        x-show="!$store.room.inRoom" x-cloak
         x-ref="turnTracker" aria-label="Turn Timer" class="toolbar-tile">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red">
@@ -14,11 +12,11 @@
         </svg>
     </button>
 
-    <div x-show="showTurnTracker && !roomConnected" x-cloak
+    <div x-show="showTurnTracker && !$store.room.inRoom" x-cloak
     role="dialog" aria-label="Turn timer" @keydown.escape.window="showTurnTracker = false"
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
-    x-effect="if (showTurnTracker && !roomConnected) $nextTick(() => {
+    x-effect="if (showTurnTracker && !$store.room.inRoom) $nextTick(() => {
       if (typeof htmx !== 'undefined') {
         htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
       }

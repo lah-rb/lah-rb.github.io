@@ -1,12 +1,11 @@
-<!-- Multiplayer Turn Timer Tool — appears when connected to a room (WASM: /api/game/turns) -->
-<div x-data="{ showTurnMenu: false, roomConnected: false }"
+<!-- Multiplayer Turn Timer Tool — appears while in a room (WASM: /api/game/turns).
+     Reads $store.room (registered by kipukas-api.js). -->
+<div x-data="{ showTurnMenu: false }"
      class="relative place-content-center"
-     @room-connected.window="roomConnected = true"
-     @room-disconnected.window="roomConnected = false"
      x-init="
-       $watch('roomConnected', value => { if (!value) showTurnMenu = false });
+       $watch('$store.room.inRoom', value => { if (!value) showTurnMenu = false });
      ">
-    <button @click="showTurnMenu = !showTurnMenu" aria-label="Toggle Shared Turn Timer" x-show="roomConnected" x-cloak class="toolbar-tile">
+    <button @click="showTurnMenu = !showTurnMenu" aria-label="Toggle Shared Turn Timer" x-show="$store.room.inRoom" x-cloak class="toolbar-tile">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />

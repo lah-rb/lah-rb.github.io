@@ -28,10 +28,13 @@
     <meta name="theme-color" content="#9b2c2c">
 
     <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
-    <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
-    <!-- WASM API bridge: relays SW messages to WASM Web Worker -->
+    <!-- WASM API bridge: relays SW messages to WASM Web Worker.
+         Must load BEFORE the Alpine bundle: it registers Alpine.store('room') on
+         `alpine:init`, and Alpine starts in a microtask right after its bundle. -->
     <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
     <script defer src="/assets/js/htmx.min.js"></script>
 
@@ -89,6 +92,7 @@
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
     <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
     {% include spinner.html %}
+    {% include room_status.html %}
     <main id="main-content">{{ content }}</main>
   </body>
 </html>

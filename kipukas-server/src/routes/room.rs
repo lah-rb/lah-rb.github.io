@@ -151,6 +151,40 @@ pub fn handle_join_post(body: &str) -> String {
     room::with_room(|r| render_waiting_status(r))
 }
 
+// ── POST /api/room/resume ─────────────────────────────────────────
+
+/// Put this player back in a room after a page load.
+///
+/// Body: `code=<code>&name=<name>&state=<url-safe base64 room document>`
+///
+/// Unlike create/join this is not the start of a session: it never seeds the
+/// room document from local timers and never resets combat. It restores the
+/// room document exactly as it was persisted, so the first render on the new
+/// page already shows shared state. The peer is marked absent until the relay
+/// reports `peer_joined`.
+pub fn handle_resume_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    let code = get_param(&params, "code").unwrap_or("");
+    let name = get_param(&params, "name").unwrap_or("");
+    let state = get_param(&params, "state").unwrap_or("");
+
+    if code.is_empty() {
+        return r#"{"error":"missing room code"}"#.to_string();
+    }
+
+    room::with_room_mut(|r| {
+        r.room_code = code.to_uppercase();
+        r.room_name = name.to_string();
+        r.connected = false;
+    });
+
+    crdt::init_doc();
+    match crdt::restore_from_state(state) {
+        Ok(()) => "ok".to_string(),
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    }
+}
+
 // ── POST /api/room/connected ──────────────────────────────────────
 
 pub fn handle_connected_post(body: &str) -> String {
@@ -794,7 +828,13 @@ pub fn handle_yrs_apply_post(body: &str) -> String {
     let params = parse_form_body(body);
     let update = get_param(&params, "update").unwrap_or(body.trim());
     match crdt::apply_update(update) {
-        Ok(()) => turns::render_alarm_list(),
+        Ok(()) => {
+            // Keep PLAYER_DOC in sync with what the peer changed, the same as
+            // the local mutation routes below do. If the session ends without
+            // a clean disconnect, this player's own timers are still current.
+            crdt::export_to_local();
+            turns::render_alarm_list()
+        }
         Err(e) => format!(
             r#"<span class="text-kip-red text-sm">CRDT apply error: {}</span>"#,
             e
@@ -1327,6 +1367,86 @@ mod tests {
     fn reset() {
         room::reset_room();
         crate::game::player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn resume_restores_the_room_document_without_seeding() {
+        reset();
+        // A solo timer that must NOT be copied into the room on resume.
+        crate::game::player_doc::add_alarm(9, "solo", "red");
+
+        // The room document as it was persisted on the previous page.
+        crdt::init_doc();
+        crdt::add_alarm(4, "shared", "blue");
+        let state = crdt::encode_full_state();
+        crdt::reset_doc();
+
+        let out = handle_resume_post(&format!("code=abcd&name=My%20Room&state={}", state));
+        assert_eq!(out, "ok");
+
+        assert!(room::in_room());
+        assert!(!room::is_peer_connected());
+        room::with_room(|r| {
+            assert_eq!(r.room_code, "ABCD");
+            assert_eq!(r.room_name, "My Room");
+        });
+
+        let shared = crdt::get_alarms();
+        assert_eq!(shared.len(), 1);
+        assert_eq!(shared[0].name, "shared");
+        assert_eq!(shared[0].remaining, 4);
+
+        // The solo timer was neither seeded into the room nor consumed.
+        let local = crate::game::player_doc::get_alarms();
+        assert_eq!(local.len(), 1);
+        assert_eq!(local[0].name, "solo");
+
+        crdt::reset_doc();
+        reset();
+    }
+
+    #[test]
+    fn resume_does_not_reset_combat() {
+        reset();
+        room::with_room_mut(|r| {
+            r.fists.local = Some(FistsSubmission {
+                role: CombatRole::Attacking,
+                card: "brox_the_defiant".to_string(),
+                keal_idx: 1,
+            });
+        });
+        handle_resume_post("code=ABCD&name=table&state=");
+        room::with_room(|r| assert!(r.fists.local.is_some()));
+        crdt::reset_doc();
+        reset();
+    }
+
+    #[test]
+    fn resume_without_a_code_is_refused() {
+        reset();
+        let out = handle_resume_post("name=table");
+        assert!(out.contains("error"));
+        assert!(!room::in_room());
+        reset();
+    }
+
+    #[test]
+    fn applying_a_peer_update_mirrors_timers_to_the_player_doc() {
+        reset();
+        // Build an update as the peer would produce it.
+        crdt::init_doc();
+        let update = crdt::add_alarm(6, "from peer", "green");
+        crdt::reset_doc(); // our own doc starts empty
+
+        assert!(crate::game::player_doc::get_alarms().is_empty());
+        handle_yrs_apply_post(&format!("update={}", update));
+
+        let local = crate::game::player_doc::get_alarms();
+        assert_eq!(local.len(), 1);
+        assert_eq!(local[0].name, "from peer");
+        assert_eq!(local[0].remaining, 6);
+        crdt::reset_doc();
+        reset();
     }
 
     #[test]
