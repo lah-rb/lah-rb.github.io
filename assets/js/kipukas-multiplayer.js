@@ -40,10 +40,11 @@ let helloTimer = null;
 // so it is only redrawn when the phase really changes.
 let fistsPhase = null;
 
-// What the user just asked for, if anything: set only by createRoom() and
-// joinRoom(). While it is null, a socket that opens is a *resume*: we send
-// `rejoin` and never re-initialise the engine's room, so shared timers and
-// combat are left exactly as they were.
+// What the user just asked for, if anything: `{ action: 'create', name }` or
+// `{ action: 'join', code, name }`, set only by createRoom() and joinRoom().
+// While it is null, a connection is a *resume*: it asks the relay to `rejoin`
+// and never re-initialises the engine's room, so shared timers and combat are
+// left exactly as they were.
 let pendingAction = null;
 
 // ── Session + UI state ─────────────────────────────────────────────
@@ -82,27 +83,39 @@ function setRoomStore(patch) {
 // ── Relay connection ───────────────────────────────────────────────
 
 const link = createLink({
-  url: () => globalThis.kipukasRelayUrl(),
+  url: relayAddress,
   // Keep retrying for as long as we are in a room. A create/join the user just
   // asked for is different: if the relay cannot be reached, say so and stop.
   shouldRetry: () => pendingAction === null && !!loadSession(),
-  onOpen: onLinkOpen,
   onMessage: handleSignalingMessage,
   onState: onLinkState,
   log: (...args) => console.log('[multiplayer]', ...args),
 });
 
-/** A socket opened: say who we are. */
-function onLinkOpen() {
-  if (pendingAction) {
-    link.send(pendingAction);
-    return;
-  }
+/**
+ * The relay address for this connection attempt, saying what this player
+ * wants: create a room, join one, or rejoin the one they are in.
+ *
+ * It goes in the address rather than in a first message because the relay
+ * hands each connection to its room (one object per room code) before any
+ * message is exchanged.
+ */
+function relayAddress() {
+  const url = new URL(globalThis.kipukasRelayUrl());
   const session = loadSession();
-  if (session && session.code) {
-    // Resume. `rejoin` skips name validation and cancels the relay's grace timer.
-    link.send({ type: 'rejoin', code: session.code, name: session.name || '' });
-  }
+  const want = pendingAction ||
+    (session ? { action: 'rejoin', code: session.code, name: session.name || '' } : {});
+  for (const [key, value] of Object.entries(want)) url.searchParams.set(key, value);
+  url.searchParams.set('player', playerId);
+  return url.toString();
+}
+
+/** Connect to the relay to carry out a create or join the user asked for. */
+function connectFor(action) {
+  // Stop first: stopping with an action pending reads as "could not connect".
+  link.stop();
+  pendingAction = action;
+  link.start();
 }
 
 /** The link changed state (idle / connecting / open / waiting). */
@@ -132,17 +145,24 @@ function markPeerGone() {
 }
 
 // This player opened the room in another tab (a card opened from the phone's
-// camera app, for example). The relay gives each player one slot, so this tab
-// lets go of the connection. kipukas-api.js reloads it the next time it is
+// camera app, for example). The relay gives each player one connection, so
+// this tab lets go of it. kipukas-api.js reloads the tab the next time it is
 // shown, at which point it takes the room back.
-globalThis.addEventListener('kipukas-room-moved', () => {
+globalThis.addEventListener('kipukas-room-moved', goQuiet);
+
+/**
+ * This player's connection now belongs to another tab: stop, and do not
+ * reconnect. Two tabs that both kept reconnecting would take the connection
+ * from each other forever.
+ */
+function goQuiet() {
   if (!roomCode) return;
   console.log('[multiplayer] Room is now open in another tab; this tab goes quiet');
   peerPresent = false;
   clearTimeout(helloTimer);
   link.stop();
   setRoomStore({ link: 'moved', peer: false });
-});
+}
 
 // Anything that suggests the network is back: retry now rather than waiting
 // out the backoff (phone woke up, tab came to the front, page was restored
@@ -198,8 +218,10 @@ function handleSignalingMessage(msg) {
       break;
 
     case 'peer_joined':
+      // Both players are connected. Sent on every (re)connect of either.
       console.log('[multiplayer] Peer joined our room');
       peerPresent = true;
+      if (msg.peerId) setPeerId(msg.peerId);
       onPeerConnected();
       break;
 
@@ -210,41 +232,64 @@ function handleSignalingMessage(msg) {
       }
       break;
 
-    case 'peer_left':
-      console.log('[multiplayer] Peer disconnected');
+    case 'peer_away':
+      // The other player's connection closed (a page change, a locked
+      // phone). They still have their place in the room.
+      console.log('[multiplayer] Peer is away');
       markPeerGone();
       break;
 
+    case 'peer_left':
+      // The other player left the room for good.
+      console.log('[multiplayer] Peer left the room');
+      markPeerGone();
+      break;
+
+    case 'superseded':
+      // This player connected again elsewhere (another tab that the storage
+      // event did not reach in time). The relay is closing this socket.
+      goQuiet();
+      break;
+
     case 'error': {
-      const text = msg.message || '';
-      console.error('[multiplayer] Server error:', text);
-      const resuming = pendingAction === null;
+      const text = msg.message || 'The relay refused the connection.';
+      console.error('[multiplayer] Relay error:', msg.code, text);
 
-      if (resuming && text.includes('full')) {
-        // The relay still counts our previous socket (it has not seen it close
-        // yet). Not a dead end: try again shortly.
-        console.log('[multiplayer] Room full on rejoin, retrying');
-        link.bounce();
+      if (pendingAction) {
+        // A create/join the user asked for was refused (wrong code or name,
+        // room full). Clear the action first so stopping is not reported as
+        // a connection failure.
+        pendingAction = null;
+        link.stop();
+        showError(text);
         break;
       }
 
-      if (resuming && text.includes('not found')) {
-        // The relay no longer has this room. Leave it: shared timers are
-        // copied back to this player's own timers by /api/room/disconnect.
-        // Skip the status refresh so the explanation below stays on screen.
-        leaveRoom({ refreshStatus: false });
-        setRoomStore({ link: 'expired' });
-        showError('This room has expired. Create a new room to keep playing.');
-        break;
-      }
-
-      // A create/join the user asked for was refused.
-      pendingAction = null;
-      if (!loadSession()) link.stop();
-      showError(text);
+      // Refused while returning to a room: this player no longer has a place
+      // in it (someone joined in their stead while they were away). Leave;
+      // shared timers are copied back to this player's own timers by
+      // /api/room/disconnect. Skip the status refresh so the explanation
+      // below stays on screen.
+      leaveRoom({ refreshStatus: false });
+      setRoomStore({ link: 'expired' });
+      showError(
+        msg.code === 'full'
+          ? 'Your place in this room was taken while you were away. Create or join a room to keep playing.'
+          : text,
+      );
       break;
     }
   }
+}
+
+/** Record who the opponent is. Only their entries count as the opponent's in combat. */
+function setPeerId(id) {
+  if (typeof id !== 'string' || !id || id === peerId) return;
+  peerId = id;
+  saveSession();
+  postToWasmWithCallback('POST', '/api/room/peer', 'id=' + encodeURIComponent(peerId), (r) => {
+    showFistsPhase(parseReply(r));
+  });
 }
 
 /** Leave the room locally: forget the session and return the engine to solo mode. */
@@ -327,18 +372,7 @@ function handleRelayedMessage(msg) {
       if (!compatible) {
         console.warn('[multiplayer] Opponent speaks protocol', msg.proto, 'we speak', PROTOCOL);
       }
-      if (typeof msg.playerId === 'string' && msg.playerId && msg.playerId !== peerId) {
-        peerId = msg.playerId;
-        saveSession();
-        postToWasmWithCallback(
-          'POST',
-          '/api/room/peer',
-          'id=' + encodeURIComponent(peerId),
-          (r) => {
-            showFistsPhase(parseReply(r));
-          },
-        );
-      }
+      setPeerId(msg.playerId);
       break;
     }
 
@@ -667,9 +701,7 @@ const kipukasMultiplayer = {
     playerId = roomSession.newPlayerId();
     peerId = '';
 
-    pendingAction = { type: 'create', name: roomName };
-    if (link.state() === 'open') link.send(pendingAction);
-    else link.start();
+    connectFor({ action: 'create', name: roomName });
   },
 
   /** Join an existing room. Reads code and name from inputs. */
@@ -687,13 +719,14 @@ const kipukasMultiplayer = {
     playerId = roomSession.newPlayerId();
     peerId = '';
 
-    pendingAction = { type: 'join', code, name };
-    if (link.state() === 'open') link.send(pendingAction);
-    else link.start();
+    connectFor({ action: 'join', code, name });
   },
 
-  /** Disconnect from room and clean up. */
+  /** Leave the room for good and clean up. */
   disconnect() {
+    // Give up this player's place, so the opponent is told and the place is
+    // free for someone else. (Being away keeps the place; leaving does not.)
+    link.send({ type: 'leave' });
     leaveRoom();
   },
 

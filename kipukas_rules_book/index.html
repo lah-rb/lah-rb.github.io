@@ -302,7 +302,7 @@
              const room = this.$store.room;
              let tone = 'off';
              let label = '';
-             if (room.link === 'expired') { tone = 'bad'; label = 'Room expired'; }
+             if (room.link === 'expired') { tone = 'bad'; label = 'No longer in the room'; }
              else if (room.link === 'moved') { tone = 'moved'; label = 'Open in another tab. Tap to use here.'; }
              else if (room.inRoom && room.link !== 'open') { tone = 'warn'; label = 'Reconnecting…'; }
              else if (room.inRoom && !room.peer) { tone = 'warn'; label = 'Waiting for opponent'; }

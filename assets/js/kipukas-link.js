@@ -26,8 +26,9 @@ const SOCKET_OPEN = 1;
 
 /**
  * @param {object} opts
- * @param {() => string} opts.url             Relay address, read on every attempt.
- * @param {() => void} [opts.onOpen]          A socket opened: send create/join/rejoin now.
+ * @param {() => string} opts.url             Relay address, read on every attempt. The
+ *   caller puts what it wants (create / join / rejoin) in the address.
+ * @param {() => void} [opts.onOpen]          A socket opened.
  * @param {(msg: Record<string, unknown>) => void} [opts.onMessage]  Parsed relay message.
  * @param {(next: string, prev: string) => void} [opts.onState]  State changed.
  * @param {() => boolean} [opts.shouldRetry]  Asked when a socket is lost. False ends retrying.
@@ -36,14 +37,12 @@ const SOCKET_OPEN = 1;
  * @param {(fn: () => void, ms: number) => unknown} [opts.setTimer]
  * @param {(id: unknown) => void} [opts.clearTimer]
  * @param {() => number} [opts.random]
- * @param {() => number} [opts.now]
  */
 export function createLink(opts) {
   const WS = opts.WebSocketImpl || globalThis.WebSocket;
   const setTimer = opts.setTimer || ((fn, ms) => globalThis.setTimeout(fn, ms));
   const clearTimer = opts.clearTimer || ((id) => globalThis.clearTimeout(id));
   const random = opts.random || Math.random;
-  const now = opts.now || Date.now;
   const log = opts.log || (() => {});
 
   let state = 'idle';
@@ -131,9 +130,11 @@ export function createLink(opts) {
 
   function ping(gen) {
     if (gen !== generation) return;
-    sendRaw({ type: 'ping', t: now() });
-    // Only a v2 relay answers pings. Against the current relay the ping is
-    // ignored, which still counts as traffic that keeps the connection warm.
+    // Always exactly this message: the relay answers it without waking the
+    // room (an automatic reply matched on the exact text).
+    sendRaw({ type: 'ping' });
+    // The relay says which protocol it speaks in its first reply. Only then
+    // is a missing pong treated as a dead socket.
     if (relayVersion >= 2 && pongTimer === null) {
       pongTimer = setTimer(() => {
         pongTimer = null;

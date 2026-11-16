@@ -5,11 +5,14 @@
      Reads $store.room, which kipukas-api.js registers and kipukas-multiplayer.js
      keeps current:
        green dot               connected, opponent present
-       "Waiting for opponent"  connected to the relay, opponent not there
+       "Waiting for opponent"  connected to the relay; the opponent has not
+                               joined yet, or their connection has closed (a
+                               page change, a locked phone)
        "Reconnecting…"         this player's own connection is down, retrying
        "Opponent needs to update"  the opponent is on an older copy of the site;
                                timers and combat will not sync until they update
-       "Room expired"          the relay no longer has the room
+       "No longer in the room" this player's place was taken while they were
+                               away (someone else joined with the room name)
        "Open in another tab"   this player has the room open in a newer tab,
                                which holds the connection; tapping reloads
                                this tab so it takes the room back
@@ -26,7 +29,7 @@
          const room = this.$store.room;
          let tone = 'off';
          let label = '';
-         if (room.link === 'expired') { tone = 'bad'; label = 'Room expired'; }
+         if (room.link === 'expired') { tone = 'bad'; label = 'No longer in the room'; }
          else if (room.link === 'moved') { tone = 'moved'; label = 'Open in another tab. Tap to use here.'; }
          else if (room.inRoom && room.link !== 'open') { tone = 'warn'; label = 'Reconnecting…'; }
          else if (room.inRoom && !room.peer) { tone = 'warn'; label = 'Waiting for opponent'; }

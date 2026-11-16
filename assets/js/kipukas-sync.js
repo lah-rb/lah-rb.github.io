@@ -10,8 +10,21 @@
  * Exposed globally as window.kipukasSync.
  */
 
-// Relay address: defined once in kipukas-api.js (globalThis.kipukasRelayUrl).
-const SIGNAL_WS_URL = globalThis.kipukasRelayUrl();
+// This device's id in the sync room (the relay keys each place in a room by
+// player id). A fresh one per page load: a sync session does not outlive it.
+const SYNC_PLAYER_ID = globalThis.kipukasRoomSession.newPlayerId();
+
+/**
+ * The relay address for one connection, saying what this device wants:
+ * `{ action: 'create', name }` or `{ action: 'join', code, name }`.
+ * The relay address itself is defined once in kipukas-api.js.
+ */
+function relayAddress(want) {
+  const url = new URL(globalThis.kipukasRelayUrl());
+  for (const [key, value] of Object.entries(want)) url.searchParams.set(key, value);
+  url.searchParams.set('player', SYNC_PLAYER_ID);
+  return url.toString();
+}
 
 let ws = null;
 let syncRoomCode = '';
@@ -47,10 +60,10 @@ function wasmRequest(method, path, search, body, callback) {
 
 // ── Signaling connection ───────────────────────────────────────────
 
-function connectSignaling() {
+function connectSignaling(want) {
   return new Promise((resolve, reject) => {
-    console.log('[sync] Connecting to signaling server:', SIGNAL_WS_URL);
-    ws = new WebSocket(SIGNAL_WS_URL);
+    console.log('[sync] Connecting to the relay:', want.action);
+    ws = new WebSocket(relayAddress(want));
 
     ws.onopen = () => {
       console.log('[sync] Signaling connected');
@@ -115,6 +128,7 @@ function handleSignalingMessage(msg) {
       if (msg.data) handleRelayedMessage(msg.data);
       break;
 
+    case 'peer_away':
     case 'peer_left':
       console.log('[sync] Peer device disconnected');
       peerPresent = false;
@@ -314,10 +328,8 @@ const kipukasSync = {
   async createRoom(passphrase) {
     syncPassphrase = passphrase;
     try {
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        await connectSignaling();
-      }
-      ws.send(JSON.stringify({ type: 'create', name: '' }));
+      if (ws) ws.close();
+      await connectSignaling({ action: 'create', name: '' });
     } catch (_err) {
       globalThis.dispatchEvent(
         new CustomEvent('sync-error', {
@@ -340,10 +352,8 @@ const kipukasSync = {
       return;
     }
     try {
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        await connectSignaling();
-      }
-      ws.send(JSON.stringify({ type: 'join', code: upperCode, name: '' }));
+      if (ws) ws.close();
+      await connectSignaling({ action: 'join', code: upperCode, name: '' });
     } catch (_err) {
       globalThis.dispatchEvent(
         new CustomEvent('sync-error', {

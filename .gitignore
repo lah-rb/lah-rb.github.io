@@ -10,6 +10,9 @@
 node_modules/
 kipukas-server/target/
 
+# Local state of the relay when run with `deno task dev` in signaling-server/
+.wrangler/
+
 # Generated build outputs — built locally by `deno task build` and published to
 # the gh-pages branch via `deno task deploy`. Never committed to master.
 _site/

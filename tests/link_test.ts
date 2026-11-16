@@ -1,10 +1,10 @@
 // Tests for assets/js/kipukas-link.js — the relay connection state machine.
 //
-// Run from the repo root:  deno test -A tests/
+// Run from the repo root:  deno test tests/
 //
-// The unit tests drive the link with a fake socket and manual timers, so they
-// are deterministic. The last test runs two links against the real relay code
-// in signaling-server/main.ts, started locally on a free port.
+// These drive the link with a fake socket and manual timers, so they are
+// deterministic. The link is also exercised against the real relay, running
+// locally, in signaling-server/test/relay_test.ts.
 
 import { createLink } from '../assets/js/kipukas-link.js';
 
@@ -117,7 +117,6 @@ function setup(extra: Record<string, unknown> = {}) {
     setTimer: clock.set,
     clearTimer: clock.clear,
     random: () => 0, // no jitter
-    now: () => clock.now,
     onOpen: () => opens++,
     onMessage: (m: Record<string, unknown>) => messages.push(m),
     onState: (next: string) => states.push(next),
@@ -269,7 +268,20 @@ Deno.test('a connect that never opens times out and retries', () => {
   assertEquals(t.sockets().length, 2);
 });
 
-Deno.test('current relay: pings are sent and a missing pong is tolerated', () => {
+Deno.test('pings are always the same message, so the relay can answer without waking', () => {
+  const t = setup();
+  t.link.start();
+  const s = t.sockets()[0];
+  s.succeed();
+  t.clock.advance(20_000);
+  t.clock.advance(20_000);
+  const pings = s.sent.filter((m) => m.type === 'ping');
+  assertEquals(pings.length, 2);
+  assertEquals(JSON.stringify(pings[0]), '{"type":"ping"}');
+  assertEquals(JSON.stringify(pings[1]), '{"type":"ping"}');
+});
+
+Deno.test('before the relay says which protocol it speaks, a missing pong is tolerated', () => {
   const t = setup();
   t.link.start();
   const s = t.sockets()[0];
@@ -282,7 +294,7 @@ Deno.test('current relay: pings are sent and a missing pong is tolerated', () =>
   assertEquals(s.pings(), 6);
 });
 
-Deno.test('v2 relay: a missing pong drops the socket, a pong keeps it', () => {
+Deno.test('once the relay has announced v2, a missing pong drops the socket and a pong keeps it', () => {
   const t = setup();
   t.link.start();
   const s = t.sockets()[0];
@@ -326,81 +338,4 @@ Deno.test('send reports false when the socket is not open', () => {
   assertEquals(t.link.send({ type: 'relay' }), false);
   t.sockets()[0].succeed();
   assertEquals(t.link.send({ type: 'relay' }), true);
-});
-
-// ── Integration: two links through the real relay ──────────────────
-
-function freePort(): number {
-  const listener = Deno.listen({ port: 0 });
-  const port = (listener.addr as Deno.NetAddr).port;
-  listener.close();
-  return port;
-}
-
-async function waitFor(cond: () => boolean, what: string, ms = 5000) {
-  const start = Date.now();
-  while (!cond()) {
-    if (Date.now() - start > ms) throw new Error(`timed out waiting for ${what}`);
-    await new Promise((r) => setTimeout(r, 20));
-  }
-}
-
-Deno.test('two links create, join, drop and rejoin through the local relay', async () => {
-  const port = freePort();
-  const relayPath = new URL('../signaling-server/main.ts', import.meta.url).pathname;
-  const relay = new Deno.Command(Deno.execPath(), {
-    args: ['run', '--allow-net', '--allow-env', relayPath],
-    env: { PORT: String(port) },
-    stdout: 'null',
-    stderr: 'null',
-  }).spawn();
-
-  const url = `ws://localhost:${port}/ws`;
-  const a = { msgs: [] as Record<string, unknown>[], onOpen: () => {} };
-  const b = { msgs: [] as Record<string, unknown>[], onOpen: () => {} };
-  const linkA = createLink({
-    url: () => url,
-    onOpen: () => a.onOpen(),
-    onMessage: (m: Record<string, unknown>) => a.msgs.push(m),
-  });
-  const linkB = createLink({
-    url: () => url,
-    onOpen: () => b.onOpen(),
-    onMessage: (m: Record<string, unknown>) => b.msgs.push(m),
-  });
-  const count = (side: typeof a, type: string) => side.msgs.filter((m) => m.type === type).length;
-
-  try {
-    // The relay needs a moment to start listening; the link's own retry covers it.
-    a.onOpen = () => linkA.send({ type: 'create', name: 'table' });
-    linkA.start();
-    await waitFor(() => count(a, 'room_created') === 1, 'room_created', 15_000);
-    linkA.settled();
-    const code = a.msgs.find((m) => m.type === 'room_created')!.code as string;
-
-    b.onOpen = () => linkB.send({ type: 'join', code, name: 'table' });
-    linkB.start();
-    await waitFor(
-      () => count(a, 'peer_joined') === 1 && count(b, 'peer_joined') === 1,
-      'peer_joined',
-    );
-
-    // B loses its socket (as on a page change) and resumes with rejoin.
-    b.onOpen = () => linkB.send({ type: 'rejoin', code });
-    linkB.bounce();
-    await waitFor(() => count(b, 'room_joined') === 2, 'room_joined after rejoin');
-    await waitFor(() => count(a, 'peer_joined') === 2, 'second peer_joined for A');
-
-    // Messages flow again in both directions.
-    linkB.send({ type: 'relay', data: { type: 'hello', from: 'b' } });
-    linkA.send({ type: 'relay', data: { type: 'hello', from: 'a' } });
-    await waitFor(() => count(a, 'relay') === 1 && count(b, 'relay') === 1, 'relayed messages');
-  } finally {
-    linkA.stop();
-    linkB.stop();
-    relay.kill();
-    await relay.status;
-    // Let the sockets finish closing so Deno's leak check is satisfied.
-    await new Promise((r) => setTimeout(r, 100));
-  }
 });

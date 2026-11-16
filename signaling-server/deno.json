@@ -1,8 +1,21 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-env main.ts"
+    "dev": "deno run -A npm:wrangler@4 dev --port 8787 --ip 0.0.0.0",
+    "login": "deno run -A npm:wrangler@4 login",
+    "deploy": "deno run -A npm:wrangler@4 deploy",
+    "logs": "deno run -A npm:wrangler@4 tail",
+    "test": "deno test -A test/",
+    "check": "deno fmt --check && deno lint"
   },
-  "compilerOptions": {
-    "lib": ["deno.window"]
-  }
+  "fmt": {
+    "include": ["src/", "test/", "deno.json"],
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true
+  },
+  "lint": {
+    "include": ["src/", "test/"],
+    "rules": { "tags": ["recommended"] }
+  },
+  "nodeModulesDir": "auto"
 }

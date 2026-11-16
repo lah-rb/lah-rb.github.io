@@ -26,11 +26,13 @@
 // ============================================
 // The multiplayer / device-sync relay address lives here because every page
 // that can hold a room loads this file: the Jekyll layout and the standalone
-// rules book. Moving the relay to another host is a change to this one line.
+// rules book. Moving the relay to another host is a change to this one line
+// (and to the matching route in signaling-server/wrangler.jsonc).
 //
-// For local work, point at a local relay without editing code:
+// For local work, run the relay locally (`deno task dev` in signaling-server/)
+// and point at it without editing code:
 //   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
-const KIPUKAS_RELAY_URL = 'wss://signal.kipukas.deno.net/ws';
+const KIPUKAS_RELAY_URL = 'wss://signal.kipukas.us/ws';
 
 globalThis.kipukasRelayUrl = function () {
   try {
