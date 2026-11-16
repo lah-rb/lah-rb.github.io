@@ -1,45 +1,36 @@
 /**
  * kipukas-multiplayer.js — WebSocket relay multiplayer manager for Kipukas.
  *
- * Phase 4b: Replaces WebRTC peer-to-peer with WebSocket message relay
- * through the signaling server. Game messages are forwarded between peers
- * by the server without inspection — game logic stays 100% client-side
- * in WASM.
+ * Game messages are forwarded between the two players by the relay without
+ * inspection — game logic stays 100% client-side in WASM.
  *
- * Persists room session in sessionStorage so connections survive page
- * navigation (multi-page Jekyll site). On each page load the module
- * automatically rejoins the signaling server room if a session exists.
+ * The socket itself is owned by kipukas-link.js (one socket, one retry timer,
+ * never gives up while a room session exists). This module decides what to
+ * send when a socket opens and handles what arrives.
+ *
+ * The room session is persisted so the connection survives page navigation
+ * (multi-page Jekyll site). On each page load the module rejoins the relay
+ * room if a session exists.
  *
  * Exposed globally as window.kipukasMultiplayer for use by WASM-returned
  * HTML onclick handlers.
  */
 
-// Relay address: defined once in kipukas-api.js (globalThis.kipukasRelayUrl).
-const SIGNAL_WS_URL = globalThis.kipukasRelayUrl();
+import { createLink } from './kipukas-link.js';
 
 const SESSION_KEY = 'kipukas_room';
 const CRDT_STATE_KEY = 'kipukas_crdt_state';
 
-let ws = null; // WebSocket to signaling server (also the message relay)
 let roomCode = '';
 let roomName = '';
 let isCreator = false;
 let peerPresent = false; // Whether the other peer is in the room
 
-// ── Reconnection ───────────────────────────────────────────────────
-
-let reconnectAttempts = 0;
-let reconnecting = false; // Set during autoReconnect to prevent duplicate WASM init
-const MAX_RECONNECT_ATTEMPTS = 8;
-const BASE_RECONNECT_DELAY_MS = 1000;
-
-/** Exponential backoff with jitter for reconnection. */
-function reconnectDelay() {
-  const exp = Math.min(reconnectAttempts, 6);
-  const base = BASE_RECONNECT_DELAY_MS * Math.pow(2, exp);
-  const jitter = Math.random() * base * 0.3;
-  return base + jitter;
-}
+// What the user just asked for, if anything: set only by createRoom() and
+// joinRoom(). While it is null, a socket that opens is a *resume*: we send
+// `rejoin` and never re-initialise the engine's room, so shared timers and
+// combat are left exactly as they were.
+let pendingAction = null;
 
 // ── Session persistence ────────────────────────────────────────────
 
@@ -85,93 +76,78 @@ function persistCrdtState() {
   });
 }
 
-/** Restore the yrs CRDT Doc from sessionStorage (before sync handshake).
- *  Returns a Promise that resolves when restoration is complete. */
+/** Restore the yrs CRDT Doc from sessionStorage (before sync handshake). */
 function restoreCrdtState() {
-  return new Promise((resolve) => {
-    try {
-      const state = sessionStorage.getItem(CRDT_STATE_KEY);
-      if (!state) {
-        resolve();
-        return;
-      }
-      postToWasmWithCallback('POST', '/api/room/yrs/restore', 'state=' + state, () => {
-        console.log('[multiplayer] Restored CRDT Doc from sessionStorage');
-        resolve();
-      });
-    } catch (_) {
-      resolve();
-    }
-  });
+  try {
+    const state = sessionStorage.getItem(CRDT_STATE_KEY);
+    if (!state) return;
+    postToWasmWithCallback('POST', '/api/room/yrs/restore', 'state=' + state, () => {
+      console.log('[multiplayer] Restored CRDT Doc from sessionStorage');
+    });
+  } catch (_) { /* ignore */ }
 }
 
-// ── Signaling + Message Relay ──────────────────────────────────────
+// ── Relay connection ───────────────────────────────────────────────
 
-/** Connect to signaling server WebSocket. */
-function connectSignaling() {
-  return new Promise((resolve, reject) => {
-    console.log('[multiplayer] Connecting to signaling server:', SIGNAL_WS_URL);
-    ws = new WebSocket(SIGNAL_WS_URL);
+const link = createLink({
+  url: () => globalThis.kipukasRelayUrl(),
+  // Keep retrying for as long as we are in a room. A create/join the user just
+  // asked for is different: if the relay cannot be reached, say so and stop.
+  shouldRetry: () => pendingAction === null && !!loadSession(),
+  onOpen: onLinkOpen,
+  onMessage: handleSignalingMessage,
+  onState: onLinkState,
+  log: (...args) => console.log('[multiplayer]', ...args),
+});
 
-    ws.onopen = () => {
-      console.log('[multiplayer] Signaling connected');
-      reconnectAttempts = 0;
-      resolve();
-    };
-
-    ws.onerror = (err) => {
-      console.error('[multiplayer] Signaling error:', err);
-      reject(err);
-    };
-
-    ws.onclose = () => {
-      console.log('[multiplayer] Signaling disconnected');
-      ws = null;
-
-      // If we were in a room, mark peer as gone and attempt reconnect
-      if (roomCode) {
-        if (peerPresent) {
-          peerPresent = false;
-          postToWasm('POST', '/api/room/peer_left', '');
-          globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
-          refreshRoomStatus();
-        }
-        scheduleReconnect();
-      }
-    };
-
-    ws.onmessage = (event) => {
-      handleSignalingMessage(JSON.parse(event.data));
-    };
-  });
-}
-
-/** Schedule a reconnection attempt with exponential backoff. */
-function scheduleReconnect() {
-  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.warn('[multiplayer] Max reconnect attempts reached, giving up');
+/** A socket opened: say who we are. */
+function onLinkOpen() {
+  if (pendingAction) {
+    link.send(pendingAction);
     return;
   }
-  const delay = reconnectDelay();
-  reconnectAttempts++;
-  console.log(
-    `[multiplayer] Reconnecting in ${
-      Math.round(delay)
-    }ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
-  );
-  setTimeout(async () => {
-    if (ws && ws.readyState === WebSocket.OPEN) return; // Already reconnected
-    const session = loadSession();
-    if (!session || !session.code) return; // Session cleared (user disconnected)
-    try {
-      await connectSignaling();
-      ws.send(JSON.stringify({ type: 'rejoin', code: session.code }));
-    } catch (err) {
-      console.warn('[multiplayer] Reconnect failed:', err);
-      scheduleReconnect();
-    }
-  }, delay);
+  const session = loadSession();
+  if (session && session.code) {
+    // Resume. `rejoin` skips name validation and cancels the relay's grace timer.
+    link.send({ type: 'rejoin', code: session.code, name: session.name || '' });
+  }
 }
+
+/** The link changed state (idle / connecting / open / waiting). */
+function onLinkState(next, prev) {
+  console.log('[multiplayer] Link:', prev, '→', next);
+  globalThis.dispatchEvent(new CustomEvent('room-link', { detail: { state: next } }));
+
+  // Socket lost while in a room: the peer cannot reach us until we are back.
+  if (prev === 'open' && next !== 'open' && peerPresent) {
+    markPeerGone();
+  }
+
+  // A create/join the user asked for never reached the relay.
+  if (next === 'idle' && pendingAction) {
+    pendingAction = null;
+    showError('Could not connect to signaling server. Try again.');
+  }
+}
+
+/** The peer is no longer reachable (their socket or ours is gone). */
+function markPeerGone() {
+  peerPresent = false;
+  postToWasm('POST', '/api/room/peer_left', '');
+  globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
+  refreshRoomStatus();
+}
+
+// Anything that suggests the network is back: retry now rather than waiting
+// out the backoff (phone woke up, tab came to the front, page was restored
+// from the back/forward cache).
+globalThis.addEventListener('online', () => link.kick());
+globalThis.addEventListener('pageshow', (event) => {
+  if (event.persisted) link.kick();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') link.kick();
+});
 
 /** Handle messages from the signaling server. */
 function handleSignalingMessage(msg) {
@@ -182,18 +158,16 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || '';
       console.log('[multiplayer] Room created:', roomCode);
       saveSession();
-      // Skip WASM init during auto-reconnect — autoReconnect() already
-      // called /api/room/create with skip_seed=true and restored the
-      // CRDT Doc from sessionStorage. Re-calling without skip_seed would
-      // wipe the restored Doc and re-seed stale local timers.
-      if (!reconnecting) {
+      link.settled();
+      // Only a create the user asked for initialises the engine's room.
+      if (pendingAction) {
         postToWasm(
           'POST',
           '/api/room/create',
           `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
         );
       }
-      reconnecting = false;
+      pendingAction = null;
       refreshRoomStatus();
       break;
 
@@ -202,15 +176,18 @@ function handleSignalingMessage(msg) {
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
       saveSession();
-      // Skip WASM init during auto-reconnect — see room_created comment.
-      if (!reconnecting) {
+      link.settled();
+      // Only a join the user asked for initialises the engine's room. A resume
+      // (page load or reconnect) must not: /api/room/join starts a fresh shared
+      // document and re-seeds it, which duplicated timers and wiped combat.
+      if (pendingAction) {
         postToWasm(
           'POST',
           '/api/room/join',
           `code=${roomCode}&name=${encodeURIComponent(roomName)}`,
         );
       }
-      reconnecting = false;
+      pendingAction = null;
       refreshRoomStatus();
       break;
 
@@ -235,19 +212,54 @@ function handleSignalingMessage(msg) {
       refreshRoomStatus();
       break;
 
-    case 'error':
-      console.error('[multiplayer] Server error:', msg.message);
-      // If room expired, clear session
-      if (msg.message && msg.message.includes('not found')) {
-        clearSession();
-        roomCode = '';
-        roomName = '';
-        postToWasm('POST', '/api/room/disconnect', '');
-        globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
+    case 'error': {
+      const text = msg.message || '';
+      console.error('[multiplayer] Server error:', text);
+      const resuming = pendingAction === null;
+
+      if (resuming && text.includes('full')) {
+        // The relay still counts our previous socket (it has not seen it close
+        // yet). Not a dead end: try again shortly.
+        console.log('[multiplayer] Room full on rejoin, retrying');
+        link.bounce();
+        break;
       }
-      showError(msg.message);
+
+      if (resuming && text.includes('not found')) {
+        // The relay no longer has this room. Leave it: shared timers are
+        // copied back to this player's own timers by /api/room/disconnect.
+        // Skip the status refresh so the explanation below stays on screen.
+        leaveRoom({ refreshStatus: false });
+        globalThis.dispatchEvent(new CustomEvent('room-link', { detail: { state: 'expired' } }));
+        showError('This room has expired. Create a new room to keep playing.');
+        break;
+      }
+
+      // A create/join the user asked for was refused.
+      pendingAction = null;
+      if (!loadSession()) link.stop();
+      showError(text);
       break;
+    }
   }
+}
+
+/** Leave the room locally: forget the session and return the engine to solo mode. */
+function leaveRoom({ refreshStatus = true } = {}) {
+  clearSession();
+  peerPresent = false;
+  pendingAction = null;
+  roomCode = '';
+  roomName = '';
+  link.stop();
+  // POST disconnect runs export_to_local() in WASM, copying shared CRDT
+  // alarms back to the local player document. After it completes, refresh
+  // the alarm display in local mode so exported timers appear.
+  postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
+    refreshAlarms();
+  });
+  globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
+  if (refreshStatus) refreshRoomStatus();
 }
 
 /** Called when both peers are in the room and can exchange messages. */
@@ -284,9 +296,7 @@ function initiateYrsSync() {
 
 /** Send a game message to the peer via the WebSocket relay. */
 function sendToPeer(data) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'relay', data }));
-  } else {
+  if (!link.send({ type: 'relay', data })) {
     console.warn('[multiplayer] WebSocket not open, cannot relay message');
   }
 }
@@ -606,72 +616,56 @@ function showError(message) {
   }
 }
 
-// ── Auto-reconnect on page load ────────────────────────────────────
+// ── Resume on page load ────────────────────────────────────────────
 
-/** Attempt to rejoin a room from a saved session (after page navigation). */
-async function autoReconnect() {
+/** Rejoin the room from a saved session (after page navigation). */
+function resume() {
   const session = loadSession();
   if (!session || !session.code) return;
 
-  console.log('[multiplayer] Found saved session, auto-rejoining room:', session.code);
+  console.log('[multiplayer] Found saved session, rejoining room:', session.code);
   roomCode = session.code;
   roomName = session.name || '';
   isCreator = session.creator || false;
-  reconnecting = true;
 
   // Tell WASM we're in a room (waiting for peer) — this calls init_doc().
   // Pass skip_seed=true so seed_from_local() is NOT called: the correct
-  // CRDT state will be restored from sessionStorage below. Without this,
+  // CRDT state is restored from sessionStorage right after. Without this,
   // stale PLAYER_DOC alarms get seeded into a fresh Doc and survive the
-  // sessionStorage restore (different yrs client IDs), causing timers to
-  // reappear or duplicate after page navigation.
+  // restore (different yrs client IDs), causing timers to reappear or
+  // duplicate after page navigation.
   postToWasm(
     'POST',
     '/api/room/create',
     `code=${roomCode}&name=${encodeURIComponent(roomName)}&skip_seed=true`,
   );
+  restoreCrdtState();
 
-  // Restore CRDT Doc from sessionStorage (must happen after init_doc via
-  // room/create, before the sync handshake). Uses a small delay to ensure
-  // the create POST has been processed by the worker first.
-  await new Promise((r) => setTimeout(r, 50));
-  await restoreCrdtState();
-
-  try {
-    await connectSignaling();
-    // Use 'rejoin' — skips name validation, cancels grace timers
-    ws.send(JSON.stringify({ type: 'rejoin', code: roomCode }));
-  } catch (err) {
-    console.warn('[multiplayer] Auto-reconnect failed:', err);
-    scheduleReconnect();
-  }
+  // The worker handles requests strictly in the order they were posted, so
+  // the two above run before anything the socket delivers later. There is no
+  // need to wait for them: open the socket while the engine is still starting.
+  link.start();
 }
 
-// Kick off auto-reconnect when the script loads (deferred, so DOM is ready)
-autoReconnect();
+// Kick off the resume when the script loads (deferred, so DOM is ready)
+resume();
 
 // ── Public API (exposed on window.kipukasMultiplayer) ───────────────
 
 const kipukasMultiplayer = {
   /** Create a new room. Reads name from #room-name-input. */
-  async createRoom() {
+  createRoom() {
     const nameInput = document.getElementById('room-name-input');
     roomName = nameInput ? nameInput.value.trim() : '';
     isCreator = true;
 
-    try {
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        await connectSignaling();
-      }
-      ws.send(JSON.stringify({ type: 'create', name: roomName }));
-    } catch (err) {
-      showError('Could not connect to signaling server. Try again.');
-      console.error('[multiplayer] Create room failed:', err);
-    }
+    pendingAction = { type: 'create', name: roomName };
+    if (link.state() === 'open') link.send(pendingAction);
+    else link.start();
   },
 
   /** Join an existing room. Reads code and name from inputs. */
-  async joinRoom() {
+  joinRoom() {
     const codeInput = document.getElementById('room-code-input');
     const nameInput = document.getElementById('room-name-join-input');
     const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
@@ -683,37 +677,14 @@ const kipukasMultiplayer = {
     isCreator = false;
     roomName = name;
 
-    try {
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        await connectSignaling();
-      }
-      ws.send(JSON.stringify({ type: 'join', code, name }));
-    } catch (err) {
-      showError('Could not connect to signaling server. Try again.');
-      console.error('[multiplayer] Join room failed:', err);
-    }
+    pendingAction = { type: 'join', code, name };
+    if (link.state() === 'open') link.send(pendingAction);
+    else link.start();
   },
 
   /** Disconnect from room and clean up. */
   disconnect() {
-    clearSession();
-    peerPresent = false;
-    reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect
-    if (ws) {
-      ws.close();
-      ws = null;
-    }
-    roomCode = '';
-    roomName = '';
-    // POST disconnect runs export_to_local() in WASM, copying shared
-    // CRDT alarms back to local GameState. After it completes, refresh
-    // the alarm display in local mode so exported timers appear.
-    postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
-      refreshAlarms();
-    });
-    // Notify UI that room is disconnected
-    globalThis.dispatchEvent(new CustomEvent('room-disconnected'));
-    refreshRoomStatus();
+    leaveRoom();
   },
 
   /** Submit fists combat choice. Called from WASM-rendered HTML button. */
@@ -915,7 +886,7 @@ const kipukasMultiplayer = {
 
   /** Check if currently connected to a peer. */
   isConnected() {
-    return peerPresent && ws && ws.readyState === WebSocket.OPEN;
+    return peerPresent && link.state() === 'open';
   },
 };
 

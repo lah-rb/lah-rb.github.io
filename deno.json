@@ -38,6 +38,7 @@
     "include": [
       "scripts/",
       "assets/js/",
+      "tests/",
       "deno.json"
     ],
     "exclude": [
@@ -55,7 +56,8 @@
   "lint": {
     "include": [
       "scripts/",
-      "assets/js/"
+      "assets/js/",
+      "tests/"
     ],
     "exclude": [
       "assets/js/workbox/",
