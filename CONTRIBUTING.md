@@ -29,7 +29,7 @@ The site works without internet after the first load. Workbox **injectManifest**
 
 ### Decentralized Architecture
 
-Game logic runs **100% client-side** in WebAssembly. There is no backend server processing game state. The only hosted component is a stateless WebSocket relay server (~120 lines) that forwards game messages between peers. The server never inspects message payloads — it simply relays them to the other player in the room.
+Game logic runs **100% client-side** in WebAssembly. There is no backend server processing game state. The only hosted component is a small WebSocket relay (a Cloudflare Worker, `signaling-server/`) that forwards game messages between two players. It never inspects message payloads — it simply passes them to the other player in the room. What it stores is who is in each room (a room code, a room name and two player ids), never game state.
 
 ### HTMX Over SPA Frameworks
 
@@ -71,8 +71,8 @@ A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player vi
 
 - **Hosting:** GitHub Pages (free, static)
 - **Game logic:** In-browser WASM (zero server cost)
-- **Multiplayer networking:** WebSocket relay through signaling server
-- **Signaling/relay:** Deno Deploy free tier (stateless, ~120 lines)
+- **Multiplayer networking:** WebSocket relay
+- **Relay:** Cloudflare Workers free tier — one Worker plus one Durable Object per room (`signaling-server/`)
 - **No database, no authentication, no paid services**
 
 ### Formatting & Linting
@@ -124,7 +124,7 @@ Player A's Browser                     Player B's Browser
 │     WebSocket ────────┼──────────────┼────── WebSocket       │
 └──────────┼────────────┘              └────────────┼──────────┘
            │                                        │
-           └──── Relay Server (stateless) ──────────┘
+           └─── Relay (one object per room) ────────┘
                  (forwards game messages)
 ```
 
@@ -159,7 +159,11 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `assets/js/kipukas-sync.js` | Cross-device sync module — signaling, HMAC auth, yrs handshake (lazy-loaded) |
 | `assets/js/qr-camera.js` | Camera + ZXing QR scan loop |
 | `sw-src.js` | Service worker source (Workbox injectManifest) |
-| `signaling-server/main.ts` | WebSocket relay server — room management + message forwarding |
+| `signaling-server/src/worker.js` | The relay's entry point (Cloudflare Worker): hands each connection to its room |
+| `signaling-server/src/room-object.js` | One room (Durable Object): sockets, storage, presence, expiry |
+| `signaling-server/src/room.js` | The room rules (who may enter, taking over a place, leaving) as pure functions |
+| `signaling-server/test/` | Tests for the rules and for the whole relay running locally |
+| `signaling-server/wrangler.jsonc` | Relay deployment config: address, allowed sites, room lifetime |
 | `scripts/build-card-catalog.ts` | Extracts card YAML → Rust source |
 | `scripts/bundle-alpine.ts` | Bundles Alpine.js + plugins via esbuild |
 | `.tmuxinator.yml` | Multi-pane dev environment config |
@@ -312,7 +316,7 @@ thread_local! {
 
 ### Pattern 9: WebSocket Relay Protocol
 
-**The pattern:** Peers exchange JSON messages via the signaling server's WebSocket relay. Each game message is wrapped in `{ type: "relay", data: { type: "...", ... } }` for transport. The server forwards `relay` messages to the other peer without inspection. The inner `data.type` field determines how the client processes the message:
+**The pattern:** Peers exchange JSON messages through the relay. Each game message is wrapped in `{ type: "relay", data: { type: "...", ... } }` for transport. The relay forwards `relay` messages to the other peer without inspection. The inner `data.type` field determines how the client processes the message:
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
@@ -336,11 +340,30 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 
 **Shared timers in the document:** the `timers` map is keyed by a stable timer id that travels with the timer between a player's own timers and a room. Both players seed their own timers on create and join; the same timer held by both (each keeps a copy when a session ends) lands on one key and stays one timer.
 
-**Connection lifecycle:** `kipukas-link.js` owns the socket: one socket and one retry timer at a time, capped exponential backoff that never gives up while the player is in a room, a connect timeout, a 20 s ping, and an immediate retry when the tab becomes visible, the network returns, or the page is restored. A reconnect is always a *resume*: only a create or join the user asked for initialises the engine's room. The relay keeps a room slot for 5 minutes after a socket closes.
+**Connection lifecycle:** `kipukas-link.js` owns the socket: one socket and one retry timer at a time, capped exponential backoff that never gives up while the player is in a room, a connect timeout, a 20 s ping, and an immediate retry when the tab becomes visible, the network returns, or the page is restored. A reconnect is always a *resume*: only a create or join the user asked for initialises the engine's room.
 
-**Across a page change:** `kipukas-api.js` posts `/api/room/resume` (room, ids and the saved room document) before HTMX issues its first request, so the new page renders in room mode with shared state from the start. It then loads `kipukas-multiplayer.js`, which opens the socket and sends `rejoin`. On `peer_joined` both sides say `hello` and run the handshake.
+**Talking to the relay:** a page says what it wants in the address it connects to, because the relay hands each connection to its room (one Durable Object per room code) before any message flows:
 
-**Known limits with the current relay:** if both players' sockets are closed for more than 5 minutes (two locked phones), the relay deletes the room and the next rejoin is told "Room not found"; the status pill shows "Room expired" and the players start a new room (their timers come with them). The relay also does not tell a player that the opponent has gone until that grace period ends.
+```
+/ws?action=create&name=<room name>&player=<id>
+/ws?action=join&code=<code>&name=<room name>&player=<id>
+/ws?action=rejoin&code=<code>&name=<room name>&player=<id>
+```
+
+| From the relay | Meaning |
+|---|---|
+| `room_created` / `room_joined` `{ code, name, v, peer, resumed, recreated }` | The reply to the request. `peer` is `present`, `away` or `none` |
+| `peer_joined` `{ peerId }` | Both players are connected. Sent to both on every (re)connect of either; it is what starts the handshake |
+| `peer_away` | The other player's connection closed (a page change, a locked phone). They keep their place |
+| `peer_left` | The other player left the room for good |
+| `superseded` | This player connected again elsewhere; this socket is being closed and must not reconnect |
+| `error` `{ code, message }` | The request was refused (`not_found`, `name_mismatch`, `full`, …); the socket is then closed |
+
+A page sends `relay` (pass this to the other player), `leave` (give up my place) and `ping`.
+
+**A player's place outlives their connection.** The relay keys each of a room's two places by the player's id, not by a socket. Returning with the same id always gets the same place back, and the newest connection for an id replaces any older one. A room with nobody connected is kept for 12 hours. After that, or if the relay ever loses a room, a `rejoin` simply recreates it under the same code: the players hold all the game state, so nothing is lost. A player who lost their saved session can join again with the room name and takes over their own old place, provided it is away; a connected player is never displaced.
+
+**Across a page change:** `kipukas-api.js` posts `/api/room/resume` (room, ids and the saved room document) before HTMX issues its first request, so the new page renders in room mode with shared state from the start. It then loads `kipukas-multiplayer.js`, which connects with `action=rejoin`. On `peer_joined` both sides say `hello` and run the handshake.
 
 ### Pattern 10: Room Persistence in localStorage, One Tab at a Time
 
@@ -354,7 +377,7 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 
 **Why localStorage (not sessionStorage):** sessionStorage is per tab. A card opened from the phone's camera app lands in a new tab, which then had no room. localStorage is shared by every tab of the browser, so the new tab resumes the same room as the same player.
 
-**Why one tab at a time:** the relay gives each player one slot, and each tab runs its own engine loaded from storage. Saving the session claims the room for this tab (`kipukas_room_tab`). Other tabs see the `storage` event, close their socket and show "Open in another tab". A tab that no longer holds the room does not save the room document, and any tab whose stored state was changed by another tab reloads the next time it is shown instead of writing stale state back. Showing a tab is therefore what hands the room to it.
+**Why one tab at a time:** the relay gives each player one connection (a newer one replaces an older one, which is told `superseded`), and each tab runs its own engine loaded from storage. Saving the session claims the room for this tab (`kipukas_room_tab`). Other tabs see the `storage` event, close their socket and show "Open in another tab". A tab that no longer holds the room does not save the room document, and any tab whose stored state was changed by another tab reloads the next time it is shown instead of writing stale state back. Showing a tab is therefore what hands the room to it.
 
 **Limits:** an iOS home-screen app and Safari do not share storage, so a camera-app scan (which opens Safari) cannot resume a room that lives in the installed app. The same holds on Android when the default browser is not the one that installed the app. Use the in-site scanner there.
 
@@ -621,7 +644,8 @@ if (!port) {
 
 | Technology | License | Purpose |
 |---|---|---|
-| [Deno](https://deno.land/) | MIT | Task runner, build scripts, signaling server runtime |
+| [Deno](https://deno.land/) | MIT | Task runner, build scripts |
+| [Cloudflare Workers](https://developers.cloudflare.com/workers/) (workerd) | Apache-2.0 | Relay runtime: a Worker and one Durable Object per room |
 | [Ruby](https://www.ruby-lang.org/) + Bundler | BSD 2-Clause / MIT | Jekyll runtime |
 
 ### Build Tooling
@@ -698,10 +722,16 @@ deno task build:sw         # Rebuild service worker only (after jekyll build)
 cd kipukas-server && cargo test
 ```
 
-**Connection state machine tests** (fake socket and clock, plus two clients through the relay code in `signaling-server/main.ts` started locally):
+**Connection state machine tests** (fake socket and clock):
 
 ```bash
-deno test -A tests/
+deno test tests/
+```
+
+**Relay tests** (the room rules, and the whole relay running locally and driven over real WebSockets, including the site's own connection code):
+
+```bash
+cd signaling-server && deno task test
 ```
 
 **Browser integration checks** (DevTools console):
@@ -717,9 +747,42 @@ deno test -A tests/
 
 **Multiplayer testing:**
 - One machine: a normal window and a private window (two tabs of one browser are the same player — see Pattern 10)
-- To use a local relay instead of the deployed one: `cd signaling-server && deno task dev`, then in each window's console `localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')` and reload
+- To use a local relay instead of the deployed one, see "The relay" below
 - Two devices on same network
 - Two devices on different networks (works everywhere — WebSocket relay traverses all firewalls/NATs)
+
+### The relay
+
+The relay lives in `signaling-server/` and runs on Cloudflare Workers. Cloudflare's command-line tool (`wrangler`) is run through Deno like the other build tools, so nothing else needs installing.
+
+**Run it locally:**
+
+```bash
+cd signaling-server && deno task dev      # ws://localhost:8787/ws
+```
+
+Then, in the console of each browser window, point the site at it and reload:
+
+```js
+localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')   // remove the item to go back
+```
+
+**Deploy it** (needs a Cloudflare account that holds the `kipukas.us` zone):
+
+```bash
+cd signaling-server
+deno task login      # once per machine: opens the browser to authorise
+deno task deploy
+```
+
+`wrangler.jsonc` holds what is deployed:
+
+- `routes`: the relay's address, `signal.kipukas.us`. Cloudflare creates the DNS record. The same name is in `assets/js/kipukas-api.js` (`KIPUKAS_RELAY_URL`); change both together.
+- `ALLOWED_ORIGINS`: the sites whose pages may use the relay. Local copies of the site are always allowed.
+- `ROOM_TTL_SECONDS`: how long a room with nobody connected is kept.
+- `migrations`: declares the `Room` Durable Object. The free plan offers the SQLite-backed kind, which is what is used.
+
+The relay and the site must be deployed together when the messages between them change (`PROTOCOL_VERSION` in `signaling-server/src/room.js`). `deno task logs` shows the deployed relay's live log.
 
 ### Formatting & Linting
 
