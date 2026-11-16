@@ -13,6 +13,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 yrs = "0.25"
 base64 = "0.22"
+# Already in the dependency tree via yrs (same version, same `js` feature, so
+# no extra code in the wasm). Used directly for timer ids.
+fastrand = { version = "2", features = ["js"] }
 hmac-sha256 = "1.1"
 # JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
 jxl-oxide = { version = "0.12.6", default-features = false }

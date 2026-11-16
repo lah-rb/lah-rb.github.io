@@ -57,6 +57,25 @@ pub fn get_param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a st
         .map(|(_, v)| v.as_str())
 }
 
+/// Escape text for use in HTML content or a double-quoted attribute.
+///
+/// Anything that comes from the other player (timer names in the room
+/// document, for example) must go through this before it is put into markup.
+pub fn escape_html(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for c in input.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#39;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

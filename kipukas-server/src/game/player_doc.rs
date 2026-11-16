@@ -32,7 +32,7 @@ use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{Any, Array, ArrayPrelim, Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn};
 
-use crate::game::state::Alarm;
+use crate::game::state::{new_alarm_id, Alarm};
 
 thread_local! {
     static PLAYER_DOC: RefCell<Doc> = RefCell::new(new_player_doc());
@@ -324,14 +324,21 @@ fn validate_color_set(color: &str) -> &str {
     }
 }
 
-/// Add a new alarm.
+/// Add a new alarm with a fresh id.
 pub fn add_alarm(turns: i32, name: &str, color_set: &str) {
+    add_alarm_with_id(&new_alarm_id(), turns, name, color_set);
+}
+
+/// Add an alarm that already has an id (a shared timer coming back from a
+/// room), so it keeps its identity for the next room.
+pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str) {
     let color = validate_color_set(color_set);
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let alarms = doc.get_or_insert_array("alarms");
         let mut txn = doc.transact_mut();
         let alarm_map = MapPrelim::from([
+            ("id".to_string(), Any::from(id.to_string())),
             ("remaining".to_string(), Any::from(turns as f64)),
             ("name".to_string(), Any::from(name.to_string())),
             ("color_set".to_string(), Any::from(color.to_string())),
@@ -415,7 +422,14 @@ pub fn get_alarms() -> Vec<Alarm> {
                     Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
                     _ => "red".to_string(),
                 };
+                // Timers saved before ids existed have none; one is assigned
+                // when the timer is first shared (crdt::seed_from_local).
+                let id = match map.get(&txn, "id") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                };
                 result.push(Alarm {
+                    id,
                     remaining,
                     name,
                     color_set,

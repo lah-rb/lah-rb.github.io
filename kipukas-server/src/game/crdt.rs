@@ -10,11 +10,23 @@
 //!
 //! ```text
 //! yrs::Doc
-//! └── "alarms" (ArrayRef)
-//!     ├── [0] (MapRef) { "remaining": i32, "name": String, "color_set": String }
-//!     ├── [1] (MapRef) { ... }
+//! └── "timers" (MapRef) — shared turn timers, keyed by a stable timer id
+//!     ├── "<id>" → JSON string { "remaining": i32, "name": String,
+//!     │                          "color_set": String, "seq": u32 }
 //!     └── ...
 //! ```
+//!
+//! Timers are keyed by id rather than held in a list for two reasons:
+//!
+//! - Both players may bring the same timer into a room (after an earlier
+//!   session each keeps a copy). Under the same key the two copies converge
+//!   to one entry; in a list they appeared twice.
+//! - "Remove" targets a timer, not a position, so it cannot hit the wrong
+//!   one when the other player adds or removes at the same moment.
+//!
+//! Each value is one JSON string, so a timer is always replaced as a whole.
+//! `seq` gives display order; ties are broken by id so both players sort
+//! identically.
 //!
 //! ## Sync Protocol
 //!
@@ -30,13 +42,30 @@
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
-use yrs::{Any, Array, Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn};
+use yrs::{Any, Doc, Map, MapRef, ReadTxn, StateVector, Transact, TransactionMut, Update, WriteTxn};
 
 use crate::game::player_doc;
-use crate::game::state::Alarm;
+use crate::game::state::{is_valid_alarm_id, new_alarm_id, Alarm};
+
+/// Root map holding the shared timers.
+const TIMERS: &str = "timers";
+
+/// One shared timer as stored in the room document (a JSON string under its id).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TimerEntry {
+    remaining: i32,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    color_set: String,
+    /// Display order. Ties are broken by id.
+    #[serde(default)]
+    seq: u32,
+}
 
 thread_local! {
     static CRDT_DOC: RefCell<Doc> = RefCell::new(Doc::new());
@@ -49,10 +78,10 @@ thread_local! {
 pub fn init_doc() {
     CRDT_DOC.with(|cell| {
         let doc = Doc::new();
-        // Pre-create the "alarms" root array so both peers share the same root type.
+        // Pre-create the "timers" root map so both peers share the same root type.
         {
             let mut txn = doc.transact_mut();
-            txn.get_or_insert_array("alarms");
+            txn.get_or_insert_map(TIMERS);
         }
         *cell.borrow_mut() = doc;
     });
@@ -97,132 +126,134 @@ pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
     })
 }
 
-// ── Alarm mutations (return update bytes as base64) ────────────────
+// ── Timers on a document ───────────────────────────────────────────
+//
+// These take the document as an argument so tests can run two of them and
+// sync between them. The public functions below apply them to the room doc.
 
-/// Add a new alarm to the yrs Doc. Returns the update as a base64 string.
-pub fn add_alarm(turns: i32, name: &str, color_set: &str) -> String {
-    let color = validate_color_set(color_set);
+/// All timers in display order: by `seq`, then by id.
+fn read_timers<T: ReadTxn>(timers: &MapRef, txn: &T) -> Vec<(String, TimerEntry)> {
+    let mut out: Vec<(String, TimerEntry)> = Vec::new();
+    for (id, value) in timers.iter(txn) {
+        // Ids and values come from the other player too: skip anything that is
+        // not a well-formed timer rather than trusting it.
+        if !is_valid_alarm_id(id) {
+            continue;
+        }
+        if let yrs::Out::Any(Any::String(json)) = value {
+            if let Ok(entry) = serde_json::from_str::<TimerEntry>(&json) {
+                out.push((id.to_string(), entry));
+            }
+        }
+    }
+    out.sort_by(|a, b| a.1.seq.cmp(&b.1.seq).then_with(|| a.0.cmp(&b.0)));
+    out
+}
+
+fn write_timer(timers: &MapRef, txn: &mut TransactionMut, id: &str, entry: &TimerEntry) {
+    let json = serde_json::to_string(entry).unwrap_or_else(|_| "{}".to_string());
+    timers.insert(txn, id.to_string(), Any::from(json));
+}
+
+/// The `seq` for a timer added now: one past the highest in use.
+fn next_seq<T: ReadTxn>(timers: &MapRef, txn: &T) -> u32 {
+    read_timers(timers, txn)
+        .iter()
+        .map(|(_, e)| e.seq)
+        .max()
+        .map_or(1, |m| m.saturating_add(1))
+}
+
+fn add_timer_in(doc: &Doc, id: &str, turns: i32, name: &str, color_set: &str) {
+    if !is_valid_alarm_id(id) {
+        return;
+    }
+    let timers = doc.get_or_insert_map(TIMERS);
+    let mut txn = doc.transact_mut();
+    let entry = TimerEntry {
+        remaining: turns,
+        name: name.to_string(),
+        color_set: validate_color_set(color_set).to_string(),
+        seq: next_seq(&timers, &txn),
+    };
+    write_timer(&timers, &mut txn, id, &entry);
+}
+
+/// Decrement every timer by 1; remove those that were already at 0.
+fn tick_timers_in(doc: &Doc) {
+    let timers = doc.get_or_insert_map(TIMERS);
+    let mut txn = doc.transact_mut();
+    for (id, mut entry) in read_timers(&timers, &txn) {
+        if entry.remaining <= 0 {
+            timers.remove(&mut txn, &id);
+        } else {
+            entry.remaining -= 1;
+            write_timer(&timers, &mut txn, &id, &entry);
+        }
+    }
+}
+
+fn remove_timer_in(doc: &Doc, id: &str) {
+    let timers = doc.get_or_insert_map(TIMERS);
+    let mut txn = doc.transact_mut();
+    timers.remove(&mut txn, id);
+}
+
+fn alarms_in(doc: &Doc) -> Vec<Alarm> {
+    let timers = doc.get_or_insert_map(TIMERS);
+    let txn = doc.transact();
+    read_timers(&timers, &txn)
+        .into_iter()
+        .map(|(id, e)| Alarm {
+            id,
+            remaining: e.remaining,
+            name: e.name,
+            color_set: validate_color_set(&e.color_set).to_string(),
+        })
+        .collect()
+}
+
+/// Run a mutation on the room doc and return the resulting update as base64.
+fn mutate_room_doc(f: impl FnOnce(&Doc)) -> String {
     CRDT_DOC.with(|cell| {
         let doc = cell.borrow();
-        let alarms = doc.get_or_insert_array("alarms");
         let sv = doc.transact().state_vector();
-
-        {
-            let mut txn = doc.transact_mut();
-            let alarm_map = MapPrelim::from([
-                ("remaining".to_string(), Any::from(turns as f64)),
-                ("name".to_string(), Any::from(name.to_string())),
-                ("color_set".to_string(), Any::from(color.to_string())),
-            ]);
-            let len = alarms.len(&txn);
-            alarms.insert(&mut txn, len, alarm_map);
-        }
-
+        f(&doc);
         encode_diff_since(&doc, &sv)
     })
+}
+
+// ── Alarm mutations (return update bytes as base64) ────────────────
+
+/// Add a new alarm to the room doc under a fresh id. Returns the update as a
+/// base64 string.
+pub fn add_alarm(turns: i32, name: &str, color_set: &str) -> String {
+    add_alarm_with_id(&new_alarm_id(), turns, name, color_set)
+}
+
+/// Add an alarm that already has an id (a player's own timer being shared).
+/// Returns the update as a base64 string.
+pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str) -> String {
+    mutate_room_doc(|doc| add_timer_in(doc, id, turns, name, color_set))
 }
 
 /// Tick all alarms: decrement by 1, remove completed (were already at 0).
 /// Returns the update as a base64 string.
 pub fn tick_alarms() -> String {
-    CRDT_DOC.with(|cell| {
-        let doc = cell.borrow();
-        let alarms = doc.get_or_insert_array("alarms");
-        let sv = doc.transact().state_vector();
-
-        {
-            let mut txn = doc.transact_mut();
-            let len = alarms.len(&txn);
-
-            // First pass: collect indices to remove (were at 0, now go negative)
-            let mut to_remove: Vec<u32> = Vec::new();
-            for i in 0..len {
-                if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
-                    if let Some(yrs::Out::Any(Any::Number(r))) = map.get(&txn, "remaining") {
-                        let remaining = r as i32;
-                        if remaining <= 0 {
-                            to_remove.push(i);
-                        }
-                    }
-                }
-            }
-
-            // Remove expired (in reverse order to preserve indices)
-            for &idx in to_remove.iter().rev() {
-                alarms.remove(&mut txn, idx);
-            }
-
-            // Second pass: decrement remaining alarms
-            let new_len = alarms.len(&txn);
-            for i in 0..new_len {
-                if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
-                    if let Some(yrs::Out::Any(Any::Number(r))) = map.get(&txn, "remaining") {
-                        let remaining = r as i32;
-                        map.insert(&mut txn, "remaining", Any::from((remaining - 1) as f64));
-                    }
-                }
-            }
-        }
-
-        encode_diff_since(&doc, &sv)
-    })
+    mutate_room_doc(tick_timers_in)
 }
 
-/// Remove an alarm by index. Returns the update as a base64 string.
-pub fn remove_alarm(index: u32) -> String {
-    CRDT_DOC.with(|cell| {
-        let doc = cell.borrow();
-        let alarms = doc.get_or_insert_array("alarms");
-        let sv = doc.transact().state_vector();
-
-        {
-            let mut txn = doc.transact_mut();
-            let len = alarms.len(&txn);
-            if index < len {
-                alarms.remove(&mut txn, index);
-            }
-        }
-
-        encode_diff_since(&doc, &sv)
-    })
+/// Remove an alarm by id. Returns the update as a base64 string.
+pub fn remove_alarm(id: &str) -> String {
+    mutate_room_doc(|doc| remove_timer_in(doc, id))
 }
 
 // ── Read state ─────────────────────────────────────────────────────
 
-/// Read the current alarms from the yrs Doc as a Vec<Alarm>.
+/// Read the current alarms from the room doc, in display order.
 /// Used for rendering the alarm list HTML.
 pub fn get_alarms() -> Vec<Alarm> {
-    CRDT_DOC.with(|cell| {
-        let doc = cell.borrow();
-        let alarms = doc.get_or_insert_array("alarms");
-        let txn = doc.transact();
-        let len = alarms.len(&txn);
-        let mut result = Vec::with_capacity(len as usize);
-
-        for i in 0..len {
-            if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
-                let remaining = match map.get(&txn, "remaining") {
-                    Some(yrs::Out::Any(Any::Number(n))) => n as i32,
-                    _ => 0,
-                };
-                let name = match map.get(&txn, "name") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                };
-                let color_set = match map.get(&txn, "color_set") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => "red".to_string(),
-                };
-                result.push(Alarm {
-                    remaining,
-                    name,
-                    color_set,
-                });
-            }
-        }
-
-        result
-    })
+    CRDT_DOC.with(|cell| alarms_in(&cell.borrow()))
 }
 
 // ── Sync protocol ──────────────────────────────────────────────────
@@ -270,49 +301,59 @@ pub fn apply_update(update_b64: &str) -> Result<(), String> {
     })
 }
 
-// ── GameState ↔ CRDT bridge ────────────────────────────────────────
+// ── Player doc ↔ room doc bridge ───────────────────────────────────
 
-/// Seed the CRDT Doc from local PLAYER_DOC alarms.
-/// Called on room create/join so any pre-existing local timers become
-/// shared with the peer. Skips if the Doc already has alarms (e.g.,
-/// restored from sessionStorage on page navigation).
+/// Move this player's own timers into the room doc.
+///
+/// Called on room create and on room join, so both players' pre-existing
+/// timers become shared. Each timer goes in under its own id: when both
+/// players hold a copy of the same timer (each kept one after an earlier
+/// session), the copies land on the same key and converge to a single timer.
 pub fn seed_from_local() {
     let local_alarms: Vec<Alarm> = player_doc::get_alarms();
     if local_alarms.is_empty() {
         return;
     }
-    // Only seed into an empty Doc — avoid duplicating alarms that were
-    // already restored from sessionStorage.
-    let existing = get_alarms();
-    if !existing.is_empty() {
-        return;
-    }
-    for alarm in &local_alarms {
-        add_alarm(alarm.remaining, &alarm.name, &alarm.color_set);
-    }
-    // Clear local alarms — they now live in the CRDT Doc. The yrs alarm
-    // mutation routes call export_to_local() after each mutation to keep
-    // PLAYER_DOC in sync, and export_to_local() re-populates PLAYER_DOC
-    // on disconnect before the CRDT Doc is reset.
-    for i in (0..local_alarms.len()).rev() {
-        player_doc::remove_alarm(i);
-    }
+    CRDT_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let timers = doc.get_or_insert_map(TIMERS);
+        let mut txn = doc.transact_mut();
+        let mut seq = next_seq(&timers, &txn);
+        for alarm in &local_alarms {
+            // Timers saved before ids existed get one now.
+            let id = if is_valid_alarm_id(&alarm.id) {
+                alarm.id.clone()
+            } else {
+                new_alarm_id()
+            };
+            // Already in the room under this id: keep the room's copy.
+            if timers.get(&txn, &id).is_some() {
+                continue;
+            }
+            let entry = TimerEntry {
+                remaining: alarm.remaining,
+                name: alarm.name.clone(),
+                color_set: validate_color_set(&alarm.color_set).to_string(),
+                seq,
+            };
+            write_timer(&timers, &mut txn, &id, &entry);
+            seq = seq.saturating_add(1);
+        }
+    });
+    // The timers now live in the room doc. The room routes call
+    // export_to_local() after each change to keep PLAYER_DOC in step, and on
+    // disconnect before the room doc is reset.
+    player_doc::clear_alarms();
 }
 
-/// Copy the current CRDT alarms back into local PLAYER_DOC.
-/// Called on disconnect so shared timers survive as local timers after
-/// the multiplayer session ends.
+/// Copy the room's timers back into this player's own timers, ids included.
+/// Called after each change and on disconnect, so shared timers survive as
+/// the player's own once the session ends.
 pub fn export_to_local() {
     let crdt_alarms = get_alarms();
-    // Clear existing local alarms and replace with CRDT alarms
-    // First remove all existing local alarms
-    let existing = player_doc::get_alarms();
-    for i in (0..existing.len()).rev() {
-        player_doc::remove_alarm(i);
-    }
-    // Then add CRDT alarms
+    player_doc::clear_alarms();
     for alarm in &crdt_alarms {
-        player_doc::add_alarm(alarm.remaining, &alarm.name, &alarm.color_set);
+        player_doc::add_alarm_with_id(&alarm.id, alarm.remaining, &alarm.name, &alarm.color_set);
     }
 }
 
@@ -403,12 +444,13 @@ mod tests {
     }
 
     #[test]
-    fn remove_alarm_by_index() {
+    fn remove_alarm_by_id() {
         reset();
         add_alarm(5, "first", "red");
         add_alarm(3, "second", "green");
         add_alarm(1, "third", "blue");
-        remove_alarm(1);
+        let second = get_alarms()[1].id.clone();
+        remove_alarm(&second);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -416,12 +458,134 @@ mod tests {
     }
 
     #[test]
-    fn remove_alarm_out_of_bounds_is_noop() {
+    fn remove_alarm_unknown_id_is_noop() {
         reset();
         add_alarm(5, "", "red");
-        remove_alarm(99);
+        remove_alarm("nope");
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
+    }
+
+    #[test]
+    fn alarms_have_distinct_valid_ids_and_keep_insertion_order() {
+        reset();
+        for name in ["a", "b", "c", "d", "e"] {
+            add_alarm(1, name, "red");
+        }
+        let alarms = get_alarms();
+        let names: Vec<&str> = alarms.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(names, ["a", "b", "c", "d", "e"]);
+        let mut ids: Vec<&str> = alarms.iter().map(|a| a.id.as_str()).collect();
+        assert!(ids.iter().all(|id| is_valid_alarm_id(id)));
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), 5);
+    }
+
+    // ── Two players' documents ─────────────────────────────────────
+
+    /// A second player's room document.
+    fn peer_doc() -> Doc {
+        let doc = Doc::new();
+        {
+            let mut txn = doc.transact_mut();
+            txn.get_or_insert_map(TIMERS);
+        }
+        doc
+    }
+
+    /// Bring `to` up to date with everything `from` has (one direction of the
+    /// state-vector handshake the players run on every reconnect).
+    fn sync(from: &Doc, to: &Doc) {
+        let sv = to.transact().state_vector();
+        let diff = from.transact().encode_diff_v1(&sv);
+        to.transact_mut()
+            .apply_update(Update::decode_v1(&diff).unwrap())
+            .unwrap();
+    }
+
+    fn sync_both(a: &Doc, b: &Doc) {
+        sync(a, b);
+        sync(b, a);
+    }
+
+    fn names(doc: &Doc) -> Vec<String> {
+        alarms_in(doc).into_iter().map(|a| a.name).collect()
+    }
+
+    #[test]
+    fn the_same_timer_seeded_by_both_players_appears_once() {
+        // After an earlier session both players kept a copy of each shared
+        // timer, with the same ids. Each seeds its copy into a new room.
+        let (a, b) = (peer_doc(), peer_doc());
+        for doc in [&a, &b] {
+            add_timer_in(doc, "t1", 3, "alpha", "red");
+            add_timer_in(doc, "t2", 5, "beta", "blue");
+        }
+        sync_both(&a, &b);
+        assert_eq!(names(&a), ["alpha", "beta"]);
+        assert_eq!(names(&b), ["alpha", "beta"]);
+    }
+
+    #[test]
+    fn different_timers_from_each_player_merge_to_the_union() {
+        let (a, b) = (peer_doc(), peer_doc());
+        add_timer_in(&a, "a1", 3, "from a", "red");
+        add_timer_in(&b, "b1", 5, "from b", "blue");
+        sync_both(&a, &b);
+        let mut got = names(&a);
+        assert_eq!(got, names(&b), "both players show the same order");
+        got.sort();
+        assert_eq!(got, ["from a", "from b"]);
+    }
+
+    #[test]
+    fn remove_targets_the_timer_even_if_the_peer_adds_concurrently() {
+        let (a, b) = (peer_doc(), peer_doc());
+        add_timer_in(&a, "t1", 3, "keep", "red");
+        add_timer_in(&a, "t2", 5, "remove me", "blue");
+        sync_both(&a, &b);
+
+        // At the same moment: A removes t2, B adds a new timer.
+        remove_timer_in(&a, "t2");
+        add_timer_in(&b, "t3", 7, "new", "green");
+        sync_both(&a, &b);
+
+        let mut got = names(&a);
+        got.sort();
+        assert_eq!(got, ["keep", "new"]);
+        let mut got_b = names(&b);
+        got_b.sort();
+        assert_eq!(got_b, ["keep", "new"]);
+    }
+
+    #[test]
+    fn a_missed_update_is_repaired_by_the_handshake() {
+        let (a, b) = (peer_doc(), peer_doc());
+        add_timer_in(&a, "t1", 3, "alpha", "red");
+        sync_both(&a, &b);
+
+        // B is away: A's tick is never delivered as a live update.
+        tick_timers_in(&a);
+        assert_eq!(alarms_in(&b)[0].remaining, 3);
+
+        // B comes back and the two exchange state vectors.
+        sync_both(&a, &b);
+        assert_eq!(alarms_in(&b)[0].remaining, 2);
+    }
+
+    #[test]
+    fn malformed_entries_from_a_peer_are_ignored() {
+        let doc = peer_doc();
+        add_timer_in(&doc, "good", 3, "ok", "red");
+        {
+            let timers = doc.get_or_insert_map(TIMERS);
+            let mut txn = doc.transact_mut();
+            timers.insert(&mut txn, "x');alert(1);('", Any::from("{\"remaining\":1}".to_string()));
+            timers.insert(&mut txn, "notjson", Any::from("oops".to_string()));
+            timers.insert(&mut txn, "notstring", Any::from(5.0));
+        }
+        assert_eq!(names(&doc), ["ok"]);
     }
 
     #[test]
@@ -448,58 +612,30 @@ mod tests {
         reset();
         add_alarm(5, "peer_a_timer", "green");
 
-        let doc_b = Doc::new();
-        {
-            let mut txn = doc_b.transact_mut();
-            txn.get_or_insert_array("alarms");
-        }
-
+        // Peer B starts empty and asks for everything it is missing.
+        let doc_b = peer_doc();
         let sv_b = doc_b.transact().state_vector().encode_v1();
         let sv_b_b64 = URL_SAFE_NO_PAD.encode(&sv_b);
 
         let diff_for_b = encode_diff(&sv_b_b64).unwrap();
-
         let diff_bytes = URL_SAFE_NO_PAD.decode(&diff_for_b).unwrap();
         let update = Update::decode_v1(&diff_bytes).unwrap();
         doc_b.transact_mut().apply_update(update).unwrap();
 
-        let alarms_b = {
-            let arr = doc_b.get_or_insert_array("alarms");
-            let txn = doc_b.transact();
-            let len = arr.len(&txn);
-            let mut result = Vec::new();
-            for i in 0..len {
-                if let Some(yrs::Out::YMap(map)) = arr.get(&txn, i) {
-                    let name = match map.get(&txn, "name") {
-                        Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                        _ => String::new(),
-                    };
-                    result.push(name);
-                }
-            }
-            result
-        };
-
+        let alarms_b = alarms_in(&doc_b);
         assert_eq!(alarms_b.len(), 1);
-        assert_eq!(alarms_b[0], "peer_a_timer");
+        assert_eq!(alarms_b[0].name, "peer_a_timer");
+        assert_eq!(alarms_b[0].remaining, 5);
+        assert_eq!(alarms_b[0].color_set, "green");
     }
 
     #[test]
     fn apply_update_from_remote() {
         reset();
 
-        let remote_doc = Doc::new();
-        let remote_arr = remote_doc.get_or_insert_array("alarms");
+        let remote_doc = peer_doc();
         let sv_before = remote_doc.transact().state_vector();
-        {
-            let mut txn = remote_doc.transact_mut();
-            let alarm_map = MapPrelim::from([
-                ("remaining".to_string(), Any::from(7_f64)),
-                ("name".to_string(), Any::from("remote_timer".to_string())),
-                ("color_set".to_string(), Any::from("pink".to_string())),
-            ]);
-            remote_arr.insert(&mut txn, 0, alarm_map);
-        }
+        add_timer_in(&remote_doc, "r1", 7, "remote_timer", "pink");
         let update_bytes = remote_doc.transact().encode_diff_v1(&sv_before);
         let update_b64 = URL_SAFE_NO_PAD.encode(&update_bytes);
 
@@ -508,6 +644,7 @@ mod tests {
 
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].id, "r1");
         assert_eq!(alarms[0].remaining, 7);
         assert_eq!(alarms[0].name, "remote_timer");
         assert_eq!(alarms[0].color_set, "pink");
@@ -535,18 +672,9 @@ mod tests {
 
         let update_a = add_alarm(5, "from_a", "red");
 
-        let doc_b = Doc::new();
-        let arr_b = doc_b.get_or_insert_array("alarms");
+        let doc_b = peer_doc();
         let sv_b_before = doc_b.transact().state_vector();
-        {
-            let mut txn = doc_b.transact_mut();
-            let alarm = MapPrelim::from([
-                ("remaining".to_string(), Any::from(3_f64)),
-                ("name".to_string(), Any::from("from_b".to_string())),
-                ("color_set".to_string(), Any::from("blue".to_string())),
-            ]);
-            arr_b.insert(&mut txn, 0, alarm);
-        }
+        add_timer_in(&doc_b, "b1", 3, "from_b", "blue");
         let update_b_bytes = doc_b.transact().encode_diff_v1(&sv_b_before);
         let update_b = URL_SAFE_NO_PAD.encode(&update_b_bytes);
 
@@ -558,14 +686,8 @@ mod tests {
             .apply_update(Update::decode_v1(&update_a_bytes).unwrap())
             .unwrap();
 
-        let alarms_a = get_alarms();
-        assert_eq!(alarms_a.len(), 2);
-
-        let alarms_b = {
-            let txn = doc_b.transact();
-            arr_b.len(&txn)
-        };
-        assert_eq!(alarms_b, 2);
+        assert_eq!(get_alarms().len(), 2);
+        assert_eq!(alarms_in(&doc_b).len(), 2);
     }
 
     #[test]
@@ -628,20 +750,97 @@ mod tests {
     }
 
     #[test]
-    fn seed_from_local_skips_when_doc_has_alarms() {
+    fn seed_from_local_adds_to_timers_already_in_the_room() {
         player_doc::init_player_doc();
         player_doc::add_alarm(5, "local", "red");
 
-        // Doc already has alarms (e.g. restored from sessionStorage)
         reset();
         add_alarm(3, "existing", "pink");
 
         seed_from_local();
         let alarms = get_alarms();
-        // Should NOT have added the local alarm — Doc wasn't empty
-        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].name, "existing");
+        assert_eq!(alarms[1].name, "local");
 
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn seed_from_local_keeps_ids_and_does_not_duplicate_a_timer_already_shared() {
+        player_doc::init_player_doc();
+        player_doc::add_alarm_with_id("t1", 5, "local copy", "red");
+
+        // The room already holds this timer under the same id.
+        reset();
+        add_alarm_with_id("t1", 2, "room copy", "blue");
+
+        seed_from_local();
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].id, "t1");
+        assert_eq!(alarms[0].name, "room copy");
+        assert!(player_doc::get_alarms().is_empty());
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn a_second_session_between_the_same_players_does_not_double_timers() {
+        // Session 1: one player creates two shared timers; the session ends
+        // and each player keeps a copy (export_to_local on disconnect).
+        player_doc::init_player_doc();
+        reset();
+        add_alarm(3, "alpha", "red");
+        add_alarm(5, "beta", "blue");
+        let session_one = get_alarms();
+        export_to_local();
+        reset_doc();
+
+        // Session 2: this player seeds its copy into a fresh room doc...
+        seed_from_local();
+        // ...and so does the other player, whose copy has the same ids.
+        let other = peer_doc();
+        for (i, t) in session_one.iter().enumerate() {
+            add_timer_in(&other, &t.id, t.remaining, &t.name, &t.color_set);
+            assert_eq!(alarms_in(&other)[i].id, t.id);
+        }
+
+        // The two documents sync both ways, as on peer_joined.
+        CRDT_DOC.with(|cell| sync_both(&cell.borrow(), &other));
+
+        let merged: Vec<String> = get_alarms().into_iter().map(|a| a.name).collect();
+        assert_eq!(merged, ["alpha", "beta"]);
+        assert_eq!(names(&other), ["alpha", "beta"]);
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn timers_saved_before_ids_existed_get_one_when_shared() {
+        player_doc::init_player_doc();
+        player_doc::add_alarm_with_id("", 4, "legacy", "green");
+        assert_eq!(player_doc::get_alarms()[0].id, "");
+
+        reset();
+        seed_from_local();
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].name, "legacy");
+        assert!(is_valid_alarm_id(&alarms[0].id));
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn export_to_local_keeps_ids() {
+        player_doc::init_player_doc();
+        reset();
+        add_alarm_with_id("keep-me", 7, "shared timer", "yellow");
+        export_to_local();
+        let local = player_doc::get_alarms();
+        assert_eq!(local.len(), 1);
+        assert_eq!(local[0].id, "keep-me");
         player_doc::init_player_doc();
     }
 

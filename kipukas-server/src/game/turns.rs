@@ -10,6 +10,7 @@
 use crate::game::crdt;
 use crate::game::player_doc;
 use crate::game::room;
+use crate::routes::util::escape_html;
 
 /// Toggle alarm panel visibility.
 pub fn toggle_alarms_visibility() {
@@ -166,17 +167,19 @@ pub fn render_alarm_list() -> String {
         // Color dot
         html.push_str(&format!(r#"<span class="text-sm">{}</span>"#, dot));
 
-        // Name + countdown
+        // Name + countdown. In a room the name may have been typed by the
+        // other player, so it is escaped before it goes into markup.
+        let name = escape_html(&alarm.name);
         if alarm.remaining == 0 {
-            if alarm.name.is_empty() {
+            if name.is_empty() {
                 html.push_str(r#"<span class="text-sm font-bold">Complete!</span>"#);
             } else {
                 html.push_str(&format!(
                     r#"<span class="text-sm"><strong>{}</strong> — Complete!</span>"#,
-                    alarm.name
+                    name
                 ));
             }
-        } else if alarm.name.is_empty() {
+        } else if name.is_empty() {
             html.push_str(&format!(
                 r#"<span class="text-sm">Turns to Alarm: <strong>{}</strong></span>"#,
                 alarm.remaining
@@ -184,15 +187,16 @@ pub fn render_alarm_list() -> String {
         } else {
             html.push_str(&format!(
                 r#"<span class="text-sm"><strong>{}</strong> — {}</span>"#,
-                alarm.name, alarm.remaining
+                name, alarm.remaining
             ));
         }
 
-        // Remove button
+        // Remove button. Shared timers are removed by id (validated when the
+        // room document is read), solo timers by position.
         if multiplayer {
             html.push_str(&format!(
-                r#"<button class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" onclick="kipukasMultiplayer.removeTurn({})" aria-label="Remove timer">&#x2715;</button>"#,
-                i
+                r#"<button class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" onclick="kipukasMultiplayer.removeTurn('{}')" aria-label="Remove timer">&#x2715;</button>"#,
+                alarm.id
             ));
         } else {
             html.push_str(&format!(
@@ -354,9 +358,21 @@ mod tests {
         crdt::add_alarm(3, "", "blue");
         let html = render_alarm_list();
         assert!(html.contains("kipukasMultiplayer.tickTurns()"));
-        assert!(html.contains("kipukasMultiplayer.removeTurn(0)"));
+        // Shared timers are removed by id, not by position.
+        let id = crdt::get_alarms()[0].id.clone();
+        assert!(html.contains(&format!("kipukasMultiplayer.removeTurn('{}')", id)));
         assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
         crdt::reset_doc();
+        reset_state();
+    }
+
+    #[test]
+    fn timer_names_are_escaped() {
+        reset_state();
+        player_doc::add_alarm(3, "<img src=x onerror=alert(1)>", "red");
+        let html = render_alarm_list();
+        assert!(!html.contains("<img src=x"));
+        assert!(html.contains("&lt;img src=x onerror=alert(1)&gt;"));
         reset_state();
     }
 

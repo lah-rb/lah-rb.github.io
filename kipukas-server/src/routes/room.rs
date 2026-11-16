@@ -904,14 +904,14 @@ pub fn handle_yrs_restore_post(body: &str) -> String {
     }
 }
 
-/// POST /api/room/yrs/alarm/remove — remove an alarm by index via yrs CRDT.
+/// POST /api/room/yrs/alarm/remove — remove an alarm by id via yrs CRDT.
+/// Body: id=<timer id>
 /// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
 pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
     let params = parse_form_body(body);
-    let idx_str = get_param(&params, "index").unwrap_or("0");
-    let idx: u32 = idx_str.parse().unwrap_or(0);
+    let id = get_param(&params, "id").unwrap_or("");
 
-    let update = crdt::remove_alarm(idx);
+    let update = crdt::remove_alarm(id);
     // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
     crdt::export_to_local();
     let html = turns::render_alarm_list();

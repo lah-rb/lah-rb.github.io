@@ -806,12 +806,12 @@ const kipukasMultiplayer = {
     console.log('[multiplayer] Ticked turns via yrs CRDT');
   },
 
-  /** Remove a turn timer by index via yrs CRDT. */
-  removeTurn(index) {
+  /** Remove a shared turn timer by its id via yrs CRDT. */
+  removeTurn(id) {
     postToWasmWithCallback(
       'POST',
       '/api/room/yrs/alarm/remove',
-      'index=' + index,
+      'id=' + encodeURIComponent(id),
       (response) => {
         try {
           const result = JSON.parse(response);
@@ -829,7 +829,7 @@ const kipukasMultiplayer = {
         }
       },
     );
-    console.log('[multiplayer] Removed turn via yrs CRDT, index=' + index);
+    console.log('[multiplayer] Removed turn via yrs CRDT, id=' + id);
   },
 
   /** Check if currently connected to a peer. */
