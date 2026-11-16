@@ -14,8 +14,8 @@
  * HTML onclick handlers.
  */
 
-// Signaling server WebSocket URL (Deno Deploy)
-const SIGNAL_WS_URL = 'wss://signal.kipukas.deno.net/ws';
+// Relay address: defined once in kipukas-api.js (globalThis.kipukasRelayUrl).
+const SIGNAL_WS_URL = globalThis.kipukasRelayUrl();
 
 const SESSION_KEY = 'kipukas_room';
 const CRDT_STATE_KEY = 'kipukas_crdt_state';

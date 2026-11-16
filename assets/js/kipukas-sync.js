@@ -10,7 +10,8 @@
  * Exposed globally as window.kipukasSync.
  */
 
-const SIGNAL_WS_URL = 'wss://signal.kipukas.deno.net/ws';
+// Relay address: defined once in kipukas-api.js (globalThis.kipukasRelayUrl).
+const SIGNAL_WS_URL = globalThis.kipukasRelayUrl();
 
 let ws = null;
 let syncRoomCode = '';

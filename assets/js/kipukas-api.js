@@ -21,6 +21,25 @@
  * Load this script with defer in _layouts/default.html.
  */
 
+// ============================================
+// RELAY ADDRESS — single source of truth
+// ============================================
+// The multiplayer / device-sync relay address lives here because every page
+// that can hold a room loads this file: the Jekyll layout and the standalone
+// rules book. Moving the relay to another host is a change to this one line.
+//
+// For local work, point at a local relay without editing code:
+//   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
+const KIPUKAS_RELAY_URL = 'wss://signal.kipukas.deno.net/ws';
+
+globalThis.kipukasRelayUrl = function () {
+  try {
+    const override = localStorage.getItem('kipukas_relay_url');
+    if (override && /^wss?:\/\//.test(override)) return override;
+  } catch (_) { /* storage unavailable — use the default */ }
+  return KIPUKAS_RELAY_URL;
+};
+
 // Spawn the WASM Web Worker (module worker for ES import support)
 const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' });
 
