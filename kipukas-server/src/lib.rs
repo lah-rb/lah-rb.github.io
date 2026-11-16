@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn routes_qr_found() {
         let html = handle_request("GET", "/api/qr/found", "?url=kpks.us%2Ftest", "");
-        assert!(html.contains("kipukas.cards/test"));
+        assert!(html.contains("window.location.assign('/test')"));
     }
 
     #[test]

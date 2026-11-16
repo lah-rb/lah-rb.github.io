@@ -13,6 +13,8 @@
 /// Query params for /api/qr/found:
 ///   url — the decoded QR URL to validate and display
 
+use crate::cards_generated::CARDS;
+
 // ── SVG icon constants ─────────────────────────────────────────────
 
 const SVG_EYE_OFF: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-9 h-9 scale-95 fill-transparent stroke-slate-100 hover:stroke-kip-red active:stroke-kip-drk-sienna stroke-2 m-2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>"#;
@@ -71,30 +73,60 @@ fn hex_val(b: u8) -> Option<u8> {
 
 // ── URL validation ─────────────────────────────────────────────────
 
-/// Validate and normalize a decoded QR URL.
-/// Only accepts kipukas domains (kpks.us, kipukas.cards).
-/// Returns the normalized https://www.kipukas.cards/ URL on success.
-fn validate_kipukas_url(raw: &str) -> Result<String, &'static str> {
+/// The Kipukas addresses a QR code may carry.
+const KIPUKAS_PREFIXES: [&str; 7] = [
+    "kpks.us/",
+    "https://kpks.us/",
+    "https://www.kpks.us/",
+    "http://kpks.us/",
+    "http://www.kpks.us/",
+    "https://www.kipukas.cards/",
+    "https://kipukas.cards/",
+];
+
+/// The path part of a decoded QR address, without leading slashes.
+/// Only Kipukas addresses are accepted (kpks.us, kipukas.cards).
+fn kipukas_path(raw: &str) -> Result<&str, &'static str> {
     let url = raw.trim();
-    // Match patterns: kpks.us/..., https://kpks.us/...,
-    // https://www.kpks.us/..., https://www.kipukas.cards/...
-    if let Some(path) = url.strip_prefix("kpks.us/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else if let Some(path) = url.strip_prefix("https://kpks.us/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else if let Some(path) = url.strip_prefix("https://www.kpks.us/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else if let Some(path) = url.strip_prefix("http://kpks.us/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else if let Some(path) = url.strip_prefix("http://www.kpks.us/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else if url.starts_with("https://www.kipukas.cards/") {
-        Ok(url.to_string())
-    } else if let Some(path) = url.strip_prefix("https://kipukas.cards/") {
-        Ok(format!("https://www.kipukas.cards/{}", path))
-    } else {
-        Err("Invalid QR code — not a Kipukas URL")
+    KIPUKAS_PREFIXES
+        .iter()
+        .find_map(|prefix| url.strip_prefix(prefix))
+        // "kpks.us//other.site/x" must not turn into the protocol-relative
+        // address "//other.site/x".
+        .map(|path| path.trim_start_matches('/'))
+        .ok_or("Invalid QR code — not a Kipukas URL")
+}
+
+/// Where a scanned address takes the player, as a path on this site.
+///
+/// A card's short code (what the printed QR codes carry) or its slug resolves
+/// straight to the card page. Going to the short-code address instead would
+/// load a redirect stub first and the card second: two full page loads, each
+/// of which restarts the game engine and the multiplayer connection.
+///
+/// Anything else on the site is passed through as a relative path, provided
+/// it is made only of characters that are safe inside the navigation script.
+/// The address comes from whatever QR code the camera saw, so it is not
+/// trusted.
+fn destination(path: &str) -> Result<String, &'static str> {
+    let first_segment = path.split(['/', '?', '#']).next().unwrap_or("");
+    if let Some(card) = CARDS
+        .iter()
+        .find(|c| (!c.code.is_empty() && c.code == first_segment) || c.slug == first_segment)
+    {
+        return Ok(card.url.to_string());
     }
+    if path.bytes().all(is_safe_path_byte) {
+        Ok(format!("/{}", path))
+    } else {
+        Err("Invalid QR code — unrecognised address")
+    }
+}
+
+/// Characters allowed in a pass-through path. None of them can end the
+/// quoted string or the script element the path is written into.
+fn is_safe_path_byte(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b"-_./?=&#%".contains(&b)
 }
 
 // ── Route handlers ─────────────────────────────────────────────────
@@ -127,8 +159,8 @@ pub fn handle_found(query: &str) -> String {
         None => return error_html("No URL provided in QR decode result"),
     };
 
-    match validate_kipukas_url(&raw_url) {
-        Ok(normalized) => found_html(&normalized),
+    match kipukas_path(&raw_url).and_then(destination) {
+        Ok(path) => found_html(&path),
         Err(msg) => error_html(msg),
     }
 }
@@ -229,18 +261,21 @@ fn scanning_ui() -> String {
     )
 }
 
-fn found_html(url: &str) -> String {
-    // Return HTML that stops scanning and redirects to the card page.
-    // The script tag handles immediate navigation.
+/// Stop scanning and go to `path`, a path on this site (see `destination`:
+/// a card's own url, or one that passed the safe-character check).
+///
+/// The path is relative, so a scan stays on whatever origin the site is
+/// being served from, including a local build.
+fn found_html(path: &str) -> String {
     format!(
         r##"<div class="p-2 text-center">
   <span class="text-kip-drk-sienna font-semibold">QR Code Found!</span>
 </div>
 <script>
   kipukasQR.stop();
-  window.location.href = '{}';
+  window.location.assign('{}');
 </script>"##,
-        url
+        path
     )
 }
 
@@ -284,56 +319,41 @@ mod tests {
         assert_eq!(percent_decode("no-encoding"), "no-encoding");
     }
 
-    // -- validate_kipukas_url --
+    // -- kipukas_path --
 
     #[test]
-    fn valid_kpks_short() {
-        assert_eq!(
-            validate_kipukas_url("kpks.us/some-card"),
-            Ok("https://www.kipukas.cards/some-card".to_string())
-        );
+    fn every_kipukas_address_form_yields_its_path() {
+        for address in [
+            "kpks.us/some-card",
+            "https://kpks.us/some-card",
+            "https://www.kpks.us/some-card",
+            "http://kpks.us/some-card",
+            "http://www.kpks.us/some-card",
+            "https://www.kipukas.cards/some-card",
+            "https://kipukas.cards/some-card",
+            "  kpks.us/some-card  ",
+        ] {
+            assert_eq!(kipukas_path(address), Ok("some-card"), "{}", address);
+        }
     }
 
     #[test]
-    fn valid_kpks_https() {
+    fn leading_slashes_are_dropped_so_a_scan_cannot_leave_the_site() {
+        assert_eq!(kipukas_path("kpks.us//other.site/x"), Ok("other.site/x"));
         assert_eq!(
-            validate_kipukas_url("https://www.kpks.us/some-card"),
-            Ok("https://www.kipukas.cards/some-card".to_string())
-        );
-    }
-
-    #[test]
-    fn valid_kpks_no_www() {
-        assert_eq!(
-            validate_kipukas_url("https://kpks.us/some-card"),
-            Ok("https://www.kipukas.cards/some-card".to_string())
-        );
-    }
-
-    #[test]
-    fn valid_kipukas_cards() {
-        assert_eq!(
-            validate_kipukas_url("https://www.kipukas.cards/some-card"),
-            Ok("https://www.kipukas.cards/some-card".to_string())
-        );
-    }
-
-    #[test]
-    fn valid_kipukas_no_www() {
-        assert_eq!(
-            validate_kipukas_url("https://kipukas.cards/some-card"),
-            Ok("https://www.kipukas.cards/some-card".to_string())
+            destination(kipukas_path("kpks.us//other.site/x").unwrap()),
+            Ok("/other.site/x".to_string())
         );
     }
 
     #[test]
     fn invalid_url_rejected() {
-        assert!(validate_kipukas_url("https://evil.com/phish").is_err());
+        assert!(kipukas_path("https://evil.com/phish").is_err());
     }
 
     #[test]
     fn empty_url_rejected() {
-        assert!(validate_kipukas_url("").is_err());
+        assert!(kipukas_path("").is_err());
     }
 
     // -- handle_status --
@@ -367,12 +387,97 @@ mod tests {
 
     // -- handle_found --
 
+    /// A real card and its short code, taken from the compiled catalog.
+    fn a_card() -> &'static crate::cards_generated::Card {
+        CARDS
+            .iter()
+            .find(|c| c.slug == "brox_the_defiant")
+            .expect("brox_the_defiant is in the catalog")
+    }
+
     #[test]
-    fn found_valid_url_redirects() {
-        let html = handle_found("?url=https%3A%2F%2Fkpks.us%2Fmy-card");
+    fn every_card_has_a_unique_four_character_code() {
+        let mut codes: Vec<&str> = CARDS.iter().map(|c| c.code).collect();
+        assert!(codes.iter().all(|c| c.len() == 4), "{:?}", codes);
+        codes.sort();
+        let total = codes.len();
+        codes.dedup();
+        assert_eq!(codes.len(), total, "short codes must be unique");
+    }
+
+    #[test]
+    fn a_scanned_short_code_goes_straight_to_the_card_page() {
+        let card = a_card();
+        let html = handle_found(&format!("?url=kpks.us%2F{}", card.code));
         assert!(html.contains("QR Code Found"));
-        assert!(html.contains("https://www.kipukas.cards/my-card"));
-        assert!(html.contains("window.location.href"));
+        assert!(html.contains("kipukasQR.stop()"));
+        assert!(html.contains("window.location.assign('/brox_the_defiant/')"));
+        // Not the redirect stub, and not a fixed domain.
+        assert!(!html.contains(&format!("/{}'", card.code)));
+        assert!(!html.contains("kipukas.cards"));
+    }
+
+    #[test]
+    fn every_address_form_of_a_short_code_resolves_the_same() {
+        let card = a_card();
+        for prefix in KIPUKAS_PREFIXES {
+            let address = format!("{}{}", prefix, card.code);
+            let html = handle_found(&format!("?url={}", address.replace('/', "%2F").replace(':', "%3A")));
+            assert!(html.contains("assign('/brox_the_defiant/')"), "{}", address);
+        }
+    }
+
+    #[test]
+    fn a_scanned_slug_goes_to_the_card_page() {
+        let html = handle_found("?url=https%3A%2F%2Fwww.kipukas.cards%2Fbrox_the_defiant%2F");
+        assert!(html.contains("window.location.assign('/brox_the_defiant/')"));
+    }
+
+    #[test]
+    fn short_codes_are_case_sensitive() {
+        let card = a_card();
+        let wrong_case = if card.code == card.code.to_lowercase() {
+            card.code.to_uppercase()
+        } else {
+            card.code.to_lowercase()
+        };
+        let html = handle_found(&format!("?url=kpks.us%2F{}", wrong_case));
+        assert!(!html.contains("assign('/brox_the_defiant/')"));
+    }
+
+    #[test]
+    fn another_page_on_the_site_is_reached_by_its_relative_path() {
+        let html = handle_found("?url=https%3A%2F%2Fkpks.us%2Fgame_rules%2Findex.html");
+        assert!(html.contains("window.location.assign('/game_rules/index.html')"));
+        let html = handle_found("?url=kpks.us%2Fa-card");
+        assert!(html.contains("window.location.assign('/a-card')"));
+        assert!(!html.contains("kipukas.cards"));
+    }
+
+    #[test]
+    fn an_address_that_could_break_out_of_the_script_is_refused() {
+        for path in [
+            "');alert(1);//",
+            "x%27%29%3Balert%281%29%3B",
+            "</script><script>alert(1)</script>",
+            "a b",
+            "a\\b",
+            "a\"b",
+        ] {
+            let url = format!("kpks.us/{}", path);
+            let encoded: String = url
+                .bytes()
+                .map(|b| format!("%{:02X}", b))
+                .collect();
+            let html = handle_found(&format!("?url={}", encoded));
+            if path.starts_with("x%27") {
+                // Still percent-encoded after one decode: harmless characters only.
+                assert!(html.contains("assign('/x%27%29%3Balert%281%29%3B')"), "{}", html);
+            } else {
+                assert!(html.contains("text-kip-red"), "should refuse {:?}: {}", path, html);
+                assert!(!html.contains("<script>"), "{:?}", path);
+            }
+        }
     }
 
     #[test]
@@ -388,9 +493,4 @@ mod tests {
         assert!(html.contains("No URL provided"));
     }
 
-    #[test]
-    fn found_short_url() {
-        let html = handle_found("?url=kpks.us%2Fa-card");
-        assert!(html.contains("https://www.kipukas.cards/a-card"));
-    }
 }

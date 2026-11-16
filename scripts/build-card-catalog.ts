@@ -225,6 +225,9 @@ async function main() {
     "    pub motivation: Option<&'static str>,",
     "    pub habitat: Option<&'static str>,",
     "    pub url: &'static str,",
+    "    // 4-character short code printed in the card's QR code (its redirect_from).",
+    '    // Lets a scan resolve straight to the card page without the redirect stub.',
+    "    pub code: &'static str,",
     '    // Phase 3b game data',
     '    pub injury_tolerance: u8,',
     "    pub keal_means: &'static [KealMeans],",
@@ -288,6 +291,7 @@ async function main() {
     lines.push(`        motivation: ${optionStr(card.motivation)},`);
     lines.push(`        habitat: ${optionStr(card.habitat)},`);
     lines.push(`        url: "${escapeRust(card.url)}",`);
+    lines.push(`        code: "${escapeRust(card.code)}",`);
     lines.push(`        injury_tolerance: ${card.injury_tolerance},`);
     lines.push(`        keal_means: ${kealRef},`);
     lines.push(`        movement: ${card.movement},`);
