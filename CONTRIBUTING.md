@@ -748,7 +748,7 @@ Features are grouped by priority. Items marked *post-launch* require the game to
 Embed the room code in a QR code so scanning joins the room directly. This connects two existing features (QR scanner + multiplayer) with minimal new code. The flow: Player A creates a room → room code appears as both text and a QR. Player B scans the QR → auto-joins the room. The QR URL format could be `kpks.us/join?code=ABCD#room=myroom` with a redirect that passes the code to the multiplayer module.
 
 #### 2. Deck Builder / Hand Management
-**Requires:** Decentralized Identity & Authentication (feature #4) for persistent deck storage.
+**Requires:** Decentralized Identity & Authentication for persistent deck storage.
 
 Allow players to compose multiple named decks (e.g., "Main Deck", "Dragon Rush") and cycle through cards during a match without page navigation.
 
@@ -784,7 +784,7 @@ Propose an NFT brokered trade of cards marked in deck. Requires the game to be p
 #### 7. Spectator Mode
 Allow a third peer to observe a match via a read-only WebSocket connection. Architecturally simple (receive-only relay, no submissions) but requires rooms to support >2 peers. Low priority until competitive, streaming, or particularly compelling (active, visual, and exciting) use cases emerge.
 
-#### 8. Provide Kippa Tools
+#### 8. Provide Kippa More Tools
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
 
 #### 9. Incubation Bonus & Tameability Refinement
