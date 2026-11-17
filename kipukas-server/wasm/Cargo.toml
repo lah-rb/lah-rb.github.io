@@ -1,0 +1,20 @@
+[package]
+name = "kipukas-server-wasm"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# The engine (the crate one folder up) as the WASM module the browser loads.
+# See the note in ../Cargo.toml for why this is a crate of its own.
+#
+# Build it with `deno task build:wasm`, which names the output `kipukas_server`
+# (the name the site's scripts import). Build settings are in ../Cargo.toml:
+# a workspace takes its profiles from its root.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+kipukas-server = { path = ".." }
+# Not used in this crate's code. wasm-pack reads it to pick the wasm-bindgen
+# tool that matches the engine's.
+wasm-bindgen = "0.2"

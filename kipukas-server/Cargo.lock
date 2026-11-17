@@ -433,6 +433,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "kipukas-server-wasm"
+version = "0.1.0"
+dependencies = [
+ "kipukas-server",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.182"
 source = "registry+https://github.com/rust-lang/crates.io-index"

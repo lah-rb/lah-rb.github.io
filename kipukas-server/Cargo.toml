@@ -3,8 +3,19 @@ name = "kipukas-server"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-crate-type = ["cdylib"]
+# The engine is an ordinary Rust library. Two things are built from it:
+#
+#   - wasm/ wraps it as the WASM module the browser loads
+#     (`deno task build:wasm`).
+#   - src/bin/card-pages.rs runs it natively at build time to write the card
+#     pages (`deno task build:cards`).
+#
+# The WASM module is a crate of its own, not a second crate-type of this one,
+# because Cargo does not run link-time optimisation (see [profile.release]) on
+# a library that is both `cdylib` and `rlib`. Measured here, that made the
+# module 230 KB larger.
+[workspace]
+members = ["wasm"]
 
 [dependencies]
 wasm-bindgen = "0.2"
