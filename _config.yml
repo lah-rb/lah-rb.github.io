@@ -45,6 +45,13 @@ include:
   - _about
 
 exclude:
+  # Card files. Jekyll does not build card pages: it renders one card shell
+  # (card-shell.html) and the engine writes a page for each card from it
+  # after every build (_plugins/card_pages.rb, kipukas-server/src/site.rs).
+  # The card files are read by scripts/build-card-catalog.ts only.
+  - _posts/
+  - 404.html
+  - fourohfour.html
   - kipukas-server/
   - signaling-server/
   - node_modules/

@@ -3,7 +3,7 @@
         x-anchor.right-end.offset.10="$refs.filter"
         x-transition.duration.350ms
         class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden transition-opacity duration-300">
-        <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :checked="filter.all" @click="filter.all = !filter.all; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="All" checked><label for="All">Show All - <strong>{{ site.posts.size }}</strong></label></div>
+        <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :checked="filter.all" @click="filter.all = !filter.all; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="All" checked><label for="All">Show All - <strong>{{ site.data.card_catalog.count }}</strong></label></div>
         <button type="button" class="flex w-full items-center text-left" @click="showVariation = !showVariation" :aria-expanded="showVariation" aria-controls="filter-variations">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                 :class="{ 'rotate-90': showVariation }"

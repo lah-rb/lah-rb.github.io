@@ -1,7 +1,35 @@
 ---
 layout: default
+permalink: /card-shell.html
+sitemap: false
+card_shell: true
 ---
-<div x-data="{ showCardInfo: true }">
+{% comment %}
+  The card shell: the page every card is shown in, with holes where the card
+  goes. Jekyll builds this one page; it does not build card pages.
+
+  After every Jekyll build the engine (kipukas-server/src/site.rs, started by
+  _plugins/card_pages.rb) fills a copy of the shell for each card and writes
+  it to the card's address. The shell itself is not written to the site.
+  The holes:
+
+    [[card.head]]       title, description, address and structured data
+                        (in _layouts/default.html)
+    [[card.slug]]       the card's slug, e.g. brox_the_defiant
+    [[card.image]]      the file name of its art
+    [[card.landscape]]  true or false: is the art wider than tall
+    [[card.panel]]      the card's detail panel, as the engine renders it with
+                        no player state
+
+  The panel is an engine-owned view (assets/js/kipukas-view.js): in the browser
+  it is rendered again from the same code with the player's state (damage) and
+  patched in place. So what is here must be what the engine renders, which is
+  why the engine writes it.
+
+  Anything that differs between cards must come through a hole. The build
+  fails if a hole is missing, misspelled, or left unfilled.
+{% endcomment %}
+<div x-data="{ showCardInfo: true, landscapeArt: [[card.landscape]] }">
   {% include toolbar.html
     qr_scanner=true
     local_fists_tool=true
@@ -15,6 +43,7 @@ layout: default
     multiplayer_turn_tool=true
     goHome=true
     hamburger=true
+    card_slug='[[card.slug]]'
     base_fill='fill-slate-200'
     base_stroke='stroke-slate-200'
   %}
@@ -33,19 +62,14 @@ layout: default
          bar hides and shrinks when it returns; object-cover then re-crops the art, which
          shows as the image shifting and zooming while scrolling. At the largest height the
          size never changes: with the bar showing, the bottom edge is simply off-screen. -->
-    <img aria-hidden="true" src="{{ '/assets/images/' | append: page.img_name | append: '?d=512' }}"
+    <img aria-hidden="true" src="/assets/images/[[card.image]]?d=512"
       class="fixed top-0 left-0 -z-10 w-full h-lvh object-cover">
-    <img aria-hidden="true" src="{{ '/assets/images/' | append: page.img_name }}"
+    <img aria-hidden="true" src="/assets/images/[[card.image]]"
       class="fixed top-0 left-0 -z-10 w-full h-lvh object-cover opacity-0 transition-opacity duration-700"
       onload="this.classList.remove('opacity-0')">
     <div x-show="showCardInfo" class="relative w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
-        <div data-card-detail class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">
-          <h1 class="z-30 text-2xl relative top-0 md:text-4xl py-5 place-self-center text-center">{{ page.title }}</h1>
-          {{ content }}
-          <p class="font-hairline text-slate-200 text-sm mt-6">{{ page.promotion }}</p>
-          <p class="font-hairline text-slate-300 text-xs italic">{{ page.promotion_conditions }}</p>
-        </div>
+        <div data-card-detail data-engine-view="/api/card/panel?card=[[card.slug]]" class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">[[card.panel]]</div>
       </div>
     </div>
   </div>

@@ -1,10 +1,16 @@
 /**
  * build-card-catalog.ts
  *
- * Reads all _posts/*.html front matter and generates a Rust source file
- * (kipukas-server/src/cards_generated.rs) containing the card catalog
- * as a static array. This is compiled into the WASM binary so the
- * /api/cards route can filter and paginate without any runtime data loading.
+ * Reads the front matter of every card file (_posts/*.html, plus the two
+ * root-level card files in EXTRA_CARD_FILES) and generates a Rust source file
+ * (kipukas-server/src/cards_generated.rs) containing the card catalog as a
+ * static array. It is compiled into the engine, which uses it both in the
+ * browser (WASM: the card grid, card panels, game state) and at build time
+ * (native: it writes every card's page, see kipukas-server/src/site.rs).
+ *
+ * Jekyll does not read the card files. Their front matter keys keep their
+ * Jekyll names (layout = the card's type, permalink = its address,
+ * redirect_from = its short code).
  *
  * Phase 3b: Extended to include game data (keal_means, injury_tolerance,
  * movement, die, brawl_sequence) for the WASM game state module.
@@ -46,6 +52,11 @@ interface CardMeta {
   tamability: number | null;
   // Hidden from /api/cards browse grid (e.g. the /fourohfour easter-egg card)
   hidden: boolean;
+  // The art is wider than tall. The card page tints its toolbar differently.
+  landscape: boolean;
+  // The day the card was added (YYYY-MM-DD), from its file name. Null for the
+  // root-level card files, which carry no date.
+  added: string | null;
   // Kippa context fields (JSON export only, not in Rust)
   description: string | null;
   play_style: string | null;
@@ -124,9 +135,18 @@ function extractKealMeans(fm: Record<string, any>): KealMeans[] {
 
 const THUMB_ANCHORS = ['top', 'center', 'bottom'];
 
-// Root-level card pages that live outside _posts but still need a tracker.
-// Explicit allowlist keeps 404.html and other root pages from being registered.
-const EXTRA_CARD_FILES = ['fourohfour.html'];
+// Card files that live at the root instead of in _posts. Both show the
+// 404 Glitch: fourohfour.html is the playable card (reached by its QR code),
+// 404.html is the site's not-found page (no tracker, and a promotion).
+// An explicit list keeps other root pages from being read as cards.
+const NOT_FOUND_FILE = '404.html';
+const EXTRA_CARD_FILES = ['fourohfour.html', NOT_FOUND_FILE];
+
+/** `2023-04-03-timebattle.html` → `2023-04-03`; null if the name has no date. */
+function dateOf(fileName: string): string | null {
+  const match = fileName.match(/^(\d{4}-\d{2}-\d{2})-/);
+  return match ? match[1] : null;
+}
 
 /**
  * Parse a single card's front matter into a CardMeta, or return null if it is
@@ -140,7 +160,8 @@ function extractCard(name: string, content: string): CardMeta | null {
     return null;
   }
 
-  const slug = String(fm.permalink).replace(/\//g, '');
+  // /timebattle/ → timebattle, /fourohfour → fourohfour, /404.html → 404
+  const slug = String(fm.permalink).replace(/\//g, '').replace(/\.html$/, '');
 
   const img_name = String(fm.img_name);
   const thumbnail = THUMB_ANCHORS.includes(String(fm.thumbnail)) ? String(fm.thumbnail) : 'center';
@@ -166,6 +187,8 @@ function extractCard(name: string, content: string): CardMeta | null {
     brawl_sequence: fm.brawl_sequence ? String(fm.brawl_sequence) : '',
     tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
     hidden: fm.hidden === true,
+    landscape: fm.landscape === true,
+    added: dateOf(name),
     // Kippa context fields
     description: fm.description ? String(fm.description).trim() : null,
     play_style: fm.play_style ? String(fm.play_style).trim() : null,
@@ -285,6 +308,10 @@ async function main() {
     '    pub tamability: Option<u32>,',
     '    // Hidden from the /api/cards browse grid (e.g. the /fourohfour easter-egg card)',
     '    pub hidden: bool,',
+    '    // The art is wider than tall.',
+    '    pub landscape: bool,',
+    '    // The day the card was added, YYYY-MM-DD (from its file name), if known.',
+    "    pub added: Option<&'static str>,",
     '}',
     '',
   ];
@@ -360,6 +387,8 @@ async function main() {
     lines.push(`        brawl_sequence: "${escapeRust(card.brawl_sequence)}",`);
     lines.push(`        tamability: ${optionU32(card.tamability)},`);
     lines.push(`        hidden: ${card.hidden},`);
+    lines.push(`        landscape: ${card.landscape},`);
+    lines.push(`        added: ${optionStr(card.added)},`);
     lines.push('    },');
   }
 
@@ -376,8 +405,10 @@ async function main() {
     } cards`,
   );
 
-  // Also emit a JSON catalog for Kippa (LLM tool context)
-  const jsonCards = cards.map((c) => ({
+  // Also emit a JSON catalog for Kippa (LLM tool context). The not-found page
+  // is left out: it shows the same card as /fourohfour.
+  const notFoundSlug = NOT_FOUND_FILE.replace(/\.html$/, '');
+  const jsonCards = cards.filter((c) => c.slug !== notFoundSlug).map((c) => ({
     slug: c.slug,
     title: c.title,
     type: c.layout,
@@ -405,6 +436,14 @@ async function main() {
   const jsonPath = join(Deno.cwd(), 'kipukas-server', 'cards_catalog.json');
   await Deno.writeTextFile(jsonPath, JSON.stringify(jsonCards, null, 2));
   console.log(`[build-card-catalog] JSON catalog: ${jsonCards.length} cards → ${jsonPath}`);
+
+  // The one thing Jekyll needs to know about the cards: how many the binder
+  // shows (the filter menu's "Show All" count). Jekyll does not read the card
+  // files, so it gets the number as a data file: site.data.card_catalog.count.
+  const jekyllDataPath = join(Deno.cwd(), '_data', 'card_catalog.json');
+  const shown = cards.filter((c) => !c.hidden).length;
+  await Deno.writeTextFile(jekyllDataPath, JSON.stringify({ count: shown }) + '\n');
+  console.log(`[build-card-catalog] Jekyll data: ${shown} cards shown → ${jekyllDataPath}`);
 
   // Hand-view index: maps each card's compact 4-char code → the data the
   // /hand/ page needs to build a pane (art + title) and fetch its fragment.

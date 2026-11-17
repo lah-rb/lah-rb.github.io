@@ -397,7 +397,14 @@ mod tests {
 
     #[test]
     fn every_card_has_a_unique_four_character_code() {
-        let mut codes: Vec<&str> = CARDS.iter().map(|c| c.code).collect();
+        // All but the site's not-found page, which is not a printed card and
+        // has no QR code.
+        let mut codes: Vec<&str> = CARDS
+            .iter()
+            .filter(|c| c.url != "/404.html")
+            .map(|c| c.code)
+            .collect();
+        assert_eq!(codes.len(), CARDS.len() - 1);
         assert!(codes.iter().all(|c| c.len() == 4), "{:?}", codes);
         codes.sort();
         let total = codes.len();

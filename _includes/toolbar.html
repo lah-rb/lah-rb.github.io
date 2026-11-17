@@ -8,6 +8,7 @@ lastPage
 logo
 goHome
 hideTools
+card_slug    (the card a card page shows; the fists tool fights with it)
 base_fill
 base_stroke
 background_color
@@ -86,12 +87,11 @@ background_color
     {% endif %}
 
     {% if include.multiplayer_fists_tool %}
-      {% capture cardSlugFists %}{{ page.permalink | remove: '/' }}{% endcapture %}
       {% include multiplayer_fists_tool.html
           svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
           menuClass=anchor-menu
           base_fill=base_fill
-          card_slug=cardSlugFists
+          card_slug=include.card_slug
       %}
     {% endif %}
 
@@ -129,12 +129,10 @@ background_color
     {% endif %}
 
     {% if include.multiplayer %}
-      {% capture cardSlugMP %}{{ page.permalink | remove: '/' }}{% endcapture %}
       {% include multiplayer.html
         svgClass='h-12 w-12 z-auto hover:fill-kip-red active:fill-kip-drk-sienna'
         menuClass=anchor-menu
         base_fill=base_fill
-        card_slug=cardSlugMP
       %}
     {% endif %}
 
@@ -151,7 +149,6 @@ background_color
     {% endif %}
 
     {% if include.damage_tracker %}
-      {% capture cardSlug %}{{ page.permalink | remove: '/' }}{% endcapture %}
       <div x-data="{ showKealModal: false }">
         <button @click="showKealModal = !showKealModal" class="toolbar-tile">
           <svg xmlns="http://www.w3.org/2000/svg"

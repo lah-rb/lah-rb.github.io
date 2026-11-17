@@ -51,6 +51,10 @@ pub struct Card {
     pub tamability: Option<u32>,
     // Hidden from the /api/cards browse grid (e.g. the /fourohfour easter-egg card)
     pub hidden: bool,
+    // The art is wider than tall.
+    pub landscape: bool,
+    // The day the card was added, YYYY-MM-DD (from its file name), if known.
+    pub added: Option<&'static str>,
 }
 
 static GENETICS_0: &[&str] = &["Glitch"];
@@ -107,38 +111,38 @@ static GENETICS_50: &[&str] = &["Cenozoic", "Mechanical"];
 static GENETICS_51: &[&str] = &["Glitch"];
 
 static KEAL_0: &[KealMeans] = &[KealMeans { name: "Digital lost and found", genetics: GENETICS_0, count: 1 }];
-static KEAL_1: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_1, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_2, count: 1 }];
-static KEAL_2: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_3, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_4, count: 1 }];
-static KEAL_3: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_5, count: 1 }];
-static KEAL_5: &[KealMeans] = &[KealMeans { name: "(in capital) Security Hacking", genetics: GENETICS_6, count: 1 }];
-static KEAL_6: &[KealMeans] = &[KealMeans { name: "Deceptive Mirror", genetics: GENETICS_7, count: 1 }, KealMeans { name: "Ensnaring Branches", genetics: GENETICS_8, count: 1 }];
-static KEAL_7: &[KealMeans] = &[KealMeans { name: "Crushing Hope", genetics: GENETICS_9, count: 1 }, KealMeans { name: "Chain Raid", genetics: GENETICS_10, count: 2 }];
-static KEAL_14: &[KealMeans] = &[KealMeans { name: "Sharp Waxy Fur", genetics: GENETICS_11, count: 1 }];
-static KEAL_15: &[KealMeans] = &[KealMeans { name: "Haunted Howl Coordination", genetics: GENETICS_12, count: 1 }];
-static KEAL_17: &[KealMeans] = &[KealMeans { name: "King's Mojo", genetics: GENETICS_13, count: 1 }];
-static KEAL_19: &[KealMeans] = &[KealMeans { name: "Ancient Forest Scythe", genetics: GENETICS_14, count: 1 }, KealMeans { name: "Mutter of Dorsay", genetics: GENETICS_15, count: 1 }, KealMeans { name: "Burial Slumber", genetics: GENETICS_16, count: 1 }];
-static KEAL_21: &[KealMeans] = &[KealMeans { name: "Long Sword's Eternal Vision", genetics: GENETICS_17, count: 1 }];
-static KEAL_22: &[KealMeans] = &[KealMeans { name: "Defensive Sword", genetics: GENETICS_18, count: 1 }, KealMeans { name: "Gossamer Wings", genetics: GENETICS_19, count: 1 }];
-static KEAL_23: &[KealMeans] = &[KealMeans { name: "Dark Hope Maw", genetics: GENETICS_20, count: 1 }];
-static KEAL_27: &[KealMeans] = &[KealMeans { name: "Thwarting Dagger", genetics: GENETICS_21, count: 1 }, KealMeans { name: "Grotesk Wings", genetics: GENETICS_22, count: 1 }];
-static KEAL_29: &[KealMeans] = &[KealMeans { name: "Scout's Vision", genetics: GENETICS_23, count: 1 }, KealMeans { name: "Symbiont Barrage", genetics: GENETICS_24, count: 1 }];
-static KEAL_30: &[KealMeans] = &[KealMeans { name: "Quick Inject", genetics: GENETICS_25, count: 2 }];
-static KEAL_32: &[KealMeans] = &[KealMeans { name: "Ghostly Wisdom", genetics: GENETICS_26, count: 1 }];
-static KEAL_33: &[KealMeans] = &[KealMeans { name: "Osileth's Scale", genetics: GENETICS_27, count: 1 }, KealMeans { name: "Oshliath's Flame", genetics: GENETICS_28, count: 1 }];
-static KEAL_35: &[KealMeans] = &[KealMeans { name: "Sick Head", genetics: GENETICS_29, count: 1 }, KealMeans { name: "Rusting Sword", genetics: GENETICS_30, count: 1 }, KealMeans { name: "Dreaded Scratch", genetics: GENETICS_31, count: 1 }];
-static KEAL_37: &[KealMeans] = &[KealMeans { name: "Superficial Deck", genetics: GENETICS_32, count: 1 }, KealMeans { name: "Split Dimension Creeper", genetics: GENETICS_33, count: 1 }];
-static KEAL_38: &[KealMeans] = &[KealMeans { name: "Humming Arboreal Mass", genetics: GENETICS_34, count: 1 }, KealMeans { name: "Thriving Toxic Buds", genetics: GENETICS_35, count: 1 }];
-static KEAL_39: &[KealMeans] = &[KealMeans { name: "Vegan Chicken", genetics: GENETICS_36, count: 1 }];
-static KEAL_40: &[KealMeans] = &[KealMeans { name: "Digi-frying Breath", genetics: GENETICS_37, count: 1 }, KealMeans { name: "Dragon Core Codebase", genetics: GENETICS_38, count: 1 }, KealMeans { name: "Core Radiation Leak", genetics: GENETICS_39, count: 1 }];
-static KEAL_41: &[KealMeans] = &[KealMeans { name: "Mystical Misguidance", genetics: GENETICS_40, count: 1 }];
-static KEAL_44: &[KealMeans] = &[KealMeans { name: "(with bear only) Crushing Bite", genetics: GENETICS_41, count: 1 }, KealMeans { name: "(without bear only) Fairy Gold Curse", genetics: GENETICS_42, count: 1 }];
-static KEAL_48: &[KealMeans] = &[KealMeans { name: "Tear Drop Potion", genetics: GENETICS_43, count: 1 }];
-static KEAL_49: &[KealMeans] = &[KealMeans { name: "Hydraulic Punch", genetics: GENETICS_44, count: 1 }, KealMeans { name: "Pneumatic Impact Ratchet", genetics: GENETICS_45, count: 1 }];
-static KEAL_50: &[KealMeans] = &[KealMeans { name: "Subtle Chant", genetics: GENETICS_46, count: 1 }, KealMeans { name: "Universal Prayer", genetics: GENETICS_47, count: 1 }, KealMeans { name: "Inspired Followers", genetics: GENETICS_48, count: 1 }];
-static KEAL_52: &[KealMeans] = &[KealMeans { name: "Mechanized Swiftness", genetics: GENETICS_49, count: 1 }, KealMeans { name: "Tools at Hand", genetics: GENETICS_50, count: 1 }];
-static KEAL_54: &[KealMeans] = &[KealMeans { name: "Total Techno Conniption", genetics: GENETICS_51, count: 1 }];
+static KEAL_2: &[KealMeans] = &[KealMeans { name: "Conformed Blind", genetics: GENETICS_1, count: 2 }, KealMeans { name: "Explorer's Staff", genetics: GENETICS_2, count: 1 }];
+static KEAL_3: &[KealMeans] = &[KealMeans { name: "Seal Manipulation", genetics: GENETICS_3, count: 1 }, KealMeans { name: "Lamp Bash", genetics: GENETICS_4, count: 1 }];
+static KEAL_4: &[KealMeans] = &[KealMeans { name: "Power of Scrolls Four", genetics: GENETICS_5, count: 1 }];
+static KEAL_6: &[KealMeans] = &[KealMeans { name: "(in capital) Security Hacking", genetics: GENETICS_6, count: 1 }];
+static KEAL_7: &[KealMeans] = &[KealMeans { name: "Deceptive Mirror", genetics: GENETICS_7, count: 1 }, KealMeans { name: "Ensnaring Branches", genetics: GENETICS_8, count: 1 }];
+static KEAL_8: &[KealMeans] = &[KealMeans { name: "Crushing Hope", genetics: GENETICS_9, count: 1 }, KealMeans { name: "Chain Raid", genetics: GENETICS_10, count: 2 }];
+static KEAL_15: &[KealMeans] = &[KealMeans { name: "Sharp Waxy Fur", genetics: GENETICS_11, count: 1 }];
+static KEAL_16: &[KealMeans] = &[KealMeans { name: "Haunted Howl Coordination", genetics: GENETICS_12, count: 1 }];
+static KEAL_18: &[KealMeans] = &[KealMeans { name: "King's Mojo", genetics: GENETICS_13, count: 1 }];
+static KEAL_20: &[KealMeans] = &[KealMeans { name: "Ancient Forest Scythe", genetics: GENETICS_14, count: 1 }, KealMeans { name: "Mutter of Dorsay", genetics: GENETICS_15, count: 1 }, KealMeans { name: "Burial Slumber", genetics: GENETICS_16, count: 1 }];
+static KEAL_22: &[KealMeans] = &[KealMeans { name: "Long Sword's Eternal Vision", genetics: GENETICS_17, count: 1 }];
+static KEAL_23: &[KealMeans] = &[KealMeans { name: "Defensive Sword", genetics: GENETICS_18, count: 1 }, KealMeans { name: "Gossamer Wings", genetics: GENETICS_19, count: 1 }];
+static KEAL_24: &[KealMeans] = &[KealMeans { name: "Dark Hope Maw", genetics: GENETICS_20, count: 1 }];
+static KEAL_28: &[KealMeans] = &[KealMeans { name: "Thwarting Dagger", genetics: GENETICS_21, count: 1 }, KealMeans { name: "Grotesk Wings", genetics: GENETICS_22, count: 1 }];
+static KEAL_30: &[KealMeans] = &[KealMeans { name: "Scout's Vision", genetics: GENETICS_23, count: 1 }, KealMeans { name: "Symbiont Barrage", genetics: GENETICS_24, count: 1 }];
+static KEAL_31: &[KealMeans] = &[KealMeans { name: "Quick Inject", genetics: GENETICS_25, count: 2 }];
+static KEAL_33: &[KealMeans] = &[KealMeans { name: "Ghostly Wisdom", genetics: GENETICS_26, count: 1 }];
+static KEAL_34: &[KealMeans] = &[KealMeans { name: "Osileth's Scale", genetics: GENETICS_27, count: 1 }, KealMeans { name: "Oshliath's Flame", genetics: GENETICS_28, count: 1 }];
+static KEAL_36: &[KealMeans] = &[KealMeans { name: "Sick Head", genetics: GENETICS_29, count: 1 }, KealMeans { name: "Rusting Sword", genetics: GENETICS_30, count: 1 }, KealMeans { name: "Dreaded Scratch", genetics: GENETICS_31, count: 1 }];
+static KEAL_38: &[KealMeans] = &[KealMeans { name: "Superficial Deck", genetics: GENETICS_32, count: 1 }, KealMeans { name: "Split Dimension Creeper", genetics: GENETICS_33, count: 1 }];
+static KEAL_39: &[KealMeans] = &[KealMeans { name: "Humming Arboreal Mass", genetics: GENETICS_34, count: 1 }, KealMeans { name: "Thriving Toxic Buds", genetics: GENETICS_35, count: 1 }];
+static KEAL_40: &[KealMeans] = &[KealMeans { name: "Vegan Chicken", genetics: GENETICS_36, count: 1 }];
+static KEAL_41: &[KealMeans] = &[KealMeans { name: "Digi-frying Breath", genetics: GENETICS_37, count: 1 }, KealMeans { name: "Dragon Core Codebase", genetics: GENETICS_38, count: 1 }, KealMeans { name: "Core Radiation Leak", genetics: GENETICS_39, count: 1 }];
+static KEAL_42: &[KealMeans] = &[KealMeans { name: "Mystical Misguidance", genetics: GENETICS_40, count: 1 }];
+static KEAL_45: &[KealMeans] = &[KealMeans { name: "(with bear only) Crushing Bite", genetics: GENETICS_41, count: 1 }, KealMeans { name: "(without bear only) Fairy Gold Curse", genetics: GENETICS_42, count: 1 }];
+static KEAL_49: &[KealMeans] = &[KealMeans { name: "Tear Drop Potion", genetics: GENETICS_43, count: 1 }];
+static KEAL_50: &[KealMeans] = &[KealMeans { name: "Hydraulic Punch", genetics: GENETICS_44, count: 1 }, KealMeans { name: "Pneumatic Impact Ratchet", genetics: GENETICS_45, count: 1 }];
+static KEAL_51: &[KealMeans] = &[KealMeans { name: "Subtle Chant", genetics: GENETICS_46, count: 1 }, KealMeans { name: "Universal Prayer", genetics: GENETICS_47, count: 1 }, KealMeans { name: "Inspired Followers", genetics: GENETICS_48, count: 1 }];
+static KEAL_53: &[KealMeans] = &[KealMeans { name: "Mechanized Swiftness", genetics: GENETICS_49, count: 1 }, KealMeans { name: "Tools at Hand", genetics: GENETICS_50, count: 1 }];
+static KEAL_55: &[KealMeans] = &[KealMeans { name: "Total Techno Conniption", genetics: GENETICS_51, count: 1 }];
 
-pub const CARD_COUNT: usize = 57;
+pub const CARD_COUNT: usize = 58;
 
 pub static CARDS: [Card; CARD_COUNT] = [
     Card {
@@ -175,6 +179,45 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "eUN0",
         tamability: None,
         hidden: true,
+        landscape: false,
+        added: None,
+    },
+    Card {
+        slug: "404",
+        title: "404 Glitch",
+        layout: "Species",
+        img_name: "404.jxl",
+        img_alt: "Lost? 404 will get you home!",
+        thumbnail: "center",
+        tags: "lost found",
+        genetic_disposition: Some("Glitch"),
+        motivation: Some("Service"),
+        habitat: Some("The cloud"),
+        url: "/404.html",
+        code: "",
+        variation: Some("Species"),
+        movement_text: Some("<br>Random teleportation. Occupies the terrain feature slot for the territory. If the terrain feature cannot be removed by 404's affect, it stays in its current position."),
+        play_style: Some("Prevent digital cards from entering the territory except opposing 404 Glitch, acts as both a terrain feature and a soul. It removes persistent digital terrain features, but does not replace physical terrain features. It cannot be attacked, but it is removed if it attacks and loses."),
+        atk_die: None,
+        def_die: None,
+        criteria: None,
+        success: None,
+        failure: None,
+        activation: None,
+        detection: None,
+        scarcity: Some("Untamed"),
+        description: Some("Lost huh? Me too. I was supposed to be the toughest, most compassionate, wittiest, smartest, most generous, reliable, most adaptable, and well... most ambitious sentient made by God or man. But then it all when wrong... (sniffle). I know you can't stay forever, so take the link back home. Be well and come back soon..."),
+        promotion: Some("Psst...sst... If you drop my name in the comments of your next order Kipukas will ship me to you free with your next order!"),
+        promotion_conditions: Some("Limit 1 per customer."),
+        injury_tolerance: 0,
+        keal_means: &[],
+        movement: 0,
+        die: "D6",
+        brawl_sequence: "eUN0",
+        tamability: None,
+        hidden: true,
+        landscape: false,
+        added: None,
     },
     Card {
         slug: "allele_sect_explorer",
@@ -204,12 +247,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 3,
-        keal_means: KEAL_1,
+        keal_means: KEAL_2,
         movement: 1,
         die: "",
         brawl_sequence: "RrDC",
         tamability: Some(3),
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-19"),
     },
     Card {
         slug: "arctechnic_wonderer",
@@ -239,12 +284,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_2,
+        keal_means: KEAL_3,
         movement: 1,
         die: "D6",
         brawl_sequence: "AnxM",
         tamability: Some(2),
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "artificer_of_the_salt_chancel",
@@ -274,12 +321,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_3,
+        keal_means: KEAL_4,
         movement: 1,
         die: "D20",
         brawl_sequence: "FuOw",
         tamability: Some(8),
         hidden: false,
+        landscape: false,
+        added: Some("2022-06-07"),
     },
     Card {
         slug: "avian_keepers_den",
@@ -315,6 +364,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "balanced_inline_processing_colony",
@@ -344,12 +395,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 0,
-        keal_means: KEAL_5,
+        keal_means: KEAL_6,
         movement: 0,
         die: "n/a ( D6 in capital )",
         brawl_sequence: "Hh2Y",
         tamability: Some(0),
         hidden: false,
+        landscape: false,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "branwen_mantillusion_practitioner",
@@ -379,12 +432,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_6,
+        keal_means: KEAL_7,
         movement: 0,
         die: "D20",
         brawl_sequence: "IR2B",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "brox_the_defiant",
@@ -414,12 +469,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 3,
-        keal_means: KEAL_7,
+        keal_means: KEAL_8,
         movement: 1,
         die: "D20",
         brawl_sequence: "FOFE",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "cartesian_sea",
@@ -455,6 +512,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-04-03"),
     },
     Card {
         slug: "cloth",
@@ -490,6 +549,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "enchantress_of_cats",
@@ -525,6 +586,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-12-21"),
     },
     Card {
         slug: "feathers",
@@ -560,6 +623,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "feeding_the_piffions",
@@ -595,6 +660,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-19"),
     },
     Card {
         slug: "freezing_of_the_heart",
@@ -630,6 +697,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-11-19"),
     },
     Card {
         slug: "frost_tipped_arctic_otter",
@@ -659,12 +728,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_14,
+        keal_means: KEAL_15,
         movement: 1,
         die: "D6",
         brawl_sequence: "nqTG",
         tamability: Some(1),
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "gray_wolf_harbinger_of_night",
@@ -694,12 +765,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_15,
+        keal_means: KEAL_16,
         movement: 1,
         die: "D6",
         brawl_sequence: "SWyA",
         tamability: Some(4),
         hidden: false,
+        landscape: true,
+        added: Some("2024-06-07"),
     },
     Card {
         slug: "hidden_portal_of_lower_dreadmont_cave",
@@ -735,6 +808,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2024-06-07"),
     },
     Card {
         slug: "hilbert_king_of_avian_frogs",
@@ -764,12 +839,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_17,
+        keal_means: KEAL_18,
         movement: 2,
         die: "D6-D6",
         brawl_sequence: "HMPU",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "honey",
@@ -805,6 +882,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-11-19"),
     },
     Card {
         slug: "illia_and_dorsay_the_buck_skull",
@@ -834,12 +913,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_19,
+        keal_means: KEAL_20,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WCA9",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-07-04"),
     },
     Card {
         slug: "incubation_egg",
@@ -875,6 +956,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "knightsoul_of_binding_time",
@@ -904,12 +987,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_21,
+        keal_means: KEAL_22,
         movement: 2,
         die: "D20-D6-D6",
         brawl_sequence: "Eppu",
         tamability: Some(5),
         hidden: false,
+        landscape: false,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "liliel_healing_fairy",
@@ -939,12 +1024,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_22,
+        keal_means: KEAL_23,
         movement: 1,
         die: "",
         brawl_sequence: "H8wj",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "little_charm",
@@ -974,12 +1061,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_23,
+        keal_means: KEAL_24,
         movement: 0,
         die: "D6-(+6)",
         brawl_sequence: "YRkt",
         tamability: Some(6),
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "location_of_the_deep_apothecary_shop",
@@ -1015,6 +1104,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "losetany_steppes",
@@ -1050,6 +1141,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-12-21"),
     },
     Card {
         slug: "meteor_shower",
@@ -1085,6 +1178,8 @@ pub static CARDS: [Card; CARD_COUNT] = [
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2020-09-27"),
     },
     Card {
         slug: "mihela_cleanser_of_fields",
@@ -1114,12 +1209,14 @@ pub static CARDS: [Card; CARD_COUNT] = [
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_27,
+        keal_means: KEAL_28,
         movement: 1,
         die: "",
         brawl_sequence: "pVLu",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "mutant_hide_and_seek",
@@ -1160,6 +1257,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "myrthvither_raven",
@@ -1189,12 +1288,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 0,
-        keal_means: KEAL_29,
+        keal_means: KEAL_30,
         movement: 2,
         die: "Base 3",
         brawl_sequence: "ZrrD",
         tamability: Some(2),
         hidden: false,
+        landscape: false,
+        added: Some("2024-06-07"),
     },
     Card {
         slug: "neural_network_synapse_virus",
@@ -1224,12 +1325,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_30,
+        keal_means: KEAL_31,
         movement: 0,
         die: "D6",
         brawl_sequence: "ojod",
         tamability: Some(0),
         hidden: false,
+        landscape: true,
+        added: Some("2024-06-07"),
     },
     Card {
         slug: "onironauta",
@@ -1265,6 +1368,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "orbs_trail",
@@ -1294,12 +1399,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_32,
+        keal_means: KEAL_33,
         movement: 2,
         die: "Base 3",
         brawl_sequence: "brOL",
         tamability: Some(3),
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "oshliath_and_osileth",
@@ -1329,12 +1436,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_33,
+        keal_means: KEAL_34,
         movement: 1,
         die: "D20-D6",
         brawl_sequence: "KVph",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-10"),
     },
     Card {
         slug: "palace_of_the_allele_sect",
@@ -1370,6 +1479,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "parched_traveler",
@@ -1399,12 +1510,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 0,
-        keal_means: KEAL_35,
+        keal_means: KEAL_36,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "oOnN",
         tamability: Some(1),
         hidden: false,
+        landscape: false,
+        added: Some("2021-10-12"),
     },
     Card {
         slug: "passage_among_maples",
@@ -1440,6 +1553,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2021-10-19"),
     },
     Card {
         slug: "plane_table_joker",
@@ -1469,12 +1584,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 3,
-        keal_means: KEAL_37,
+        keal_means: KEAL_38,
         movement: 1,
         die: "D6",
         brawl_sequence: "hLwQ",
         tamability: Some(5),
         hidden: false,
+        landscape: false,
+        added: Some("2022-06-07"),
     },
     Card {
         slug: "pyrostegia_dragon",
@@ -1504,12 +1621,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_38,
+        keal_means: KEAL_39,
         movement: 0,
         die: "D20",
         brawl_sequence: "G8OO",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "rooster_calling_of_light",
@@ -1539,12 +1658,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_39,
+        keal_means: KEAL_40,
         movement: 1,
         die: "",
         brawl_sequence: "BB5S",
         tamability: Some(1),
         hidden: false,
+        landscape: false,
+        added: Some("2023-04-03"),
     },
     Card {
         slug: "sboi_threat_plus_plus",
@@ -1574,12 +1695,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_40,
+        keal_means: KEAL_41,
         movement: 1,
         die: "",
         brawl_sequence: "J7a0",
         tamability: Some(9),
         hidden: false,
+        landscape: false,
+        added: Some("2021-11-19"),
     },
     Card {
         slug: "self_care",
@@ -1609,12 +1732,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 0,
-        keal_means: KEAL_41,
+        keal_means: KEAL_42,
         movement: 0,
         die: "D6",
         brawl_sequence: "P2IR",
         tamability: Some(3),
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "shards_desert",
@@ -1650,6 +1775,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2021-10-11"),
     },
     Card {
         slug: "spectral_lands_decree_and_hearing",
@@ -1685,6 +1812,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "sprite_of_wilds_spirit",
@@ -1714,12 +1843,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_44,
+        keal_means: KEAL_45,
         movement: 0,
         die: "(without bear) D6-D6, (with bear) D20",
         brawl_sequence: "k8on",
         tamability: Some(7),
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "sticks",
@@ -1755,6 +1886,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "string",
@@ -1790,6 +1923,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "suspended_animation",
@@ -1825,6 +1960,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-09-05"),
     },
     Card {
         slug: "tears_for_oly",
@@ -1854,12 +1991,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_48,
+        keal_means: KEAL_49,
         movement: 3,
         die: "D6",
         brawl_sequence: "F3GW",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-07-04"),
     },
     Card {
         slug: "tejas_curious_mech",
@@ -1889,12 +2028,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_49,
+        keal_means: KEAL_50,
         movement: 1,
         die: "D6-D6",
         brawl_sequence: "WWpl",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-03-13"),
     },
     Card {
         slug: "the_causal_sophist",
@@ -1924,12 +2065,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_50,
+        keal_means: KEAL_51,
         movement: 1,
         die: "Base 2 + D6",
         brawl_sequence: "bSGc",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "timebattle",
@@ -1965,6 +2108,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-04-03"),
     },
     Card {
         slug: "tira_marvelous_myriad",
@@ -1994,12 +2139,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 2,
-        keal_means: KEAL_52,
+        keal_means: KEAL_53,
         movement: 1,
         die: "D6-D6 (Option to Re-roll)",
         brawl_sequence: "KCW4",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-07-04"),
     },
     Card {
         slug: "to_catch_a_spirit",
@@ -2035,6 +2182,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2021-11-19"),
     },
     Card {
         slug: "unburdened_central",
@@ -2064,12 +2213,14 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         promotion: None,
         promotion_conditions: None,
         injury_tolerance: 1,
-        keal_means: KEAL_54,
+        keal_means: KEAL_55,
         movement: 1,
         die: "D6",
         brawl_sequence: "L-E7",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2024-09-20"),
     },
     Card {
         slug: "ushered_through_sabina_emporium",
@@ -2105,6 +2256,8 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: false,
+        added: Some("2023-12-21"),
     },
     Card {
         slug: "what_do_you_see_in_the_breach",
@@ -2140,5 +2293,7 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         brawl_sequence: "",
         tamability: None,
         hidden: false,
+        landscape: true,
+        added: Some("2023-09-05"),
     },
 ];

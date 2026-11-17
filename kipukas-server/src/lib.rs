@@ -12,6 +12,11 @@ pub mod image;
 pub mod routes;
 pub mod typing;
 
+/// The card pages of the built site. Used at build time only (natively, by
+/// `src/bin/card-pages.rs`), so it is left out of the browser's engine.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod site;
+
 /// Process an HTTP-like request and return an HTML fragment.
 ///
 /// Called from JavaScript (Web Worker) via wasm-bindgen.
