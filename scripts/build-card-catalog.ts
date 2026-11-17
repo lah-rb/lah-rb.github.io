@@ -1,8 +1,8 @@
 /**
  * build-card-catalog.ts
  *
- * Reads the front matter of every card file (_posts/*.html, plus the two
- * root-level card files in EXTRA_CARD_FILES) and generates a Rust source file
+ * Reads the front matter of every card file (cards/*.html, each named after
+ * the card's address) and generates a Rust source file
  * (kipukas-server/src/cards_generated.rs) containing the card catalog as a
  * static array. It is compiled into the engine, which uses it both in the
  * browser (WASM: the card grid, card panels, game state) and at build time
@@ -54,9 +54,9 @@ interface CardMeta {
   hidden: boolean;
   // The art is wider than tall. The card page tints its toolbar differently.
   landscape: boolean;
-  // The day the card was added (YYYY-MM-DD), from its file name. Null for the
-  // root-level card files, which carry no date.
-  added: string | null;
+  // The day the card was minted (YYYY-MM-DD), from its `minted` field. Null
+  // for a card that has none.
+  minted: string | null;
   // Kippa context fields (JSON export only, not in Rust)
   description: string | null;
   play_style: string | null;
@@ -135,22 +135,31 @@ function extractKealMeans(fm: Record<string, any>): KealMeans[] {
 
 const THUMB_ANCHORS = ['top', 'center', 'bottom'];
 
-// Card files that live at the root instead of in _posts. Both show the
-// 404 Glitch: fourohfour.html is the playable card (reached by its QR code),
-// 404.html is the site's not-found page (no tracker, and a promotion).
-// An explicit list keeps other root pages from being read as cards.
-const NOT_FOUND_FILE = '404.html';
-const EXTRA_CARD_FILES = ['fourohfour.html', NOT_FOUND_FILE];
+// The folder that holds one file per card. Jekyll does not read it.
+const CARDS_DIR = 'cards';
 
-/** `2023-04-03-timebattle.html` → `2023-04-03`; null if the name has no date. */
-function dateOf(fileName: string): string | null {
-  const match = fileName.match(/^(\d{4}-\d{2}-\d{2})-/);
-  return match ? match[1] : null;
+// Two files show the 404 Glitch: fourohfour.html is the playable card
+// (reached by its QR code), 404.html is the site's not-found page (no
+// tracker, and a promotion). This is the not-found page's slug.
+const NOT_FOUND_SLUG = '404';
+
+/**
+ * A card's `minted` field as YYYY-MM-DD, or null if the card has none. YAML
+ * reads an unquoted date as a Date, so both that and a quoted date are
+ * accepted. Anything else stops the build: the date goes into the card's page.
+ */
+function mintedOf(value: unknown, fileName: string): string | null {
+  if (value === undefined || value === null) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  throw new Error(`${fileName}: minted must be a date written YYYY-MM-DD, found "${value}"`);
 }
 
 /**
  * Parse a single card's front matter into a CardMeta, or return null if it is
- * missing the required fields. Shared by the _posts walk and EXTRA_CARD_FILES.
+ * missing the required fields.
  */
 function extractCard(name: string, content: string): CardMeta | null {
   const fm = parseFrontMatter(content);
@@ -188,7 +197,7 @@ function extractCard(name: string, content: string): CardMeta | null {
     tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
     hidden: fm.hidden === true,
     landscape: fm.landscape === true,
-    added: dateOf(name),
+    minted: mintedOf(fm.minted, name),
     // Kippa context fields
     description: fm.description ? String(fm.description).trim() : null,
     play_style: fm.play_style ? String(fm.play_style).trim() : null,
@@ -216,31 +225,28 @@ function text(value: unknown): string | null {
 }
 
 async function main() {
-  const postsDir = join(Deno.cwd(), '_posts');
+  const cardsDir = join(Deno.cwd(), CARDS_DIR);
   const cards: CardMeta[] = [];
   const seen = new Set<string>();
 
-  for await (const entry of walk(postsDir, { exts: ['.html'], maxDepth: 1 })) {
-    if (!entry.isFile) continue;
+  // Read in name order so the result does not depend on the file system's.
+  const files: { name: string; path: string }[] = [];
+  for await (const entry of walk(cardsDir, { exts: ['.html'], maxDepth: 1 })) {
+    if (entry.isFile) files.push({ name: entry.name, path: entry.path });
+  }
+  files.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
-    const content = await Deno.readTextFile(entry.path);
-    const card = extractCard(entry.name, content);
+  for (const file of files) {
+    const content = await Deno.readTextFile(file.path);
+    const card = extractCard(file.name, content);
     if (card && !seen.has(card.slug)) {
       seen.add(card.slug);
       cards.push(card);
     }
   }
 
-  for (const name of EXTRA_CARD_FILES) {
-    const content = await Deno.readTextFile(join(Deno.cwd(), name));
-    const card = extractCard(name, content);
-    if (card && !seen.has(card.slug)) {
-      seen.add(card.slug);
-      cards.push(card);
-    }
-  }
-
-  // Sort alphabetically by title (matching current Jekyll sort:title)
+  // Sort alphabetically by title, the order the binder shows. Cards with the
+  // same title (the two 404 Glitch files) stay in file name order.
   cards.sort((a, b) => a.title.localeCompare(b.title));
 
   // Count total keal means entries for the static array
@@ -310,8 +316,8 @@ async function main() {
     '    pub hidden: bool,',
     '    // The art is wider than tall.',
     '    pub landscape: bool,',
-    '    // The day the card was added, YYYY-MM-DD (from its file name), if known.',
-    "    pub added: Option<&'static str>,",
+    '    // The day the card was minted, YYYY-MM-DD (its `minted` field), if it has one.',
+    "    pub minted: Option<&'static str>,",
     '}',
     '',
   ];
@@ -388,7 +394,7 @@ async function main() {
     lines.push(`        tamability: ${optionU32(card.tamability)},`);
     lines.push(`        hidden: ${card.hidden},`);
     lines.push(`        landscape: ${card.landscape},`);
-    lines.push(`        added: ${optionStr(card.added)},`);
+    lines.push(`        minted: ${optionStr(card.minted)},`);
     lines.push('    },');
   }
 
@@ -407,8 +413,7 @@ async function main() {
 
   // Also emit a JSON catalog for Kippa (LLM tool context). The not-found page
   // is left out: it shows the same card as /fourohfour.
-  const notFoundSlug = NOT_FOUND_FILE.replace(/\.html$/, '');
-  const jsonCards = cards.filter((c) => c.slug !== notFoundSlug).map((c) => ({
+  const jsonCards = cards.filter((c) => c.slug !== NOT_FOUND_SLUG).map((c) => ({
     slug: c.slug,
     title: c.title,
     type: c.layout,

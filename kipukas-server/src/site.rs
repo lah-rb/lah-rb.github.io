@@ -142,7 +142,7 @@ fn structured_data(card: &Card) -> Value {
     if let Some(text) = description(card) {
         data.insert("description".into(), json!(text));
     }
-    match card.added {
+    match card.minted {
         Some(date) => {
             data.insert("@type".into(), json!("BlogPosting"));
             data.insert("datePublished".into(), json!(date));
@@ -177,7 +177,7 @@ pub fn render_head(card: &Card) -> String {
     tags.push(format!(r#"<link rel="canonical" href="{}" />"#, url));
     tags.push(format!(r#"<meta property="og:url" content="{}" />"#, url));
     tags.push(format!(r#"<meta property="og:site_name" content="{}" />"#, SITE_NAME));
-    match card.added {
+    match card.minted {
         Some(date) => {
             tags.push(r#"<meta property="og:type" content="article" />"#.to_string());
             tags.push(format!(
@@ -335,7 +335,7 @@ pub fn sitemap_entry(card: &Card) -> Option<String> {
         return None;
     }
     let mut entry = format!("<url>\n<loc>{}</loc>\n", escape_html(&address(card)));
-    if let Some(date) = card.added {
+    if let Some(date) = card.minted {
         entry.push_str(&format!("<lastmod>{}</lastmod>\n", escape_html(date)));
     }
     entry.push_str("</url>\n");
@@ -357,7 +357,7 @@ pub fn merge_sitemap(existing: &str, cards: &[Card]) -> Result<String, String> {
 
     let mut listed: Vec<&Card> = cards.iter().collect();
     // Dated cards first, oldest first; then by slug so the order is stable.
-    listed.sort_by_key(|c| (c.added.is_none(), c.added, c.slug));
+    listed.sort_by_key(|c| (c.minted.is_none(), c.minted, c.slug));
 
     let mut entries = String::new();
     for card in listed {
@@ -594,7 +594,7 @@ mod tests {
     #[test]
     fn a_dated_card_is_an_article_and_an_undated_one_a_page() {
         let dated = card("timebattle");
-        assert_eq!(dated.added, Some("2023-04-03"));
+        assert_eq!(dated.minted, Some("2023-04-03"));
         let head = render_head(dated);
         assert!(head.contains(r#"<meta property="og:type" content="article" />"#));
         assert!(head.contains(
@@ -602,7 +602,7 @@ mod tests {
         ));
 
         let undated = card("fourohfour");
-        assert_eq!(undated.added, None);
+        assert_eq!(undated.minted, None);
         let head = render_head(undated);
         assert!(head.contains(r#"<meta property="og:type" content="website" />"#));
         assert!(!head.contains("published_time"));
@@ -813,7 +813,7 @@ mod tests {
     }
 
     #[test]
-    fn a_dated_card_says_when_it_was_added() {
+    fn a_dated_card_says_when_it_was_minted() {
         assert_eq!(
             sitemap_entry(card("timebattle")).unwrap(),
             "<url>\n<loc>https://www.kipukas.cards/timebattle/</loc>\n<lastmod>2023-04-03</lastmod>\n</url>\n"

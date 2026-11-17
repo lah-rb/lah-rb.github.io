@@ -4,7 +4,7 @@
 /* ── Source paths (replaces `content` in tailwind.config.js) ── */
 @source "../../*.{html,js,yml}";
 @source "../../_layouts/*.{html,js,yml}";
-@source "../../_posts/*.{html,js,yml}";
+@source "../../cards/*.{html,js,yml}";
 @source "../../_data/*.{html,js,yml}";
 @source "../../_includes/*.{html,js,yml}";
 @source "../../sections/*.{html,js,yml}";
