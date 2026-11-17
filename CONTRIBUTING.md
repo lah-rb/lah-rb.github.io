@@ -666,7 +666,6 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 | jekyll-seo-tag | MIT | SEO meta tags of the pages Jekyll builds. The engine writes the cards' |
 | jekyll-sitemap | MIT | Sitemap of the pages Jekyll builds. The engine adds the cards |
 | jekyll-redirect-from | MIT | Writes `redirects.json`. The engine writes the cards' short-address pages and adds them to it |
-| jekyll-feed | MIT | Atom feed. It listed the cards while they were Jekyll posts and is now empty; nothing links to it |
 | `_plugins/card_pages.rb` (this repo) | — | Runs the engine's `card-pages` after every build |
 
 ---
