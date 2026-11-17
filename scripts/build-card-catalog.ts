@@ -51,6 +51,18 @@ interface CardMeta {
   play_style: string | null;
   scarcity: string | null;
   variation: string | null;
+  // Display-only fields: text a card page shows that the game logic never
+  // reads. Compiled into the engine so it can render the card itself.
+  movement_text: string | null; // movement as written (may be text, e.g. two values)
+  atk_die: string | null;
+  def_die: string | null;
+  criteria: string | null;
+  success: string | null;
+  failure: string | null;
+  activation: string | null;
+  detection: string | null;
+  promotion: string | null;
+  promotion_conditions: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -159,7 +171,25 @@ function extractCard(name: string, content: string): CardMeta | null {
     play_style: fm.play_style ? String(fm.play_style).trim() : null,
     scarcity: fm.scarcity ? String(fm.scarcity).trim() : null,
     variation: fm.variation ? String(fm.variation).trim() : null,
+    // Display-only fields
+    movement_text: text(fm.movement),
+    atk_die: text(fm.atk_die),
+    def_die: text(fm.def_die),
+    criteria: text(fm.criteria),
+    success: text(fm.success),
+    failure: text(fm.failure),
+    activation: text(fm.activation),
+    detection: text(fm.detection),
+    promotion: text(fm.promotion),
+    promotion_conditions: text(fm.promotion_conditions),
   };
+}
+
+/** A front matter value as display text, or null if it is absent or empty. */
+function text(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  return s === '' ? null : s;
 }
 
 async function main() {
@@ -228,6 +258,23 @@ async function main() {
     "    // 4-character short code printed in the card's QR code (its redirect_from).",
     '    // Lets a scan resolve straight to the card page without the redirect stub.',
     "    pub code: &'static str,",
+    '    // Display fields: the text a card page shows, so the engine can render the',
+    "    // card itself (game::card_panel). Written by the game's authors and compiled",
+    '    // in, so it is trusted and may contain markup.',
+    "    pub variation: Option<&'static str>,",
+    "    pub movement_text: Option<&'static str>,",
+    "    pub play_style: Option<&'static str>,",
+    "    pub atk_die: Option<&'static str>,",
+    "    pub def_die: Option<&'static str>,",
+    "    pub criteria: Option<&'static str>,",
+    "    pub success: Option<&'static str>,",
+    "    pub failure: Option<&'static str>,",
+    "    pub activation: Option<&'static str>,",
+    "    pub detection: Option<&'static str>,",
+    "    pub scarcity: Option<&'static str>,",
+    "    pub description: Option<&'static str>,",
+    "    pub promotion: Option<&'static str>,",
+    "    pub promotion_conditions: Option<&'static str>,",
     '    // Phase 3b game data',
     '    pub injury_tolerance: u8,',
     "    pub keal_means: &'static [KealMeans],",
@@ -292,6 +339,20 @@ async function main() {
     lines.push(`        habitat: ${optionStr(card.habitat)},`);
     lines.push(`        url: "${escapeRust(card.url)}",`);
     lines.push(`        code: "${escapeRust(card.code)}",`);
+    lines.push(`        variation: ${optionStr(card.variation)},`);
+    lines.push(`        movement_text: ${optionStr(card.movement_text)},`);
+    lines.push(`        play_style: ${optionStr(card.play_style)},`);
+    lines.push(`        atk_die: ${optionStr(card.atk_die)},`);
+    lines.push(`        def_die: ${optionStr(card.def_die)},`);
+    lines.push(`        criteria: ${optionStr(card.criteria)},`);
+    lines.push(`        success: ${optionStr(card.success)},`);
+    lines.push(`        failure: ${optionStr(card.failure)},`);
+    lines.push(`        activation: ${optionStr(card.activation)},`);
+    lines.push(`        detection: ${optionStr(card.detection)},`);
+    lines.push(`        scarcity: ${optionStr(card.scarcity)},`);
+    lines.push(`        description: ${optionStr(card.description)},`);
+    lines.push(`        promotion: ${optionStr(card.promotion)},`);
+    lines.push(`        promotion_conditions: ${optionStr(card.promotion_conditions)},`);
     lines.push(`        injury_tolerance: ${card.injury_tolerance},`);
     lines.push(`        keal_means: ${kealRef},`);
     lines.push(`        movement: ${card.movement},`);

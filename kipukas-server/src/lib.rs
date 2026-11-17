@@ -32,6 +32,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     // Register routes — the value is a &str tag we match on below
     router.insert("/api/type-matchup", "type_matchup").ok();
     router.insert("/api/cards", "cards").ok();
+    router.insert("/api/card/panel", "card_panel").ok();
     router.insert("/api/qr/status", "qr_status").ok();
     router.insert("/api/qr/found", "qr_found").ok();
 
@@ -88,6 +89,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             // GET routes
             ("type_matchup", "GET") => routes::type_matchup::handle(query),
             ("cards", "GET") => routes::cards::handle(query),
+            ("card_panel", "GET") => routes::cards::handle_panel(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
             ("qr_found", "GET") => routes::qr::handle_found(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
@@ -196,6 +198,17 @@ mod tests {
         assert!(html.contains("<a href="));
         let card_count = html.matches("<a href=").count();
         assert_eq!(card_count, 4);
+    }
+
+    #[test]
+    fn routes_card_panel() {
+        game::player_doc::init_player_doc();
+        let html = handle_request("GET", "/api/card/panel", "?card=brox_the_defiant", "");
+        assert!(html.contains("Brox The Defiant"));
+        assert!(html.contains("Crushing Hope"));
+        let missing = handle_request("GET", "/api/card/panel", "", "");
+        assert!(missing.contains("Missing card parameter"));
+        game::player_doc::init_player_doc();
     }
 
     #[test]

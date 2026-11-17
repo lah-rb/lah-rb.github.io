@@ -283,6 +283,20 @@ pub fn handle(query: &str) -> String {
     html
 }
 
+// ── GET /api/card/panel ────────────────────────────────────────────
+
+/// Handle GET /api/card/panel?card={slug}
+///
+/// Returns one card's detail panel: its title, the rows of its type, its
+/// damage tracker if it fights. An engine-owned view; see `game::card_panel`.
+pub fn handle_panel(query: &str) -> String {
+    let params = crate::routes::util::parse_query(query);
+    match crate::routes::util::get_param(&params, "card") {
+        Some(slug) if !slug.is_empty() => crate::game::card_panel::render_card_panel(slug),
+        _ => r#"<span class="text-kip-red">Missing card parameter</span>"#.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
