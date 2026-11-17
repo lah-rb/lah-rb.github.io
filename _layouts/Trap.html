@@ -2,6 +2,7 @@
 layout: card
 ---
 {% include card_data_format.html data_title='card variation' play_data=page.variation %}
+{% if page.play_style %}{% include card_data_format.html data_title='game effects' play_data=page.play_style %}{% endif %}
 {% include card_data_format.html data_title='Activation-detection Criteria' play_data=page.criteria %}
 {% include card_data_format.html data_title='On Activation' play_data=page.activation %}
 {% include card_data_format.html data_title='On detection' play_data=page.detection %}

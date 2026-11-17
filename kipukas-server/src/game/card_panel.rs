@@ -190,6 +190,8 @@ const SABOTAGE_PLAY: &[Row] = &[
 ];
 
 const TRAP_PLAY: &[Row] = &[
+    // Optional: most traps have none, and a row without text is left out.
+    row(Field::PlayStyle, "game effects"),
     row(Field::Criteria, "Activation-detection Criteria"),
     row(Field::Activation, "On Activation"),
     row(Field::Detection, "On detection"),
@@ -432,10 +434,11 @@ mod tests {
     #[test]
     fn no_card_has_text_its_type_does_not_show() {
         // Text in a card file that its type has no row for is never seen by a
-        // player. This lists every such case, so a new one fails here instead
-        // of going unnoticed. The single known case predates this schema: the
-        // Trap layout never showed `play_style`.
-        const KNOWN: &[(&str, Field)] = &[("timebattle", Field::PlayStyle)];
+        // player. Any such case fails here instead of going unnoticed: either
+        // the type should show the field, or the text should come out of the
+        // card file. (This is how Timebattle's `play_style` was found: no Trap
+        // showed that field until it was added to the Trap's rows.)
+        const KNOWN: &[(&str, Field)] = &[];
 
         let mut unseen: Vec<(&str, Field)> = Vec::new();
         for c in CARDS.iter() {
@@ -534,10 +537,27 @@ mod tests {
                 "History"
             ]
         );
+        // A trap's game effects are optional: shown when the card has them.
+        let plain_trap = CARDS
+            .iter()
+            .find(|c| c.layout == "Trap" && c.play_style.is_none())
+            .expect("a trap without game effects");
         assert_eq!(
-            labels(&render_card_panel(first("Trap"))),
+            labels(&render_card_panel(plain_trap.slug)),
             [
                 "card variation",
+                "Activation-detection Criteria",
+                "On Activation",
+                "On detection",
+                "Scarcity",
+                "History"
+            ]
+        );
+        assert_eq!(
+            labels(&render_card_panel("timebattle")),
+            [
+                "card variation",
+                "game effects",
                 "Activation-detection Criteria",
                 "On Activation",
                 "On detection",
