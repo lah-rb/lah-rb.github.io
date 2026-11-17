@@ -54,9 +54,32 @@ Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust t
 
 ### Build-Time Code Generation
 
-Card metadata is extracted from Jekyll `_posts/*.html` YAML front matter at build time by a Deno script (`scripts/build-card-catalog.ts`). This generates a Rust source file (`kipukas-server/src/cards_generated.rs`) containing a static array of `Card` structs compiled directly into the WASM binary. No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
+Card metadata is extracted from the YAML front matter of the card files (`_posts/*.html`, plus `fourohfour.html` and `404.html` at the root) at build time by a Deno script (`scripts/build-card-catalog.ts`). This generates a Rust source file (`kipukas-server/src/cards_generated.rs`) containing a static array of `Card` structs compiled directly into the engine. No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
 
 The catalog holds everything a card shows, not only what the game logic reads, so the engine can render a card by itself.
+
+Jekyll does not read the card files (they are excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. The one thing Jekyll needs from the cards, how many the binder shows, reaches it as a data file the same script writes (`_data/card_catalog.json`).
+
+### Card Pages Are Written by the Engine
+
+Every card has a page at a fixed address (`/timebattle/`), a short address that redirects to it (`/yDLL`, the QR code printed on the card), and a sitemap entry. They are plain files, so the host serves them as they are, search engines and link previews read them without running scripts, and an address with no file is a real 404.
+
+The engine writes those files. The same Rust code that renders a card in the browser is built natively and run after every Jekyll build:
+
+| Part | Where |
+|---|---|
+| The card shell: the page every card is shown in (scripts, styles, toolbar, the frame around the art), with holes where the card goes | `card-shell.html`, rendered once by Jekyll |
+| What goes in the holes: head tags, slug, art, the detail panel | `kipukas-server/src/site.rs` |
+| Reading and writing the files | `kipukas-server/src/bin/card-pages.rs` |
+| Running it after every Jekyll build, and keeping the shell out of the site | `_plugins/card_pages.rb` |
+
+A hole is written `[[card.<name>]]`. Anything that differs between cards must come through a hole: Jekyll knows nothing about any one card. The build fails if the shell has a hole the engine does not know, lacks one it needs, or if a file that is not the card's page already exists at a card's address.
+
+The panel in the served page is the engine's render with no player state. In the browser the panel is an engine-owned view (Pattern 13): the engine renders it again with the player's state and the difference is patched in. A crawler, a link preview and a browser whose scripts have not run yet all see the whole card, keal means included.
+
+The site's not-found page is a card page too: `404.html` is in the catalog as a hidden card and is written to `/404.html`.
+
+`site.rs` is left out of the browser's engine (`#[cfg(not(target_arch = "wasm32"))]`).
 
 ### Card Schema: Types as Compositions of Fields
 
@@ -73,9 +96,11 @@ What a card shows is defined once, in `kipukas-server/src/game/card_panel.rs`:
 | Retire a field | Delete its `Field` variant; the compiler lists every group that used it |
 | Add or retire a type | Add or delete its entry in `CARD_TYPES` |
 
-The tests in that file fail if a card has a `layout` with no type, if a type has no cards, or if a card file has text its type never shows. The last one has a single known case, listed in the test: Timebattle, a Trap, has `play_style` text and the Trap type has no row for it.
+A row is optional by nature: a card with no text for a field does not get the row. The Trap type's "game effects" row is there for the one trap that has that text.
 
-Jekyll's card layouts (`_layouts/Character.html` and the others) still build the individual card pages and must be kept in step with the schema until those pages are generated from it too.
+The tests in that file fail if a card has a `layout` with no type, if a type has no cards, or if a card file has text its type never shows (which is how Timebattle's unseen `play_style` was found).
+
+This schema is the only description of what a card shows. The card pages, the hand view and the browser all render from it.
 
 ### Three-Store State Model
 
@@ -162,7 +187,12 @@ The relay server handles room management (create/join/rejoin) and message forwar
 
 | File | Role |
 |------|------|
-| `kipukas-server/src/lib.rs` | WASM entry point + route registration |
+| `kipukas-server/src/lib.rs` | Engine entry point (`handle_request`) + route registration |
+| `kipukas-server/wasm/` | The engine wrapped as the WASM module the browser loads. A crate of its own so link-time optimisation still runs (see the note in `kipukas-server/Cargo.toml`) |
+| `kipukas-server/src/site.rs` | The card pages of the built site: head tags, filling the card shell, short-address pages, sitemap entries. Build time only |
+| `kipukas-server/src/bin/card-pages.rs` | The native program that writes the card pages into `_site/` |
+| `card-shell.html` | The card shell: the one page Jekyll renders for all cards, with `[[card.…]]` holes |
+| `_plugins/card_pages.rb` | Jekyll hook: runs `card-pages` after every build |
 | `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, player, shared utils) |
 | `kipukas-server/src/routes/player.rs` | Player routes — affinity, loyalty, signed export/import, cross-device sync |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
@@ -188,7 +218,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `signaling-server/src/room.js` | The room rules (who may enter, taking over a place, leaving) as pure functions |
 | `signaling-server/test/` | Tests for the rules and for the whole relay running locally |
 | `signaling-server/wrangler.jsonc` | Relay deployment config: address, allowed sites, room lifetime |
-| `scripts/build-card-catalog.ts` | Extracts card YAML → Rust source |
+| `scripts/build-card-catalog.ts` | Extracts card YAML → Rust source, plus the hand index, the offline manifest and the card count for Jekyll |
 | `scripts/bundle-alpine.ts` | Bundles Alpine.js + plugins via esbuild |
 | `.tmuxinator.yml` | Multi-pane dev environment config |
 
@@ -532,7 +562,7 @@ The worker's handling of a request with no reply port is unchanged and still use
 
 ```html
 <!-- The attribute is the engine route that renders the view. -->
-<div data-engine-view="/api/game/damage?card=brox_the_defiant"></div>
+<div data-engine-view="/api/card/panel?card=brox_the_defiant"></div>
 ```
 
 ```html
@@ -547,7 +577,7 @@ The worker's handling of a request with no reply port is unchanged and still use
 
 `assets/js/kipukas-view.js` does three things:
 
-1. **Fills** every `data-engine-view` element from its route, when the page loads and when one is added later (the hand view adds a pane per card).
+1. **Fills** every `data-engine-view` element from its route, when the page loads and when one is added later (the hand view adds a pane per card). A view may arrive already filled: a card page is served with its panel rendered, and filling it only patches in the player's state.
 2. **On a tap** on a `data-engine-post` control inside a view, sends the change to the engine, then renders the view again from its route.
 3. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
 
@@ -555,8 +585,8 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 
 **Reference implementations:**
 
-- The damage tracker on a card page: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`, `_includes/keal_damage_tracker.html`.
-- A card's whole detail panel in the hand view: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`, set up per pane by `assets/js/hand-view.js`. The hand view used to fetch a fragment cut out of each built card page and re-initialise Alpine and HTMX inside it; it now asks the engine, which also means a hand opens offline for cards never viewed before.
+- A card's detail panel: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`. On a card page it is in the served HTML (written at build time by the same function, see "Card Pages Are Written by the Engine") and taken over as a view when the page loads. In the hand view it is set up per pane by `assets/js/hand-view.js`, which also means a hand opens offline for cards never viewed before.
+- The damage tracker inside it: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`.
 
 **Views do not nest.** The panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`. Redrawing an outer view would otherwise empty the inner one. Compose in Rust; a tap on the tracker then redraws the panel it sits in.
 
@@ -566,7 +596,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 - **Nothing to initialise.** The markup has no `x-data`, no bindings and no scripts, so a view can be injected anywhere without re-initialising a framework. This is what was unreliable on Firefox and its relatives.
 - **Fast enough to wait for.** Requests go straight to the engine's worker, not through `fetch` and the service worker. A tap is drawn in a few milliseconds (measured at 1–4 ms on a laptop), so nothing is toggled ahead of the engine.
 - **Order is preserved.** The worker handles requests in the order they were sent, so quick repeated taps cannot overtake each other.
-- **The same markup can be produced ahead of time.** Because a view is a pure function of engine state, the engine can render it at build time too. That is the planned route for card pages: static HTML from the same Rust code, taken over in the browser.
+- **The same markup can be produced ahead of time.** Because a view is a pure function of engine state, the engine renders it at build time too. Card pages are static HTML from the same Rust code, taken over in the browser. Nothing moves when that happens: the tracker is already in the page, so the rows below it do not jump when the engine answers.
 
 **Rules for a view's markup:**
 
@@ -623,6 +653,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 |---|---|---|
 | [esbuild](https://esbuild.github.io/) | MIT | Bundle Alpine.js + plugins into single minified file |
 | [wasm-pack](https://rustwasm.github.io/wasm-pack/) | MIT / Apache-2.0 | Compile Rust crate → WASM package |
+| cargo (native) | MIT / Apache-2.0 | Build and run the engine's `card-pages` program after each Jekyll build |
 | [Workbox CLI](https://developer.chrome.com/docs/workbox/modules/workbox-cli) | MIT | Generate precache manifest into service worker |
 | [@tailwindcss/cli](https://tailwindcss.com/) | MIT | Compile Tailwind CSS |
 | [tmuxinator](https://github.com/tmuxinator/tmuxinator) | MIT | Multi-pane terminal dev environment |
@@ -632,10 +663,11 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 | Plugin | License | Purpose |
 |---|---|---|
 | jekyll-paginate | MIT | Pagination |
-| jekyll-seo-tag | MIT | SEO meta tags |
-| jekyll-sitemap | MIT | Sitemap generation |
-| jekyll-redirect-from | MIT | URL redirects |
-| jekyll-feed | MIT | Atom feed |
+| jekyll-seo-tag | MIT | SEO meta tags of the pages Jekyll builds. The engine writes the cards' |
+| jekyll-sitemap | MIT | Sitemap of the pages Jekyll builds. The engine adds the cards |
+| jekyll-redirect-from | MIT | Writes `redirects.json`. The engine writes the cards' short-address pages and adds them to it |
+| jekyll-feed | MIT | Atom feed. It listed the cards while they were Jekyll posts and is now empty; nothing links to it |
+| `_plugins/card_pages.rb` (this repo) | — | Runs the engine's `card-pages` after every build |
 
 ---
 
@@ -664,15 +696,19 @@ deno task build
 The complete build runs in this order (executed by `deno task build`):
 
 ```
-1. build:card-catalog  → Extract _posts YAML → Rust source (cards_generated.rs)
-2. build:wasm          → wasm-pack compile Rust → assets/js-wasm/kipukas-server-pkg/
+1. build:card-catalog  → Extract card file YAML → Rust source (cards_generated.rs)
+2. build:wasm          → wasm-pack compile kipukas-server/wasm → assets/js-wasm/kipukas-server-pkg/
 3. build:htmx          → Vendor HTMX → assets/js/htmx.min.js
 4. build:css           → Tailwind compile + minify → assets/css/output.css
 5. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
 6. build:rules         → Build rules book subproject → game_rules/
-7. jekyll build        → Generate _site/ from all sources
+7. jekyll build        → Generate _site/ from all sources, then (its last step,
+                         _plugins/card_pages.rb) the engine writes the card pages
 8. build:sw            → Workbox injectManifest → sw.js with precache manifest
+9. build:minify        → Minify the site's JavaScript
 ```
+
+Step 7 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
 Individual build tasks can be run separately:
 
@@ -770,9 +806,12 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 
 ### Key Conventions
 
-**Adding a new card:**
-1. Create `_posts/YYYY-MM-DD-card_name.html` with YAML front matter
-2. Run `deno task build:wasm` — the build script auto-generates the Rust card catalog
+**Adding or changing a card:**
+1. Create or edit `_posts/YYYY-MM-DD-card_name.html` (YAML front matter only; the date in the name is the day the card was added). `layout` is the card's type and must be one of the types in `card_panel.rs`
+2. Run `deno task build:wasm` — it regenerates the Rust card catalog and rebuilds the browser's engine
+3. Build the site (`deno task build`), or let a running `jekyll serve` rebuild: it picks up the new engine files and writes the card's page
+
+A change to a card file shows nowhere until step 2: both the served page and the browser's panel come from the compiled catalog.
 
 **Adding a new `/api/*` route:**
 1. Create or extend a route handler in `kipukas-server/src/routes/`
@@ -787,10 +826,11 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 - **Rust is the single source of truth** for all game state — components consult Rust directly, never localStorage or JS variables
 
 **Jekyll exclusions:**
-Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to prevent Jekyll from processing them (especially `kipukas-server/target/` which contains thousands of Rust build files).
+Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to prevent Jekyll from processing them (especially `kipukas-server/target/` which contains thousands of Rust build files). The card files (`_posts/`, `404.html`, `fourohfour.html`) are listed there too: Jekyll must not build pages from them.
 
 **Generated files (do not edit manually):**
 - `kipukas-server/src/cards_generated.rs` — regenerated by `deno task build:card-catalog`
+- `_data/card_catalog.json` — the card count for Jekyll, regenerated by the same task
 - `assets/js/alpine.bundle.min.js` — regenerated by `deno task build:alpine`
 - `assets/js/htmx.min.js` — vendored by `deno task build:htmx`
 - `sw.js` / `sw.js.map` — regenerated by `deno task build:sw`
