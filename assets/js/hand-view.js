@@ -3,12 +3,16 @@
  *
  * Reads a hand from the URL hash: concatenated 4-char card codes, e.g.
  * #KVphRrDC (two cards). Looks each up in /assets/data/hand-index.json, then
- * composes one full-bleed pane per card by cloning the #hand-pane-tpl template
- * and injecting the card's pre-rendered detail fragment (/card_fragments/<slug>.html).
+ * composes one full-bleed pane per card by cloning the #hand-pane-tpl template.
+ *
+ * This script only builds the panes and their art. Each pane's detail panel
+ * is an engine-owned view (assets/js/kipukas-view.js): the game engine renders
+ * the card, including its damage tracker, and redraws it when its state
+ * changes. The same renderer serves every card type, and nothing has to be
+ * fetched or initialised here.
  *
  * Layout is pure CSS scroll-snap (see .hand-pane in input.css): a multi-card
- * spread on desktop, a one-card swipe carousel on mobile. The same fragment the
- * single card page renders is reused here, so all 7 card types just work.
+ * spread on desktop, a one-card swipe carousel on mobile.
  */
 (function () {
   'use strict';
@@ -40,21 +44,13 @@
     var full = section.querySelector('[data-art-full]');
     lqip.src = '/assets/images/' + card.img_name + '?d=512';
     full.src = '/assets/images/' + card.img_name;
+    // The detail panel is the engine's to render. kipukas-view.js fills it as
+    // soon as the pane is in the page.
+    var slot = section.querySelector('[data-pane-content]');
+    if (slot) {
+      slot.setAttribute('data-engine-view', '/api/card/panel?card=' + encodeURIComponent(card.slug));
+    }
     return section;
-  }
-
-  // Activate injected Alpine (x-data) + HTMX (the keal tracker's hx-get) markup.
-  function activate(el) {
-    if (window.htmx) {
-      try {
-        window.htmx.process(el);
-      } catch (e) { /* htmx not ready yet — harmless */ }
-    }
-    if (window.Alpine && window.Alpine.initTree) {
-      try {
-        window.Alpine.initTree(el);
-      } catch (e) { /* Alpine guards double-init */ }
-    }
   }
 
   function showEmpty(empty, spread) {
@@ -82,18 +78,7 @@
         var card = index[code];
         if (!card) return; // unknown code — skip
         found++;
-        var pane = buildPane(card, tpl);
-        spread.appendChild(pane);
-        fetch('/card_fragments/' + card.slug + '.html')
-          .then(function (r) { return r.ok ? r.text() : ''; })
-          .then(function (html) {
-            var slot = pane.querySelector('[data-pane-content]');
-            if (slot && html) {
-              slot.innerHTML = html;
-              activate(slot);
-            }
-          })
-          .catch(function () { /* leave the pane art-only on fetch failure */ });
+        spread.appendChild(buildPane(card, tpl));
       });
 
       if (found === 0) showEmpty(empty, spread);

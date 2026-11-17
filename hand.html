@@ -30,7 +30,8 @@ description: "View a hand of Kipukas cards side by side — a shareable spread."
 </div>
 
 <!-- Pane template (all classes live here so Tailwind detects them). hand-view.js
-     clones this per card, sets the art src, and injects the card's detail fragment. -->
+     clones this per card and sets the art src. The [data-pane-content] slot becomes
+     an engine-owned view: the game engine renders the card's detail panel into it. -->
 <template id="hand-pane-tpl">
   <section class="hand-pane relative h-full">
     <img data-art-lqip aria-hidden="true" alt=""
