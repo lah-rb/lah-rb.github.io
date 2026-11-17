@@ -499,10 +499,13 @@ function showFistsPhase(reply) {
   }
 }
 
-/** Refresh the damage trackers of the cards the engine just marked. */
+/**
+ * The engine just marked damage on these cards (a lost round). Their damage
+ * trackers are engine-owned views, so redraw them from the engine.
+ */
 function refreshDamage(cards) {
-  if (!Array.isArray(cards) || cards.length === 0) return;
-  setTimeout(() => cards.forEach((slug) => refreshKealTracker(slug)), 150);
+  if (!Array.isArray(cards) || !globalThis.kipukasViews) return;
+  for (const slug of cards) globalThis.kipukasViews.refresh(slug);
 }
 
 // ── WASM helpers ───────────────────────────────────────────────────
@@ -542,95 +545,6 @@ function wasmRequest(method, path, search, body, callback) {
     { method, pathname: path, search: search || '', body: body || '' },
     [channel.port2],
   );
-}
-
-/** Refresh the keal damage tracker of one card, if it is on this page.
- *  After the engine marks damage (a lost round), the checkboxes showing
- *  that card are stale. A page can show several trackers (the hand view),
- *  so the card is named rather than taking the first tracker found.
- *
- *  Strategy: update the existing Alpine scope's reactive properties
- *  directly via Alpine.$data() instead of replacing innerHTML and
- *  re-initializing Alpine. This avoids a cross-browser bug where
- *  Alpine.initTree() fails to discover new x-data scopes after
- *  innerHTML replacement on Firefox, Trivalent, DuckDuckGo, and
- *  Cromite (Chrome derivatives). Alpine reactive assignments trigger
- *  all :class bindings automatically — no DOM replacement needed.
- *
- *  Falls back to innerHTML replacement only if the Alpine scope is
- *  not yet initialized (e.g., HTMX initial load hasn't completed). */
-function refreshKealTracker(slug) {
-  // The keal damage tracker has id="keal-damage-{slug}"
-  const tracker = slug ? document.getElementById('keal-damage-' + slug) : null;
-  if (!tracker) {
-    console.log('[multiplayer] No keal damage tracker on this page for:', slug);
-    // Still persist: the card may be open on another page later.
-    persistState();
-    return;
-  }
-  console.log('[multiplayer] Refreshing keal damage tracker for:', slug);
-
-  // Try to find the existing Alpine scope (the x-data div inside the tracker)
-  const alpineEl = tracker.querySelector('[x-data]');
-  if (alpineEl && typeof Alpine !== 'undefined') {
-    // Preferred path: fetch JSON state and update Alpine scope directly.
-    // No innerHTML swap, no initTree — works identically on all browsers.
-    wasmRequest('GET', '/api/game/damage/state', '?card=' + slug, '', (json) => {
-      try {
-        const state = JSON.parse(json);
-        if (state.slots) {
-          const scope = Alpine.$data(alpineEl);
-          // Update each slot — Alpine reactively updates :class bindings
-          for (const [k, v] of Object.entries(state.slots)) {
-            scope.slots[parseInt(k, 10)] = v;
-          }
-          scope.wasted = !!state.wasted;
-          console.log('[multiplayer] Keal tracker updated via Alpine scope for:', slug);
-        }
-      } catch (e) {
-        console.warn('[multiplayer] Alpine scope update failed, falling back to innerHTML:', e);
-        refreshKealTrackerFallback(tracker, slug);
-      }
-      persistState();
-    });
-  } else {
-    // Fallback: Alpine scope not yet initialized (initial HTMX load
-    // hasn't completed). Use innerHTML replacement.
-    console.log('[multiplayer] No Alpine scope found, using innerHTML fallback for:', slug);
-    refreshKealTrackerFallback(tracker, slug);
-    persistState();
-  }
-}
-
-/** Fallback: replace tracker innerHTML and re-initialize Alpine.
- *  Used only when the Alpine scope hasn't been created yet. */
-function refreshKealTrackerFallback(tracker, slug) {
-  wasmRequest('GET', '/api/game/damage', '?card=' + slug, '', (html) => {
-    if (html) {
-      tracker.innerHTML = html;
-      if (typeof htmx !== 'undefined') {
-        tracker.querySelectorAll('[hx-get],[hx-post]').forEach((el) => htmx.process(el));
-      }
-      if (typeof Alpine !== 'undefined') {
-        Alpine.initTree(tracker);
-      }
-      console.log('[multiplayer] Keal damage tracker refreshed (fallback) for:', slug);
-    }
-  });
-}
-
-/** Persist WASM game state to localStorage (PLAYER_DOC base64). */
-function persistState() {
-  wasmRequest('GET', '/api/player/state', '', '', (b64) => {
-    if (b64) {
-      try {
-        localStorage.setItem('kipukas_player_doc', b64);
-        console.log('[multiplayer] Player doc persisted after damage change');
-      } catch (e) {
-        console.warn('[multiplayer] Failed to persist player doc:', e);
-      }
-    }
-  });
 }
 
 /** Refresh the alarm display in #turn-alarms.

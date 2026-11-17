@@ -161,15 +161,13 @@ background_color
           </svg>    
         </button>
 
-        <!-- Clear damage — single WASM POST returns re-rendered tracker directly.
+        <!-- New Game — the engine resets its state, then every engine-owned
+             view on the page redraws from it.
              Named function required because Jekyll include params can't contain {} -->
         <script>
           function kipukasNewGame() {
-            htmx.ajax('POST', '/api/game/damage', {
-              values: {action: 'new_game', card: '{{ cardSlug }}'},
-              target: '#keal-damage-{{ cardSlug }}',
-              swap: 'innerHTML'
-            });
+            kipukasViews.post('/api/game/damage', 'action=new_game')
+              .then(function () { return kipukasViews.refresh(); });
           }
         </script>
         {% include modal.html

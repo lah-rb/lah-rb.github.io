@@ -38,6 +38,12 @@
 
     <script defer src="/assets/js/htmx.min.js"></script>
 
+    <!-- Engine-owned views (damage trackers): the engine renders them and the
+         page patches the result in place. Idiomorph does the patching; its
+         bundle also registers an htmx extension, so it loads after htmx. -->
+    <script defer src="/assets/js/idiomorph-ext.min.js"></script>
+    <script defer src="/assets/js/kipukas-view.js"></script>
+
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
 

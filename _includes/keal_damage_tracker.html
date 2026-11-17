@@ -1,27 +1,14 @@
 {% capture cardSlug %}{{ page.permalink | remove: '/' }}{% endcapture %}
 
-<!-- Keal damage tracker loaded from WASM via HTMX (initial load only).
-     State lives in WASM memory, persisted to localStorage via PERSIST_STATE.
+<!-- Keal damage tracker — an engine-owned view (assets/js/kipukas-view.js).
 
-     DOM Residency Model:
-     - HTMX: fetches the initial tracker HTML from WASM on page load (hx-trigger="load")
-     - Alpine: owns all reactive visual state (slots, wasted, Final Blows visibility)
-       via a single x-data scope rendered by WASM inside the tracker HTML
-     - Fire-and-forget: clicks send mutations to WASM worker via kipukasWorker.postMessage()
-       with no HTMX swap — Alpine handles the immediate visual update
-
-     The WASM-rendered HTML contains:
-     - x-data with slots state, wasted state, and helper methods
-     - :class="{ 'show-final-blows': allChecked() || wasted }" for Final Blows visibility
-     - @click="toggleSlot(n)" / @click="toggleWasted()" for fire-and-forget mutations
-     - :class="slotClass(n)" for reactive circle color transitions -->
-<style>
-  .final-blows-section { display: none; }
-  .show-final-blows .final-blows-section { display: block; }
-</style>
+     The engine holds the damage state and renders the tracker from it:
+     which slots are marked is in the markup itself (aria-pressed and the
+     circle's classes), not in a copy kept by the page. A tap asks the engine
+     for a change; the view is then redrawn from the engine and patched in
+     place. Anything else that changes damage (a lost round of fists, New
+     Game) redraws it the same way, via kipukasViews.refresh(). -->
 <div id="keal-damage-{{ cardSlug }}"
      class="w-full grid grid-cols-1 place-self-center"
-     hx-get="/api/game/damage?card={{ cardSlug }}"
-     hx-trigger="load"
-     hx-swap="innerHTML">
+     data-engine-view="/api/game/damage?card={{ cardSlug }}">
 </div>

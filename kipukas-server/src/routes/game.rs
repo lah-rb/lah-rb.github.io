@@ -19,22 +19,6 @@ pub fn handle_damage_get(query: &str) -> String {
     damage::render_damage_tracker(slug)
 }
 
-// ── GET /api/game/damage/state ─────────────────────────────────────
-
-/// Handle GET /api/game/damage/state?card={slug}
-/// Returns the damage state as JSON for direct Alpine scope updates.
-/// Used by `refreshKealTracker()` to update an existing Alpine scope's
-/// reactive properties without innerHTML replacement, avoiding a
-/// cross-browser Alpine.initTree() re-initialization bug.
-pub fn handle_damage_state_get(query: &str) -> String {
-    let params = parse_query(query);
-    let slug = match get_param(&params, "card") {
-        Some(s) if !s.is_empty() => s,
-        _ => return "{}".to_string(),
-    };
-    damage::get_damage_state_json(slug)
-}
-
 // ── POST /api/game/damage ──────────────────────────────────────────
 
 /// Handle POST /api/game/damage
@@ -44,7 +28,9 @@ pub fn handle_damage_state_get(query: &str) -> String {
 ///   - card={slug}&action=clear  → clear damage for one card
 ///   - action=new_game           → New Game: clear ALL damage, affinity, and alarms
 ///
-/// Returns updated damage tracker HTML for the affected card.
+/// Returns updated damage tracker HTML for the affected card. The page does
+/// not need it: after a change it re-renders each affected view from its own
+/// route (`assets/js/kipukas-view.js`). It is returned for direct callers.
 pub fn handle_damage_post(body: &str) -> String {
     let params = parse_form_body(body);
     let action = get_param(&params, "action").unwrap_or("");
@@ -244,10 +230,12 @@ mod tests {
     fn damage_post_toggle_slot() {
         reset_state();
         let html = handle_damage_post("card=brox_the_defiant&slot=1");
-        // Slot 1 toggled on — Alpine x-data reflects true in slots object
-        assert!(html.contains("1: true"));
-        // Alpine slotClass returns red classes for checked slots
-        assert!(html.contains("bg-red-600 border-red-600"));
+        // Slot 1 is now marked: pressed, and red.
+        assert!(html.contains(r#"data-slot="1" aria-pressed="true""#));
+        assert!(html.contains(r#"data-slot="2" aria-pressed="false""#));
+        assert_eq!(html.matches("bg-red-600 border-red-600").count(), 1);
+        // The tracker read back from its own route shows the same thing.
+        assert_eq!(handle_damage_get("?card=brox_the_defiant"), html);
         reset_state();
     }
 
@@ -260,7 +248,7 @@ mod tests {
         handle_damage_post("card=brox_the_defiant&slot=3");
         let html = handle_damage_post("card=brox_the_defiant&action=wasted");
         assert!(html.contains("Final Blows"));
-        assert!(html.contains("wasted: true")); // Alpine x-data reflects wasted state
+        assert!(html.contains(r#"data-wasted aria-pressed="true""#));
         reset_state();
     }
 
@@ -313,25 +301,6 @@ mod tests {
         let html = turns::render_alarm_list();
         assert!(html.contains("hidden"));
         reset_state();
-    }
-
-    #[test]
-    fn damage_state_get_returns_json() {
-        reset_state();
-        // Toggle slot 1 on, leave 2 and 3 off
-        handle_damage_post("card=brox_the_defiant&slot=1");
-        let json = handle_damage_state_get("?card=brox_the_defiant");
-        assert!(json.contains(r#""1":true"#));
-        assert!(json.contains(r#""2":false"#));
-        assert!(json.contains(r#""3":false"#));
-        assert!(json.contains(r#""wasted":false"#));
-        reset_state();
-    }
-
-    #[test]
-    fn damage_state_get_missing_card_returns_empty() {
-        let json = handle_damage_state_get("?foo=bar");
-        assert_eq!(json, "{}");
     }
 
     #[test]
