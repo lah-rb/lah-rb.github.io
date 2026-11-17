@@ -56,6 +56,27 @@ Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust t
 
 Card metadata is extracted from Jekyll `_posts/*.html` YAML front matter at build time by a Deno script (`scripts/build-card-catalog.ts`). This generates a Rust source file (`kipukas-server/src/cards_generated.rs`) containing a static array of `Card` structs compiled directly into the WASM binary. No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
 
+The catalog holds everything a card shows, not only what the game logic reads, so the engine can render a card by itself.
+
+### Card Schema: Types as Compositions of Fields
+
+What a card shows is defined once, in `kipukas-server/src/game/card_panel.rs`:
+
+- **`Field`** is the complete set of fields a card can show (variation, movement, die rolls, combat, history, …).
+- **A card type is a composition**, not a template of its own: an ordered list of reusable groups of rows. Every type opens with the identity group and closes with the provenance group; Character and Species share the combatant group. A row gives a field the label that type uses for it.
+- **`CARD_TYPES`** lists every type. Its `name` is the `layout` in the card's file.
+
+| To… | Do this |
+|---|---|
+| Add a field | Add it to the card file's front matter, to `CardMeta` and the generated `Card` in `build-card-catalog.ts`, to `Field` (with how to read it), and to the group(s) that show it |
+| Show an existing field on another type | Add a row to one of that type's groups |
+| Retire a field | Delete its `Field` variant; the compiler lists every group that used it |
+| Add or retire a type | Add or delete its entry in `CARD_TYPES` |
+
+The tests in that file fail if a card has a `layout` with no type, if a type has no cards, or if a card file has text its type never shows. The last one has a single known case, listed in the test: Timebattle, a Trap, has `play_style` text and the Trap type has no row for it.
+
+Jekyll's card layouts (`_layouts/Character.html` and the others) still build the individual card pages and must be kept in step with the schema until those pages are generated from it too.
+
 ### Three-Store State Model
 
 All data is tracked across three distinct stores. Rust is the single source of truth — components always consult Rust (via HTMX or Worker messaging) rather than reading state from JavaScript or the DOM:
@@ -149,6 +170,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room state, CRDT sync |
 | `kipukas-server/src/game/crdt.rs` | The room document (`ROOM_DOC`): shared timers, persistence, sync handshake |
 | `kipukas-server/src/game/fists.rs` | Fists combat in the room document — pure functions over a `Doc`, tested with two documents |
+| `kipukas-server/src/game/card_panel.rs` | The card schema (fields, and card types as compositions of them) and the card detail panel renderer |
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
@@ -525,13 +547,18 @@ The worker's handling of a request with no reply port is unchanged and still use
 
 `assets/js/kipukas-view.js` does three things:
 
-1. **Fills** every `data-engine-view` element from its route, when the page loads and when one is added later (the hand view injects card panels).
+1. **Fills** every `data-engine-view` element from its route, when the page loads and when one is added later (the hand view adds a pane per card).
 2. **On a tap** on a `data-engine-post` control inside a view, sends the change to the engine, then renders the view again from its route.
 3. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
 
 When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything.
 
-**Reference implementation:** `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`, `_includes/keal_damage_tracker.html`, `assets/js/kipukas-view.js`.
+**Reference implementations:**
+
+- The damage tracker on a card page: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`, `_includes/keal_damage_tracker.html`.
+- A card's whole detail panel in the hand view: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`, set up per pane by `assets/js/hand-view.js`. The hand view used to fetch a fragment cut out of each built card page and re-initialise Alpine and HTMX inside it; it now asks the engine, which also means a hand opens offline for cards never viewed before.
+
+**Views do not nest.** The panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`. Redrawing an outer view would otherwise empty the inner one. Compose in Rust; a tap on the tracker then redraws the panel it sits in.
 
 **Why it works:**
 
