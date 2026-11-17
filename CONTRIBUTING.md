@@ -43,6 +43,7 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **D
 |-------|-----------|----------|
 | **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
 | **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, QR Scanner interface |
+| **Always in DOM, showing game state** | Engine-owned view (Rust renders, page patches) | Damage tracker — see [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
 A feature belongs to HTMX when its content doesn't always need to live in the DOM — modals, long scrollable lists, tool panels that are hidden most of the time. HTMX fetches that content from Rust and swaps it in on demand. A feature stays in Alpine when it's an always-present DOM element that just needs reactive class/style changes. Rust is the single source of truth for all game state — anytime a component needs to know game state, it consults Rust directly via HTMX or the Worker messaging API.
@@ -151,6 +152,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
+| `assets/js/kipukas-view.js` | Engine-owned views: fills `data-engine-view` elements from the engine, sends taps to it, patches the result in place |
 | `assets/js/kipukas-multiplayer.js` | Multiplayer manager — what to send when the socket opens, room-document sync, fists and timer actions |
 | `assets/js/kipukas-link.js` | The relay socket's state machine: one socket, one retry timer, backoff, heartbeat. No DOM access, so it runs under `deno test` |
 | `tests/link_test.ts` | Tests for `kipukas-link.js`, including two clients through a local relay |
@@ -184,7 +186,7 @@ These are patterns that have been tested and work well. Understanding **why** th
 
 ### Pattern 2: ~~Sentinel Div for Hidden State~~ → Superseded by Pattern 12
 
-> **⚠️ Superseded.** This pattern was replaced by [Pattern 12: Alpine Fire-and-Forget](#pattern-12-alpine-fire-and-forget-for-always-in-dom-game-state). The sentinel div + `@htmx:after-swap` approach had a CSS specificity bug: each per-button Alpine `x-data` with `:class` bindings conflicted with static Tailwind classes on the same element. Different browsers resolved the specificity race differently — Firefox-based browsers (Floorp, Trivalent) only changed the border color, not the fill. The HTMX swap after each click also caused a visual double-update. Pattern 12 eliminates the sentinel entirely — Alpine computes `allChecked()` reactively from its own state, and fire-and-forget replaces HTMX swaps for per-click mutations.
+> **⚠️ Superseded.** This pattern was replaced by Pattern 12 (Alpine Fire-and-Forget), which has itself been replaced by [Pattern 13: Engine-Owned Views](#pattern-13-engine-owned-views). The sentinel div + `@htmx:after-swap` approach had a CSS specificity bug: each per-button Alpine `x-data` with `:class` bindings conflicted with static Tailwind classes on the same element. Different browsers resolved the specificity race differently — Firefox-based browsers (Floorp, Trivalent) only changed the border color, not the fill. The HTMX swap after each click also caused a visual double-update. Pattern 12 eliminates the sentinel entirely — Alpine computes `allChecked()` reactively from its own state, and fire-and-forget replaces HTMX swaps for per-click mutations.
 
 **Original pattern (for historical context):** WASM rendered a hidden sentinel div (`<div class="keal-all-checked hidden">`) when all keal means checkboxes were checked. Alpine's `x-effect` on the parent watched for this sentinel after each HTMX swap and toggled a CSS class (`.show-final-blows`) that made the `.final-blows-section` visible. Each button had its own `x-data="{ on: true/false }"` with `:class` bindings for visual state, plus `hx-post` for HTMX swaps on every click.
 
@@ -204,7 +206,7 @@ These are patterns that have been tested and work well. Understanding **why** th
 
 **When to use HTMX:** Content that doesn't always need to live in the DOM — modal content, paginated lists, tool panels. HTMX fetches from Rust and swaps it in; HTMX also posts user actions (combat submissions) to Rust to update game state.
 
-**Hybrid pattern (HTMX initial load → Alpine reactive state):** Some content is fetched once by HTMX (`hx-trigger="load"`) and then stays in the DOM with Alpine managing reactive state. The keal damage tracker is the primary example — see [Pattern 12](#pattern-12-alpine-fire-and-forget-for-always-in-dom-game-state). In these cases, HTMX handles the initial fetch, Alpine owns the visual reactivity, and fire-and-forget `kipukasWorker.postMessage()` syncs mutations to WASM.
+**When to use an engine-owned view:** Content that is always in the DOM and shows game state — the keal damage tracker. Neither Alpine nor HTMX holds it: Rust renders it, a tap asks Rust for a change, and the page patches in the result. See [Pattern 13](#pattern-13-engine-owned-views).
 
 **When to consult Rust directly:** Any time a component needs game state, it asks Rust via HTMX (`hx-get`) or the Worker messaging API (`postToWasmWithCallback`). Components never read state from localStorage or JavaScript variables — Rust is the single source of truth.
 
@@ -224,37 +226,15 @@ x-effect="if (showMultiplayer) $nextTick(() => {
 
 **Why not just `hx-trigger="revealed"`?** The `revealed` trigger fires when an element enters the viewport via scrolling, not when it becomes visible via Alpine's `x-show`. Custom events or `x-effect` are the correct Alpine → HTMX bridge for modal visibility.
 
-### Pattern 5: WASM State → DOM Sync (refreshKealTracker)
+### Pattern 5: ~~WASM State → DOM Sync (refreshKealTracker)~~ → Superseded by Pattern 13
 
-**The pattern:** After WASM auto-marks damage (e.g., from combat outcome), the keal damage tracker on the card page is stale. A JavaScript helper finds the tracker element, fetches the updated damage state as JSON from WASM, and updates the existing Alpine scope's reactive properties directly:
+> **⚠️ Superseded.** Replaced by [Pattern 13: Engine-Owned Views](#pattern-13-engine-owned-views).
 
-```javascript
-function refreshKealTracker(slug) {
-  const tracker = document.getElementById('keal-damage-' + slug);
-  if (!tracker) { persistState(); return; }
-  const alpineEl = tracker.querySelector('[x-data]');
-  if (alpineEl && typeof Alpine !== 'undefined') {
-    // Preferred: update Alpine scope directly — no innerHTML, no initTree
-    wasmRequest('GET', '/api/game/damage/state', '?card=' + slug, '', (json) => {
-      const state = JSON.parse(json);
-      const scope = Alpine.$data(alpineEl);
-      for (const [k, v] of Object.entries(state.slots)) {
-        scope.slots[parseInt(k, 10)] = v;
-      }
-      scope.wasted = !!state.wasted;
-      persistState();
-    });
-  }
-}
-```
+**Original pattern (for historical context):** The damage tracker's visible state lived in an Alpine scope (Pattern 12). When the engine marked damage by itself, after a lost round of fists, the page's copy was stale, so a helper (`refreshKealTracker`) fetched the state as JSON from the engine and wrote it into the existing Alpine scope with `Alpine.$data()`.
 
-The engine names the cards it marked (the `damage` list in fists replies), so the right tracker is refreshed on pages that show several (the hand view).
+**Why it existed in that form:** replacing the tracker's `innerHTML` and calling `Alpine.initTree()` failed on Firefox, Trivalent, DuckDuckGo and Cromite: Alpine did not reliably discover the new `x-data` scopes after replacement. Writing into the existing scope avoided re-initialisation.
 
-**Why it works:** The WASM state is authoritative. When state changes programmatically (not from a user click), the DOM must be explicitly refreshed. A small `setTimeout(refreshKealTracker, 150)` delay ensures the WASM worker has finished processing before the refresh request arrives. The JSON route (`GET /api/game/damage/state?card=SLUG`) returns `{"slots":{"1":true,...},"wasted":false}` — Alpine reactive assignments to `scope.slots[n]` and `scope.wasted` trigger all `:class` bindings automatically.
-
-**Why direct Alpine scope updates (not innerHTML):** The previous approach replaced `tracker.innerHTML` with fresh HTML from WASM and called `Alpine.initTree(tracker)` to re-initialize the new `x-data` scope. This caused a **cross-browser bug**: Firefox, Trivalent, DuckDuckGo, and Cromite (Chrome derivatives) failed to properly discover and initialize new `x-data` scopes after innerHTML replacement — Alpine's internal tracking for the old destroyed scope interfered. Chrome, Vanadium, and Safari handled the tear-down/re-init gracefully. By updating the existing Alpine scope's reactive properties directly via `Alpine.$data()`, we avoid innerHTML replacement entirely and the fix works identically on all browsers. A fallback to innerHTML + `initTree` exists for edge cases where the Alpine scope hasn't been created yet (initial HTMX load incomplete).
-
-**Why inline scripts failed:** Embedding `<script>htmx.ajax(...)</script>` in WASM responses is fragile — `execScripts()` runs the script, but timing with the WASM worker is unpredictable. Explicit JS calls from the callback chain are more reliable.
+**Why it was replaced:** it was a repair for a problem the design created. Two holders of the same state (Alpine for display, the engine for truth) need something to reconcile them, and every new way of changing damage needed its own call to the repair. With the engine as the only holder there is nothing to reconcile.
 
 ### Pattern 6: postToWasmWithCallback (Direct Worker Messaging)
 
@@ -514,103 +494,65 @@ Then add the corresponding WASM route in `kipukas-server/src/routes/`, register 
 - **Use `$nextTick` in `x-effect`.** The DOM must be visible before `htmx.ajax()` fires, otherwise the target element may not be findable.
 - **Prefer window events for cross-component signals.** If another module needs to tell your tool something (e.g., "room connected"), dispatch a `CustomEvent` on `window` and listen with `@my-event.window` in the `x-data` div. This avoids coupling between includes.
 
-### Pattern 12: Alpine Fire-and-Forget for Always-in-DOM Game State
+### Pattern 12: ~~Alpine Fire-and-Forget for Always-in-DOM Game State~~ → Superseded by Pattern 13
 
-**The pattern:** Content that is fetched once by HTMX (`hx-trigger="load"`) and then stays in the DOM uses a **single Alpine `x-data` scope** for all reactive visual state. User interactions toggle Alpine state immediately (instant visual feedback) and fire-and-forget to the WASM worker via `kipukasWorker.postMessage()` — no HTMX swap, no MessageChannel, no response needed. The worker processes the mutation, and `PERSIST_STATE` auto-saves to localStorage.
+> **⚠️ Superseded.** Replaced by [Pattern 13: Engine-Owned Views](#pattern-13-engine-owned-views).
 
-**Reference implementation:** `kipukas-server/src/game/damage.rs` → `render_damage_tracker()` + `_includes/keal_damage_tracker.html`
+**Original pattern (for historical context):** The damage tracker was fetched once by HTMX and then kept in the DOM with a single Alpine `x-data` scope holding `slots` and `wasted`. A tap flipped the Alpine state at once and sent the change to the engine with `kipukasWorker.postMessage()` and no reply ("fire-and-forget"). It replaced Pattern 2 and fixed that pattern's CSS specificity race (`:class` became the only source of colour classes) and its double-update flash.
 
-**Why this exists (what failed before — see Pattern 2):** The previous approach gave each button its own `x-data="{ on: false }"` with `:class` bindings AND static Tailwind classes, plus `hx-post` for HTMX swaps on every click. This caused two bugs:
-1. **CSS specificity race:** Alpine's `:class` added dynamic classes (e.g., `bg-red-600`) without removing the static classes (e.g., `bg-white`) on the same element. Different browsers resolved the conflict differently — Firefox-based browsers (Floorp, Trivalent) only changed the border, not the fill.
-2. **Visual jank:** Alpine toggled instantly, then HTMX replaced the entire HTML — a double-update that caused flashing on all browsers.
+**Why it was replaced:** the state had two holders. Alpine's copy was right only as long as every change went through a tap on that page. A lost round, New Game, the same card shown twice (the hand view) or a tracker injected after load all needed extra code to bring Alpine's copy back in line (Pattern 5), and injecting a tracker meant re-initialising Alpine scopes, which was unreliable on several browsers.
 
-**The three layers:**
+The worker's handling of a request with no reply port is unchanged and still used by `postToWasm()`.
 
-| Layer | Technology | Role |
-|-------|-----------|------|
-| **Initial render** | HTMX `hx-trigger="load"` | Fetches tracker HTML from WASM once on page load |
-| **Reactive visual state** | Alpine `x-data` at container level | Owns `slots`, `wasted`, `allChecked()`, `slotClass()` — drives all `:class` bindings |
-| **State persistence** | Fire-and-forget `kipukasWorker.postMessage()` | Worker processes POST → `PERSIST_STATE` → localStorage. No response, no swap. |
+### Pattern 13: Engine-Owned Views
 
-**How it works (annotated):**
+**The pattern:** A part of the page that shows game state is rendered by the engine and owned by it. The page keeps no copy of the state.
 
 ```html
-<!-- _includes/keal_damage_tracker.html — thin wrapper -->
-<style>
-  .final-blows-section { display: none; }
-  .show-final-blows .final-blows-section { display: block; }
-</style>
-<div id="keal-damage-{{ cardSlug }}"
-     hx-get="/api/game/damage?card={{ cardSlug }}"
-     hx-trigger="load"
-     hx-swap="innerHTML">
-</div>
+<!-- The attribute is the engine route that renders the view. -->
+<div data-engine-view="/api/game/damage?card=brox_the_defiant"></div>
 ```
 
 ```html
-<!-- WASM renders this as the innerHTML (single Alpine scope) -->
-<div x-data="{
-  slots: {1: false, 2: true, 3: false},
-  wasted: false,
-  allChecked() { return Object.values(this.slots).every(function(v) { return v }) },
-  slotClass(n) {
-    if (this.wasted) return this.slots[n] ? 'bg-slate-400 border-slate-400' : 'bg-transparent border-slate-400';
-    return this.slots[n] ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'
-  },
-  fire(body) { kipukasWorker.postMessage({method:'POST',pathname:'/api/game/damage',search:'',body:body}) },
-  toggleSlot(n) { if (this.wasted) return; this.slots[n] = !this.slots[n]; this.fire('card=SLUG&slot='+n) },
-  toggleWasted() { this.wasted = !this.wasted; this.fire('card=SLUG&action=wasted') }
-}"
-:class="{ 'show-final-blows': allChecked() || wasted }"
-class="w-11/12 md:w-2/3 xl:w-1/2 pb-4 place-self-center">
-
-  <!-- Each button: Alpine @click + :class only. No hx-post, no static bg/border classes. -->
-  <button class="mr-1 damage-slot" @click="toggleSlot(1)"
-    :class="{'opacity-40 pointer-events-none': wasted}">
-    <div class="w-5 h-5 rounded-full border-2 transition-colors duration-300"
-         :class="slotClass(1)"></div>
-  </button>
-
-  <!-- Final Blows — always in DOM, visibility driven by Alpine :class on container -->
-  <div class="final-blows-section">
-    <button class="mr-1 damage-slot" @click="toggleWasted()">
-      <div class="w-5 h-5 rounded-full border-2 transition-colors duration-300"
-           :class="wasted ? 'bg-red-600 border-red-600' : 'bg-white border-emerald-600'"></div>
-    </button>
-  </div>
-</div>
+<!-- What the engine renders: the state is in the markup itself, and each
+     control names the change a tap asks for. -->
+<button type="button" class="mr-1 damage-slot" data-slot="2" aria-pressed="true"
+        aria-label="Chain Raid damage 1 of 2"
+        data-engine-post="/api/game/damage" data-engine-body="card=brox_the_defiant&slot=2">
+  <div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600"></div>
+</button>
 ```
 
-**Worker fire-and-forget protocol:** `kipukasWorker.postMessage()` without a MessageChannel port. The worker detects the missing port and processes the request without responding:
+`assets/js/kipukas-view.js` does three things:
 
-```javascript
-// kipukas-worker.js — fire-and-forget handler (no port)
-if (!port) {
-  if (!initialized) await wasmReady;
-  handle_request(method, pathname, search || '', body || '');
-  if (method === 'POST' && pathname.startsWith('/api/game/')) {
-    self.postMessage({ type: 'PERSIST_STATE' });
-  }
-  return;
-}
-```
+1. **Fills** every `data-engine-view` element from its route, when the page loads and when one is added later (the hand view injects card panels).
+2. **On a tap** on a `data-engine-post` control inside a view, sends the change to the engine, then renders the view again from its route.
+3. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
+
+When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything.
+
+**Reference implementation:** `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`, `_includes/keal_damage_tracker.html`, `assets/js/kipukas-view.js`.
 
 **Why it works:**
 
-- **No CSS specificity conflict.** Alpine's `:class` is the **only** source of `bg-*` and `border-*` classes. No static classes to fight with. Clean transitions via `transition-colors duration-300` on the same DOM nodes.
-- **Instant visual feedback.** Alpine toggles the reactive state immediately — no waiting for WASM response. The user sees the color change in the same frame as their click.
-- **Rust remains the single source of truth.** The initial `x-data` values (`slots`, `wasted`) come from WASM's authoritative PLAYER_DOC. Fire-and-forget syncs the mutation back. `PERSIST_STATE` saves to localStorage automatically.
-- **Programmatic refresh still works.** `refreshKealTracker()` (Pattern 5) fetches updated damage state as JSON from WASM and updates the existing Alpine scope's reactive properties directly via `Alpine.$data()` — no innerHTML replacement needed. This works identically on all browsers after combat outcomes.
-- **No sentinel div needed.** Alpine computes `allChecked()` reactively from its own `slots` state. The `:class="{ 'show-final-blows': allChecked() || wasted }"` binding on the container drives Final Blows visibility without any DOM querying.
+- **One holder of the state.** The page shows what the engine last rendered. A tap, a lost round, New Game and another device all end in the same redraw from the same state, so there is nothing to keep in sync and no per-case repair code.
+- **Nothing to initialise.** The markup has no `x-data`, no bindings and no scripts, so a view can be injected anywhere without re-initialising a framework. This is what was unreliable on Firefox and its relatives.
+- **Fast enough to wait for.** Requests go straight to the engine's worker, not through `fetch` and the service worker. A tap is drawn in a few milliseconds (measured at 1–4 ms on a laptop), so nothing is toggled ahead of the engine.
+- **Order is preserved.** The worker handles requests in the order they were sent, so quick repeated taps cannot overtake each other.
+- **The same markup can be produced ahead of time.** Because a view is a pure function of engine state, the engine can render it at build time too. That is the planned route for card pages: static HTML from the same Rust code, taken over in the browser.
+
+**Rules for a view's markup:**
+
+- The same state must always render to the same markup (patching compares markup).
+- Anything the other player can influence goes through `escape_html`.
+- Keep elements that should stay put (art, focusable controls) present in every state and change their attributes, rather than adding and removing them.
 
 **When to use this pattern:**
-- Content fetched once from WASM that **stays in the DOM** for the page's lifetime
-- Interactive elements that need **instant visual feedback** (toggling, switching, animating)
-- State that must sync to WASM but **doesn't need a response** to update the UI
+- Content that is always in the DOM and shows game state the engine owns.
 
-**When NOT to use this pattern (use Pattern 11 instead):**
-- Modal content that **comes and goes** (open/close cycles) — use HTMX swaps + `x-effect` re-fetch
-- Content where the WASM response **determines** what to display (e.g., fists combat results) — use `postToWasmWithCallback` (Pattern 6)
+**When NOT to use it:**
+- Purely visual state the engine has no interest in (a menu being open): Alpine.
+- Content that comes and goes (dialogs, paged lists): HTMX (Pattern 11).
 
 ---
 
@@ -814,7 +756,7 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 **Alpine vs HTMX decision (DOM residency model):**
 - Use **Alpine** for: always-in-DOM elements that need reactive appearance changes — visibility toggles, CSS class swaps, animations, transition states
 - Use **HTMX** for: content that comes and goes from the DOM — modal content, paginated lists, tool panels. HTMX fetches from Rust and posts user actions to Rust
-- Use **Alpine + fire-and-forget** for: content fetched once by HTMX that stays in the DOM with Alpine-driven reactive state — damage trackers (see Pattern 12). HTMX handles initial load, Alpine owns visual reactivity, `kipukasWorker.postMessage()` syncs to WASM
+- Use an **engine-owned view** for: always-in-DOM content that shows game state — damage trackers (see Pattern 13). Rust renders it, a tap asks Rust for a change, the page patches in the result. No Alpine scope, no HTMX swap
 - **Rust is the single source of truth** for all game state — components consult Rust directly, never localStorage or JS variables
 
 **Jekyll exclusions:**
