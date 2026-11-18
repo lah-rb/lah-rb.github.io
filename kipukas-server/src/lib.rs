@@ -1,8 +1,14 @@
-//! Kipukas in-browser WASM server.
+//! The Kipukas game engine.
 //!
-//! Exports `handle_request(method, path, query, body)` for the Service Worker
-//! bridge to call. Uses `matchit` for URL routing — the same router
-//! engine that powers Axum.
+//! In the browser it runs as a WASM module in a worker of its own and only
+//! answers requests: `handle_request(method, path, query, body)`, which the
+//! worker calls for the page (kipukas-worker.js). Routing uses `matchit`, the
+//! router engine that powers Axum.
+//!
+//! Most routes draw a part of the page (an engine-owned view, `GET`) or take
+//! a tap or a form from one (`POST`). A few are between the engine and what
+//! holds it: `/api/start` and `/api/page` from the page, `/api/wire` and
+//! `/api/handover` from the worker (see `store`, `page` and `wire`).
 
 use wasm_bindgen::prelude::*;
 
@@ -30,18 +36,20 @@ pub mod preview;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod kippa;
 
-/// Process an HTTP-like request and return an HTML fragment.
+/// Answer a request, shaped like an HTTP one.
 ///
-/// Called from JavaScript (Web Worker) via wasm-bindgen.
+/// Called from JavaScript (the engine's worker) via wasm-bindgen.
 ///
 /// # Arguments
-/// * `method` — HTTP method (e.g., "GET", "POST")
-/// * `path`   — URL path (e.g., "/api/type-matchup")
-/// * `query`  — Query string (e.g., "?atk[]=Brutal&def[]=Avian")
-/// * `body`   — Request body (e.g., POST form data). Empty string for GET requests.
+/// * `method` — `GET` or `POST`
+/// * `path`   — the route (e.g., "/api/type-matchup")
+/// * `query`  — the query string, with its `?` (e.g., "?part=result"), or empty
+/// * `body`   — a POST's body: form fields, or JSON on the routes between the
+///   engine and what holds it. Empty for a GET.
 ///
 /// # Returns
-/// An HTML string fragment suitable for HTMX to swap into the DOM.
+/// For a view's route, the HTML to patch into the page. Otherwise a short
+/// reply, or JSON (`/api/handover`).
 #[wasm_bindgen]
 pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> String {
     // Build the router. matchit compiles route patterns into a radix tree.
@@ -52,7 +60,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/cards", "cards").ok();
     router.insert("/api/card/panel", "card_panel").ok();
     router.insert("/api/qr/status", "qr_status").ok();
-    router.insert("/api/qr/found", "qr_found").ok();
     router.insert("/api/hand", "hand").ok();
 
     // Game state routes (PLAYER_DOC backed)
@@ -92,7 +99,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("card_panel", "GET") => routes::cards::handle_panel(query),
             ("hand", "GET") => routes::hand::handle(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
-            ("qr_found", "GET") => routes::qr::handle_found(query),
+            ("qr_status", "POST") => routes::qr::handle_status_post(body),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
             ("game_turns_form", "GET") => routes::game::handle_turns_form_get(query),
@@ -172,16 +179,30 @@ mod tests {
         game::matchup::reset();
     }
 
+    /// The QR scanner through the route table: the toolbar's button and the
+    /// scanner's controls are posts, the scanner is drawn by a get, and a
+    /// code the worker reads is posted for the engine to say where it leads.
     #[test]
-    fn routes_qr_status() {
-        let html = handle_request("GET", "/api/qr/status", "?action=open&privacy=false", "");
-        assert!(html.contains("Privacy Notice"));
-    }
+    fn routes_qr_scanner() {
+        fresh();
+        handle_request("POST", "/api/start", "", "{}");
+        handed();
+        assert_eq!(handle_request("GET", "/api/qr/status", "", ""), "");
 
-    #[test]
-    fn routes_qr_found() {
-        let html = handle_request("GET", "/api/qr/found", "?url=kpks.us%2Ftest", "");
-        assert!(html.contains("window.location.assign('/test')"));
+        assert_eq!(handle_request("POST", "/api/qr/status", "", "action=toggle"), "");
+        assert!(handle_request("GET", "/api/qr/status", "", "").contains("Privacy Notice"));
+        assert_eq!(handed()["qr"], serde_json::json!({ "cv": false }));
+
+        handle_request("POST", "/api/qr/status", "", "action=accept");
+        assert!(handle_request("GET", "/api/qr/status", "", "").contains("<video"));
+        assert_eq!(handed()["save"][routes::qr::PRIVACY], "true");
+
+        handle_request("POST", "/api/qr/status", "", "action=found&url=kpks.us%2Fbrox_the_defiant");
+        assert_eq!(handed()["go"], "/brox_the_defiant/");
+
+        // The request the worker used to make for a code is gone.
+        assert!(handle_request("GET", "/api/qr/found", "?url=kpks.us%2Ftest", "").contains("404"));
+        fresh();
     }
 
     #[test]
@@ -254,6 +275,7 @@ mod tests {
         game::crdt::take_outbox();
         game::connection::reset();
         game::device_sync::reset();
+        routes::qr::reset();
         store::reset();
         page::reset();
     }

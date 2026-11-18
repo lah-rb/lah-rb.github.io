@@ -20,7 +20,6 @@
     "npm:@tailwindcss/upgrade@*": "4.2.0_postcss@8.5.6_tree-sitter@0.22.4",
     "npm:alpinejs@3.14.9": "3.14.9",
     "npm:esbuild@0.25": "0.25.12",
-    "npm:htmx.org@2.0.4": "2.0.4",
     "npm:svg-path-bbox@*": "2.1.0",
     "npm:svgo@3": "3.3.3",
     "npm:tailwindcss@4": "4.2.0",
@@ -2295,9 +2294,6 @@
     "hosted-git-info@2.8.9": {
       "integrity": "sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw=="
     },
-    "htmx.org@2.0.4": {
-      "integrity": "sha512-HLxMCdfXDOJirs3vBZl/ZLoY+c7PfM4Ahr2Ad4YXh6d22T5ltbTXFFkpx9Tgb2vvmWFMbIc3LqN2ToNkZJvyYQ=="
-    },
     "http-cache-semantics@4.2.0": {
       "integrity": "sha512-dTxcvPXqPvXBQpq5dUr6mEMJX4oIEFv6bwom3FDwKRDsuIjjJGANqhBuoAn9c1RQJIdAKav33ED65E2ys+87QQ=="
     },
@@ -4075,7 +4071,6 @@
       "npm:@tailwindcss/typography@0.5",
       "npm:alpinejs@3.14.9",
       "npm:esbuild@0.25",
-      "npm:htmx.org@2.0.4",
       "npm:tailwindcss@4",
       "npm:workbox-cli@7.3.0"
     ]

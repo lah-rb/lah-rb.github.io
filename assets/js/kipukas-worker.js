@@ -20,8 +20,8 @@
 
 import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 import { initSession, runDetection } from './yolo-inference.js';
-import { parseDetections, cropDetection } from './postprocess.js';
-import { initZXing, decodeQR as zxingDecode } from './zxing-decode.js';
+import { cropDetection, parseDetections } from './postprocess.js';
+import { decodeQR as zxingDecode, initZXing } from './zxing-decode.js';
 import { adaptiveThreshold } from './adaptive-threshold.js';
 import { createWire } from './kipukas-wire.js';
 
@@ -44,7 +44,9 @@ const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
 let qrReady = false;
 let qrInitializing = false;
 let qrMode = null; // 'yolo+zxing' or 'zxing-only'
-let cvEnabled = false; // User-controlled CV toggle (persisted in localStorage on main thread)
+// Whether codes are found by computer vision (YOLO) before they are read:
+// the player's choice, which the engine keeps and tells this worker of.
+let cvEnabled = false;
 
 async function initQR() {
   if (qrReady || qrInitializing) return;
@@ -78,13 +80,6 @@ async function initQR() {
       const elapsed = Math.round(performance.now() - t0);
       console.log(`[kipukas-worker] ZXing-only mode (CV off, ${elapsed}ms)`);
     }
-
-    self.postMessage({
-      type: 'STATUS',
-      status: 'qr-ready',
-      mode: qrMode,
-      cvEnabled,
-    });
   } catch (err) {
     console.error('[kipukas-worker] QR init failed:', err);
   } finally {
@@ -97,6 +92,7 @@ async function initQR() {
 /**
  * Two-stage QR decode: YOLO detects QR bounding boxes, ZXing decodes content.
  * Posts QR_BBOX messages back to main thread for visual overlay debugging.
+ * A frame arrives from qr-camera.js as a QR_FRAME message.
  *
  * @param {Uint8ClampedArray} rgba - RGBA pixel buffer
  * @param {number} width
@@ -179,8 +175,8 @@ async function decodeQR(rgba, width, height) {
 
         console.log(
           `[kipukas-worker] QR decoded (AT): ${result.text} ` +
-          `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
-          `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
+            `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
+            `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
         );
 
         // Update bbox overlay to show successful decode
@@ -214,8 +210,8 @@ async function decodeQR(rgba, width, height) {
 
         console.log(
           `[kipukas-worker] QR decoded (raw): ${result.text} ` +
-          `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
-          `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
+            `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
+            `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
         );
 
         self.postMessage({
@@ -258,11 +254,38 @@ let processingFrame = false;
 // - SAVE: storage keys to write or remove (kipukas-api.js)
 // - ROOM: whether the player is in a room (kipukas-api.js)
 // - REDRAW: routes whose views are to be drawn again (kipukas-view.js)
+// - REFRESH: draw every view again (kipukas-view.js)
+// - GO: a page of this site to go to (kipukas-api.js)
 // - RELOAD: load the page again (kipukas-api.js)
+//
+// One part is this worker's own: the QR decoder, below.
+
+/**
+ * The engine's scanner has opened, or the player has changed how codes are
+ * found (`cv`: by computer vision first). Get the decoder ready for it,
+ * while the camera starts.
+ */
+function wantQR({ cv }) {
+  const wasEnabled = cvEnabled;
+  cvEnabled = !!cv;
+  // Turned on with the decoder already set up without YOLO: set it up again.
+  if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
+    qrReady = false;
+    qrMode = null;
+  }
+  // Turned off: the YOLO session stays loaded but is not used.
+  if (!cvEnabled && qrMode === 'yolo+zxing') {
+    qrMode = 'zxing-only';
+  }
+  initQR();
+}
 
 const wire = createWire({
   request: (method, path, body) => handle_request(method, path, '', body),
   toPage: (message) => self.postMessage(message),
+  also: (handed) => {
+    if (handed.qr) wantQR(handed.qr);
+  },
 });
 
 const handOver = wire.handOver;
@@ -294,33 +317,6 @@ self.onmessage = async (event) => {
     return;
   }
 
-  // ── CV mode toggle (from scanner UI button) ──
-  if (event.data?.type === 'SET_CV_MODE') {
-    const wasEnabled = cvEnabled;
-    cvEnabled = !!event.data.enabled;
-    console.log(`[kipukas-worker] CV mode ${cvEnabled ? 'ON' : 'OFF'}`);
-    // If switching to CV mode and QR is already initialized as zxing-only,
-    // reset so next frame triggers YOLO init
-    if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
-      qrReady = false;
-      qrMode = null;
-    }
-    // If switching OFF while YOLO was active, just change mode
-    // (YOLO session stays loaded but won't be used)
-    if (!cvEnabled && qrMode === 'yolo+zxing') {
-      qrMode = 'zxing-only';
-    }
-    self.postMessage({ type: 'STATUS', status: 'cv-mode-changed', mode: qrMode, cvEnabled });
-    return;
-  }
-
-  // ── Preload QR stack (triggered 5s after page load by kipukas-api.js) ──
-  if (event.data?.type === 'PRELOAD_QR') {
-    cvEnabled = !!event.data.cvEnabled;
-    initQR();
-    return;
-  }
-
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
     // Drop frame if previous inference is still running
@@ -335,20 +331,23 @@ self.onmessage = async (event) => {
       processingFrame = false;
     }
     if (decoded) {
-      // Format result via WASM, then post back to main thread
+      // What the code says is the engine's to judge: it sends the page on
+      // to where the code leads, or says in the scanner why it does not
+      // (routes/qr.rs).
       if (!initialized) await wasmReady;
-      const html = handle_request(
-        'GET',
-        '/api/qr/found',
-        `?url=${encodeURIComponent(decoded)}`,
+      handle_request(
+        'POST',
+        '/api/qr/status',
         '',
+        `action=found&url=${encodeURIComponent(decoded)}`,
       );
-      self.postMessage({ type: 'QR_FOUND', html, url: decoded });
+      handOver();
     }
     return;
   }
 
-  // ── Standard WASM request (from SW relay or direct fallback) ─────
+  // ── A request from the page: a view to draw, or a tap or form of one
+  // (kipukas-view.js) ──
   const { method, pathname, search, body } = event.data;
   const port = event.ports[0];
 

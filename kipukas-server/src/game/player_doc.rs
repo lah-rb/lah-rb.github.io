@@ -21,8 +21,10 @@
 //! ## Lifecycle
 //!
 //! - **First visit:** Fresh Doc created with empty defaults
-//! - **Every page load:** Restored from `kipukas_player_doc` localStorage key (base64 binary)
-//! - **Every mutation:** Auto-persisted to localStorage via worker → main thread message
+//! - **Every page load:** Restored from what is stored under `kipukas_player_doc` (base64 binary),
+//!   which the page hands over at load (`crate::store`)
+//! - **Every mutation:** Stored again: after each request the engine compares the
+//!   document with what is stored and names it to be written if it differs
 //! - **Multiplayer:** Independent of ROOM_DOC; alarms bridge via `crdt.rs` seed/export
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;

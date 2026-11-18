@@ -88,11 +88,12 @@
  * scripts need not know what changed.
  *
  * When the page changes the engine's state from outside a view (New Game
- * clears it), call kipukasViews.refresh().
+ * clears it), call kipukasViews.refresh(). The engine asks for the same
+ * (REFRESH) when its state has changed as a whole.
  *
- * Requests go straight to the engine's worker (set up by kipukas-api.js),
- * not through fetch and the service worker: a tap is answered in the time it
- * takes two messages to cross a thread boundary.
+ * Requests go straight to the engine's worker (started by kipukas-api.js):
+ * a tap is answered in the time it takes two messages to cross a thread
+ * boundary.
  */
 (function () {
   const VIEW = 'data-engine-view';
@@ -399,11 +400,16 @@
   };
 
   // The engine changed what the views of these routes show, by some other
-  // way than a tap in them. Its worker says so after the post that did it.
+  // way than a tap in them (REDRAW), or changed its state as a whole
+  // (REFRESH). Its worker says so after the post that did it.
   if (globalThis.kipukasWorker) {
     globalThis.kipukasWorker.addEventListener('message', (event) => {
-      if (!event.data || event.data.type !== 'REDRAW') return;
-      for (const route of event.data.routes) globalThis.kipukasViews.redraw(route);
+      if (!event.data) return;
+      if (event.data.type === 'REDRAW') {
+        for (const route of event.data.routes) globalThis.kipukasViews.redraw(route);
+      } else if (event.data.type === 'REFRESH') {
+        globalThis.kipukasViews.refresh();
+      }
     });
   }
 

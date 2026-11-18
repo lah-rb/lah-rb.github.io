@@ -75,13 +75,6 @@
   }
 }
 
-/* ── HTMX swap transitions ── */
-/* Fade-out old content before HTMX replaces it (filter/search changes) */
-#card-grid.htmx-swapping {
-  opacity: 0;
-  transition: opacity 150ms ease-out;
-}
-
 /* ── Custom utilities ── */
 @utility content-auto {
   content-visibility: auto;

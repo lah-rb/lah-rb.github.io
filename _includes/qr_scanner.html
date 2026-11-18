@@ -1,16 +1,20 @@
-<!-- QR Scanner — Phase 2: HTMX + WASM driven
-     UI state managed by /api/qr/status route (Rust WASM).
-     Camera + ZXing decode managed by qr-camera.js + kipukas-worker.js.
-     Alpine state (showScanner, showFlash, videoReady, noCamera, showQRModal)
-     removed from default.html — now server-driven HTML fragments. -->
+<!-- QR Scanner.
+     The scanner is an engine-owned view (Pattern 13, assets/js/kipukas-view.js)
+     of /api/qr/status: the engine holds whether it is open and draws it (the
+     camera privacy notice, the camera's picture and controls, what went
+     wrong), and every tap on it is a post to the engine
+     (kipukas-server/src/routes/qr.rs).
+     The camera is the page's: qr-camera.js runs it while the scanner's video
+     is drawn. The engine's worker reads the codes (kipukas-worker.js). -->
 
-<!-- Container for HTMX-swapped scanner UI (privacy modal, camera, results) -->
-<div id="qr-container"></div>
+<!-- The scanner. Empty while it is closed. -->
+<div id="qr-container" data-engine-view="/api/qr/status"></div>
 
-<!-- Button to toggle QR scanner -->
+<!-- Button to open or close the scanner. The camera script is loaded on the
+     first press. -->
 <button aria-label="Toggle QR Scanner"
         class="{{ include.buttonClass }}"
-        onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+        onclick="window.kipukasLoadQR().then(function() { kipukasViews.send('/api/qr/status', 'action=toggle'); })">
   <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
     viewBox="0 0 128 128"
     :class="landscapeArt ? '' : 'lg:fill-kip-goldenrod'"

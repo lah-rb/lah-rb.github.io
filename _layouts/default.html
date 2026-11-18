@@ -15,7 +15,6 @@
     {% if page.url == "/" %}<!-- Homepage LCP: the card-collection hero -->
     <link rel="preload" as="image" type="image/svg+xml" fetchpriority="high" href="/assets/utility_images/kipukas_complete_card_collection.svg">{% endif %}
     <!-- Preload critical scripts to reduce parse/evaluation time -->
-    <link rel="preload" href="/assets/js/htmx.min.js" as="script">
     <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
     <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
     <link rel="manifest" href="/manifest.json">
@@ -35,46 +34,31 @@
 
     <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
 
-    <!-- WASM API bridge: relays SW messages to WASM Web Worker.
+    <!-- Starts the game engine and does for it what only a page can.
          Must load BEFORE the Alpine bundle: it registers Alpine.store('room') on
          `alpine:init`, and Alpine starts in a microtask right after its bundle. -->
     <script src="/assets/js/kipukas-api.js" defer></script>
 
     <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
-    <script defer src="/assets/js/htmx.min.js"></script>
-
-    <!-- Engine-owned views (damage trackers): the engine renders them and the
-         page patches the result in place. Idiomorph does the patching; its
-         bundle also registers an htmx extension, so it loads after htmx. -->
-    <script defer src="/assets/js/idiomorph-ext.min.js"></script>
+    <!-- Engine-owned views: the engine renders them and the page patches the
+         result in place. Idiomorph does the patching. -->
+    <script defer src="/assets/js/idiomorph.min.js"></script>
     <script defer src="/assets/js/kipukas-view.js"></script>
 
     <!-- PWA: service worker registration + update-then-refresh flow -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
 
-    <!-- Lazy loading helper for a feature-specific script -->
+    <!-- The QR scanner's camera script, loaded when its button is first pressed -->
     <script>
-      // Lazy load QR camera only when needed
       window.kipukasLoadQR = function() {
-        if (window.kipukasQRLoaded) return Promise.resolve();
-        // Warm the QR decoder in the WASM worker on this first click so it preps
-        // while the user reads/accepts the privacy modal (worker init is idempotent).
-        try {
-          if (globalThis.kipukasWorker) {
-            const cvEnabled = localStorage.getItem('kipukas-cv-enabled') === 'true';
-            globalThis.kipukasWorker.postMessage({ type: 'PRELOAD_QR', cvEnabled: cvEnabled });
-          }
-        } catch (_e) { /* worker not ready yet — initQR runs again at scan start */ }
-        return import('/assets/js/qr-camera.js')
-          .then(function() {
-            window.kipukasQRLoaded = true;
-          })
-          .catch(function(err) {
+        if (!window.kipukasQRLoading) {
+          window.kipukasQRLoading = import('/assets/js/qr-camera.js').catch(function(err) {
             console.error('Failed to load QR camera:', err);
           });
+        }
+        return window.kipukasQRLoading;
       };
-
     </script>
 
   </head>

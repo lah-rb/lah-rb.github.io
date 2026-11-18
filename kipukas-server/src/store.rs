@@ -14,7 +14,8 @@
 //!   route has to remember to ask for a save.
 //! - The page passes on what it sees happen to storage and to itself
 //!   ([`page_event`]): another tab writing one of the keys, the page coming
-//!   back into view.
+//!   back into view, the page brought back whole by the browser's Back
+//!   button.
 //!
 //! ## One tab at a time
 //!
@@ -54,12 +55,18 @@ pub const KEYS: [&str; 4] = [PLAYER_DOC, ROOM, ROOM_DOC, ROOM_TAB];
 /// page hands it over at load with the rest; the engine never writes it.
 pub const RELAY_URL: &str = "kipukas_relay_url";
 
+// The QR scanner's two choices (`routes::qr::PRIVACY` and `CV`) are handed
+// over at load as well. The engine writes each when the player makes the
+// choice ([`put`]), and another tab changing one is no reason to load this
+// one again.
+
 /// A room not returned to for this long is forgotten.
 const ROOM_TTL_MS: f64 = 12.0 * 60.0 * 60.0 * 1000.0;
 
 /// The room as it is stored between page loads.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Session {
+    #[serde(default)]
     v: u8,
     #[serde(default)]
     code: String,
@@ -78,10 +85,16 @@ struct Session {
 
 #[derive(Default)]
 struct Store {
-    /// What storage holds under each of the engine's keys, as far as this
-    /// engine knows: what it was handed at load, then what it has asked to
-    /// be written since.
+    /// What counts as stored under each of the engine's keys: what the
+    /// engine compares itself with to decide what to write. It is what
+    /// `given` holds, but for one thing: a player's state that was never
+    /// stored counts as stored empty, so that a first visit writes nothing
+    /// until something changes.
     held: BTreeMap<&'static str, Option<String>>,
+    /// What storage holds under each of the engine's keys if nobody else
+    /// has written since: what it was handed at load, then what it has asked
+    /// to be written.
+    given: BTreeMap<&'static str, Option<String>>,
     /// This tab's id.
     tab: String,
     /// The tab [`ROOM_TAB`] names, as last seen.
@@ -90,6 +103,8 @@ struct Store {
     stale: bool,
     /// When the room was last entered or returned to.
     room_since: f64,
+    /// Single choices to write with the next handover (see [`put`]).
+    put: BTreeMap<&'static str, Option<String>>,
 }
 
 thread_local! {
@@ -129,7 +144,7 @@ fn new_tab_id() -> String {
 /// POST /api/start — put the engine back as it was, from what is stored.
 ///
 /// Body: a JSON object of the stored value of each of [`KEYS`] that has one,
-/// and of [`RELAY_URL`].
+/// of [`RELAY_URL`], and of the QR scanner's two choices.
 ///
 /// Returns `ok`, or what could not be read (for the worker to log; the engine
 /// carries on from nothing for that part).
@@ -144,6 +159,7 @@ pub fn handle_start_post(body: &str) -> String {
         store.owner = stored.get(ROOM_TAB).cloned();
         for key in KEYS {
             store.held.insert(key, stored.get(key).cloned());
+            store.given.insert(key, stored.get(key).cloned());
         }
     });
 
@@ -186,6 +202,10 @@ pub fn handle_start_post(body: &str) -> String {
         // of it goes, whichever tab it was.
         None => STORE.with(|store| store.borrow_mut().owner = None),
     }
+
+    // The QR scanner's choices.
+    let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
+    crate::routes::qr::restore(chosen(crate::routes::qr::PRIVACY), chosen(crate::routes::qr::CV));
 
     // The engine is back in its room, with the room's document. All that is
     // missing is the connection.
@@ -236,6 +256,13 @@ fn wanted() -> Vec<(&'static str, Option<String>)> {
     wanted
 }
 
+/// Have `key` written (`Some`) or removed (`None`) with the next handover.
+/// For single choices kept apart from the engine's documents, written when
+/// they are made.
+pub fn put(key: &'static str, value: Option<String>) {
+    STORE.with(|store| store.borrow_mut().put.insert(key, value));
+}
+
 /// The keys to write (`Some`) and to remove (`None`) so that storage holds
 /// what the engine holds now. They are taken once: what is returned counts as
 /// stored from here on.
@@ -243,10 +270,11 @@ pub fn take_saves() -> BTreeMap<&'static str, Option<String>> {
     let wanted = wanted();
     STORE.with(|store| {
         let mut store = store.borrow_mut();
-        let mut saves = BTreeMap::new();
+        let mut saves = std::mem::take(&mut store.put);
         for (key, value) in wanted {
             if store.held.get(key).cloned().flatten() != value {
                 store.held.insert(key, value.clone());
+                store.given.insert(key, value.clone());
                 saves.insert(key, value);
             }
         }
@@ -264,9 +292,9 @@ enum PageEvent {
     Shown,
     /// The browser says the network is back.
     Online,
-    /// The page was brought back whole from the browser's back/forward cache,
-    /// where it saw nothing of what other tabs stored. `stored` is what
-    /// storage holds now, as at load.
+    /// The page was brought back whole from the browser's back/forward cache
+    /// (the Back button), where it saw nothing of what was stored meanwhile.
+    /// `stored` is what storage holds now, as at load.
     Restored {
         #[serde(default)]
         stored: BTreeMap<String, String>,
@@ -306,16 +334,32 @@ pub fn page_event(body: &str) -> Follows {
             }
         }
         PageEvent::Restored { stored } => {
-            let changed = STORE.with(|store| {
-                let store = store.borrow();
-                KEYS.iter().any(|key| store.held.get(key).cloned().flatten() != stored.get(*key).cloned())
-            });
-            if changed || is_stale() {
+            let moved_on = |key: &str| {
+                STORE.with(|store| store.borrow().given.get(key).cloned().flatten() != stored.get(key).cloned())
+            };
+            // The room was entered, left or returned to on another page: this
+            // engine's place in it is not what it thinks.
+            if is_stale() || [ROOM, ROOM_DOC, ROOM_TAB].iter().any(|key| moved_on(key)) {
                 page::reload();
-                Follows::Nothing
-            } else {
-                Follows::CameBack
+                return Follows::Nothing;
             }
+            // Only the player's own state moved on (damage marked on the card
+            // page this one was left for, say). Take it up and draw the page's
+            // views again: the page stays as it was left, and is current.
+            if moved_on(PLAYER_DOC) {
+                let taken_up = stored.get(PLAYER_DOC).is_some_and(|state| player_doc::restore_from_state(state).is_ok());
+                if !taken_up {
+                    page::reload();
+                    return Follows::Nothing;
+                }
+                STORE.with(|store| {
+                    let mut store = store.borrow_mut();
+                    store.given.insert(PLAYER_DOC, stored.get(PLAYER_DOC).cloned());
+                    store.held.insert(PLAYER_DOC, Some(player_doc::encode_full_state()));
+                });
+                page::refresh();
+            }
+            Follows::CameBack
         }
         PageEvent::Storage { key, value } => {
             if !KEYS.contains(&key.as_str()) {
@@ -478,7 +522,7 @@ mod tests {
     #[test]
     fn a_session_saved_before_players_had_ids_is_given_one() {
         fresh();
-        let stored = serde_json::json!({ "v": 1, "code": "ABCD", "ts": clock::now_ms() }).to_string();
+        let stored = serde_json::json!({ "code": "ABCD", "ts": clock::now_ms() }).to_string();
         start(&[(ROOM, &stored)]);
         let id = room::with_room(|r| r.player_id.clone());
         assert!(fists::is_valid_player_id(&id), "{}", id);
@@ -568,22 +612,105 @@ mod tests {
     }
 
     #[test]
-    fn a_page_brought_back_from_the_cache_reloads_if_storage_moved_on_without_it() {
+    fn a_page_brought_back_by_the_back_button_is_kept_when_nothing_was_stored_meanwhile() {
+        // A first visit: nothing is stored, before or after.
+        fresh();
+        start(&[]);
+        assert_eq!(report(serde_json::json!({ "event": "restored", "stored": {} })), Follows::CameBack);
+        assert!(!page::take_reload());
+        assert!(!page::take_refresh());
+
+        // A later visit: what is stored is what this page was started with.
         fresh();
         player_doc::add_alarm(3, "mine", "red");
         let state = player_doc::encode_full_state();
         fresh();
         start(&[(PLAYER_DOC, &state)]);
-
-        // Nothing changed while it was away.
         let same = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: state } });
         assert_eq!(report(same), Follows::CameBack);
         assert!(!page::take_reload());
+        assert!(!page::take_refresh());
 
-        // Another tab changed the player's state meanwhile.
-        let moved = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: "AAA" } });
-        assert_eq!(report(moved), Follows::Nothing);
+        // And what this page itself had stored since.
+        player_doc::add_alarm(5, "another", "blue");
+        let written = take_saves()[PLAYER_DOC].clone().unwrap();
+        let same = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: written } });
+        assert_eq!(report(same), Follows::CameBack);
+        assert!(!page::take_reload());
+        assert!(!page::take_refresh());
+        fresh();
+    }
+
+    #[test]
+    fn a_page_brought_back_takes_up_the_players_state_as_another_page_left_it() {
+        // What the page left for (a card page) stored: a timer more.
+        fresh();
+        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(7, "made on the card page", "green");
+        let later = player_doc::encode_full_state();
+        fresh();
+        player_doc::add_alarm(3, "mine", "red");
+        let earlier = player_doc::encode_full_state();
+        fresh();
+        start(&[(PLAYER_DOC, &earlier)]);
+        assert_eq!(player_doc::get_alarms().len(), 1);
+
+        let moved = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: later } });
+        assert_eq!(report(moved), Follows::CameBack);
+        assert_eq!(player_doc::get_alarms().len(), 2, "the page is current");
+        assert!(page::take_refresh(), "and its views are drawn again");
+        assert!(!page::take_reload(), "without loading it again");
+        assert!(take_saves().is_empty(), "what was taken up is not written back");
+
+        // The same report again changes nothing more.
+        let again = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: later } });
+        assert_eq!(report(again), Follows::CameBack);
+        assert!(!page::take_refresh());
+        fresh();
+    }
+
+    #[test]
+    fn a_page_brought_back_reloads_if_the_room_moved_on_or_the_state_cannot_be_taken_up() {
+        // The room was entered on another page.
+        fresh();
+        start(&[]);
+        let entered = serde_json::json!({ "event": "restored", "stored": { ROOM: session("ABCD", 0.0), ROOM_TAB: "another" } });
+        assert_eq!(report(entered), Follows::Nothing);
         assert!(page::take_reload());
+
+        // The room this page was in was returned to on another page (every
+        // page load in a room takes it for itself).
+        fresh();
+        start(&[(ROOM, &session("ABCD", 0.0))]);
+        let saves = take_saves();
+        let returned = serde_json::json!({
+            "event": "restored",
+            "stored": { ROOM: saves[ROOM], ROOM_DOC: saves[ROOM_DOC], ROOM_TAB: "another" },
+        });
+        assert_eq!(report(returned), Follows::Nothing);
+        assert!(page::take_reload());
+
+        // The player's state is there but cannot be read, or is gone.
+        for stored in [serde_json::json!({ PLAYER_DOC: "not a document" }), serde_json::json!({})] {
+            fresh();
+            player_doc::add_alarm(3, "mine", "red");
+            let state = player_doc::encode_full_state();
+            fresh();
+            start(&[(PLAYER_DOC, &state)]);
+            assert_eq!(report(serde_json::json!({ "event": "restored", "stored": stored })), Follows::Nothing);
+            assert!(page::take_reload());
+        }
+        fresh();
+    }
+
+    #[test]
+    fn a_single_choice_is_written_once_when_it_is_made() {
+        fresh();
+        start(&[]);
+        put("some_choice", Some("true".to_string()));
+        let saves = take_saves();
+        assert_eq!(saves.get("some_choice"), Some(&Some("true".to_string())));
+        assert!(take_saves().is_empty());
         fresh();
     }
 

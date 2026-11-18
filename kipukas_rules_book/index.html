@@ -25,26 +25,25 @@
     <!-- Alpine.js (shared site bundle) -->
     <script defer src="/assets/js/alpine.bundle.min.js"></script>
 
-    <!-- HTMX (needed for QR scanner WASM routes) -->
-    <script defer src="/assets/js/htmx.min.js"></script>
-
-    <!-- Engine-owned views (the room status pill): the engine renders them and
-         the page patches the result in place. Idiomorph does the patching; its
-         bundle also registers an htmx extension, so it loads after htmx. -->
-    <script defer src="/assets/js/idiomorph-ext.min.js"></script>
+    <!-- Engine-owned views (the QR scanner, the room status pill): the engine
+         renders them and the page patches the result in place. Idiomorph does
+         the patching. -->
+    <script defer src="/assets/js/idiomorph.min.js"></script>
     <script defer src="/assets/js/kipukas-view.js"></script>
 
     <!-- Register the Service Worker so /game_rules/ controls .jxl decode + caching
          even when deep-linked directly (reloads once on first controllerchange). -->
     <script src="/assets/js/pwa-update-handler.js" defer></script>
 
-    <!-- Lazy loaders for site-wide tools -->
+    <!-- The QR scanner's camera script, loaded when its button is first pressed -->
     <script>
       window.kipukasLoadQR = function() {
-        if (window.kipukasQRLoaded) return Promise.resolve();
-        return import('/assets/js/qr-camera.js')
-          .then(function() { window.kipukasQRLoaded = true; })
-          .catch(function(err) { console.error('Failed to load QR camera:', err); });
+        if (!window.kipukasQRLoading) {
+          window.kipukasQRLoading = import('/assets/js/qr-camera.js').catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+        }
+        return window.kipukasQRLoading;
       };
     </script>
 </head>
@@ -140,7 +139,7 @@
 
         <!-- QR scanner tile (binder's QR icon) -->
         <button class="toolbar-tile" title="Scan QR Code" aria-label="Scan QR code"
-                onclick="window.kipukasLoadQR().then(function() { if (window.kipukasQR) window.kipukasQR.toggle(); })">
+                onclick="window.kipukasLoadQR().then(function() { kipukasViews.send('/api/qr/status', 'action=toggle'); })">
             <svg class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red" viewBox="0 0 128 128">
                 <path d="M306.692 182.753a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2zm4 4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM276.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM306.692 152.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM276.692 182.753a2.003 2.003 0 0 0-2 2v24a2.003 2.003 0 0 0 2 2h24a2.003 2.003 0 0 0 2-2v-24a2.003 2.003 0 0 0-2-2zm4 4h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-16a2 2 0 0 1 2-2zm4 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z" transform="matrix(2.2069 0 0 2.2069 -606.216 -337.109)"/>
             </svg>
@@ -234,8 +233,8 @@
         </div>
     </main>
 
-    <!-- QR Overlay -->
-    <div id="qr-container"></div>
+    <!-- The QR scanner: an engine-owned view, empty while it is closed -->
+    <div id="qr-container" data-engine-view="/api/qr/status"></div>
 
     <!-- Chat Widget (Kippa) -->
     <div class="fixed bottom-5 right-5 z-50">

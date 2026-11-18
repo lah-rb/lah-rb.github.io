@@ -65,67 +65,6 @@ precacheAndRoute(self.__WB_MANIFEST, {
 cleanupOutdatedCaches();
 
 // ============================================
-// WASM API ROUTES — relay /api/* to page → Web Worker → WASM
-// ============================================
-// HTMX makes real fetch() calls to /api/* endpoints.
-// This route intercepts them and relays to the page's kipukas-api.js bridge,
-// which forwards to the WASM Web Worker for processing.
-// A MessageChannel provides a direct response path from the worker back to here.
-const wasmApiMatcher = ({url}) => url.pathname.startsWith('/api/');
-const wasmApiHandler = async ({request, event}) => {
-    const client = await self.clients.get(event.clientId);
-    if (!client) {
-      return new Response(
-        '<span class="text-kip-red">No controlling page found for WASM relay</span>',
-        { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-      );
-    }
-
-    const url = new URL(request.url);
-
-    // Read request body for POST/PUT/PATCH methods (Phase 2: needed for future POST routes)
-    const body = ['POST', 'PUT', 'PATCH'].includes(request.method)
-      ? await request.text()
-      : '';
-
-    return new Promise((resolve, reject) => {
-      const channel = new MessageChannel();
-
-      // Timeout: if the worker doesn't respond in 5s, fail gracefully
-      const timeout = setTimeout(() => {
-        reject(new Response(
-          '<span class="text-kip-red">WASM request timed out</span>',
-          { status: 504, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        ));
-      }, 5000);
-
-      channel.port1.onmessage = (msg) => {
-        clearTimeout(timeout);
-        resolve(new Response(msg.data.html, {
-          status: msg.data.ok ? 200 : 500,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        }));
-      };
-
-      // Send the request details + one end of the channel to the page.
-      // The page's kipukas-api.js will transfer port2 to the WASM Web Worker.
-      client.postMessage({
-        type: 'WASM_REQUEST',
-        method: request.method,
-        pathname: url.pathname,
-        search: url.search,
-        body: body,
-      }, [channel.port2]);
-    });
-  };
-
-// Register for all HTTP methods (Workbox registerRoute defaults to GET only)
-registerRoute(wasmApiMatcher, wasmApiHandler);         // GET
-registerRoute(wasmApiMatcher, wasmApiHandler, 'POST');  // POST
-registerRoute(wasmApiMatcher, wasmApiHandler, 'PUT');   // PUT
-registerRoute(wasmApiMatcher, wasmApiHandler, 'PATCH'); // PATCH
-
-// ============================================
 // JXL IMAGE ROUTE — decode .jxl via WASM, serve a renderable BMP
 // ============================================
 // Card art is one .jxl per card. The browser can't decode JXL (here), so we

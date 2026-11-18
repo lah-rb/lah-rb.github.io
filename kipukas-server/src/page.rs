@@ -7,12 +7,14 @@
 //!
 //! - for the worker, the sockets and waits of `crate::wire`;
 //! - for the page:
-//!   - views to draw again ([`redraw`]);
+//!   - views to draw again ([`redraw`]), or all of them ([`refresh`]);
 //!   - what to write to the browser's storage and what to remove from it
 //!     (`crate::store`);
 //!   - whether the player is in a room, which the toolbar shows different
 //!     tools for;
-//!   - that the page is to be loaded again ([`reload`]).
+//!   - that the page is to be loaded again ([`reload`]), or another page
+//!     gone to ([`go`]).
+//! - for the worker again, that its QR decoder is wanted ([`qr`]).
 //!
 //! Both do each of these as they are told and decide none of them.
 
@@ -24,6 +26,9 @@ use crate::{store, wire};
 thread_local! {
     static REDRAW: RefCell<Vec<&'static str>> = const { RefCell::new(Vec::new()) };
     static RELOAD: Cell<bool> = const { Cell::new(false) };
+    static REFRESH: Cell<bool> = const { Cell::new(false) };
+    static GO: RefCell<Option<String>> = const { RefCell::new(None) };
+    static QR: Cell<Option<bool>> = const { Cell::new(None) };
     /// Whether the page was last told the player is in a room. `None` until
     /// it has been told anything.
     static IN_ROOM_TOLD: Cell<Option<bool>> = const { Cell::new(None) };
@@ -49,6 +54,18 @@ pub fn take_redraws() -> Vec<&'static str> {
     REDRAW.with(|queue| std::mem::take(&mut *queue.borrow_mut()))
 }
 
+/// Ask for every view on the page to be drawn again. For when the engine's
+/// state has changed as a whole: the player's state taken up as another
+/// page left it (`crate::store`).
+pub fn refresh() {
+    REFRESH.with(|refresh| refresh.set(true));
+}
+
+/// Whether a redraw of everything was asked for. Taken once.
+pub fn take_refresh() -> bool {
+    REFRESH.with(|refresh| refresh.replace(false))
+}
+
 /// Ask for the page to be loaded again. The engine does when it finds itself
 /// out of date: another tab has changed what is stored since it started.
 pub fn reload() {
@@ -58,6 +75,25 @@ pub fn reload() {
 /// Whether a reload was asked for. Taken once.
 pub fn take_reload() -> bool {
     RELOAD.with(|reload| reload.replace(false))
+}
+
+/// Ask for the page to go to `path`, a path on this site. The QR scanner
+/// does when a code that leads somewhere is read (`routes::qr`, which is
+/// where the path is checked).
+pub fn go(path: &str) {
+    GO.with(|go| *go.borrow_mut() = Some(path.to_string()));
+}
+
+/// Where the page is to go, if anywhere. Taken once.
+pub fn take_go() -> Option<String> {
+    GO.with(|go| go.borrow_mut().take())
+}
+
+/// Tell the worker its QR decoder is wanted, and whether codes are to be
+/// found by computer vision first (`cv`). The scanner does when it opens
+/// and when that switch is turned.
+pub fn qr(cv: bool) {
+    QR.with(|qr| qr.set(Some(cv)));
 }
 
 /// Whether the player is in a room, if that has changed since the page was
@@ -73,9 +109,13 @@ fn take_in_room() -> Option<bool> {
 ///
 ///   wire     for the worker: sockets and waits (see `crate::wire`)
 ///   redraw   routes whose views are to be drawn again
+///   refresh  true: draw every view again
 ///   save     storage keys to write (a string) or remove (null)
 ///   room     whether the player is in a room: sent when they enter or
 ///            leave one, and once at the start
+///   qr       for the worker: get the QR decoder ready; `cv` says whether
+///            codes are found by computer vision first
+///   go       a path on this site for the page to go to
 ///   reload   true: load the page again
 pub fn handle_handover_post(_body: &str) -> String {
     let mut handed = serde_json::Map::new();
@@ -99,8 +139,17 @@ pub fn handle_handover_post(_body: &str) -> String {
     if !saves.is_empty() {
         handed.insert("save".into(), serde_json::json!(saves));
     }
+    if take_refresh() {
+        handed.insert("refresh".into(), serde_json::json!(true));
+    }
     if let Some(in_room) = take_in_room() {
         handed.insert("room".into(), serde_json::json!(in_room));
+    }
+    if let Some(cv) = QR.with(|qr| qr.take()) {
+        handed.insert("qr".into(), serde_json::json!({ "cv": cv }));
+    }
+    if let Some(path) = take_go() {
+        handed.insert("go".into(), serde_json::json!(path));
     }
     if take_reload() {
         handed.insert("reload".into(), serde_json::json!(true));
@@ -131,6 +180,9 @@ pub fn handle_page_post(body: &str) -> String {
 pub fn reset() {
     take_redraws();
     take_reload();
+    take_refresh();
+    take_go();
+    QR.with(|qr| qr.set(None));
     wire::take();
     IN_ROOM_TOLD.with(|told| told.set(None));
 }

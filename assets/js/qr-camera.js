@@ -1,34 +1,45 @@
 /**
- * qr-camera.js — Minimal camera + QR scan loop for the HTMX-driven QR scanner.
+ * qr-camera.js — the camera of the QR scanner.
  *
- * Replaces the old Alpine-driven qr_scanner.js. All UI state management is
- * handled by HTMX + WASM routes (/api/qr/status, /api/qr/found). This module
- * only manages:
- *   - Camera start/stop (browser getUserMedia API)
- *   - Frame capture loop (canvas → pixel data → Web Worker)
- *   - Listening for QR_FOUND results from the worker
- *   - Drawing YOLO bounding box overlays for visual debugging
+ * The scanner itself is an engine-owned view (kipukas-view.js) of
+ * /api/qr/status: the engine holds whether it is open, draws it, and takes
+ * every tap on its controls (kipukas-server/src/routes/qr.rs). What only a
+ * page can do is left to this file:
  *
- * The worker (kipukas-worker.js) handles YOLO+ZXing decode + WASM HTML formatting.
- * Results are swapped into the DOM via htmx.ajax() for architectural consistency.
+ *   - run the camera for as long as the scanner's video is drawn, and stop it
+ *     when it is not (browser getUserMedia API);
+ *   - hand frames to the engine's worker, which finds and reads the codes in
+ *     them and posts what a code says to the engine (kipukas-worker.js);
+ *   - change which camera is in use, a matter of the device and not of the
+ *     scanner (the button the engine marks data-qr-switch);
+ *   - draw the worker's findings over the picture (the YOLO bounding boxes).
  *
- * Exposed globally as window.kipukasQR for use by HTMX-returned HTML fragments.
+ * It is loaded when the scanner's toolbar button is first pressed.
  */
 
 (() => {
   'use strict';
 
+  // The camera is running, and frames are being handed to the worker.
   let scanning = false;
-  let scannerOpen = false;
+  // The camera has been asked for and has not answered yet.
+  let starting = false;
+  // The camera could not be started for the scanner now drawn. It is not
+  // asked for again until the scanner has gone and come back.
+  let failed = false;
   let scanInterval = null;
   let stream = null;
   let videoDevices = [];
   let currentDeviceIndex = 0;
   let currentFacingMode = 'user';
 
-  // Bbox overlay state (updated by QR_BBOX messages from worker)
-  let lastBboxData = null;
+  // Cleared a moment after the worker last reported what it found.
   let bboxFadeTimer = null;
+
+  /** The scanner's video, while the engine has it drawn. */
+  function scannerVideo() {
+    return document.querySelector('[data-qr-camera] video');
+  }
 
   /**
    * Enumerate available video input devices.
@@ -127,96 +138,102 @@
     ctx.fillText(`YOLO: ${yoloMs}ms`, 8, overlay.height - 8);
   }
 
-  /**
-   * Start the camera and begin the QR scanning loop.
-   * Called by <script> tags in WASM-returned scanning UI HTML.
-   */
-  function start() {
-    if (scanning) return;
-
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    if (!video || !canvas) {
-      console.error('[qr-camera] Missing #video or #canvas element');
-      return;
-    }
-
+  /** Show the camera's picture in the scanner's video and start reading frames. */
+  function show(video, mediaStream) {
+    const canvas = video.closest('[data-qr-camera]').querySelector('#canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+    video.srcObject = mediaStream;
+    video.setAttribute('playsinline', 'true');
+    // A picture that is replaced before it starts (the camera was switched)
+    // gives up its turn to the next: nothing to report.
+    const playing = video.play();
+    if (playing) playing.catch(() => {});
 
-    // Enumerate devices first, then start camera
-    enumerateDevices().then(() => {
+    clearInterval(scanInterval);
+    scanInterval = setInterval(() => {
+      if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Send raw RGBA pixels to the worker for YOLO+ZXing decode.
+      // Transfer the buffer for zero-copy performance.
+      const worker = globalThis.kipukasWorker;
+      if (worker) {
+        worker.postMessage(
+          {
+            type: 'QR_FRAME',
+            pixels: imageData.data.buffer,
+            width: canvas.width,
+            height: canvas.height,
+          },
+          [imageData.data.buffer], // Transfer ownership (zero-copy)
+        );
+      }
+    }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+  }
+
+  /** Start the camera and begin reading frames from it. */
+  async function start() {
+    if (scanning || starting) return;
+    starting = true;
+
+    try {
+      await enumerateDevices();
+
       // Build constraints - use deviceId only if we have a valid non-empty ID
       const deviceId = videoDevices[currentDeviceIndex]?.deviceId;
       const hasValidDeviceId = deviceId && deviceId.trim() !== '';
+      const video = hasValidDeviceId
+        ? { deviceId: { ideal: deviceId }, focusMode: 'continuous' }
+        : { facingMode: currentFacingMode, focusMode: 'continuous' };
 
-      const constraints = {
-        video: {
-          facingMode: hasValidDeviceId ? undefined : currentFacingMode,
-          deviceId: hasValidDeviceId ? { ideal: deviceId } : undefined,
-          focusMode: 'continuous',
-        },
-        audio: false,
-      };
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
 
-      // Clean up undefined values to avoid constraint issues
-      if (!constraints.video.facingMode) delete constraints.video.facingMode;
-      if (!constraints.video.deviceId) delete constraints.video.deviceId;
+      // The scanner may have been closed while the camera was being asked for.
+      const target = scannerVideo();
+      if (!target) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      stream = mediaStream;
+      scanning = true;
+      show(target, mediaStream);
 
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then((mediaStream) => {
-          stream = mediaStream;
-          video.srcObject = stream;
-          video.setAttribute('playsinline', 'true');
-          video.play();
-          scanning = true;
-          scannerOpen = true;
+      // Re-enumerate devices now that we have permission to get real device IDs
+      enumerateDevices();
+      console.log('[qr-camera] Camera started, scanning at 2 fps');
+    } catch (err) {
+      console.error('[qr-camera] Camera access error:', err);
+      failed = true;
+      // The engine says so in the scanner's place.
+      globalThis.kipukasViews.send(
+        '/api/qr/status',
+        'action=error&msg=' + encodeURIComponent(err.message || 'Camera access denied'),
+      );
+    } finally {
+      starting = false;
+      // What the engine has drawn may have changed while the camera started.
+      follow();
+    }
+  }
 
-          // Re-enumerate devices now that we have permission to get real device IDs
-          enumerateDevices().then(() => {
-            console.log('[qr-camera] Re-enumerated devices after permission grant');
-          });
+  /** Stop the camera and stop reading frames. */
+  function stop() {
+    scanning = false;
 
-          // Start periodic frame capture → worker decode loop
-          scanInterval = setInterval(() => {
-            if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (scanInterval) {
+      clearInterval(scanInterval);
+      scanInterval = null;
+    }
 
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      stream = null;
+    }
 
-            // Send raw RGBA pixels to Web Worker for YOLO+ZXing decode.
-            // Transfer the buffer for zero-copy performance.
-            const worker = globalThis.kipukasWorker;
-            if (worker) {
-              worker.postMessage(
-                {
-                  type: 'QR_FRAME',
-                  pixels: imageData.data.buffer,
-                  width: canvas.width,
-                  height: canvas.height,
-                },
-                [imageData.data.buffer], // Transfer ownership (zero-copy)
-              );
-            }
-          }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
-
-          console.log('[qr-camera] Camera started, scanning at 2 fps');
-        })
-        .catch((err) => {
-          console.error('[qr-camera] Camera access error:', err);
-          // Show error via HTMX → WASM route
-          if (typeof htmx !== 'undefined') {
-            htmx.ajax(
-              'GET',
-              `/api/qr/status?action=error&msg=${
-                encodeURIComponent(err.message || 'Camera access denied')
-              }`,
-              { target: '#qr-container', swap: 'innerHTML' },
-            );
-          }
-          scannerOpen = false;
-        });
-    });
+    clearBboxOverlay();
+    console.log('[qr-camera] Camera stopped');
   }
 
   /**
@@ -224,8 +241,8 @@
    * Cycles through enumerated video devices.
    */
   function switchCamera() {
+    if (starting) return;
     if (videoDevices.length <= 1) {
-      console.log('[qr-camera] No alternative cameras available');
       // Toggle between front/back facing mode as fallback
       currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
       console.log(`[qr-camera] Switching to ${currentFacingMode} camera`);
@@ -239,34 +256,18 @@
       );
     }
 
-    // Stop current stream and restart with new constraints
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      stream = null;
-    }
-    scanning = false;
-    if (scanInterval) {
-      clearInterval(scanInterval);
-      scanInterval = null;
-    }
-
-    // Clear bbox overlay
-    clearBboxOverlay();
-
-    // Restart camera with new device
+    // Stop the current stream and start again with the new camera
+    stop();
     start();
   }
 
-  /**
-   * Clear the bounding box overlay canvas.
-   */
+  /** Clear the bounding box overlay canvas. */
   function clearBboxOverlay() {
     const overlay = document.getElementById('bbox-overlay');
     if (overlay) {
       const ctx = overlay.getContext('2d');
       ctx.clearRect(0, 0, overlay.width, overlay.height);
     }
-    lastBboxData = null;
     if (bboxFadeTimer) {
       clearTimeout(bboxFadeTimer);
       bboxFadeTimer = null;
@@ -274,62 +275,37 @@
   }
 
   /**
-   * Stop the camera and scanning loop.
-   * Called by close button onclick and by QR_FOUND handler.
+   * Have the camera follow what the engine has drawn: running while the
+   * scanner's video is on the page, stopped when it is not.
    */
-  function stop() {
-    scanning = false;
-    scannerOpen = false;
-
-    if (scanInterval) {
-      clearInterval(scanInterval);
-      scanInterval = null;
-    }
-
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      stream = null;
-    }
-
-    const video = document.getElementById('video');
-    if (video) {
-      video.srcObject = null;
-    }
-
-    clearBboxOverlay();
-
-    console.log('[qr-camera] Camera stopped');
-  }
-
-  /**
-   * Toggle the QR scanner open/closed.
-   * Called by the QR scanner toolbar button.
-   */
-  function toggle() {
-    if (scannerOpen) {
-      stop();
-      if (typeof htmx !== 'undefined') {
-        htmx.ajax('GET', '/api/qr/status?action=close', {
-          target: '#qr-container',
-          swap: 'innerHTML',
-        });
-      }
-    } else {
-      const privacy = localStorage.getItem('qr-privacy-accepted') === 'true';
-      if (typeof htmx !== 'undefined') {
-        htmx.ajax('GET', `/api/qr/status?action=open&privacy=${privacy}`, {
-          target: '#qr-container',
-          swap: 'innerHTML',
-        });
-      }
-      // Note: scannerOpen is set to true inside start() after camera is acquired.
-      // If privacy modal is shown, start() is called by the WASM-returned HTML
-      // after the user accepts.
+  function follow() {
+    const video = scannerVideo();
+    if (!video) {
+      failed = false;
+      if (scanning) stop();
+    } else if (failed || starting) {
+      // Nothing to do until the camera answers, or the scanner goes.
+    } else if (!scanning) {
+      start();
+    } else if (video.srcObject !== stream) {
+      // The video was drawn anew: give it the picture again.
+      show(video, stream);
     }
   }
 
-  // ── Listen for QR_FOUND and QR_BBOX from the Web Worker ───────────
+  // The engine draws the scanner into its view; watch that for changes.
+  new MutationObserver(follow).observe(
+    document.getElementById('qr-container') || document.body,
+    { childList: true, subtree: true },
+  );
+  follow();
 
+  // The button that changes camera.
+  document.addEventListener('click', (event) => {
+    if (event.target.closest && event.target.closest('[data-qr-switch]')) switchCamera();
+  });
+
+  // What the worker found in the last frame, drawn over the picture.
   function setupWorkerListener() {
     const worker = globalThis.kipukasWorker;
     if (!worker) {
@@ -340,51 +316,16 @@
     }
 
     worker.addEventListener('message', (event) => {
-      // ── Bounding box overlay ──
-      if (event.data?.type === 'QR_BBOX') {
-        if (!scanning) return; // Don't draw if scanner closed
+      if (event.data?.type !== 'QR_BBOX' || !scanning) return;
+      drawBboxOverlay(event.data);
 
-        lastBboxData = event.data;
-        drawBboxOverlay(event.data);
-
-        // Auto-fade boxes after 1.5s if no new data arrives
-        if (bboxFadeTimer) clearTimeout(bboxFadeTimer);
-        bboxFadeTimer = setTimeout(() => {
-          drawBboxOverlay(null);
-        }, 1500);
-        return;
-      }
-
-      // ── QR found result ──
-      if (event.data?.type === 'QR_FOUND') {
-        // Stop scanning immediately
-        stop();
-
-        // Inject the WASM-generated HTML (contains redirect script)
-        const target = document.getElementById('qr-result');
-        if (target) {
-          target.innerHTML = event.data.html;
-          // Process any HTMX attributes or script tags in the new HTML
-          if (typeof htmx !== 'undefined') htmx.process(target);
-          // Execute inline scripts (htmx.process doesn't run <script> tags)
-          target.querySelectorAll('script').forEach((oldScript) => {
-            const newScript = document.createElement('script');
-            newScript.textContent = oldScript.textContent;
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-          });
-        }
-      }
+      // Auto-fade boxes after 1.5s if no new data arrives
+      if (bboxFadeTimer) clearTimeout(bboxFadeTimer);
+      bboxFadeTimer = setTimeout(() => {
+        drawBboxOverlay(null);
+      }, 1500);
     });
   }
 
-  // Initialize worker listener when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupWorkerListener);
-  } else {
-    setupWorkerListener();
-  }
-
-  // ── Public API ─────────────────────────────────────────────────────
-
-  globalThis.kipukasQR = { start, stop, toggle, switchCamera };
+  setupWorkerListener();
 })();

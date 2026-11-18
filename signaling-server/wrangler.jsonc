@@ -5,9 +5,9 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
 
-  // The address the site connects to (assets/js/kipukas-api.js holds the same
-  // name). Cloudflare creates the DNS record on deploy; the zone must be in
-  // the account being deployed to.
+  // The address the site connects to (the site's engine holds the same name:
+  // RELAY in kipukas-server/src/game/connection.rs). Cloudflare creates the
+  // DNS record on deploy; the zone must be in the account being deployed to.
   "routes": [{ "pattern": "signal.kipukas.us", "custom_domain": true }],
 
   "durable_objects": {

@@ -1,24 +1,22 @@
 /**
- * kipukas-api.js — Page-level bridge between Service Worker and WASM Web Worker.
+ * kipukas-api.js — starts the game engine for this page and does for it what
+ * only a page can.
  *
- * Architecture (Option C — SW + Web Worker sidecar):
+ * The engine (Rust compiled to WASM) runs in a worker of its own
+ * (kipukas-worker.js), exposed as window.kipukasWorker. The page's views are
+ * drawn from it (kipukas-view.js), and it holds the multiplayer connection.
+ * It cannot reach the page or the browser's storage, so after anything
+ * changes it says what it wants done, and this file does it:
  *
- *   1. HTMX makes a fetch("/api/...")
- *   2. Service Worker intercepts it, creates a MessageChannel
- *   3. SW sends { type: 'WASM_REQUEST', ... } + port to this page
- *   4. This script relays the message + port to the WASM Web Worker
- *   5. Web Worker processes via WASM, responds on the port
- *   6. SW receives the response on its end of the channel
- *   7. SW returns a real Response to HTMX
+ *   SAVE     write or remove storage keys
+ *   ROOM     whether the player is in a room, for the toolbar
+ *   GO       go to another page of this site (a scanned QR code)
+ *   RELOAD   load this page again
  *
- * The MessageChannel port is transferred directly from SW → page → worker,
- * so the worker responds straight back to the SW with no extra hops.
+ * It also starts the pool of workers that decode card art (JPEG XL), which
+ * the service worker hands images to through this page.
  *
- * Phase 2 addition: Exposes the worker on window.kipukasWorker so that
- * qr-camera.js can send QR_FRAME messages directly (bypassing the SW
- * relay for the performance-critical scan loop).
- *
- * Load this script with defer in _layouts/default.html.
+ * Load this script with defer, ahead of the Alpine bundle.
  */
 
 // ============================================
@@ -38,11 +36,14 @@
 //     engine's to ask for (RELOAD).
 const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', 'kipukas_room_tab'];
 
-// Read by the engine at load and written by nobody but a developer: a relay
-// address to use in place of the engine's own, for local work. Run the relay
-// locally (`deno task dev` in signaling-server/) and point at it with:
-//   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
-const RELAY_KEY = 'kipukas_relay_url';
+// Handed to the engine at load with the rest, but not watched for changes:
+//   - a relay address to use in place of the engine's own, for local work,
+//     written by nobody but a developer. Run the relay locally (`deno task
+//     dev` in signaling-server/) and point at it with:
+//       localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
+//   - the QR scanner's two choices: that the camera privacy notice has been
+//     accepted, and whether codes are found by computer vision.
+const READ_AT_START = ['kipukas_relay_url', 'qr-privacy-accepted', 'kipukas-cv-enabled'];
 
 /** What is stored under one of the engine's keys, or null. */
 function stored(key) {
@@ -56,7 +57,7 @@ function stored(key) {
 /** Everything stored for the engine. */
 function allStored() {
   const all = {};
-  for (const key of [...ENGINE_KEYS, RELAY_KEY]) {
+  for (const key of [...ENGINE_KEYS, ...READ_AT_START]) {
     const value = stored(key);
     if (value !== null) all[key] = value;
   }
@@ -79,10 +80,11 @@ document.addEventListener('alpine:init', () => {
   });
 });
 
-// Spawn the WASM Web Worker (module worker for ES import support)
+// Start the engine's worker (a module worker, so it can import)
 const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' });
 
-// Expose worker for qr-camera.js and other modules that need direct access
+// For kipukas-view.js, which asks the engine for what it draws, and
+// qr-camera.js, which hands it camera frames.
 globalThis.kipukasWorker = wasmWorker;
 
 // The engine's first message, ahead of any request: what is stored. The
@@ -113,6 +115,9 @@ wasmWorker.addEventListener('message', (event) => {
     roomSaid = data.inRoom;
     const store = globalThis.Alpine?.store('room');
     if (store) store.inRoom = roomSaid;
+  } else if (data.type === 'GO') {
+    // A path on this site, which the engine has checked (a scanned QR code).
+    location.assign(data.path);
   } else if (data.type === 'RELOAD') {
     location.reload();
   }
@@ -138,11 +143,11 @@ globalThis.addEventListener('pageshow', (event) => {
 });
 
 // ============================================
-// JXL DECODE WORKER POOL — parallel, off the /api worker
+// JXL DECODE WORKER POOL — parallel, off the engine's worker
 // ============================================
 // Grid thumbnails (and full card art) are JXL, decoded by WASM. A small pool of
-// dedicated decode workers lets tiles decode in parallel instead of serializing
-// behind /api calls in the single worker above. Round-robin dispatch.
+// dedicated decode workers lets tiles decode in parallel instead of queueing
+// behind the engine's requests in the single worker above. Round-robin dispatch.
 const JXL_POOL_SIZE = Math.min(navigator.hardwareConcurrency || 2, 4);
 const jxlPool = Array.from(
   { length: JXL_POOL_SIZE },
@@ -153,30 +158,19 @@ let jxlPoolNext = 0;
 for (const w of jxlPool) {
   w.addEventListener('message', (e) => {
     if (e.data?.type === 'JXL_TIMING') {
-      console.log(`[jxl-pool] ${e.data.w}x${e.data.h} d=${e.data.maxDim} ${e.data.ms.toFixed(1)}ms`);
+      console.log(
+        `[jxl-pool] ${e.data.w}x${e.data.h} d=${e.data.maxDim} ${e.data.ms.toFixed(1)}ms`,
+      );
     }
   });
 }
 
-// Listen for messages from the controlling Service Worker
+// The service worker has fetched a card's art (.jxl) and needs it decoded.
+// Hand it to the next pool worker in turn, with the service worker's port
+// to answer on; the bytes and the port are transferred, not copied.
 if (navigator.serviceWorker) {
   navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data?.type === 'WASM_REQUEST') {
-      // Transfer the MessageChannel port directly to the Web Worker.
-      // The worker will respond on this port, which the SW is listening on.
-      wasmWorker.postMessage(
-        {
-          method: event.data.method,
-          pathname: event.data.pathname,
-          search: event.data.search,
-          body: event.data.body || '',
-        },
-        event.ports, // Transfer all ports (the SW sent one)
-      );
-    } else if (event.data?.type === 'WASM_DECODE_JXL') {
-      // SW fetched the whole .jxl and needs it decoded. Dispatch to the next
-      // pool worker (round-robin); forward the buffer + the SW's response port,
-      // transferring both so the bytes travel zero-copy.
+    if (event.data?.type === 'WASM_DECODE_JXL') {
       const worker = jxlPool[jxlPoolNext];
       jxlPoolNext = (jxlPoolNext + 1) % jxlPool.length;
       worker.postMessage(
@@ -187,84 +181,7 @@ if (navigator.serviceWorker) {
   });
 }
 
-// ============================================
-// FALLBACK: Direct main-thread routing when no SW is active
-// ============================================
-// During development (jekyll serve) or on first page load before the SW
-// claims the page, /api/* fetches would 404 on the network.
-// This intercepts HTMX requests and routes them directly through the
-// Web Worker, bypassing the SW relay entirely.
-document.addEventListener('htmx:beforeRequest', (evt) => {
-  const path = evt.detail.requestConfig.path;
-  if (!path.startsWith('/api/')) return; // Not an API route — let HTMX fetch normally
-
-  // If the SW is controlling this page, let the full relay chain handle it
-  if (navigator.serviceWorker?.controller) return;
-
-  // No SW — handle it directly via the Web Worker
-  evt.preventDefault();
-  console.log('[kipukas-api] No SW controller, routing directly:', path);
-
-  const url = new URL(path, location.origin);
-  const verb = (evt.detail.requestConfig.verb || 'GET').toUpperCase();
-  const params = evt.detail.requestConfig.parameters;
-  const hasFormParams = params && typeof params === 'object' && Object.keys(params).length > 0;
-
-  // Phase 3b: For POST requests, serialize params as form body instead of query string.
-  // For GET requests, prefer query params already in the URL (htmx.ajax puts them there),
-  // fall back to serialized hx-include form parameters for attribute-driven requests.
-  let qs = '';
-  let body = '';
-  if (verb === 'POST' || verb === 'PUT' || verb === 'PATCH') {
-    // POST body: serialize params as URL-encoded form data
-    body = hasFormParams ? new URLSearchParams(params).toString() : '';
-    qs = url.search.slice(1);
-  } else {
-    qs = url.search.slice(1) || (hasFormParams ? new URLSearchParams(params).toString() : '');
-  }
-
-  const channel = new MessageChannel();
-  channel.port1.onmessage = (msg) => {
-    // Find the HTMX swap target: check evt.detail.target first (set by htmx.ajax),
-    // then fall back to hx-target attribute lookup for attribute-driven requests.
-    const targetEl = evt.detail.target ||
-      (() => {
-        const sel = evt.detail.elt?.getAttribute('hx-target') ||
-          evt.detail.elt?.closest('[hx-target]')?.getAttribute('hx-target');
-        return sel ? document.querySelector(sel) : null;
-      })();
-    if (targetEl) {
-      targetEl.innerHTML = msg.data.html;
-      // Let HTMX know we've settled this element (processes hx-* attributes)
-      if (typeof htmx !== 'undefined') htmx.process(targetEl);
-      // Execute inline <script> tags (innerHTML doesn't run them automatically)
-      targetEl.querySelectorAll('script').forEach((old) => {
-        const s = document.createElement('script');
-        s.textContent = old.textContent;
-        old.parentNode.replaceChild(s, old);
-      });
-    }
-  };
-
-  wasmWorker.postMessage(
-    {
-      method: verb,
-      pathname: url.pathname,
-      search: qs ? '?' + qs : '',
-      body: body,
-    },
-    [channel.port2],
-  );
-});
-
 // Log worker errors for debugging
 wasmWorker.onerror = (err) => {
   console.error('[kipukas-api] WASM Worker error:', err);
 };
-
-// ============================================
-// QR detection stack is loaded on demand
-// ============================================
-// Previously preloaded 5s into every visit (wasteful for the majority who never
-// scan). It's now warmed on the FIRST QR-button click — see window.kipukasLoadQR
-// in _layouts/default.html — so it preps while the user reads the privacy modal.

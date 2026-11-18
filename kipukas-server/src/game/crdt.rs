@@ -937,8 +937,8 @@ mod tests {
     fn seed_then_disconnect_no_mutations_roundtrips_alarms() {
         // Simulate: local alarms → seed into CRDT → disconnect (no mutations).
         // Disconnect calls export_to_local() before reset, so PLAYER_DOC
-        // gets the CRDT alarms back. The worker's PERSIST_STATE message
-        // ensures this is saved to localStorage, preventing ghost timers.
+        // gets the CRDT alarms back, and the next handover has it stored,
+        // preventing ghost timers.
         player_doc::init_player_doc();
         player_doc::add_alarm(5, "round trip", "green");
         player_doc::add_alarm(2, "also round trip", "pink");

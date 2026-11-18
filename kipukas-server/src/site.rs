@@ -568,7 +568,7 @@ mod tests {
     const SHELL: &str = concat!(
         "<html><head>\n[[card.head]]\n<meta charset=\"utf-8\"></head>",
         "<body><div x-data=\"{ landscapeArt: [[card.landscape]] }\">",
-        "<a hx-get=\"/api/room/fists?card=[[card.slug]]\"></a>",
+        "<div data-engine-view=\"/api/room/fists?card=[[card.slug]]\"></div>",
         "<img src=\"/assets/images/[[card.image]]?d=512\">",
         "<img src=\"/assets/images/[[card.image]]\">",
         "<div data-engine-view=\"/api/card/panel?card=[[card.slug]]\">[[card.panel]]</div>",
@@ -761,7 +761,7 @@ mod tests {
         let page = render_page(SHELL, c).unwrap();
         assert!(!page.contains(HOLE_OPEN));
         assert!(page.contains("<title>Brox The Defiant | Kipukas</title>"));
-        assert!(page.contains(r#"hx-get="/api/room/fists?card=brox_the_defiant""#));
+        assert!(page.contains(r#"data-engine-view="/api/room/fists?card=brox_the_defiant""#));
         assert!(page.contains(&format!(r#"src="/assets/images/{}?d=512""#, c.img_name)));
         assert!(page.contains(&format!(r#"src="/assets/images/{}">"#, c.img_name)));
         assert!(page.contains("landscapeArt: false"));

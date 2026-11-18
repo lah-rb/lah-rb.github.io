@@ -27,7 +27,11 @@ const SOCKET_OPEN = 1;
  * @param {(method: string, path: string, body: string) => string} opts.request
  *   Ask the engine.
  * @param {(message: Record<string, unknown>) => void} opts.toPage
- *   Pass the page its part of a handover: SAVE, ROOM, REDRAW or RELOAD.
+ *   Pass the page its part of a handover: SAVE, ROOM, REDRAW, REFRESH, GO
+ *   or RELOAD.
+ * @param {(handed: Record<string, unknown>) => void} [opts.also]
+ *   Called with each handover, for a part that is the holder's own to do
+ *   (the worker's QR decoder).
  * @param {typeof WebSocket} [opts.WebSocketImpl]
  */
 export function createWire(opts) {
@@ -141,7 +145,10 @@ export function createWire(opts) {
     if (handed.save) toPage({ type: 'SAVE', writes: handed.save });
     if ('room' in handed) toPage({ type: 'ROOM', inRoom: handed.room });
     if (handed.redraw) toPage({ type: 'REDRAW', routes: handed.redraw });
+    if (handed.refresh) toPage({ type: 'REFRESH' });
+    if (handed.go) toPage({ type: 'GO', path: handed.go });
     if (handed.reload) toPage({ type: 'RELOAD' });
+    if (opts.also) opts.also(handed);
     if (handed.wire) carryOut(handed.wire);
   }
 
