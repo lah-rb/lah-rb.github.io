@@ -46,6 +46,12 @@
  * next changes; the page only waits that long and asks. Each drawing of the
  * view replaces what was waiting with what the new drawing asks for.
  *
+ * Or to be sent one when something scrolls into view, which is how a list
+ * grows as it is read:
+ *
+ *   <div data-engine-post="/api/cards" data-engine-body="shown=12"
+ *        data-engine-seen></div>
+ *
  * A view's route may ask for something only the page knows, written {name}:
  *
  *   <div data-engine-view="/api/hand?codes={hash}"></div>
@@ -72,21 +78,36 @@
   const BODY = 'data-engine-body';
   const AFTER = 'data-engine-after';
   const KEEP = 'data-engine-keep';
+  const SEEN = 'data-engine-seen';
+
+  /** How much of an element must be in view for it to count as seen. */
+  const SEEN_SHARE = 0.3;
 
   /**
    * What the page knows and the engine does not. `{hash}` in a view's route
-   * is replaced by the value each time the view is drawn.
+   * is replaced by the value each time the view is drawn. Each is given the
+   * view.
    */
   const PAGE_VALUES = {
     /** What follows the # in the page's address: on the hand page, its cards. */
     hash: () => location.hash.slice(1),
+
+    /**
+     * How many columns the view's own grid has just now, if it is laid out
+     * as one: the binder's batches are whole rows.
+     */
+    columns: (view) => {
+      if (!view) return '';
+      const tracks = getComputedStyle(view).gridTemplateColumns.split(/\s+/);
+      return tracks.filter((track) => track.endsWith('px')).length || '';
+    },
   };
 
-  /** A route with its {name} places filled in. */
-  function fill(route) {
+  /** A route with its {name} places filled in, for this view. */
+  function fill(route, view) {
     return (route || '').replace(
       /\{(\w+)\}/g,
-      (whole, name) => (PAGE_VALUES[name] ? encodeURIComponent(PAGE_VALUES[name]()) : whole),
+      (whole, name) => (PAGE_VALUES[name] ? encodeURIComponent(PAGE_VALUES[name](view)) : whole),
     );
   }
 
@@ -101,6 +122,9 @@
 
   /** For each view, the waits now running for posts the engine asked for. */
   const waiting = new WeakMap();
+
+  /** Elements whose post, sent on being seen, is on its way. */
+  const sending = new WeakSet();
 
   /** Whether an element is displayed: it, and everything it is in, has a box. */
   function isDisplayed(element) {
@@ -169,15 +193,42 @@
     waiting.set(view, timers);
   }
 
+  // Sends the post of an element marked data-engine-seen when enough of it
+  // has scrolled into view.
+  const lookout = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const asker = entry.target;
+      if (!entry.isIntersecting || sending.has(asker) || !asker.isConnected) continue;
+      const view = asker.closest('[' + VIEW + ']');
+      if (!view) continue;
+      sending.add(asker);
+      send(view, asker.getAttribute(POST), asker.getAttribute(BODY))
+        .finally(() => sending.delete(asker));
+    }
+  }, { threshold: SEEN_SHARE });
+
+  /**
+   * Look out for the elements in a view that ask to be sent when seen. Each
+   * is looked at afresh after every drawing, so one that is still in view
+   * (the new batch did not push it out) is sent again.
+   */
+  function watch(view) {
+    for (const asker of view.querySelectorAll('[' + SEEN + '][' + POST + ']')) {
+      lookout.unobserve(asker);
+      lookout.observe(asker);
+    }
+  }
+
   /** Draw a view from its route. */
   async function render(view) {
     const route = view.getAttribute(VIEW);
     if (!route) return;
-    const html = await ask('GET', fill(route), '');
+    const html = await ask('GET', fill(route, view), '');
     // The view may have been removed while the engine was answering.
     if (!view.isConnected) return;
     patch(view, html);
     schedule(view);
+    watch(view);
   }
 
   // Draws a view when it comes to be displayed. The margin is far larger than
@@ -216,7 +267,7 @@
   /** The card a view shows, from its route (`?card=<slug>`), or null. */
   function cardOf(view) {
     try {
-      return new URL(fill(view.getAttribute(VIEW)), location.origin).searchParams.get('card');
+      return new URL(fill(view.getAttribute(VIEW), view), location.origin).searchParams.get('card');
     } catch (_) {
       return null;
     }

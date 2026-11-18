@@ -42,7 +42,7 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **D
 | Layer | Technology | Examples |
 |-------|-----------|----------|
 | **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
-| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, QR Scanner interface |
+| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | The room tools' modal content, QR Scanner interface. Being replaced by engine-owned views |
 | **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, solo turn timer, affinity panel, type matchup calculator, hand page — see [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
@@ -154,7 +154,7 @@ A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player vi
 ### Request Flow (Production)
 
 ```
-User clicks a button with hx-get="/api/cards?page=0"
+User opens the room dialog, which has hx-get="/api/room/status"
         │
         ▼
    HTMX makes a standard fetch()
@@ -169,7 +169,7 @@ User clicks a button with hx-get="/api/cards?page=0"
    kipukas-api.js (page bridge) relays to Web Worker via MessageChannel
         │
         ▼
-   kipukas-worker.js runs WASM: handle_request("GET", "/api/cards", "page=0")
+   kipukas-worker.js runs WASM: handle_request("GET", "/api/room/status", "")
         │
         ▼
    Rust router (matchit) dispatches to handler → returns HTML string
@@ -279,7 +279,7 @@ These are patterns that have been tested and work well. Understanding **why** th
 2. **HTMX → Alpine:** `x-effect` watching for DOM changes after HTMX swaps (sentinel pattern)
 3. **Cross-component:** Custom DOM events (e.g., `document.dispatchEvent(new CustomEvent('close-multiplayer'))` listened by `@close-multiplayer.window="showMultiplayer = false"`)
 
-**The bridge function:** `kipukasRefreshCards()` reads Alpine's reactive `filter` and `searchQuery` state, builds a URL, and calls `htmx.ajax()`. This bridges Alpine UI state to HTMX data fetching without coupling them.
+**The bridge function:** `kipukasRefreshCards()` (in `index.html`) reads Alpine's reactive `filter` and `searchQuery` state and tells the engine what they say; the binder's grid, an engine-owned view, is then drawn again. It is temporary: it goes when the filter menu and the search field become the engine's too.
 
 **When to use Alpine:** Elements that always live in the DOM but need reactive appearance changes — show/hide toggles, CSS class switching, animations, transition states. Alpine never fetches data or reads game state.
 
@@ -627,9 +627,10 @@ The worker's handling of a request with no reply port is unchanged and still use
    ```
 
    The element is `hidden` so that it is not also something to tap. It works in contents put into a view by other code too (the room's timers, written by the multiplayer script).
-6. **Fills in what only the page knows:** `{hash}` in a view's route becomes what follows the `#` in the page's address, each time the view is drawn, and the view is drawn again when that changes. The hand page is `data-engine-view="/api/hand?codes={hash}"`. Add to `PAGE_VALUES` in `kipukas-view.js` for another such value; the time is not one (the engine reads the clock).
-7. **Leaves alone what is not the view's to change:** when a view is drawn again, a view inside it and any element marked `data-engine-keep` stay exactly as they are (see "Views inside views" below).
-8. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
+6. **Fills in what only the page knows:** `{hash}` in a view's route becomes what follows the `#` in the page's address, each time the view is drawn, and the view is drawn again when that changes. The hand page is `data-engine-view="/api/hand?codes={hash}"`. `{columns}` becomes how many columns the view's own CSS grid has just now. Add to `PAGE_VALUES` in `kipukas-view.js` for another such value; the time is not one (the engine reads the clock).
+7. **Sends a post when its element scrolls into view:** an element with `data-engine-seen` beside its `data-engine-post` is sent once enough of it is in view, and the view is drawn again. If it is still in view after that, it is sent again. This is how the binder grows as it is read (below).
+8. **Leaves alone what is not the view's to change:** when a view is drawn again, a view inside it and any element marked `data-engine-keep` stay exactly as they are (see "Views inside views" below).
+9. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
 
 When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything. Views that are not displayed are skipped; they are drawn when shown.
 
@@ -640,6 +641,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 - The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
 - The type matchup calculator, three views of one route that are drawn together: `kipukas-server/src/game/matchup.rs`; template `_includes/local_fists_tool.html`. The engine holds what is picked, as a scratch pad that lasts until the page is left. A checkbox is a post; the page does not check it, the engine's next drawing does, and that drawing also disables the rest of a side that has its three. Alpine only folds the two sections.
+- The binder's grid, a list that grows as it is read: `kipukas-server/src/routes/cards.rs`; in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
 - The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
 
 **Views inside views.** Usually compose in Rust: the panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`, and a tap on the tracker redraws the panel it sits in.
@@ -670,7 +672,6 @@ A view may hold other views where each inner one should be drawn by itself: the 
 
 **When NOT to use it:**
 - Purely visual state the engine has no interest in (a menu or dialog being open): Alpine.
-- Paged lists that load more as they are scrolled: HTMX, until the runtime can do that.
 - A control whose change must also be sent to the other player (the room's timers, fists): these still go through the multiplayer script.
 
 ---
@@ -886,7 +887,7 @@ Do not skip step 2. The site build compiles its own engine from the card files, 
 
 **Alpine vs HTMX decision (DOM residency model):**
 - Use **Alpine** for: always-in-DOM elements that need reactive appearance changes — visibility toggles, CSS class swaps, animations, transition states
-- Use **HTMX** for: content that comes and goes from the DOM — modal content, paginated lists, tool panels. HTMX fetches from Rust and posts user actions to Rust
+- Use **HTMX** for: nothing new. It still serves the room tools' modal content and is being replaced tool by tool
 - Use an **engine-owned view** for: content that shows game state — damage trackers, the solo turn timer, the affinity panel (see Pattern 13). Rust renders it, a tap asks Rust for a change, the page patches in the result. No Alpine scope, no HTMX swap
 - **Rust is the single source of truth** for all game state — components consult Rust directly, never localStorage or JS variables
 
@@ -940,7 +941,7 @@ Persist combat results in yrs document so players can review past rounds across 
 Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. **NOTE:** It was also attempted to improve rqrr detection, but the results were overall worse that ZXing with greater complication and dimishing returns on space saved. Many strategies were attempted, but only adaptive_threshold had any effect. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
 #### 5. Infinite Scroll with Content-Visibility
-Replace the sentinel-chain pagination on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature.
+Replace the batch-by-batch loading on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature. The engine already holds how many tiles the binder shows (`routes/cards.rs`), which is where position tracking would go.
 
 #### 6. Card Trading
 Propose an NFT brokered trade of cards marked in deck. Requires the game to be publicly available with a real player base to validate the mechanic. Also, requires the store website to be online (kipukas.com).

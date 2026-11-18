@@ -106,6 +106,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("type_matchup", "GET") => routes::type_matchup::handle(query),
             ("type_matchup", "POST") => routes::type_matchup::handle_post(body),
             ("cards", "GET") => routes::cards::handle(query),
+            ("cards", "POST") => routes::cards::handle_post(body),
             ("card_panel", "GET") => routes::cards::handle_panel(query),
             ("hand", "GET") => routes::hand::handle(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
@@ -195,7 +196,7 @@ mod tests {
 
     #[test]
     fn returns_405_for_wrong_method() {
-        let html = handle_request("POST", "/api/cards", "", "");
+        let html = handle_request("POST", "/api/card/panel", "", "");
         assert!(html.contains("405"));
     }
 
@@ -223,10 +224,15 @@ mod tests {
 
     #[test]
     fn routes_cards() {
-        let html = handle_request("GET", "/api/cards", "?page=0&per=4&all=true", "");
-        assert!(html.contains("<a href="));
-        let card_count = html.matches("<a href=").count();
-        assert_eq!(card_count, 4);
+        routes::cards::reset();
+        // One column: a first batch of three tiles.
+        let html = handle_request("GET", "/api/cards", "?columns=1", "");
+        assert_eq!(html.matches("<a href=").count(), 3);
+        // The marker's request for more, then the grid again.
+        assert_eq!(handle_request("POST", "/api/cards", "", "shown=6"), "");
+        let html = handle_request("GET", "/api/cards", "?columns=1", "");
+        assert_eq!(html.matches("<a href=").count(), 6);
+        routes::cards::reset();
     }
 
     #[test]

@@ -1,56 +1,93 @@
-//! `/api/cards` route — paginated, filtered card catalog for HTMX infinite scroll.
+//! `/api/cards`: the binder's grid of cards.
 //!
-//! Query parameters:
-//! - `page` — 0-indexed page number (default: 0)
-//! - `per`  — cards per page (default: 12)
-//! - `filter` — comma-separated filter values (layout, genetic_disposition, motivation, habitat)
-//! - `search` — case-insensitive search string matched against tags + slug
-//! - `all` — if "true", show all cards (ignore filter). Default behavior.
+//! The grid is an engine-owned view (Pattern 13). The engine holds what the
+//! binder is showing ([`Binder`]): which cards (all of them, those matching
+//! some filters, or those matching a search) and how many of them are on the
+//! page so far. The view is drawn from that:
+//!
+//!   GET  /api/cards?columns=<columns in the page's grid>
+//!
+//! renders the tiles on the page so far, at least a first batch of [`ROWS`]
+//! rows, and after them, if there are more cards, a marker. When the marker
+//! scrolls into view the page posts what it says (`shown=<n>`), the engine
+//! shows that many, and the view is drawn again: the new tiles are added
+//! after those already there.
+//!
+//!   POST /api/cards  shown=<n>                           show at least n tiles
+//!   POST /api/cards  all=true | filter=a,b | search=x    which cards, from the top
+//!
+//! A tile belongs to the page once drawn (`data-engine-keep`, and an id): its
+//! art has loaded and faded in, and later drawings leave it alone. So adding
+//! a batch touches nothing above it, and a tile that stays through a change
+//! of filter does not flash.
+//!
+//! What the binder shows lasts as long as the engine does: until the page is
+//! left. A fresh page shows every card.
+
+use std::cell::RefCell;
 
 use crate::catalog::{Card, CARDS};
+use crate::routes::util::{get_param, parse_form_body, parse_query};
 
-/// Parse a query string into key-value pairs.
-/// Handles `?key=value&key2=value2` format.
-fn parse_query(query: &str) -> Vec<(&str, &str)> {
-    let q = query.strip_prefix('?').unwrap_or(query);
-    if q.is_empty() {
-        return Vec::new();
-    }
-    q.split('&')
-        .filter_map(|pair| {
-            let mut parts = pair.splitn(2, '=');
-            let key = parts.next()?;
-            let val = parts.next().unwrap_or("");
-            Some((key, val))
-        })
-        .collect()
+/// How many rows of tiles are added at a time.
+pub const ROWS: usize = 3;
+
+/// The columns assumed when the page does not say how many its grid has.
+const DEFAULT_COLUMNS: usize = 4;
+
+/// The most tiles added at a time, however wide the page.
+const LARGEST_BATCH: usize = 100;
+
+/// What the binder is showing.
+#[derive(Debug, Clone, PartialEq)]
+struct Binder {
+    /// Every card, unless a search is in progress.
+    all: bool,
+    /// When not `all`: cards matching any of these (a type, an archetype, a
+    /// motivation or a habitat). None at all shows nothing.
+    filters: Vec<String>,
+    /// When not empty: cards matching this, whatever `all` and `filters` say.
+    search: String,
+    /// How many tiles are on the page so far. 0 until the first batch has
+    /// been added to.
+    shown: usize,
 }
 
-/// Percent-decode a query value (basic: handles %20, %2C, etc.)
-fn percent_decode(input: &str) -> String {
-    let mut result = String::with_capacity(input.len());
-    let mut chars = input.bytes();
-    while let Some(b) = chars.next() {
-        if b == b'%' {
-            let hi = chars.next().unwrap_or(b'0');
-            let lo = chars.next().unwrap_or(b'0');
-            let hex = [hi, lo];
-            if let Ok(s) = core::str::from_utf8(&hex) {
-                if let Ok(val) = u8::from_str_radix(s, 16) {
-                    result.push(val as char);
-                    continue;
-                }
-            }
-            result.push('%');
-            result.push(hi as char);
-            result.push(lo as char);
-        } else if b == b'+' {
-            result.push(' ');
-        } else {
-            result.push(b as char);
-        }
+impl Default for Binder {
+    fn default() -> Self {
+        Binder { all: true, filters: Vec::new(), search: String::new(), shown: 0 }
     }
-    result
+}
+
+thread_local! {
+    static BINDER: RefCell<Binder> = RefCell::new(Binder::default());
+}
+
+/// Show every card from the top, as a fresh page does.
+pub fn reset() {
+    BINDER.with(|binder| *binder.borrow_mut() = Binder::default());
+}
+
+/// The cards the binder is showing, in catalog order. Hidden cards (the 404
+/// Glitch's two pages) are never among them.
+fn selected(binder: &Binder) -> Vec<&'static Card> {
+    CARDS
+        .iter()
+        .filter(|card| {
+            if card.hidden {
+                return false;
+            }
+            // A search in progress matches against it, whatever else is set.
+            if !binder.search.is_empty() {
+                return card_matches_search(card, &binder.search);
+            }
+            if binder.all {
+                return true;
+            }
+            // No search and not all: at least one filter is needed.
+            !binder.filters.is_empty() && card_matches_filters(card, &binder.filters)
+        })
+        .collect()
 }
 
 /// Check if a card matches any of the given filter values.
@@ -101,6 +138,9 @@ const GRID_THUMB_MAXDIM: u32 = 512;
 
 /// Render a single card as an HTML fragment with skeleton placeholder and smooth image loading.
 ///
+/// The tile has an id and is marked to be kept: once it is on the page, later
+/// drawings of the grid leave it as it is, with its art loaded.
+///
 /// Each card has one `.jxl`; the grid requests it with `?d=<maxdim>` so the
 /// decode worker pool downscales the full-resolution decode to a tile-sized,
 /// fully-colored thumbnail. `object-cover` + the per-card `thumbnail` anchor
@@ -123,7 +163,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     // is overlaid on a bottom gradient scrim. Skeleton sits under the image and
     // is cleared on load; a subtle hover zoom is clipped by overflow-hidden.
     format!(
-        r#"<div class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{stagger}ms">
+        r#"<div id="tile-{slug}" data-engine-keep class="animate-card-fade-in relative w-40 h-64 lg:w-50 lg:h-68" style="animation-delay:{stagger}ms">
   <a href="{url}"
     class="group block relative w-full h-full rounded-md overflow-hidden shadow-lg active:shadow-inner bg-kip-drk-sienna"
   >
@@ -142,6 +182,7 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     </div>
   </a>
 </div>"#,
+        slug = card.slug,
         stagger = stagger_delay,
         url = card.url,
         img = card.img_name,
@@ -152,135 +193,83 @@ fn render_card(card: &Card, delay_ms: usize, is_initial_load: bool) -> String {
     )
 }
 
-/// Render the sentinel div that triggers the next page load.
-/// Uses threshold:0.3 to prevent "over eager" loading and adds delay for smoother UX.
-fn render_sentinel(page: usize, per: usize, filter_param: &str, search_param: &str, all: bool) -> String {
-    let mut query_parts = vec![
-        format!("page={}", page),
-        format!("per={}", per),
-    ];
-    if all {
-        query_parts.push("all=true".to_string());
-    }
-    if !filter_param.is_empty() {
-        query_parts.push(format!("filter={}", filter_param));
-    }
-    if !search_param.is_empty() {
-        query_parts.push(format!("search={}", search_param));
-    }
-    let query = query_parts.join("&");
-
-    // Add data attribute to indicate this is not initial load (for animation timing)
-    // Sentinel uses min-h to preserve grid row height without fixed dimensions
+/// Render the marker that follows the tiles when there are more cards: the
+/// page posts what it says when it scrolls into view (`data-engine-seen`),
+/// and the grid is drawn again with `shown` tiles.
+///
+/// It is as tall as a tile, so it holds a place in the grid's last row.
+fn render_more(shown: usize) -> String {
     format!(
-        r#"<div hx-get="/api/cards?{query}" 
-             hx-trigger="intersect once threshold:0.3" 
-             hx-swap="outerHTML" 
-             class="min-h-[16rem] md:min-h-[20rem]"
-             data-scroll-load="true"></div>"#,
-        query = query,
+        r#"<div data-engine-post="/api/cards" data-engine-body="shown={shown}" data-engine-seen class="min-h-[16rem] md:min-h-[20rem]" data-scroll-load="true"></div>"#,
+        shown = shown,
     )
 }
 
-/// Handle GET /api/cards
+/// Render the grid: the tiles on the page so far, at least one batch, and the
+/// marker for more if there are more.
+fn render_grid(batch: usize) -> String {
+    let binder = BINDER.with(|binder| binder.borrow().clone());
+    let cards = selected(&binder);
+    let shown = binder.shown.max(batch).min(cards.len());
+
+    let mut html = String::with_capacity(shown * 1100);
+    for (place, card) in cards[..shown].iter().enumerate() {
+        // Tiles fade in one after another within their batch. Batches after
+        // the first arrive while scrolling, so theirs is quicker.
+        let delay_ms = (place % batch) * 60;
+        html.push_str(&render_card(card, delay_ms, place < batch));
+    }
+    if shown < cards.len() {
+        html.push_str(&render_more(shown + batch));
+    }
+    html
+}
+
+/// Handle GET /api/cards?columns=<n>
+///
+/// `columns` is how many columns the page's grid has; a batch is [`ROWS`]
+/// rows of it.
 pub fn handle(query: &str) -> String {
     let params = parse_query(query);
+    let columns = get_param(&params, "columns")
+        .and_then(|n| n.parse::<usize>().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(DEFAULT_COLUMNS);
+    render_grid((columns * ROWS).min(LARGEST_BATCH))
+}
 
-    let mut page: usize = 0;
-    let mut per: usize = 12;
-    let mut filter_raw = String::new();
-    let mut search_raw = String::new();
-    let mut all = false;
-
-    for (key, val) in &params {
-        match *key {
-            "page" => page = val.parse().unwrap_or(0),
-            "per" => per = val.parse().unwrap_or(12),
-            "filter" => filter_raw = percent_decode(val),
-            "search" => search_raw = percent_decode(val),
-            "all" => all = *val == "true",
-            _ => {}
+/// Handle POST /api/cards
+///
+/// `shown=<n>`: show at least n tiles (the marker's request for more). Asked
+/// twice, it is done once.
+///
+/// Otherwise, which cards to show, from the top: `all=true`, or
+/// `filter=<a>,<b>` (cards matching any), or `search=<text>`. What is not
+/// given is off.
+///
+/// Returns nothing; the page draws the grid again.
+pub fn handle_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    BINDER.with(|binder| {
+        let mut binder = binder.borrow_mut();
+        if let Some(shown) = get_param(&params, "shown") {
+            let shown = shown.parse::<usize>().unwrap_or(0).min(CARDS.len());
+            binder.shown = binder.shown.max(shown);
+            return;
         }
-    }
-
-    // Clamp per to reasonable bounds
-    if per == 0 {
-        per = 12;
-    }
-    if per > 100 {
-        per = 100;
-    }
-
-    // Parse filter values
-    let filters: Vec<String> = if filter_raw.is_empty() {
-        Vec::new()
-    } else {
-        filter_raw.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-    };
-
-    // Filter cards
-    let filtered: Vec<&Card> = CARDS
-        .iter()
-        .filter(|card| {
-            // Hidden cards (e.g. the /fourohfour easter-egg) never appear in the
-            // browse grid, regardless of all/filter/search.
-            if card.hidden {
-                return false;
-            }
-            // If "all" is true and no search, show everything
-            if all && search_raw.is_empty() {
-                return true;
-            }
-            // If search is active, match search (regardless of filter/all)
-            if !search_raw.is_empty() {
-                return card_matches_search(card, &search_raw);
-            }
-            // Otherwise, apply filters
-            if all {
-                return true;
-            }
-            // No search, no all — need at least one active filter
-            if filters.is_empty() {
-                return false;
-            }
-            card_matches_filters(card, &filters)
-        })
-        .collect();
-
-    let total = filtered.len();
-    let start = page * per;
-
-    // If start is beyond filtered results, return empty (no more pages)
-    if start >= total {
-        return String::new();
-    }
-
-    let end = (start + per).min(total);
-    let page_cards = &filtered[start..end];
-    let has_more = end < total;
-
-    let mut html = String::with_capacity(page_cards.len() * 512);
-
-    // Determine if this is the initial load (page 0) or scroll load
-    let is_initial_load = page == 0;
-
-    for (i, card) in page_cards.iter().enumerate() {
-        let delay_ms = i * 60;
-        html.push_str(&render_card(card, delay_ms, is_initial_load));
-    }
-
-    // Add sentinel for next page if there are more cards
-    if has_more {
-        // Pass through the original filter/search params for the sentinel
-        let filter_param = if filters.is_empty() {
-            String::new()
-        } else {
-            filter_raw.clone()
+        *binder = Binder {
+            all: get_param(&params, "all") == Some("true"),
+            filters: get_param(&params, "filter")
+                .unwrap_or("")
+                .split(',')
+                .map(|name| name.trim().to_string())
+                .filter(|name| !name.is_empty())
+                .collect(),
+            search: get_param(&params, "search").unwrap_or("").trim().to_string(),
+            shown: 0,
         };
-        html.push_str(&render_sentinel(page + 1, per, &filter_param, &search_raw, all));
-    }
-
-    html
+    });
+    String::new()
 }
 
 // ── GET /api/card/panel ────────────────────────────────────────────
@@ -301,71 +290,202 @@ pub fn handle_panel(query: &str) -> String {
 mod tests {
     use super::*;
 
+    /// The slugs of the tiles in some grid markup, in order.
+    fn tiles(html: &str) -> Vec<&str> {
+        html.split(r#"<div id="tile-"#)
+            .skip(1)
+            .map(|rest| &rest[..rest.find('"').unwrap()])
+            .collect()
+    }
+
+    fn shown_cards() -> Vec<&'static Card> {
+        CARDS.iter().filter(|c| !c.hidden).collect()
+    }
+
+    const MORE: &str = r#"<div data-engine-post="/api/cards" data-engine-body="shown="#;
+
     #[test]
-    fn returns_first_page() {
-        let html = handle("?page=0&per=4&all=true");
-        // Should contain exactly 4 card links + 1 sentinel
-        let card_count = html.matches("<a href=").count();
-        assert_eq!(card_count, 4);
-        assert!(html.contains("hx-trigger=\"intersect once threshold:0.3\""));
+    fn a_fresh_binder_shows_the_first_batch_of_every_card() {
+        reset();
+        // Two columns, three rows.
+        let html = handle("?columns=2");
+        let expected: Vec<&str> = shown_cards().iter().take(6).map(|c| c.slug).collect();
+        assert_eq!(tiles(&html), expected);
+        assert_eq!(html.matches("<a href=").count(), 6);
+        // And asks for the next batch when its end is reached.
+        assert!(html.ends_with(&format!(
+            r#"{}12" data-engine-seen class="min-h-[16rem] md:min-h-[20rem]" data-scroll-load="true"></div>"#,
+            MORE
+        )));
+        reset();
     }
 
     #[test]
-    fn returns_empty_for_beyond_last_page() {
-        let html = handle("?page=999&per=12&all=true");
-        assert!(html.is_empty());
+    fn a_batch_is_three_rows_of_however_many_columns_the_page_has() {
+        reset();
+        assert_eq!(tiles(&handle("?columns=5")).len(), 15);
+        assert_eq!(tiles(&handle("?columns=1")).len(), 3);
+        // Not said, or nonsense: four columns.
+        assert_eq!(tiles(&handle("")).len(), 12);
+        assert_eq!(tiles(&handle("?columns=0")).len(), 12);
+        assert_eq!(tiles(&handle("?columns=many")).len(), 12);
+        // However wide, no more than all the cards.
+        assert_eq!(tiles(&handle("?columns=500")).len(), shown_cards().len());
+        reset();
     }
 
     #[test]
-    fn no_sentinel_on_last_page() {
-        // Request all cards in one page
-        let html = handle("?page=0&per=200&all=true");
-        assert!(!html.contains("hx-trigger=\"intersect\""));
-        // But should have cards
-        assert!(html.contains("<a href="));
+    fn more_adds_a_batch_after_the_tiles_already_there() {
+        reset();
+        let first = handle("?columns=2");
+        handle_post("shown=12");
+        let second = handle("?columns=2");
+        assert_eq!(tiles(&second).len(), 12);
+        assert_eq!(tiles(&second)[..6], tiles(&first)[..]);
+        assert!(second.contains(&format!(r#"{}18""#, MORE)));
+        // The first six tiles are rendered exactly as they were.
+        let end_of_first = first.find(MORE).unwrap();
+        assert!(second.starts_with(&first[..end_of_first]));
+        reset();
     }
 
     #[test]
-    fn filter_by_layout() {
-        let html = handle("?page=0&per=100&filter=Sabotage");
-        // Should only contain Sabotage cards
-        assert!(html.contains("<a href="));
-        // All returned cards should be Sabotage type
-        // (We can't easily verify this without parsing HTML, but we can verify
-        // the count is less than total)
-        let card_count = html.matches("<a href=").count();
-        assert!(card_count > 0);
-        assert!(card_count < 56);
+    fn asking_for_more_twice_adds_it_once() {
+        reset();
+        handle_post("shown=12");
+        handle_post("shown=12");
+        assert_eq!(tiles(&handle("?columns=2")).len(), 12);
+        // Nor does a late request for fewer take any away.
+        handle_post("shown=6");
+        assert_eq!(tiles(&handle("?columns=2")).len(), 12);
+        reset();
     }
 
     #[test]
-    fn search_works() {
-        let html = handle("?page=0&per=100&search=otter");
-        assert!(html.contains("frost_tipped_arctic_otter"));
-    }
-
-    #[test]
-    fn no_filters_no_all_returns_empty() {
-        // No all=true and no filter and no search = empty grid
-        // (This is the "search mode ready" state — grid is blank until user types)
-        let html = handle("?page=0&per=100");
-        assert!(html.is_empty());
-    }
-
-    #[test]
-    fn percent_decode_works() {
-        assert_eq!(percent_decode("hello%20world"), "hello world");
-        assert_eq!(percent_decode("a%2Cb"), "a,b");
-        assert_eq!(percent_decode("plain"), "plain");
-    }
-
-    #[test]
-    fn sentinel_carries_params() {
-        let html = handle("?page=0&per=4&all=true&search=test");
-        if html.contains("hx-trigger") {
-            assert!(html.contains("page=1"));
-            assert!(html.contains("search=test"));
-            assert!(html.contains("all=true"));
+    fn every_card_is_reached_once_and_then_there_is_no_marker() {
+        reset();
+        let all = shown_cards();
+        let mut html = handle("?columns=2");
+        let mut rounds = 0;
+        while let Some(at) = html.find(MORE) {
+            let rest = &html[at + MORE.len()..];
+            let shown = &rest[..rest.find('"').unwrap()];
+            handle_post(&format!("shown={}", shown));
+            html = handle("?columns=2");
+            rounds += 1;
+            assert!(rounds < 100, "the marker never goes away");
         }
+        let slugs: Vec<&str> = all.iter().map(|c| c.slug).collect();
+        assert_eq!(tiles(&html), slugs);
+        assert!(!html.contains("data-engine-seen"));
+        // Hidden cards are not in the binder.
+        assert!(!slugs.contains(&"fourohfour") && !slugs.contains(&"404"));
+        reset();
+    }
+
+    #[test]
+    fn a_tile_is_kept_by_the_page_and_can_be_told_from_the_others() {
+        reset();
+        let html = handle("?columns=500");
+        for card in shown_cards() {
+            assert_eq!(
+                html.matches(&format!(r#"<div id="tile-{}" data-engine-keep "#, card.slug)).count(),
+                1,
+                "{}",
+                card.slug
+            );
+        }
+        reset();
+    }
+
+    #[test]
+    fn tiles_fade_in_one_after_another_within_their_batch() {
+        reset();
+        handle_post("shown=12");
+        let html = handle("?columns=2");
+        let delays: Vec<&str> = html
+            .split("animation-delay:")
+            .skip(1)
+            .map(|rest| &rest[..rest.find("ms").unwrap()])
+            .collect();
+        // The first batch staggers all the way; a later one is capped.
+        assert_eq!(delays, ["0", "60", "120", "180", "240", "300", "0", "60", "120", "180", "180", "180"]);
+        reset();
+    }
+
+    #[test]
+    fn filters_show_the_cards_matching_any_of_them() {
+        reset();
+        handle_post("filter=Sabotage");
+        let html = handle("?columns=500");
+        let shown = tiles(&html);
+        assert!(!shown.is_empty());
+        for slug in &shown {
+            let card = CARDS.iter().find(|c| c.slug == *slug).unwrap();
+            assert_eq!(card.layout, "Sabotage", "{}", slug);
+        }
+        handle_post("filter=Sabotage,Trap");
+        let both = tiles(&handle("?columns=500")).len();
+        assert!(both > shown.len());
+        assert!(both < shown_cards().len());
+        reset();
+    }
+
+    #[test]
+    fn a_search_matches_names_and_tags_whatever_the_filters_say() {
+        reset();
+        handle_post("search=otter");
+        assert_eq!(tiles(&handle("?columns=500")), ["frost_tipped_arctic_otter"]);
+        // With all on as well, the search still decides.
+        handle_post("all=true&search=otter");
+        assert_eq!(tiles(&handle("?columns=500")), ["frost_tipped_arctic_otter"]);
+        handle_post("search=%20OTTER%20");
+        assert_eq!(tiles(&handle("?columns=500")), ["frost_tipped_arctic_otter"]);
+        reset();
+    }
+
+    #[test]
+    fn neither_all_nor_a_filter_nor_a_search_shows_nothing() {
+        reset();
+        // The state the search bar opens in: blank until something is typed.
+        handle_post("all=false");
+        assert_eq!(handle("?columns=2"), "");
+        handle_post("");
+        assert_eq!(handle("?columns=2"), "");
+        reset();
+    }
+
+    #[test]
+    fn changing_what_is_shown_starts_from_the_top() {
+        reset();
+        handle_post("shown=24");
+        assert_eq!(tiles(&handle("?columns=2")).len(), 24);
+        handle_post("all=true");
+        assert_eq!(tiles(&handle("?columns=2")).len(), 6);
+        reset();
+    }
+
+    #[test]
+    fn a_change_of_filter_renders_the_tiles_that_stay_exactly_as_before() {
+        reset();
+        let all = handle("?columns=500");
+        handle_post("filter=Sabotage");
+        let some = handle("?columns=500");
+        for slug in tiles(&some) {
+            let tile = |html: &str| {
+                let start = html.find(&format!(r#"<div id="tile-{}""#, slug)).unwrap();
+                let rest = &html[start..];
+                // Up to the tile's link closing; what follows is its own closing div.
+                rest[..rest.find("</a>").unwrap()].to_string()
+            };
+            // The same but for where it falls in its batch (the fade-in delay).
+            let strip = |t: String| {
+                let at = t.find("animation-delay:").unwrap();
+                let end = at + t[at..].find("ms").unwrap();
+                format!("{}{}", &t[..at], &t[end..])
+            };
+            assert_eq!(strip(tile(&some)), strip(tile(&all)), "{}", slug);
+        }
+        reset();
     }
 }
