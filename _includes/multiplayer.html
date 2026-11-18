@@ -1,8 +1,16 @@
-<!-- Phase 4: Multiplayer room management (wifi icon) — room connection only, no fists combat -->
+<!-- The room dialog (wifi icon): where a room is created, joined and left.
+     What it holds is an engine-owned view (Pattern 13, assets/js/kipukas-view.js)
+     of /api/room/status: the engine draws where the player stands, the forms
+     and buttons in it post back to the engine, and it is drawn again when the
+     relay or the opponent changes what it shows
+     (kipukas-server/src/routes/room_status.rs, src/game/connection.rs).
+     This file only opens and closes it. The engine is told of the closing, so
+     that what it had to say (a room code that was wrong) is not said again. -->
 <div x-data="{ showMultiplayer: false }" class="relative place-content-center"
+     x-init="$watch('showMultiplayer', value => { if (!value) kipukasViews.post('/api/room/status', 'action=close'); })"
      @close-multiplayer.window="showMultiplayer = false">
   <!-- Multiplayer toggle button (wifi icon) -->
-  <button aria-label="Toggle Multiplayer" @click="window.kipukasLoadMultiplayer().then(function() { showMultiplayer = !showMultiplayer })" class="toolbar-tile">
+  <button aria-label="Toggle Multiplayer" @click="showMultiplayer = !showMultiplayer" class="toolbar-tile">
     <svg xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       class="toolbar-tile-icon fill-kip-drk-goldenrod hover:fill-kip-red">
@@ -10,28 +18,19 @@
     </svg>
   </button>
 
-  <!-- Full-screen modal overlay (room management only) -->
+  <!-- Full-screen modal overlay -->
   <div x-show="showMultiplayer" x-cloak
     role="dialog" aria-modal="true" aria-label="Multiplayer room"
     x-trap="showMultiplayer" @keydown.escape.window="showMultiplayer = false"
     class="fixed inset-0 flex items-center justify-center z-50"
-    x-transition.duration.350ms
-    x-effect="if (showMultiplayer) $nextTick(() => {
-      if (typeof htmx !== 'undefined') {
-        htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
-      }
-    })">
+    x-transition.duration.350ms>
 
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
 
-    <!-- Modal content (room status only) -->
+    <!-- Modal content -->
     <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
-      <div id="room-status"
-        hx-get="/api/room/status"
-        hx-trigger="load"
-        hx-swap="innerHTML">
-      </div>
+      <div id="room-status" data-engine-view="/api/room/status"></div>
 
       <!-- Close button -->
       <div class="border-t border-slate-300 p-3">

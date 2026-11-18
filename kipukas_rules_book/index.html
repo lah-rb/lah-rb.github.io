@@ -16,7 +16,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
     <meta name="theme-color" content="#0369a1">
 
-    <!-- WASM API bridge: enables QR scanner + multiplayer reconnect.
+    <!-- Starts the game engine, which returns to a multiplayer room by itself
+         and serves the QR scanner.
          Must load BEFORE the Alpine bundle: it registers Alpine.store('room') on
          `alpine:init`, and Alpine starts in a microtask right after its bundle. -->
     <script defer src="/assets/js/kipukas-api.js"></script>
@@ -26,6 +27,12 @@
 
     <!-- HTMX (needed for QR scanner WASM routes) -->
     <script defer src="/assets/js/htmx.min.js"></script>
+
+    <!-- Engine-owned views (the room status pill): the engine renders them and
+         the page patches the result in place. Idiomorph does the patching; its
+         bundle also registers an htmx extension, so it loads after htmx. -->
+    <script defer src="/assets/js/idiomorph-ext.min.js"></script>
+    <script defer src="/assets/js/kipukas-view.js"></script>
 
     <!-- Register the Service Worker so /game_rules/ controls .jxl decode + caching
          even when deep-linked directly (reloads once on first controllerchange). -->
@@ -293,45 +300,9 @@
         </div>
     </div>
 
-    <!-- Room status pill — a copy of _includes/room_status.html (this page is not
-         built by Jekyll, so it cannot use the include). Keep the two in step. -->
-    <div x-data="{
-           tone: 'off',
-           label: '',
-           sync() {
-             const room = this.$store.room;
-             let tone = 'off';
-             let label = '';
-             if (room.link === 'expired') { tone = 'bad'; label = 'No longer in the room'; }
-             else if (room.link === 'moved') { tone = 'moved'; label = 'Open in another tab. Tap to use here.'; }
-             else if (room.inRoom && room.link !== 'open') { tone = 'warn'; label = 'Reconnecting…'; }
-             else if (room.inRoom && !room.peer) { tone = 'warn'; label = 'Waiting for opponent'; }
-             else if (room.inRoom && room.outdated) { tone = 'warn'; label = 'Opponent needs to update'; }
-             else if (room.inRoom) { tone = 'ok'; label = 'Connected'; }
-
-             clearTimeout(this.$el._roomStatusTimer);
-             if (tone === 'warn') {
-               this.$el._roomStatusTimer = setTimeout(() => { this.tone = tone; this.label = label; }, 1500);
-             } else {
-               this.tone = tone;
-               this.label = label;
-             }
-           }
-         }"
-         x-effect="sync()"
-         x-show="tone !== 'off'" x-cloak
-         id="room-status-pill"
-         role="status" aria-live="polite"
-         @click="if (tone === 'moved') location.reload()"
-         :class="{ 'cursor-pointer': tone === 'moved' }"
-         class="fixed bottom-0 left-0 z-40 m-3 flex items-center gap-2 rounded-full bg-amber-50/90 px-2.5 py-1.5 text-xs font-semibold text-kip-drk-sienna shadow-md select-none">
-      <span class="h-2.5 w-2.5 rounded-full"
-            :class="{ 'bg-emerald-500': tone === 'ok', 'bg-amber-500 animate-pulse': tone === 'warn', 'bg-kip-red': tone === 'bad', 'bg-slate-400': tone === 'moved' }"></span>
-      <span x-text="label" :class="{ 'sr-only': tone === 'ok' }"></span>
-      <button type="button" x-show="tone === 'bad'" aria-label="Dismiss"
-              @click="$store.room.link = 'idle'"
-              class="ml-1 cursor-pointer opacity-60 hover:opacity-100">&#x2715;</button>
-    </div>
+    <!-- Room status pill: the same engine-owned view as _includes/room_status.html
+         (this page is not built by Jekyll, so it cannot use the include). -->
+    <div data-engine-view="/api/room/pill" role="status" aria-live="polite"></div>
 
     <!-- Vendor dependencies (for chat markdown rendering in dev/runtime) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

@@ -34,7 +34,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::clock;
-use crate::game::{crdt, player_doc, room};
+use crate::game::{connection, crdt, player_doc, room};
 use crate::page;
 
 /// The player's own state (base64): damage, timers, affinity, loyalty.
@@ -46,8 +46,13 @@ pub const ROOM_DOC: &str = "kipukas_room_doc";
 /// The id of the tab that holds the room's connection.
 pub const ROOM_TAB: &str = "kipukas_room_tab";
 
-/// The keys the page hands over at load and reports changes of.
+/// The keys the engine has stored, which the page hands over at load and
+/// reports changes of.
 pub const KEYS: [&str; 4] = [PLAYER_DOC, ROOM, ROOM_DOC, ROOM_TAB];
+
+/// A relay address to use in place of the engine's own, for local work. The
+/// page hands it over at load with the rest; the engine never writes it.
+pub const RELAY_URL: &str = "kipukas_relay_url";
 
 /// A room not returned to for this long is forgotten.
 const ROOM_TTL_MS: f64 = 12.0 * 60.0 * 60.0 * 1000.0;
@@ -123,7 +128,8 @@ fn new_tab_id() -> String {
 
 /// POST /api/start — put the engine back as it was, from what is stored.
 ///
-/// Body: a JSON object of the stored value of each of [`KEYS`] that has one.
+/// Body: a JSON object of the stored value of each of [`KEYS`] that has one,
+/// and of [`RELAY_URL`].
 ///
 /// Returns `ok`, or what could not be read (for the worker to log; the engine
 /// carries on from nothing for that part).
@@ -180,6 +186,13 @@ pub fn handle_start_post(body: &str) -> String {
         // of it goes, whichever tab it was.
         None => STORE.with(|store| store.borrow_mut().owner = None),
     }
+
+    // The engine is back in its room, with the room's document. All that is
+    // missing is the connection.
+    if let Some(address) = stored.get(RELAY_URL) {
+        connection::use_relay(address);
+    }
+    connection::resumed();
 
     if problems.is_empty() {
         "ok".to_string()
@@ -249,6 +262,8 @@ pub fn take_saves() -> BTreeMap<&'static str, Option<String>> {
 enum PageEvent {
     /// The page came back into view.
     Shown,
+    /// The browser says the network is back.
+    Online,
     /// The page was brought back whole from the browser's back/forward cache,
     /// where it saw nothing of what other tabs stored. `stored` is what
     /// storage holds now, as at load.
@@ -268,8 +283,8 @@ enum PageEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Follows {
     Nothing,
-    /// The page is back in view and this engine is current: a good moment
-    /// to check the connection.
+    /// The page is back in view, or the network is, and this engine is
+    /// current: a good moment to check the connection.
     CameBack,
     /// Another tab took the room: this one lets go of the connection.
     RoomMoved,
@@ -281,6 +296,7 @@ pub fn page_event(body: &str) -> Follows {
         return Follows::Nothing;
     };
     match event {
+        PageEvent::Online => Follows::CameBack,
         PageEvent::Shown => {
             if is_stale() {
                 page::reload();
@@ -342,6 +358,7 @@ mod tests {
         crdt::reset_doc();
         crdt::take_outbox();
         page::reset();
+        connection::reset();
         reset();
     }
 

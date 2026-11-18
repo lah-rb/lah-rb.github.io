@@ -111,10 +111,9 @@ pub fn capture_update(f: impl FnOnce() -> bool) -> String {
     with_doc(|doc| encode_diff_since(doc, &before))
 }
 
-// ── Doc persistence (survives page navigation via sessionStorage) ──
+// ── Doc persistence (the room's document outlives a page: `crate::store`) ──
 
-/// Encode the full Doc state as a URL-safe base64 string for persistence.
-/// Stored in sessionStorage so the Doc survives page navigation.
+/// Encode the full Doc state as a URL-safe base64 string, to be stored.
 pub fn encode_full_state() -> String {
     CRDT_DOC.with(|cell| {
         let doc = cell.borrow();
@@ -235,13 +234,11 @@ fn alarms_in(doc: &Doc) -> Vec<Alarm> {
 // ── Updates for the other player ───────────────────────────────────
 //
 // A change this player makes to the room document has to reach the other
-// player. The engine cannot send anything: the page holds the connection.
-// So a change made through an engine route is queued here, and after every
-// post the engine's worker takes what is queued (see `crate::page`) and hands
-// it to the page, which sends it (`ROOM_UPDATES` in kipukas-worker.js and
-// kipukas-multiplayer.js). An update that is lost on the way (the other
-// player is away) is made up by the exchange both players do when they are
-// next connected.
+// player. A change made through an engine route is queued here, and before
+// every handover the room's connection takes what is queued and sends it
+// (`game::connection::send_updates`). One that cannot be sent (the other
+// player is away, or this player's own connection is down) is made up for
+// by the exchange both players do when they are next connected.
 
 thread_local! {
     static OUTBOX: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };

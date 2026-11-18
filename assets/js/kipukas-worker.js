@@ -1,12 +1,14 @@
 /**
- * kipukas-worker.js — Module Web Worker that runs the Kipukas WASM server.
+ * kipukas-worker.js — the game engine's worker.
  *
- * Loads the Rust/WASM binary and handles request messages from the page.
- * Each message includes a transferred MessagePort from a MessageChannel
- * that originated in the Service Worker, enabling the full relay:
+ * Loads the engine (Rust compiled to WASM) and answers requests from the
+ * page with it. Each request arrives as a message with a MessagePort to
+ * answer on.
  *
- *   HTMX fetch → SW intercepts → SW posts to page → page posts to this worker
- *   → WASM processes → responds on port → SW returns Response to HTMX
+ * It is also the engine's hands. The engine cannot open a socket, wait for
+ * anything or reach the page, so after every post this worker takes what the
+ * engine has queued and sees it done (kipukas-wire.js): the room's sockets
+ * and waits here, storage and drawing passed on to the page.
  *
  * QR detection: YOLO v12n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
  * for decode. YOLO finds QR bounding boxes in the camera frame, then ZXing
@@ -21,6 +23,7 @@ import { initSession, runDetection } from './yolo-inference.js';
 import { parseDetections, cropDetection } from './postprocess.js';
 import { initZXing, decodeQR as zxingDecode } from './zxing-decode.js';
 import { adaptiveThreshold } from './adaptive-threshold.js';
+import { createWire } from './kipukas-wire.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
@@ -245,46 +248,41 @@ async function decodeQR(rgba, width, height) {
 
 let processingFrame = false;
 
-// ── What the engine asks of the page ───────────────────────────────
+// ── What the engine asks for ───────────────────────────────────────
+//
+// The engine only answers requests: it cannot reach the page, open a socket
+// or wait for anything. What it wants done is queued, and taken after every
+// post (the handover). kipukas-wire.js does this worker's part of it, the
+// sockets and waits of the room's connection, and passes the page the rest:
+//
+// - SAVE: storage keys to write or remove (kipukas-api.js)
+// - ROOM: whether the player is in a room (kipukas-api.js)
+// - REDRAW: routes whose views are to be drawn again (kipukas-view.js)
+// - RELOAD: load the page again (kipukas-api.js)
 
-/**
- * After a post: hand the page what the engine has queued for it (page.rs in
- * the engine). The page does each as it is told:
- *
- * - SAVE: storage keys to write or remove (kipukas-api.js). First, so that
- *   what follows finds storage as the engine left it.
- * - ROOM: the room the player is in, or null (kipukas-api.js).
- * - ROOM_UPDATES: room-document updates for the other player. The page
- *   holds the connection and sends them (kipukas-multiplayer.js).
- * - REDRAW: routes whose views are to be drawn again, because the post
- *   changed what they show (kipukas-view.js).
- * - QUIET: another tab holds the room now (kipukas-multiplayer.js).
- * - RELOAD: load the page again (kipukas-api.js).
- */
-function handOver() {
-  try {
-    const handed = JSON.parse(handle_request('POST', '/api/handover', '', ''));
-    if (handed.save) self.postMessage({ type: 'SAVE', writes: handed.save });
-    if ('room' in handed) self.postMessage({ type: 'ROOM', room: handed.room });
-    if (handed.updates) self.postMessage({ type: 'ROOM_UPDATES', updates: handed.updates });
-    if (handed.redraw) self.postMessage({ type: 'REDRAW', routes: handed.redraw });
-    if (handed.quiet) self.postMessage({ type: 'QUIET' });
-    if (handed.reload) self.postMessage({ type: 'RELOAD' });
-  } catch (err) {
-    console.error('[kipukas-worker] Could not hand over to the page:', err);
-  }
-}
+const wire = createWire({
+  request: (method, path, body) => handle_request(method, path, '', body),
+  toPage: (message) => self.postMessage(message),
+});
+
+const handOver = wire.handOver;
+
+// The browser says the network is back: a good moment to check a connection.
+self.addEventListener('online', () => {
+  if (initialized) wire.reportPage({ event: 'online' });
+});
 
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
   // ── The page's first message: everything stored under the engine's keys.
-  // The engine puts itself back as it was (store.rs). It is handled before
-  // any request, because requests are handled in the order they arrive.
+  // The engine puts itself back as it was (store.rs), and if that is in a
+  // room, asks for a socket to return to it. It is handled before any
+  // request, because requests are handled in the order they arrive.
   if (event.data?.type === 'START') {
     if (!initialized) await wasmReady;
     const reply = handle_request('POST', '/api/start', '', JSON.stringify(event.data.stored));
-    if (reply !== 'ok') console.warn('[kipukas-worker] Not everything stored could be read:', reply);
+    if (reply !== 'ok') console.warn('[kipukas-worker] Could not read all that is stored:', reply);
     handOver();
     return;
   }
@@ -292,8 +290,7 @@ self.onmessage = async (event) => {
   // ── The page reports something of itself or of storage (store.rs) ──
   if (event.data?.type === 'PAGE') {
     if (!initialized) await wasmReady;
-    handle_request('POST', '/api/page', '', JSON.stringify(event.data.report));
-    handOver();
+    wire.reportPage(event.data.report);
     return;
   }
 

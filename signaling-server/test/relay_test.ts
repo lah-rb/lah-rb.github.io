@@ -5,8 +5,11 @@
 //
 // The local relay is started once with a 2-second room lifetime so that
 // expiry can be tested, and with its own throwaway storage.
+//
+// The last step plays two of the site's game engines against the relay, so
+// the engine must be built first:  deno task build:wasm  (in the repo root)
 
-import { createLink } from '../../assets/js/kipukas-link.js';
+import { createWire } from '../../assets/js/kipukas-wire.js';
 
 // ── Tiny assertions (no remote imports, so the tests run offline) ──
 
@@ -138,6 +141,71 @@ class Player {
 
 let nextId = 0;
 const newId = () => `player-${++nextId}`;
+
+// ── A player's game engine ─────────────────────────────────────────
+
+const ENGINE = new URL('../../assets/js-wasm/kipukas-server-pkg/', import.meta.url);
+
+type Engine = Awaited<ReturnType<typeof engine>>;
+
+/**
+ * One player's game engine, held as the site's worker holds it. `tag` keeps
+ * the players' engines apart: each import of the module under another
+ * address is another engine, with its own memory.
+ */
+async function engine(tag: string, relay: string) {
+  let wasm: Uint8Array;
+  try {
+    wasm = Deno.readFileSync(new URL('kipukas_server_bg.wasm', ENGINE));
+  } catch (_) {
+    throw new Error('the engine is not built: run `deno task build:wasm` in the repo root first');
+  }
+  const glue = await import(new URL(`kipukas_server.js?engine=${tag}`, ENGINE).href);
+  glue.initSync({ module: wasm });
+
+  // The sockets the engine has asked for, so that a test can cut one.
+  const asked: WebSocket[] = [];
+  class Tracked extends WebSocket {
+    constructor(url: string | URL) {
+      super(url);
+      asked.push(this);
+    }
+  }
+
+  // The page's part of each handover: what would be in the browser's storage.
+  const storage: Record<string, string | undefined> = {};
+  const wire = createWire({
+    request: (method: string, path: string, body: string) =>
+      glue.handle_request(method, path, '', body),
+    toPage: (message: Msg) => {
+      if (message.type !== 'SAVE') return;
+      for (const [key, value] of Object.entries(message.writes as Record<string, string | null>)) {
+        storage[key] = value ?? undefined;
+      }
+    },
+    WebSocketImpl: Tracked,
+  });
+  const post = (path: string, body: string) => {
+    const reply = glue.handle_request('POST', path, '', body) as string;
+    wire.handOver();
+    return reply;
+  };
+  const get = (address: string) => {
+    const [path, query] = address.split('?');
+    return glue.handle_request('GET', path, query ? '?' + query : '', '') as string;
+  };
+
+  post('/api/start', JSON.stringify({ kipukas_relay_url: relay }));
+  return {
+    post,
+    get,
+    pill: () => get('/api/room/pill'),
+    stored: () => storage,
+    /** Cut the current socket, as a network blip or a page change does. */
+    dropSocket: () => asked[asked.length - 1].close(),
+    shutDown: () => wire.shutDown(),
+  };
+}
 
 // ── Tests ──────────────────────────────────────────────────────────
 
@@ -308,7 +376,7 @@ Deno.test('relay', async (t) => {
 
     await t.step('pings are answered', async () => {
       const { p } = await createRoom();
-      p.send('{"type":"ping"}'); // the exact form kipukas-link.js sends
+      p.send('{"type":"ping"}'); // the exact form the site's engine sends (link.rs)
       await p.got('pong');
       p.send({ type: 'ping', t: 123 });
       await p.got('pong', 2);
@@ -364,58 +432,59 @@ Deno.test('relay', async (t) => {
       await p.got('peer_joined');
     });
 
-    await t.step('the site client: create, join, drop and resume', async () => {
-      // The real connection state machine from the site, with the same
-      // address-per-attempt scheme kipukas-multiplayer.js uses.
-      const side = (id: string) => {
-        const s = {
-          id,
-          msgs: [] as Msg[],
-          intent: {} as Record<string, string>,
-          count: (type: string) => s.msgs.filter((m) => m.type === type).length,
-          link: createLink({
-            url: () => {
-              const url = new URL(relay.ws);
-              for (const [k, v] of Object.entries(s.intent)) url.searchParams.set(k, v);
-              url.searchParams.set('player', id);
-              return url.toString();
-            },
-            onMessage: (m: Msg) => s.msgs.push(m),
-          }),
-        };
-        return s;
-      };
-      const [a, b] = [side(newId()), side(newId())];
+    await t.step('the site: two engines create, join, share a timer, drop and resume', async () => {
+      // The site's own game engine (kipukas-server, as the WASM module the
+      // browser loads), one per player, each held the way the site's worker
+      // holds it: kipukas-wire.js opens the sockets the engine asks for and
+      // reports what they do. Everything else is the engine's.
+      const [a, b] = [await engine('a', relay.ws), await engine('b', relay.ws)];
+      const status = (e: Engine) => e.get('/api/room/status');
+      const timers = (e: Engine) => e.get('/api/game/turns?display=alarms');
       try {
-        a.intent = { action: 'create', name: 'Table' };
-        a.link.start();
-        await until(() => a.count('room_created') === 1, 'room_created');
-        a.link.settled();
-        const code = a.msgs.find((m) => m.type === 'room_created')!.code as string;
-        a.intent = { action: 'rejoin', code, name: 'Table' };
+        a.post('/api/room/status', 'action=create&name=Table');
+        await until(() => status(a).includes('Code:'), 'A in a room');
+        const code = /Code: <strong>([A-Z0-9]{4})<\/strong>/.exec(status(a))![1];
+        assert(a.stored().kipukas_room?.includes(code), 'A has the room stored');
 
-        b.intent = { action: 'join', code, name: 'Table' };
-        b.link.start();
+        b.post('/api/room/status', `action=join&code=${code.toLowerCase()}&name=Table`);
         await until(
-          () => a.count('peer_joined') === 1 && b.count('peer_joined') === 1,
-          'peer_joined',
+          () => status(a).includes('Connected') && status(b).includes('Connected'),
+          'both connected',
         );
-        b.link.settled();
-        b.intent = { action: 'rejoin', code, name: 'Table' };
-        assertEquals(b.link.relayVersion(), 2);
+        // Each knows who the other is: they said hello through the relay.
+        const ids = [a, b].map((e) => JSON.parse(e.stored().kipukas_room!));
+        await until(() => JSON.parse(a.stored().kipukas_room!).peerId !== '', 'A knows B');
+        assertEquals(JSON.parse(a.stored().kipukas_room!).peerId, ids[1].playerId, 'A knows B');
+        assert(ids[0].playerId !== ids[1].playerId, 'the two players have different ids');
+        assert(a.pill().includes('data-tone="ok"') && b.pill().includes('data-tone="ok"'), 'pills');
 
-        // B loses its socket, as on a page change, and resumes.
-        b.link.bounce();
-        await until(() => a.count('peer_away') === 1, 'A told B is away');
-        await until(() => b.count('room_joined') === 2, 'B resumes');
-        await until(() => a.count('peer_joined') === 2, 'A told B is back');
+        // A change one player makes to the room reaches the other.
+        a.post('/api/game/turns', 'action=add&turns=3&name=alpha&color_set=red');
+        await until(() => timers(b).includes('alpha'), 'B sees the timer A made');
 
-        b.link.send({ type: 'relay', data: { type: 'hello', from: 'b' } });
-        a.link.send({ type: 'relay', data: { type: 'hello', from: 'a' } });
-        await until(() => a.count('relay') === 1 && b.count('relay') === 1, 'relayed messages');
+        // B loses its socket, as on a page change, and returns by itself.
+        b.dropSocket();
+        await until(() => status(a).includes('Waiting for peer'), 'A told B is away');
+        // While B is away it makes a change, which cannot be sent.
+        b.post('/api/game/turns', 'action=add&turns=5&name=beta&color_set=blue');
+        await until(
+          () => status(a).includes('Connected') && status(b).includes('Connected'),
+          'B back',
+          8000,
+        );
+        // The exchange of state on returning makes up for it.
+        await until(() => timers(a).includes('beta'), 'A sees the timer B made while away');
+        assert(timers(a).includes('alpha') && timers(b).includes('alpha'), 'nothing was lost');
+
+        // Leaving tells the other player, and the room's timers stay with each.
+        b.post('/api/room/status', 'action=leave');
+        await until(() => status(a).includes('Waiting for peer'), 'A told B left');
+        assert(status(b).includes('Create Room'), 'B is out');
+        assertEquals(b.stored().kipukas_room, undefined, 'B has forgotten the room');
+        assert(timers(b).includes('alpha') && timers(b).includes('beta'), 'B keeps the timers');
       } finally {
-        a.link.stop();
-        b.link.stop();
+        a.shutDown();
+        b.shutDown();
       }
     });
   } finally {

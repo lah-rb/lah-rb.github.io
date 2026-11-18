@@ -219,11 +219,6 @@ pub fn reset_room() {
     replace_room(RoomState::default());
 }
 
-/// Export room state as JSON (GET /api/room/state, for debugging).
-pub fn export_room_json() -> String {
-    with_room(|room| serde_json::to_string(room).unwrap_or_else(|_| "{}".to_string()))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -327,7 +322,7 @@ mod tests {
             });
         });
 
-        let json = export_room_json();
+        let json = with_room(|room| serde_json::to_string(room).unwrap());
         assert!(json.contains("ABCD"));
         assert!(json.contains("Test Room"));
         assert!(json.contains("brox_the_defiant"));

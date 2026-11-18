@@ -16,31 +16,37 @@ pub fn parse_form_body(body: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// Percent-decode a URL-encoded value.
+/// Percent-decode a URL-encoded value. The decoded bytes are read as UTF-8,
+/// which is what a browser encodes (a room name, a timer's name).
 pub fn percent_decode(input: &str) -> String {
-    let mut result = String::with_capacity(input.len());
-    let mut chars = input.bytes();
-    while let Some(b) = chars.next() {
+    let mut bytes = Vec::with_capacity(input.len());
+    let mut rest = input.bytes();
+    while let Some(b) = rest.next() {
         if b == b'%' {
-            let hi = chars.next().unwrap_or(b'0');
-            let lo = chars.next().unwrap_or(b'0');
-            let hex = [hi, lo];
-            if let Ok(s) = core::str::from_utf8(&hex) {
-                if let Ok(val) = u8::from_str_radix(s, 16) {
-                    result.push(val as char);
-                    continue;
+            let hi = rest.next();
+            let lo = rest.next();
+            let value = match (hi, lo) {
+                (Some(hi), Some(lo)) => core::str::from_utf8(&[hi, lo])
+                    .ok()
+                    .and_then(|hex| u8::from_str_radix(hex, 16).ok()),
+                _ => None,
+            };
+            match value {
+                Some(value) => bytes.push(value),
+                // Not an escape after all: keep it as it was written.
+                None => {
+                    bytes.push(b'%');
+                    bytes.extend(hi);
+                    bytes.extend(lo);
                 }
             }
-            result.push('%');
-            result.push(hi as char);
-            result.push(lo as char);
         } else if b == b'+' {
-            result.push(' ');
+            bytes.push(b' ');
         } else {
-            result.push(b as char);
+            bytes.push(b);
         }
     }
-    result
+    String::from_utf8_lossy(&bytes).into_owned()
 }
 
 /// Parse a query string into key-value pairs.
@@ -107,6 +113,19 @@ mod tests {
     #[test]
     fn percent_decode_hex() {
         assert_eq!(percent_decode("hello%20world"), "hello world");
+    }
+
+    #[test]
+    fn percent_decode_reads_utf8() {
+        assert_eq!(percent_decode("Caf%C3%A9+%E6%9D%B1"), "Café 東");
+        assert_eq!(parse_form_body("name=Caf%C3%A9"), [("name".to_string(), "Café".to_string())]);
+    }
+
+    #[test]
+    fn percent_decode_keeps_what_is_not_an_escape() {
+        assert_eq!(percent_decode("100%"), "100%");
+        assert_eq!(percent_decode("50%zz"), "50%zz");
+        assert_eq!(percent_decode("a%2"), "a%2");
     }
 
     #[test]

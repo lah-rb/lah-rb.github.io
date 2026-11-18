@@ -7,6 +7,7 @@
 //! lives in a yrs room document synced through the WebSocket relay.
 
 pub mod card_panel;
+pub mod connection;
 pub mod crdt;
 pub mod crypto;
 pub mod damage;

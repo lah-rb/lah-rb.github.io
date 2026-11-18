@@ -4,5 +4,6 @@ pub mod hand;
 pub mod player;
 pub mod qr;
 pub mod room;
+pub mod room_status;
 pub mod type_matchup;
 pub mod util;

@@ -1,29 +1,29 @@
-//! What the engine asks of the page.
+//! What the engine asks of the page, and the handover.
 //!
-//! The engine only answers requests: it cannot reach the page. What it wants
-//! done there is queued, and after every post the engine's worker takes what
-//! is queued and hands it to the page (`handOver` in kipukas-worker.js):
+//! The engine only answers requests: it cannot reach the page, open a socket
+//! or wait for anything. What it wants done is queued, and after every post
+//! the engine's worker takes what is queued (`handOver` in
+//! kipukas-worker.js). The worker does its own part and passes the page its:
 //!
-//! - updates of the room document for the other player, which the page sends
-//!   because it holds the connection (`game::crdt::queue_for_peer`);
-//! - views to draw again ([`redraw`]);
-//! - what to write to the browser's storage and what to remove from it
-//!   (`crate::store`);
-//! - whether the player is in a room, which the toolbar shows different
-//!   tools for;
-//! - that the page is to be loaded again ([`reload`]).
+//! - for the worker, the sockets and waits of `crate::wire`;
+//! - for the page:
+//!   - views to draw again ([`redraw`]);
+//!   - what to write to the browser's storage and what to remove from it
+//!     (`crate::store`);
+//!   - whether the player is in a room, which the toolbar shows different
+//!     tools for;
+//!   - that the page is to be loaded again ([`reload`]).
 //!
-//! The page does each of these as it is told and decides none of them.
+//! Both do each of these as they are told and decide none of them.
 
 use std::cell::{Cell, RefCell};
 
-use crate::game::{crdt, room};
-use crate::store;
+use crate::game::{connection, room};
+use crate::{store, wire};
 
 thread_local! {
     static REDRAW: RefCell<Vec<&'static str>> = const { RefCell::new(Vec::new()) };
     static RELOAD: Cell<bool> = const { Cell::new(false) };
-    static QUIET: Cell<bool> = const { Cell::new(false) };
     /// Whether the page was last told the player is in a room. `None` until
     /// it has been told anything.
     static IN_ROOM_TOLD: Cell<Option<bool>> = const { Cell::new(None) };
@@ -60,49 +60,32 @@ pub fn take_reload() -> bool {
     RELOAD.with(|reload| reload.replace(false))
 }
 
-/// Tell the page's connection script to let go of the room: another tab
-/// holds it now.
-pub fn quiet() {
-    QUIET.with(|quiet| quiet.set(true));
-}
-
-/// The room this player is in, for the page, if that has changed since the
-/// page was last told: `Some(None)` is "not in a room".
-fn take_room() -> Option<Option<serde_json::Value>> {
+/// Whether the player is in a room, if that has changed since the page was
+/// last told.
+fn take_in_room() -> Option<bool> {
     let in_room = room::in_room();
-    if IN_ROOM_TOLD.with(|told| told.replace(Some(in_room))) == Some(in_room) {
-        return None;
-    }
-    Some(in_room.then(|| {
-        room::with_room(|r| {
-            serde_json::json!({
-                "code": r.room_code,
-                "name": r.room_name,
-                "creator": r.creator,
-                "playerId": r.player_id,
-                "peerId": r.peer_id,
-            })
-        })
-    }))
+    (IN_ROOM_TOLD.with(|told| told.replace(Some(in_room))) != Some(in_room)).then_some(in_room)
 }
 
-/// POST /api/handover — take everything the engine has queued for the page.
+/// POST /api/handover — take everything the engine has queued.
 ///
 /// Returns JSON. Every part is left out when there is nothing of it:
 ///
-///   updates  room-document updates for the other player (base64), oldest first
+///   wire     for the worker: sockets and waits (see `crate::wire`)
 ///   redraw   routes whose views are to be drawn again
 ///   save     storage keys to write (a string) or remove (null)
-///   room     the room the player is in, or null: sent when they enter or
+///   room     whether the player is in a room: sent when they enter or
 ///            leave one, and once at the start
-///   quiet    true: another tab holds the room now
 ///   reload   true: load the page again
 pub fn handle_handover_post(_body: &str) -> String {
     let mut handed = serde_json::Map::new();
 
-    let updates = crdt::take_outbox();
-    if !updates.is_empty() {
-        handed.insert("updates".into(), serde_json::json!(updates));
+    // What this player changed in the room goes to the opponent first: it
+    // is sent through the wire.
+    connection::send_updates();
+    let wire = wire::take();
+    if !wire.is_empty() {
+        handed.insert("wire".into(), serde_json::json!(wire));
     }
     let redraws = take_redraws();
     if !redraws.is_empty() {
@@ -112,11 +95,8 @@ pub fn handle_handover_post(_body: &str) -> String {
     if !saves.is_empty() {
         handed.insert("save".into(), serde_json::json!(saves));
     }
-    if let Some(room) = take_room() {
-        handed.insert("room".into(), serde_json::json!(room));
-    }
-    if QUIET.with(|quiet| quiet.replace(false)) {
-        handed.insert("quiet".into(), serde_json::json!(true));
+    if let Some(in_room) = take_in_room() {
+        handed.insert("room".into(), serde_json::json!(in_room));
     }
     if take_reload() {
         handed.insert("reload".into(), serde_json::json!(true));
@@ -125,10 +105,19 @@ pub fn handle_handover_post(_body: &str) -> String {
 }
 
 /// POST /api/page — the page reports something of itself or of storage
-/// (see `store::page_event` for what).
+/// (see `store::page_event` for what). The worker adds `alive`, the names
+/// of the sockets it finds open.
 pub fn handle_page_post(body: &str) -> String {
-    if store::page_event(body) == store::Follows::RoomMoved {
-        quiet();
+    match store::page_event(body) {
+        store::Follows::Nothing => {}
+        store::Follows::CameBack => {
+            let alive: Vec<String> = serde_json::from_str::<serde_json::Value>(body)
+                .ok()
+                .and_then(|report| serde_json::from_value(report["alive"].clone()).ok())
+                .unwrap_or_default();
+            connection::came_back(&alive);
+        }
+        store::Follows::RoomMoved => connection::go_quiet(),
     }
     "ok".to_string()
 }
@@ -138,14 +127,14 @@ pub fn handle_page_post(body: &str) -> String {
 pub fn reset() {
     take_redraws();
     take_reload();
-    QUIET.with(|quiet| quiet.set(false));
+    wire::take();
     IN_ROOM_TOLD.with(|told| told.set(None));
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::player_doc;
+    use crate::game::{crdt, player_doc};
 
     fn fresh() {
         player_doc::init_player_doc();
@@ -153,6 +142,7 @@ mod tests {
         crdt::reset_doc();
         crdt::take_outbox();
         store::reset();
+        connection::reset();
         reset();
     }
 
@@ -175,33 +165,29 @@ mod tests {
         fresh();
         store::handle_start_post("{}");
         handed();
-        crdt::queue_for_peer("abc".to_string());
         redraw("/api/game/turns");
+        wire::set(wire::Channel::Room, "hello", 3000);
 
         let first = handed();
-        assert_eq!(first["updates"], serde_json::json!(["abc"]));
         assert_eq!(first["redraw"], serde_json::json!(["/api/game/turns"]));
+        assert_eq!(first["wire"], serde_json::json!([{ "set": "room:hello", "ms": 3000 }]));
         assert_eq!(handed(), serde_json::json!({}), "nothing is handed over twice");
         fresh();
     }
 
     #[test]
-    fn the_page_is_told_of_the_room_at_the_start_and_when_it_changes() {
+    fn the_page_is_told_whether_the_player_is_in_a_room_at_the_start_and_when_it_changes() {
         fresh();
         store::handle_start_post("{}");
-        assert_eq!(handed()["room"], serde_json::Value::Null);
+        assert_eq!(handed()["room"], false);
         assert!(handed().get("room").is_none(), "told once");
 
         crate::routes::room::enter("ABCD", "Table", "me", true);
-        let entered = handed();
-        assert_eq!(entered["room"]["code"], "ABCD");
-        assert_eq!(entered["room"]["playerId"], "me");
+        assert_eq!(handed()["room"], true);
         assert!(handed().get("room").is_none());
 
         crate::routes::room::leave();
-        let left = handed();
-        assert!(left.as_object().unwrap().contains_key("room"));
-        assert_eq!(left["room"], serde_json::Value::Null);
+        assert_eq!(handed()["room"], false);
         fresh();
     }
 
@@ -232,19 +218,79 @@ mod tests {
     }
 
     #[test]
-    fn a_stale_page_shown_again_is_told_to_reload_and_a_taken_room_to_go_quiet() {
+    fn what_this_player_changes_in_the_room_goes_out_with_the_handover() {
         fresh();
         store::handle_start_post("{}");
-        crate::routes::room::enter("ABCD", "Table", "me", true);
+        connection::create("Table");
+        let socket = handed()["wire"][0]["open"].as_str().unwrap().to_string();
+        let report = |event: &str, data: &str| {
+            let report = serde_json::json!({ "socket": socket, "event": event, "data": data });
+            wire::handle_wire_post(&report.to_string());
+        };
+        report("open", "");
+        report("message", r#"{"type":"room_created","code":"ABCD","name":"Table"}"#);
+        handed();
+
+        let update = crdt::add_alarm(2, "ours", "red");
+        crdt::queue_for_peer(update.clone());
+        let sent = handed();
+        assert_eq!(sent["wire"][0]["send"], socket.as_str());
+        assert!(sent["wire"][0]["text"].as_str().unwrap().contains(&update));
+        fresh();
+    }
+
+    #[test]
+    fn a_stale_page_shown_again_is_told_to_reload_and_a_taken_room_goes_quiet() {
+        fresh();
+        store::handle_start_post("{}");
+        connection::create("Table");
+        let socket = handed()["wire"][0]["open"].as_str().unwrap().to_string();
+        let open = serde_json::json!({ "socket": socket, "event": "open" });
+        wire::handle_wire_post(&open.to_string());
+        let created = serde_json::json!({
+            "socket": socket, "event": "message",
+            "data": r#"{"type":"room_created","code":"ABCD","name":"Table"}"#,
+        });
+        wire::handle_wire_post(&created.to_string());
         handed();
 
         let taken = serde_json::json!({ "event": "storage", "key": store::ROOM_TAB, "value": "another" });
         handle_page_post(&taken.to_string());
-        assert_eq!(handed()["quiet"], true);
+        let quiet = handed();
+        assert!(quiet["wire"].as_array().unwrap().contains(&serde_json::json!({ "close": socket })));
+        assert!(quiet["redraw"].as_array().unwrap().contains(&serde_json::json!("/api/room/pill")));
 
         handle_page_post(r#"{"event":"shown"}"#);
         assert_eq!(handed()["reload"], true);
         assert!(handed().get("reload").is_none());
+        fresh();
+    }
+
+    #[test]
+    fn a_page_back_in_view_has_the_connection_checked_against_what_the_worker_finds_open() {
+        fresh();
+        store::handle_start_post("{}");
+        connection::create("Table");
+        let socket = handed()["wire"][0]["open"].as_str().unwrap().to_string();
+        let open = serde_json::json!({ "socket": socket, "event": "open" });
+        wire::handle_wire_post(&open.to_string());
+        let created = serde_json::json!({
+            "socket": socket, "event": "message",
+            "data": r#"{"type":"room_created","code":"ABCD","name":"Table"}"#,
+        });
+        wire::handle_wire_post(&created.to_string());
+        handed();
+
+        // The worker finds the socket open: a ping, nothing more.
+        let shown = serde_json::json!({ "event": "shown", "alive": [socket] });
+        handle_page_post(&shown.to_string());
+        assert_eq!(handed()["wire"], serde_json::json!([{ "send": socket, "text": r#"{"type":"ping"}"# }]));
+
+        // It does not: the socket is given up and a retry is due.
+        handle_page_post(r#"{"event":"online","alive":[]}"#);
+        let wire = handed()["wire"].clone();
+        assert!(wire.as_array().unwrap().contains(&serde_json::json!({ "close": socket })), "{}", wire);
+        assert!(wire.to_string().contains("room:retry"), "{}", wire);
         fresh();
     }
 }

@@ -1,8 +1,11 @@
-//! `/api/room/*` routes — multiplayer room management and fists combat.
+//! The room in the engine: what happens when this player enters one,
+//! returns to it and leaves it, and `/api/room/fists`, fists combat.
 //!
 //! Shared state (timers, fists combat) lives in the room document, which the
 //! two players sync through the WebSocket relay; see `game::crdt` and `game::fists`.
-//! Local game state (damage, turns) remains per-user.
+//! Local game state (damage, turns) remains per-user. The connection itself
+//! is `game::connection`; the room dialog and status pill are
+//! `routes::room_status`.
 //!
 //! A route here that changes what a view elsewhere on the page shows asks
 //! for that view to be drawn again (`page::redraw`): whose timers the turn
@@ -23,84 +26,6 @@ use crate::typing;
 
 fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
     CARDS.iter().find(|c| c.slug == slug)
-}
-
-// ── GET /api/room/status ───────────────────────────────────────────
-
-pub fn handle_status_get(_query: &str) -> String {
-    room::with_room(|r| {
-        if r.connected {
-            render_connected_status(r)
-        } else if !r.room_code.is_empty() {
-            render_waiting_status(r)
-        } else {
-            render_disconnected_status()
-        }
-    })
-}
-
-fn render_disconnected_status() -> String {
-    let mut h = String::with_capacity(1024);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
-    h.push_str(r#"<p class="text-lg font-bold mb-3">Multiplayer</p>"#);
-    // ── Create section ──
-    h.push_str(r#"<div class="mb-3">"#);
-    h.push_str(r#"<label class="block text-sm mb-1">Room Name</label>"#);
-    h.push_str(r#"<input type="text" id="room-name-input" placeholder="My Room" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">"#);
-    h.push_str(r#"</div>"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.createRoom()" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mb-2 text-sm">Create Room</button>"#);
-    // ── Join section ──
-    h.push_str(r#"<div class="border-t border-slate-300 my-3"></div>"#);
-    h.push_str(r#"<label class="block text-sm mb-1">Room Code</label>"#);
-    h.push_str(r#"<input type="text" id="room-code-input" placeholder="ABCD" maxlength="4" class="w-full border rounded px-2 py-1 text-sm uppercase text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red mb-2">"#);
-    h.push_str(r#"<label class="block text-sm mb-1">Room Name</label>"#);
-    h.push_str(r#"<input type="text" id="room-name-join-input" placeholder="My Room" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.joinRoom()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded mt-2 text-sm">Join Room</button>"#);
-    h.push_str(r#"</div>"#);
-    h
-}
-
-/// Render the "waiting for peer" status — room created, code visible, not yet connected.
-fn render_waiting_status(r: &room::RoomState) -> String {
-    let mut h = String::with_capacity(512);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
-    h.push_str(r#"<p class="text-lg font-bold mb-1">Multiplayer</p>"#);
-    h.push_str(r#"<p class="text-sm text-amber-600 mb-1">&#x23F3; Waiting for peer…</p>"#);
-    if !r.room_name.is_empty() {
-        h.push_str(&format!(
-            r#"<p class="text-sm mb-1">Room: <strong>{}</strong></p>"#,
-            r.room_name
-        ));
-    }
-    h.push_str(&format!(
-        r#"<p class="text-sm mb-3 font-mono tracking-wider">Code: <strong>{}</strong></p>"#,
-        r.room_code
-    ));
-    h.push_str(r#"<button onclick="kipukasMultiplayer.disconnect()" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Cancel</button>"#);
-    h.push_str(r#"</div>"#);
-    h
-}
-
-fn render_connected_status(r: &room::RoomState) -> String {
-    let mut h = String::with_capacity(512);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
-    h.push_str(r#"<p class="text-lg font-bold mb-1">Multiplayer</p>"#);
-    h.push_str(&format!(
-        r#"<p class="text-sm text-emerald-600 mb-1">&#x2713; Connected</p>"#
-    ));
-    if !r.room_name.is_empty() {
-        h.push_str(&format!(
-            r#"<p class="text-sm mb-1">Room: <strong>{}</strong></p>"#,
-            r.room_name
-        ));
-    }
-    h.push_str(&format!(
-        r#"<p class="text-sm mb-3 font-mono tracking-wider">Code: <strong>{}</strong></p>"#,
-        r.room_code
-    ));
-    h.push_str(r#"<button onclick="kipukasMultiplayer.disconnect()" class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">Disconnect</button>"#);
-    h.push_str(r#"</div>"#);
-    h
 }
 
 // ── The room's life in the engine ──────────────────────────────────
@@ -249,60 +174,6 @@ pub fn apply_peer_update(update: &str) -> Result<(), String> {
     Ok(())
 }
 
-// ── Routes the page's connection script still posts to ─────────────
-//
-// kipukas-multiplayer.js holds the connection and reports what the relay
-// says through these. They go when the connection moves into the engine.
-
-/// POST /api/room/create — `code=<code>&name=<name>&player=<id>`.
-pub fn handle_create_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    enter(
-        get_param(&params, "code").unwrap_or(""),
-        get_param(&params, "name").unwrap_or(""),
-        get_param(&params, "player").unwrap_or(""),
-        true,
-    );
-    "ok".to_string()
-}
-
-/// POST /api/room/join — `code=<code>&name=<name>&player=<id>`.
-pub fn handle_join_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    enter(
-        get_param(&params, "code").unwrap_or(""),
-        get_param(&params, "name").unwrap_or(""),
-        get_param(&params, "player").unwrap_or(""),
-        false,
-    );
-    "ok".to_string()
-}
-
-/// POST /api/room/peer — `id=<opponent's id>`.
-pub fn handle_peer_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    set_peer(get_param(&params, "id").unwrap_or(""));
-    "ok".to_string()
-}
-
-/// POST /api/room/connected
-pub fn handle_connected_post(_body: &str) -> String {
-    peer_arrived();
-    "ok".to_string()
-}
-
-/// POST /api/room/disconnect
-pub fn handle_disconnect_post(_body: &str) -> String {
-    leave();
-    "ok".to_string()
-}
-
-/// POST /api/room/peer_left
-pub fn handle_peer_left_post(_body: &str) -> String {
-    peer_gone();
-    "ok".to_string()
-}
-
 // ── Fists combat ───────────────────────────────────────────────────
 //
 // Combat state lives in the room document (see `game::fists`). The fists
@@ -312,8 +183,8 @@ pub fn handle_peer_left_post(_body: &str) -> String {
 //
 // A post that changes the room document queues the change for the opponent
 // (`crdt::queue_for_peer`). When the opponent's change arrives, the engine
-// asks for the dialog to be drawn again (`handle_yrs_apply_post`). The page
-// script takes no part in either.
+// asks for the dialog to be drawn again (`apply_peer_update`). The page takes
+// no part in either.
 
 fn player_ids() -> (String, String) {
     room::with_room(|r| (r.player_id.clone(), r.peer_id.clone()))
@@ -943,41 +814,6 @@ fn auto_mark_damage(card_slug: &str, keal_idx: u8) -> bool {
     false
 }
 
-// ── GET /api/room/state ────────────────────────────────────────────
-
-pub fn handle_room_state_get(_query: &str) -> String {
-    room::export_room_json()
-}
-
-// ── Yrs CRDT sync routes ──────────────────────────────────────────
-
-/// GET /api/room/yrs/sv — return this peer's state vector (base64).
-pub fn handle_yrs_sv_get(_query: &str) -> String {
-    crdt::encode_state_vector()
-}
-
-/// POST /api/room/yrs/diff — receive a remote state vector (base64 in body),
-/// return the diff update (base64) that the remote peer needs.
-pub fn handle_yrs_diff_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let sv = get_param(&params, "sv").unwrap_or(body.trim());
-    match crdt::encode_diff(sv) {
-        Ok(diff) => diff,
-        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
-    }
-}
-
-/// POST /api/room/yrs/apply — apply a base64-encoded update from the
-/// opponent (`update=<base64>`). Returns `ok`, or `{ "error": "..." }`.
-pub fn handle_yrs_apply_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let update = get_param(&params, "update").unwrap_or(body.trim());
-    match apply_peer_update(update) {
-        Ok(()) => "ok".to_string(),
-        Err(e) => serde_json::json!({ "error": e }).to_string(),
-    }
-}
-
 // ── Result rendering ───────────────────────────────────────────────
 
 /// What both result screens end with. Each player answers for themselves;
@@ -1434,6 +1270,7 @@ mod tests {
         crdt::take_outbox();
         page::reset();
         store::reset();
+        crate::game::connection::reset();
         crate::game::player_doc::init_player_doc();
     }
 
@@ -1609,15 +1446,6 @@ mod tests {
     }
 
     #[test]
-    fn status_disconnected() {
-        reset();
-        let html = handle_status_get("");
-        assert!(html.contains("Create Room"));
-        assert!(html.contains("Join Room"));
-        reset();
-    }
-
-    #[test]
     fn create_and_status() {
         reset();
         enter("abcd", "Test Room", ME, true);
@@ -1632,9 +1460,6 @@ mod tests {
         reset();
         enter("WXYZ", "Fun Room", ME, false);
         // Entering does not mark the opponent present; the relay reports them.
-        let html = handle_status_get("");
-        assert!(html.contains("Waiting for peer"));
-        assert!(html.contains("WXYZ"));
         room::with_room(|r| {
             assert!(!r.connected);
             assert!(!r.creator);
@@ -1648,10 +1473,9 @@ mod tests {
         reset();
         enter("WXYZ", "Fun Room", ME, false);
         peer_arrived();
-        assert!(handle_status_get("").contains("Connected"));
         room::with_room(|r| assert!(r.connected));
         peer_gone();
-        assert!(handle_status_get("").contains("Waiting for peer"));
+        room::with_room(|r| assert!(!r.connected));
         assert!(room::in_room(), "the room is kept while the opponent is away");
         reset();
     }

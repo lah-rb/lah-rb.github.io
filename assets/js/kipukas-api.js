@@ -59,6 +59,10 @@ globalThis.kipukasRelayUrl = function () {
 //     engine's to ask for (RELOAD).
 const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', 'kipukas_room_tab'];
 
+// Read by the engine at load and written by nobody but a developer: a relay
+// address to use in place of the engine's own, for local work.
+const RELAY_KEY = 'kipukas_relay_url';
+
 /** What is stored under one of the engine's keys, or null. */
 function stored(key) {
   try {
@@ -68,10 +72,10 @@ function stored(key) {
   }
 }
 
-/** Everything stored under the engine's keys. */
+/** Everything stored for the engine. */
 function allStored() {
   const all = {};
-  for (const key of ENGINE_KEYS) {
+  for (const key of [...ENGINE_KEYS, RELAY_KEY]) {
     const value = stored(key);
     if (value !== null) all[key] = value;
   }
@@ -88,13 +92,9 @@ function allStored() {
 let roomSaid = null;
 
 document.addEventListener('alpine:init', () => {
-  const inRoom = roomSaid === null ? stored('kipukas_room') !== null : roomSaid;
   globalThis.Alpine.store('room', {
-    inRoom, // this player is in a room (created or joined), peer present or not
-    // idle | connecting | open | waiting | expired | moved (to another tab)
-    link: inRoom ? 'connecting' : 'idle',
-    peer: false, // the other player is present
-    outdated: false, // the other player is on an older copy of the site
+    // This player is in a room (created or joined), opponent present or not.
+    inRoom: roomSaid === null ? stored('kipukas_room') !== null : roomSaid,
   });
 });
 
@@ -106,8 +106,8 @@ globalThis.kipukasWorker = wasmWorker;
 
 // The engine's first message, ahead of any request: what is stored. The
 // worker handles messages in the order they are posted, so the engine is
-// back as it was (in its room, with the room's document) before anything is
-// drawn.
+// back as it was (in its room, with the room's document, and reconnecting)
+// before anything is drawn.
 wasmWorker.postMessage({ type: 'START', stored: allStored() });
 
 /** Report something of this page or of storage to the engine. */
@@ -132,20 +132,10 @@ wasmWorker.addEventListener('message', (event) => {
       globalThis.kipukasSync.broadcastUpdate();
     }
   } else if (data.type === 'ROOM') {
-    // The room the player is in (null: none). The connection script reads
-    // it when it loads, which it does as soon as there is a room to return
-    // to: the engine is already back in it, and only the socket is missing.
-    globalThis.kipukasRoom = data.room;
-    roomSaid = data.room !== null;
+    // Whether the player is in a room, for the toolbar.
+    roomSaid = data.inRoom;
     const store = globalThis.Alpine?.store('room');
     if (store) store.inRoom = roomSaid;
-    if (roomSaid) {
-      import('/assets/js/kipukas-multiplayer.js').catch((err) => {
-        console.warn('[kipukas-api] Failed to load the connection script:', err);
-      });
-    }
-  } else if (data.type === 'QUIET') {
-    globalThis.dispatchEvent(new CustomEvent('kipukas-room-moved'));
   } else if (data.type === 'RELOAD') {
     location.reload();
   }
