@@ -319,6 +319,8 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 
 **Protocol version:** `hello.proto` is bumped when the room document's shape changes. Site updates are applied when each user accepts the update prompt, so two players can be on different copies. A player whose opponent sends no `hello` (an older copy) or a different `proto` sees "Opponent needs to update" in the status pill; timers and combat do not sync until both are current.
 
+That is enforced, not only said (`agreed` in `game/connection.rs`): the engine applies nothing of the room document from an opponent, and sends them nothing of it, until they have said hello in its own protocol since they last appeared. An update in one format applied by a copy that expects another changes what that player sees: a timer that the newer copy has rewritten the way protocol 3 keeps it disappears from the list of a copy that speaks protocol 2. Meanwhile each player's document goes its own way, and the handshake that follows the next matching hello brings the two together. An opponent's hello is the first thing they send on a connection, and both players say it on every (re)connect of either, so nothing is missed by waiting for it. (Copies of the site up to protocol 2 do not hold back; the newer side holding back is enough.)
+
 **Fists combat in the document:** the `fists` map holds one entry per round per player, keyed `<round>:<playerId>` and written only by that player (`game/fists.rs`).
 
 - The current round is the highest round present. Starting a new round is writing an empty entry at `round + 1`, so cancelling never needs the opponent's cooperation, and two players doing it at once converge.

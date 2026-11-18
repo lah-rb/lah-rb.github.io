@@ -290,6 +290,12 @@ mod tests {
         };
         report("open", "");
         report("message", r#"{"type":"room_created","code":"ABCD","name":"Table"}"#);
+        // The opponent is there and has said hello in our protocol.
+        report("message", r#"{"type":"peer_joined","peerId":"bbbbbbbbbbbbbbbbbbbbbbbb"}"#);
+        let hello = serde_json::json!({ "type": "relay", "data": {
+            "type": "hello", "proto": connection::PROTOCOL, "playerId": "bbbbbbbbbbbbbbbbbbbbbbbb",
+        } });
+        report("message", &hello.to_string());
         handed();
 
         let update = crdt::add_alarm(NOW, 2, "ours", "red");

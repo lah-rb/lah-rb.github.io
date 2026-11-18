@@ -147,6 +147,11 @@ struct Conn {
     peer_present: bool,
     /// The opponent speaks another protocol, or none.
     outdated: bool,
+    /// The opponent has said hello in our protocol since they last appeared.
+    /// The room's shared state is exchanged with them only then: an update
+    /// in one format applied by a copy of the site that expects another
+    /// would change what that player sees of their own timers.
+    agreed: bool,
     /// The wait for the opponent's hello is running.
     hello_due: bool,
     /// The player's place in the room was taken. Shown until dismissed or
@@ -381,7 +386,10 @@ pub fn go_quiet() {
     if !room::in_room() {
         return;
     }
-    with_conn(|conn| conn.peer_present = false);
+    with_conn(|conn| {
+        conn.peer_present = false;
+        conn.agreed = false;
+    });
     clear_hello();
     life::peer_gone();
     link(|link| link.stop());
@@ -460,6 +468,7 @@ fn leave_room() {
         conn.peer_present = false;
         conn.pending = None;
         conn.outdated = false;
+        conn.agreed = false;
     });
     clear_hello();
     link(|link| link.stop());
@@ -499,7 +508,10 @@ fn link_state_changed(next: State, prev: State) {
 
 /// The opponent is no longer reachable (their socket or ours is gone).
 fn peer_is_gone() {
-    with_conn(|conn| conn.peer_present = false);
+    with_conn(|conn| {
+        conn.peer_present = false;
+        conn.agreed = false;
+    });
     clear_hello();
     life::peer_gone();
 }
@@ -576,6 +588,10 @@ fn set_peer_id(id: &str) {
 /// Both players are in the room and can exchange messages.
 fn peer_connected() {
     life::peer_arrived();
+    // Whoever this is must say hello before anything is exchanged with
+    // them. Both players are told of every (re)connect of either, and both
+    // say hello on it, so a hello is always on its way.
+    with_conn(|conn| conn.agreed = false);
 
     // Say who we are and which room-document format we speak. An opponent
     // on an older copy of the site never answers; the player is told after
@@ -598,9 +614,19 @@ fn peer_said(data: &serde_json::Value) {
         // The opponent's id and protocol.
         "hello" => {
             clear_hello();
-            with_conn(|conn| conn.outdated = data["proto"].as_u64() != Some(PROTOCOL));
+            let same = data["proto"].as_u64() == Some(PROTOCOL);
+            with_conn(|conn| {
+                conn.outdated = !same;
+                conn.agreed = same;
+            });
             set_peer_id(data["playerId"].as_str().unwrap_or(""));
         }
+        // Nothing of the room's state is taken from, or given to, an
+        // opponent who has not said hello in our protocol. (Theirs comes
+        // before anything else they send on a connection, so nothing is
+        // missed by this; and whatever was not exchanged meanwhile is, by
+        // the handshake that follows their next hello.)
+        "yrs_sv" | "yrs_sv_reply" | "yrs_update" if !with_conn(|conn| conn.agreed) => {}
         // The opponent's state vector: send what they lack, then our own
         // state vector so that they can send what we lack.
         "yrs_sv" => {
@@ -635,8 +661,14 @@ fn send_update(update: &str) {
 /// state (a turn timer advanced, a choice locked in for a round of fists),
 /// which the engine queued as it made them. Called before every handover.
 pub fn send_updates() {
+    // To an opponent on another protocol nothing is sent: the changes stay
+    // in this player's room document and reach the opponent by the
+    // handshake once both speak the same.
+    let agreed = with_conn(|conn| conn.agreed);
     for update in crdt::take_outbox() {
-        send_update(&update);
+        if agreed {
+            send_update(&update);
+        }
     }
     show();
 }
@@ -1128,6 +1160,98 @@ mod tests {
         let redraws = page::take_redraws();
         assert!(redraws.contains(&"/api/game/turns"));
         assert!(redraws.contains(&"/api/room/fists"));
+        fresh();
+    }
+
+    /// An update as the opponent's engine would make it (a timer of
+    /// theirs), and their state vector before any of ours reached them.
+    fn made_by_the_opponent() -> (String, String) {
+        use base64::Engine;
+        use yrs::updates::encoder::Encode;
+        use yrs::{ReadTxn, Transact};
+        let ours = crdt::encode_full_state();
+        crdt::reset_doc();
+        let update = crdt::add_alarm(NOW, 6, "theirs", "green");
+        crdt::reset_doc();
+        crdt::restore_from_state(&ours).unwrap();
+        crdt::take_outbox();
+        let empty = yrs::Doc::new();
+        let sv = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(empty.transact().state_vector().encode_v1());
+        (update, sv)
+    }
+
+    fn timer_names() -> Vec<String> {
+        crdt::get_alarms().into_iter().map(|alarm| alarm.name).collect()
+    }
+
+    #[test]
+    fn nothing_of_the_rooms_state_is_exchanged_with_an_opponent_on_another_protocol() {
+        // One phone has taken an update of the site and the other has not.
+        // Each is told so, and each keeps its own timers as they are.
+        fresh();
+        let socket = in_a_room();
+        crdt::add_alarm(NOW, 4, "ours", "blue");
+        crdt::take_outbox();
+        let (update, their_sv) = made_by_the_opponent();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL - 1, "playerId": THEM }));
+        asked();
+        page::take_redraws();
+
+        // Their state vectors get no answer and their update is not applied.
+        from_peer(socket, serde_json::json!({ "type": "yrs_sv", "sv": their_sv }));
+        from_peer(socket, serde_json::json!({ "type": "yrs_sv_reply", "sv": their_sv }));
+        from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
+        assert!(sent(&asked()).is_empty());
+        assert_eq!(timer_names(), ["ours"]);
+
+        // What this player changes is not sent either.
+        crdt::queue_for_peer(crdt::tick_alarms(NOW + 1_000.0));
+        send_updates();
+        assert!(sent(&asked()).is_empty());
+        assert!(crdt::take_outbox().is_empty(), "and is not kept to be sent later as it is");
+
+        // They take the update and come back. Their hello is in our protocol
+        // now, and the handshake gives each what the other has, the change
+        // made meanwhile included.
+        relay(socket, serde_json::json!({ "type": "peer_away" }));
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
+        asked();
+        from_peer(socket, serde_json::json!({ "type": "yrs_sv", "sv": their_sv }));
+        let answer = sent(&asked());
+        assert_eq!(answer.len(), 2, "{:?}", answer);
+        assert!(answer[0].contains(r#""type":"yrs_update""#), "{}", answer[0]);
+        assert!(answer[1].contains(r#""type":"yrs_sv_reply""#), "{}", answer[1]);
+        from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
+        assert_eq!(timer_names(), ["ours", "theirs"]);
+        assert_eq!(crdt::get_alarms()[0].remaining, 3, "our change made meanwhile is still ours");
+        assert_eq!(face(), Face::Connected);
+        fresh();
+    }
+
+    #[test]
+    fn nothing_is_taken_from_an_opponent_until_they_have_said_hello_each_time_they_appear() {
+        fresh();
+        let socket = in_a_room();
+        let (update, _) = made_by_the_opponent();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
+
+        // No hello yet (a copy of the site from before there was one never
+        // sends it).
+        from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
+        assert!(timer_names().is_empty());
+
+        // A hello, then they go and someone appears again: that one has to
+        // say hello too.
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
+        relay(socket, serde_json::json!({ "type": "peer_away" }));
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
+        assert!(timer_names().is_empty());
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
+        assert_eq!(timer_names(), ["theirs"]);
         fresh();
     }
 
