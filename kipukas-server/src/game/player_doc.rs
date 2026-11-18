@@ -430,41 +430,30 @@ pub fn get_alarm_done() -> Vec<(String, f64)> {
         let doc = cell.borrow();
         let done = doc.get_or_insert_map("alarm_done");
         let txn = doc.transact();
-        let mut entries: Vec<(String, f64)> = done
-            .iter(&txn)
+        done.iter(&txn)
             .filter_map(|(id, value)| match value {
                 yrs::Out::Any(Any::Number(at)) => Some((id.to_string(), at)),
                 _ => None,
             })
-            .collect();
-        entries.sort_by(|a, b| a.0.cmp(&b.0));
-        entries
+            .collect()
     })
 }
 
 /// Make the record of run-out timers exactly `entries`. Nothing is written
 /// if it already is.
 pub fn set_alarm_done(entries: &[(String, f64)]) {
-    if get_alarm_done().as_slice() == {
-        let mut wanted = entries.to_vec();
-        wanted.sort_by(|a, b| a.0.cmp(&b.0));
-        wanted
-    }
-    .as_slice()
-    {
+    let current = get_alarm_done();
+    if current.len() == entries.len() && entries.iter().all(|entry| current.contains(entry)) {
         return;
     }
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let done = doc.get_or_insert_map("alarm_done");
         let mut txn = doc.transact_mut();
-        let stale: Vec<String> = done
-            .keys(&txn)
-            .filter(|id| !entries.iter().any(|(wanted, _)| wanted == id))
-            .map(|id| id.to_string())
-            .collect();
-        for id in stale {
-            done.remove(&mut txn, &id);
+        for (id, _) in &current {
+            if !entries.iter().any(|(wanted, _)| wanted == id) {
+                done.remove(&mut txn, id);
+            }
         }
         for (id, at) in entries {
             done.insert(&mut txn, id.as_str(), Any::from(*at));
