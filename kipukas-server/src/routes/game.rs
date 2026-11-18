@@ -77,10 +77,19 @@ pub fn handle_damage_post(body: &str) -> String {
 
 // ── GET /api/game/turns ────────────────────────────────────────────
 
+/// Handle GET /api/game/turns/form
+/// Returns the form that makes a timer. Outside a room it is an engine-owned
+/// view of this route; a route of its own keeps a tap in the list of timers
+/// (a view of `/api/game/turns`) from drawing the form again.
+pub fn handle_turns_form_get(_query: &str) -> String {
+    turns::render_turn_panel()
+}
+
 /// Handle GET /api/game/turns
-/// Returns the turn tracker panel HTML (timer creation form),
-/// or the alarm list if `?display=alarms` is specified.
-/// Multiplayer mode is auto-detected via room::is_peer_connected().
+/// Returns the alarm list if `?display=alarms` is specified, which is what
+/// the list's view asks for. Without it, the timer creation form: the room's
+/// timer dialog loads it this way.
+/// Multiplayer mode is auto-detected via room::in_room().
 pub fn handle_turns_get(query: &str) -> String {
     let params = parse_query(query);
     let display = get_param(&params, "display").unwrap_or("");

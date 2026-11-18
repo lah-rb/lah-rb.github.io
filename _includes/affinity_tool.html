@@ -1,6 +1,9 @@
 <!-- Phase B: Affinity tracking tool (Pattern 11).
      Declare archetypal affinity once per day. Active affinity grants +1 roll
-     bonus on matching cards during fists combat. State stored in PLAYER_DOC. -->
+     bonus on matching cards during fists combat. State stored in PLAYER_DOC.
+     The panel is an engine-owned view (Pattern 13, assets/js/kipukas-view.js):
+     the engine renders it, each time the dialog opens, and a Declare button is
+     a post to the engine. The dialog's opening and closing stays Alpine. -->
 <div x-data="{ showAffinity: false }"
      class="relative place-content-center">
 
@@ -18,14 +21,7 @@
         role="dialog" aria-modal="true" aria-label="Archetypal Affinity"
         x-trap="showAffinity" @keydown.escape.window="showAffinity = false"
         class="fixed inset-0 flex items-center justify-center z-50"
-        x-transition.duration.350ms
-        x-effect="if (showAffinity) $nextTick(() => {
-            if (typeof htmx !== 'undefined') {
-                var today = new Date().toISOString().slice(0,10);
-                htmx.ajax('GET', '/api/player/affinity?today=' + today,
-                    {target:'#affinity-container', swap:'innerHTML'});
-            }
-        })">
+        x-transition.duration.350ms>
 
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showAffinity = false"></div>
@@ -33,12 +29,8 @@
         <!-- Modal content -->
         <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
 
-            <!-- HTMX container — WASM renders the affinity panel -->
-            <div id="affinity-container"
-              hx-get="/api/player/affinity"
-              hx-trigger="load"
-              hx-swap="innerHTML">
-            </div>
+            <!-- The engine renders the affinity panel -->
+            <div id="affinity-container" data-engine-view="/api/player/affinity"></div>
 
             <!-- Close button -->
             <button @click="showAffinity = false"
@@ -48,14 +40,3 @@
         </div>
     </div>
 </div>
-
-<!-- Supply today's date to the initial hx-get on page load -->
-<script>
-(function() {
-  var el = document.getElementById('affinity-container');
-  if (el) {
-    var today = new Date().toISOString().slice(0,10);
-    el.setAttribute('hx-get', '/api/player/affinity?today=' + today);
-  }
-})();
-</script>

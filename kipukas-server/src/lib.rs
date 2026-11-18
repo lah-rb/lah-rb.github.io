@@ -52,6 +52,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     // Game state routes (PLAYER_DOC backed)
     router.insert("/api/game/damage", "game_damage").ok();
     router.insert("/api/game/turns", "game_turns").ok();
+    router.insert("/api/game/turns/form", "game_turns_form").ok();
 
     // Room/multiplayer routes
     router.insert("/api/room/status", "room_status").ok();
@@ -107,6 +108,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("qr_found", "GET") => routes::qr::handle_found(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
+            ("game_turns_form", "GET") => routes::game::handle_turns_form_get(query),
 
             ("game_damage", "POST") => routes::game::handle_damage_post(body),
             ("game_turns", "POST") => routes::game::handle_turns_post(body),
@@ -244,6 +246,15 @@ mod tests {
     fn routes_game_turns_get() {
         let html = handle_request("GET", "/api/game/turns", "", "");
         assert!(html.contains("New Timer"));
+    }
+
+    #[test]
+    fn routes_game_turns_form_get() {
+        let html = handle_request("GET", "/api/game/turns/form", "", "");
+        assert!(html.contains("New Timer"));
+        assert!(html.contains(r#"data-engine-post="/api/game/turns""#));
+        // The list of timers is another view, at another address.
+        assert_eq!(handle_request("GET", "/api/game/turns", "?display=alarms", ""), "");
     }
 
     #[test]

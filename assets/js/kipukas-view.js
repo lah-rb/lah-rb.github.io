@@ -6,20 +6,38 @@
  *
  *   <div data-engine-view="/api/game/damage?card=brox_the_defiant"></div>
  *
- * The attribute is the engine route that renders the view. This script fills
- * the view from that route when it appears, and again whenever its state may
+ * The attribute is the engine route that renders the view. This script draws
+ * the view from that route when it is shown, and again whenever its state may
  * have changed.
+ *
+ * A view that is not displayed (a closed dialog) is not drawn. It is drawn
+ * each time it comes to be displayed, so a dialog opens on what is true now,
+ * and nothing is asked of the engine for a tool nobody opens.
  *
  * Inside a view, a control names the change a tap asks for:
  *
- *   <button data-engine-post="/api/game/damage"
+ *   <button type="button" data-engine-post="/api/game/damage"
  *           data-engine-body="card=brox_the_defiant&slot=2">
  *
- * A tap sends that to the engine. The engine applies it, the view is rendered
- * again from its route, and the result is patched into the page: only what
- * differs is touched, so elements keep their identity (focus, transitions,
- * anything else attached to them). Nothing is toggled on the page ahead of
- * the engine, so the page cannot disagree with it.
+ * A tap sends that to the engine. A form does the same when it is submitted,
+ * and sends its fields after its body:
+ *
+ *   <form data-engine-post="/api/game/turns" data-engine-body="action=add">
+ *     <input name="turns" type="number"> <button>New Timer</button>
+ *   </form>
+ *
+ * The engine applies the change, and the view is drawn again from its route
+ * and patched into the page: only what differs is touched, so elements keep
+ * their identity (focus, transitions, anything else attached to them).
+ * Nothing is toggled on the page ahead of the engine, so the page cannot
+ * disagree with it. A submitted form is cleared.
+ *
+ * Other views of the route that was posted to are drawn again too: a new
+ * timer is posted to /api/game/turns from the form, and the list of timers,
+ * a view of /api/game/turns, shows it.
+ *
+ * A route or a body may ask for something only the page knows, written
+ * {name}. See PAGE_VALUES.
  *
  * When the engine changes state for another reason (a lost round of fists
  * marks damage, New Game clears it), call kipukasViews.refresh(card).
@@ -33,8 +51,47 @@
   const POST = 'data-engine-post';
   const BODY = 'data-engine-body';
 
-  /** Views already filled once, so a view moved in the DOM is not re-mounted. */
+  /**
+   * What the page knows and the engine does not. `{today}` in a view's route
+   * or in a control's route or body is replaced by the value when the request
+   * is made.
+   */
+  const PAGE_VALUES = {
+    /** Today's date, YYYY-MM-DD (UTC). */
+    today: () => new Date().toISOString().slice(0, 10),
+  };
+
+  /** A route or body with its {name} places filled in. */
+  function fill(text) {
+    return (text || '').replace(
+      /\{(\w+)\}/g,
+      (whole, name) => (PAGE_VALUES[name] ? encodeURIComponent(PAGE_VALUES[name]()) : whole),
+    );
+  }
+
+  /** Views already seen, so a view moved in the DOM is not mounted twice. */
   const mounted = new WeakSet();
+
+  /** Views that were displayed when last looked at. */
+  const shown = new WeakSet();
+
+  /** Whether an element is displayed: it, and everything it is in, has a box. */
+  function isDisplayed(element) {
+    return element.isConnected && element.getClientRects().length > 0;
+  }
+
+  function allViews() {
+    return Array.from(document.querySelectorAll('[' + VIEW + ']'));
+  }
+
+  /** The path of a route, without its query. */
+  function pathOf(route) {
+    try {
+      return new URL(fill(route), location.origin).pathname;
+    } catch (_) {
+      return '';
+    }
+  }
 
   /** Ask the engine. Resolves with the response text. */
   function ask(method, route, body) {
@@ -58,16 +115,31 @@
     }
   }
 
-  /** Render a view from its route. */
+  /** Draw a view from its route. */
   async function render(view) {
     const route = view.getAttribute(VIEW);
     if (!route) return;
-    const html = await ask('GET', route, '');
+    const html = await ask('GET', fill(route), '');
     // The view may have been removed while the engine was answering.
     if (view.isConnected) patch(view, html);
   }
 
-  /** Fill any views at or under `root` that have not been filled yet. */
+  // Draws a view when it comes to be displayed. The margin is far larger than
+  // any page, so this is about being displayed at all (a dialog opening), not
+  // about being scrolled into the window.
+  const watcher = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const view = entry.target;
+      if (!entry.isIntersecting) {
+        shown.delete(view);
+      } else if (!shown.has(view)) {
+        shown.add(view);
+        render(view);
+      }
+    }
+  }, { rootMargin: '100000px' });
+
+  /** Start looking after any views at or under `root` not seen before. */
   function mount(root) {
     const views = [];
     if (root.nodeType === 1 && root.hasAttribute(VIEW)) views.push(root);
@@ -75,30 +147,64 @@
     for (const view of views) {
       if (mounted.has(view)) continue;
       mounted.add(view);
-      render(view);
+      // Displayed already: draw now, not a frame later when the watcher
+      // first reports. Otherwise the watcher draws it when it is shown.
+      if (isDisplayed(view)) {
+        shown.add(view);
+        render(view);
+      }
+      watcher.observe(view);
     }
   }
 
   /** The card a view shows, from its route (`?card=<slug>`), or null. */
   function cardOf(view) {
     try {
-      return new URL(view.getAttribute(VIEW), location.origin).searchParams.get('card');
+      return new URL(fill(view.getAttribute(VIEW)), location.origin).searchParams.get('card');
     } catch (_) {
       return null;
     }
   }
 
-  // A tap on a control inside a view: ask the engine, then redraw that view.
-  // The engine handles requests in the order they are sent, so quick taps
-  // cannot overtake one another.
-  document.addEventListener('click', async (event) => {
+  /**
+   * Ask the engine for a change from inside `view`, then draw again what may
+   * show it: the view itself, and every other displayed view of the route
+   * that was posted to. The engine handles requests in the order they are
+   * sent, so quick taps cannot overtake one another.
+   */
+  async function send(view, route, body) {
+    route = fill(route);
+    await ask('POST', route, body);
+    const path = pathOf(route);
+    const others = allViews().filter((other) =>
+      other !== view && isDisplayed(other) && pathOf(other.getAttribute(VIEW)) === path
+    );
+    await Promise.all([view, ...others].map(render));
+  }
+
+  // A tap on a control inside a view.
+  document.addEventListener('click', (event) => {
     const control = event.target.closest ? event.target.closest('[' + POST + ']') : null;
-    if (!control) return;
+    // A form is sent when it is submitted, not when it is tapped.
+    if (!control || control.tagName === 'FORM') return;
     const view = control.closest('[' + VIEW + ']');
     if (!view) return;
     event.preventDefault();
-    await ask('POST', control.getAttribute(POST), control.getAttribute(BODY));
-    await render(view);
+    send(view, control.getAttribute(POST), fill(control.getAttribute(BODY)));
+  });
+
+  // A form inside a view, submitted by its button or the Enter key: its body,
+  // then its fields.
+  document.addEventListener('submit', async (event) => {
+    const form = event.target;
+    if (!form.hasAttribute || !form.hasAttribute(POST)) return;
+    const view = form.closest('[' + VIEW + ']');
+    if (!view) return;
+    event.preventDefault();
+    const fields = new URLSearchParams(new FormData(form)).toString();
+    const body = [fill(form.getAttribute(BODY)), fields].filter(Boolean).join('&');
+    await send(view, form.getAttribute(POST), body);
+    if (form.isConnected) form.reset();
   });
 
   // Views can arrive after load: the hand view injects card panels.
@@ -112,12 +218,14 @@
 
   globalThis.kipukasViews = {
     /**
-     * Redraw from the engine. With a card slug, only that card's views;
-     * without one, every view on the page.
+     * Draw again from the engine. With a card slug, only that card's views;
+     * without one, every view on the page. Views that are not displayed are
+     * left for when they are shown.
      */
     refresh(card) {
-      const all = Array.from(document.querySelectorAll('[' + VIEW + ']'));
-      const views = card ? all.filter((view) => cardOf(view) === card) : all;
+      const views = allViews().filter((view) =>
+        isDisplayed(view) && (!card || cardOf(view) === card)
+      );
       return Promise.all(views.map(render));
     },
 

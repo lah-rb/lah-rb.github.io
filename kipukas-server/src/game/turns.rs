@@ -4,8 +4,23 @@
 //! all active alarms by 1. Alarms at 0 show "Complete". Expired alarms
 //! (negative) are removed on the next tick.
 //!
-//! Phase 5: Extended with name, color_set fields and cleaner UI.
-//! Multiplayer sync broadcasts timer mutations to the connected peer.
+//! ## Two views
+//!
+//! Outside a room the timer is two engine-owned views (Pattern 13,
+//! `assets/js/kipukas-view.js`): the form that makes a timer
+//! ([`render_turn_panel`], at `/api/game/turns/form`) and the list of timers
+//! ([`render_alarm_list`], at `/api/game/turns?display=alarms`). The form is
+//! posted to `/api/game/turns`, so the list, a view of that route, is drawn
+//! again when a timer is made. The form has a route of its own so that a tap
+//! in the list does not draw the form again and clear what is being typed.
+//!
+//! ## In a room
+//!
+//! The timers are shared and live in the room document. The same two
+//! functions render them, with controls that go through the multiplayer
+//! script (`kipukasMultiplayer`), which also sends each change to the other
+//! player. Showing and hiding the list is a preference of this player alone
+//! and is an engine post in both cases.
 
 use crate::game::crdt;
 use crate::game::player_doc;
@@ -40,72 +55,79 @@ fn color_dot(color_set: &str) -> &str {
     }
 }
 
-/// Render the turn tracker panel HTML.
-/// This is the content inside the turn tracker popover — includes
-/// the number input, name field, color picker, and "New Timer" button.
+const FIELD_CLASS: &str = "w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red";
+const LABEL_CLASS: &str = "block text-xs font-bold mb-1";
+
+/// The colors a timer can have, with the class that paints each one's dot in
+/// the form. The first is the one chosen to begin with.
+const COLORS: [(&str, &str); 5] = [
+    ("red", "bg-red-400"),
+    ("green", "bg-emerald-400"),
+    ("blue", "bg-blue-400"),
+    ("yellow", "bg-yellow-400"),
+    ("pink", "bg-pink-400"),
+];
+
+/// Render the form that makes a timer: a name, a number of diel cycles and a
+/// color.
 ///
-/// Automatically detects multiplayer mode via `room::in_room()`.
-/// When in a room (peer present or not), the submit button routes through
-/// the multiplayer sync path; otherwise it uses the local HTMX path.
+/// It is a plain form. Its fields are named as `POST /api/game/turns` reads
+/// them (`name`, `turns`, `color_set`), and the chosen color is whichever
+/// radio button is checked, so there is no state to keep beside it.
+///
+/// Outside a room the form is sent to the engine by the view it is in. In a
+/// room (peer present or not) it hands its fields to the multiplayer script,
+/// which adds the timer to the room document and tells the other player.
+/// Either way the values come from this form's own fields: the page can hold
+/// two of these forms at once, one for each case.
 pub fn render_turn_panel() -> String {
     let multiplayer = room::in_room();
     let mut html = String::with_capacity(2048);
 
     html.push_str(r#"<div class="p-3 text-kip-drk-sienna">"#);
-
-    // Timer creation form
-    html.push_str(r#"<div class="grid grid-cols-1 gap-2" x-data="{ selectedColor: 'red' }">"#);
-
-    // Name field (optional)
-    html.push_str(
-        r#"<div><label class="block text-xs font-bold mb-1" for="timerName">Timer Name</label>"#,
-    );
-    html.push_str(
-        r#"<input type="text" id="timerName" placeholder="(optional)" maxlength="30" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red"></div>"#,
-    );
-
-    // Diel cycles input (number, brings up numpad on mobile)
-    html.push_str(
-        r#"<div><label class="block text-xs font-bold mb-1" for="turnsSelector">Diel Cycles</label>"#,
-    );
-    html.push_str(
-        r#"<input type="number" inputmode="numeric" pattern="[0-9]*" id="turnsSelector" min="1" max="99" value="1" class="w-full border rounded px-2 py-1 text-sm text-kip-drk-sienna border-kip-drk-sienna focus:border-kip-red focus:ring-kip-red"></div>"#,
-    );
-
-    // Hidden input to reliably track selected color (Alpine x-model)
-    html.push_str(
-        r#"<input type="hidden" id="timerColorSet" x-model="selectedColor">"#,
-    );
-
-    // Color picker
-    html.push_str(r#"<div><label class="block text-xs font-bold mb-1">Color</label>"#);
-    html.push_str(r#"<div class="flex gap-2">"#);
-    for (color, bg_class) in &[
-        ("red", "bg-red-400"),
-        ("green", "bg-emerald-400"),
-        ("blue", "bg-blue-400"),
-        ("yellow", "bg-yellow-400"),
-        ("pink", "bg-pink-400"),
-    ] {
-        html.push_str(&format!(
-            r#"<button type="button" @click="selectedColor = '{}'" :class="selectedColor === '{}' ? 'ring-2 ring-kip-drk-sienna ring-offset-1 scale-110' : 'opacity-60'" class="{} w-7 h-7 rounded-full transition-all cursor-pointer" aria-label="{} color"></button>"#,
-            color, color, bg_class, color
-        ));
-    }
-    html.push_str(r#"</div></div>"#);
-
-    // Submit button — reads color from hidden input (reliable across all Alpine contexts)
     if multiplayer {
         html.push_str(
-            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="kipukasMultiplayer.addTurn(document.getElementById('turnsSelector').value, document.getElementById('timerName').value, document.getElementById('timerColorSet').value || 'red')">New Timer</button>"#,
+            r#"<form class="grid grid-cols-1 gap-2" onsubmit="kipukasMultiplayer.addTurn(this.elements.turns.value, this.elements.name.value, this.elements.color_set.value); return false">"#,
         );
     } else {
         html.push_str(
-            r#"<button aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm" onclick="htmx.ajax('POST', '/api/game/turns', {values: {action: 'add', turns: document.getElementById('turnsSelector').value, name: document.getElementById('timerName').value, color_set: document.getElementById('timerColorSet').value || 'red'}, target: '#turn-alarms', swap: 'innerHTML'})">New Timer</button>"#,
+            r#"<form class="grid grid-cols-1 gap-2" data-engine-post="/api/game/turns" data-engine-body="action=add">"#,
         );
     }
 
-    html.push_str(r#"</div>"#); // close x-data grid
+    // Name (optional)
+    html.push_str(&format!(
+        r#"<label class="{}">Timer Name<input type="text" name="name" placeholder="(optional)" maxlength="30" autocomplete="off" class="{} mt-1 font-normal"></label>"#,
+        LABEL_CLASS, FIELD_CLASS
+    ));
+
+    // Diel cycles (a number field brings up the number pad on a phone)
+    html.push_str(&format!(
+        r#"<label class="{}">Diel Cycles<input type="number" inputmode="numeric" pattern="[0-9]*" name="turns" min="1" max="99" value="1" required class="{} mt-1 font-normal"></label>"#,
+        LABEL_CLASS, FIELD_CLASS
+    ));
+
+    // Color: one radio button per color, drawn as a dot. The checked one is
+    // ringed.
+    html.push_str(&format!(
+        r#"<fieldset><legend class="{}">Color</legend><div class="flex gap-2">"#,
+        LABEL_CLASS
+    ));
+    for (i, (color, dot)) in COLORS.iter().enumerate() {
+        html.push_str(&format!(
+            r#"<label class="cursor-pointer"><input type="radio" name="color_set" value="{color}"{checked} class="sr-only peer"><span class="{dot} block w-7 h-7 rounded-full transition-all opacity-60 peer-checked:opacity-100 peer-checked:scale-110 peer-checked:ring-2 peer-checked:ring-kip-drk-sienna peer-checked:ring-offset-1 peer-focus-visible:ring-2 peer-focus-visible:ring-kip-red"></span><span class="sr-only">{color} color</span></label>"#,
+            color = color,
+            checked = if i == 0 { " checked" } else { "" },
+            dot = dot,
+        ));
+    }
+    html.push_str(r#"</div></fieldset>"#);
+
+    html.push_str(
+        r#"<button type="submit" aria-label="Submit turn timer" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Timer</button>"#,
+    );
+
+    html.push_str(r#"</form>"#);
     html.push_str(r#"</div>"#); // close p-3
 
     html
@@ -117,7 +139,8 @@ pub fn render_turn_panel() -> String {
 /// Automatically detects multiplayer mode via `room::in_room()`.
 /// When in a room (peer present or not), reads alarms from the yrs CRDT Doc
 /// (synced between peers) and renders multiplayer sync buttons. Otherwise
-/// reads from PLAYER_DOC.
+/// reads from PLAYER_DOC, and its buttons are engine posts: the view the
+/// list is in sends them and draws the list again.
 pub fn render_alarm_list() -> String {
     let multiplayer = room::in_room();
     // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
@@ -150,7 +173,7 @@ pub fn render_alarm_list() -> String {
         );
     } else {
         html.push_str(
-            r#"<button class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none cursor-pointer font-bold text-sm" onclick="htmx.ajax('POST', '/api/game/turns', {values: {action: 'tick'}, target: '#turn-alarms', swap: 'innerHTML'})">&#x23E9; Advance on Diel Roll</button>"#,
+            r#"<button type="button" class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none cursor-pointer font-bold text-sm" data-engine-post="/api/game/turns" data-engine-body="action=tick">&#x23E9; Advance on Diel Roll</button>"#,
         );
     }
 
@@ -200,7 +223,7 @@ pub fn render_alarm_list() -> String {
             ));
         } else {
             html.push_str(&format!(
-                r#"<button class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" onclick="htmx.ajax('POST', '/api/game/turns', {{values: {{action: 'remove', index: '{}'}}, target: '#turn-alarms', swap: 'innerHTML'}})" aria-label="Remove timer">&#x2715;</button>"#,
+                r#"<button type="button" class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" data-engine-post="/api/game/turns" data-engine-body="action=remove&index={}" aria-label="Remove timer">&#x2715;</button>"#,
                 i
             ));
         }
@@ -210,21 +233,21 @@ pub fn render_alarm_list() -> String {
 
     html.push_str(r#"</div>"#); // close alarm-list-inner
 
-    // Toggle visibility button — routes through multiplayer-aware path when synced
-    let rotate_class = if show_alarms { "" } else { " rotate-180" };
-    let toggle_action = if multiplayer {
-        "htmx.ajax('POST', '/api/room/yrs/alarm/toggle', {target: '#turn-alarms', swap: 'innerHTML'})"
+    // Show or hide the list. Whether it is shown is this player's own
+    // preference, in a room or not, so it is an engine post in both cases.
+    let (rotate_class, toggle_label) = if show_alarms {
+        ("", "Hide timers")
     } else {
-        "htmx.ajax('POST', '/api/game/turns', {values: {action: 'toggle_visibility'}, target: '#turn-alarms', swap: 'innerHTML'})"
+        (" rotate-180", "Show timers")
     };
     html.push_str(&format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" alt="tools toggle" onclick="{}" class="fill-none stroke-2 z-50 stroke-kip-drk-goldenrod w-6 h-6 mb-2 justify-left cursor-pointer{}">"#,
-        toggle_action, rotate_class
+        r#"<button type="button" aria-label="{}" aria-expanded="{}" data-engine-post="/api/game/turns" data-engine-body="action=toggle_visibility" class="z-50 mb-2 block w-fit cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6{}">"#,
+        toggle_label, show_alarms, rotate_class
     ));
     html.push_str(
         r#"<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />"#,
     );
-    html.push_str(r#"</svg>"#);
+    html.push_str(r#"</svg></button>"#);
 
     html
 }
@@ -361,7 +384,10 @@ mod tests {
         // Shared timers are removed by id, not by position.
         let id = crdt::get_alarms()[0].id.clone();
         assert!(html.contains(&format!("kipukasMultiplayer.removeTurn('{}')", id)));
-        assert!(!html.contains("action: 'tick'")); // no direct HTMX tick calls
+        // The shared timers are not changed through the solo route.
+        assert!(!html.contains("action=tick"));
+        assert!(!html.contains("action=remove"));
+        assert!(!html.contains("htmx.ajax"));
         crdt::reset_doc();
         reset_state();
     }
@@ -389,7 +415,7 @@ mod tests {
         assert!(html.contains("shared"));
         assert!(!html.contains("solo copy"));
         assert!(html.contains("kipukasMultiplayer.tickTurns()"));
-        assert!(!html.contains("action: 'tick'"));
+        assert!(!html.contains("action=tick"));
 
         let panel = render_turn_panel();
         assert!(panel.contains("kipukasMultiplayer.addTurn"));
@@ -403,8 +429,50 @@ mod tests {
         player_doc::add_alarm(9, "solo", "red");
         let html = render_alarm_list();
         assert!(html.contains("solo"));
-        assert!(html.contains("action: 'tick'"));
-        assert!(!html.contains("kipukasMultiplayer.tickTurns()"));
+        assert!(html.contains(r#"data-engine-post="/api/game/turns" data-engine-body="action=tick""#));
+        assert!(!html.contains("kipukasMultiplayer"));
+        reset_state();
+    }
+
+    #[test]
+    fn a_solo_lists_controls_are_engine_posts_and_nothing_else() {
+        reset_state();
+        player_doc::add_alarm(5, "first", "red");
+        player_doc::add_alarm(3, "second", "green");
+        let html = render_alarm_list();
+        // Each timer is removed by its place in the list.
+        assert!(html.contains(r#"data-engine-body="action=remove&index=0""#));
+        assert!(html.contains(r#"data-engine-body="action=remove&index=1""#));
+        assert_eq!(html.matches("data-engine-post=\"/api/game/turns\"").count(), 4);
+        // No script in the markup, and nothing for Alpine or HTMX to find.
+        for forbidden in ["onclick", "htmx", "hx-", "x-data", "@click"] {
+            assert!(!html.contains(forbidden), "{} in the list", forbidden);
+        }
+        reset_state();
+    }
+
+    #[test]
+    fn the_list_is_hidden_and_shown_by_a_button_that_says_which() {
+        reset_state();
+        player_doc::add_alarm(5, "", "red");
+        let html = render_alarm_list();
+        assert!(html.contains(r#"aria-label="Hide timers" aria-expanded="true" data-engine-post="/api/game/turns" data-engine-body="action=toggle_visibility""#));
+        toggle_alarms_visibility();
+        let html = render_alarm_list();
+        assert!(html.contains(r#"aria-label="Show timers" aria-expanded="false""#));
+        assert!(html.contains(r#"<div id="alarm-list-inner" class="hidden">"#));
+        reset_state();
+    }
+
+    #[test]
+    fn hiding_the_list_is_an_engine_post_in_a_room_too() {
+        reset_state();
+        room::with_room_mut(|r| r.room_code = "ABCD".to_string());
+        crdt::init_doc();
+        crdt::add_alarm(3, "shared", "blue");
+        let html = render_alarm_list();
+        assert!(html.contains(r#"data-engine-body="action=toggle_visibility""#));
+        crdt::reset_doc();
         reset_state();
     }
 
@@ -413,8 +481,19 @@ mod tests {
         reset_state();
         // room disconnected → local mode
         let html = render_turn_panel();
-        assert!(html.contains("turnsSelector"));
-        assert!(html.contains("timerName"));
+        // The fields are named as POST /api/game/turns reads them.
+        assert!(html.contains(r#"name="turns""#));
+        assert!(html.contains(r#"name="name""#));
+        assert_eq!(html.matches(r#"name="color_set""#).count(), 5);
+        assert_eq!(html.matches(" checked").count(), 1, "one color is chosen to begin with");
+        assert!(html.contains(r#"value="red" checked"#));
+        assert!(html.contains(r#"<form class="grid grid-cols-1 gap-2" data-engine-post="/api/game/turns" data-engine-body="action=add">"#));
+        assert!(html.contains(r#"<button type="submit""#));
+        // Nothing for Alpine, HTMX or a script to do, and no ids to clash
+        // with the room's copy of the form.
+        for forbidden in ["onclick", "onsubmit", "htmx", "x-data", "x-model", "@click", " id="] {
+            assert!(!html.contains(forbidden), "{} in the form", forbidden);
+        }
         assert!(html.contains("New Timer"));
         assert!(html.contains("Diel Cycles"));
         assert!(html.contains("inputmode=\"numeric\""));
@@ -435,8 +514,13 @@ mod tests {
             r.connected = true;
         });
         let html = render_turn_panel();
-        assert!(html.contains("kipukasMultiplayer.addTurn"));
-        assert!(!html.contains("htmx.ajax")); // multiplayer routes through JS
+        // The form hands its own fields to the multiplayer script.
+        assert!(html.contains(
+            "onsubmit=\"kipukasMultiplayer.addTurn(this.elements.turns.value, this.elements.name.value, this.elements.color_set.value); return false\""
+        ));
+        assert!(!html.contains("data-engine-post")); // not sent to the solo route
+        assert!(!html.contains("getElementById")); // not read from elsewhere in the page
+        assert!(!html.contains("htmx.ajax"));
         reset_state();
     }
 

@@ -1,7 +1,11 @@
-<!-- Phase 3b: Turn tracker with HTMX + WASM state management.
-     The popover toggle (showTurnTracker) stays Alpine — purely visual.
-     Timer creation form is loaded from WASM. Alarm state lives in WASM memory.
-     Hides while in a multiplayer room (multiplayer_turn_tool.html takes over). -->
+<!-- Turn timer, outside a room. Two engine-owned views (Pattern 13,
+     assets/js/kipukas-view.js): the form that makes a timer, in a popover, and
+     the list of timers, top left. The engine renders both and owns the timers;
+     this file holds no copy of them and no script.
+     The popover's opening and closing (showTurnTracker) stays Alpine — purely
+     visual. Its view is drawn each time it opens.
+     In a room the button and popover hide and multiplayer_turn_tool.html takes
+     over; the list stays, and the engine fills it with the room's timers. -->
 <div x-data="{ showTurnTracker: false }">
     <button @click="showTurnTracker = !showTurnTracker"
         x-show="!$store.room.inRoom" x-cloak
@@ -16,23 +20,13 @@
     role="dialog" aria-label="Turn timer" @keydown.escape.window="showTurnTracker = false"
     x-anchor.right-end.offset.10="$refs.turnTracker"
     x-transition.duration.350ms
-    x-effect="if (showTurnTracker && !$store.room.inRoom) $nextTick(() => {
-      if (typeof htmx !== 'undefined') {
-        htmx.ajax('GET', '/api/game/turns', {target:'#turn-tracker-panel', swap:'innerHTML'});
-      }
-    })"
     class="{{ include.menuClass }} grid grid-cols-1 h-fit w-56"
     id="turn-tracker-panel"
-    hx-get="/api/game/turns"
-    hx-trigger="load"
-    hx-swap="innerHTML">
+    data-engine-view="/api/game/turns/form">
     </div>
 </div>
 
-<!-- Floating alarm display — loaded from WASM, positioned top-left -->
+<!-- The list of timers: always in the page, top left. Empty when there are none. -->
 <div id="turn-alarms" class="fixed top-0 left-0 m-6 grid grid-cols-1"
-     hx-get="/api/game/turns?display=alarms"
-     hx-trigger="load"
-     hx-swap="innerHTML"
-     hx-target="this">
+     data-engine-view="/api/game/turns?display=alarms">
 </div>

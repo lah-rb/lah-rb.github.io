@@ -6,22 +6,25 @@
 //! recently declared archetype is the "active" affinity, granting a +1
 //! roll bonus on matching cards during fists combat.
 //!
+//! The panel is an engine-owned view (Pattern 13) of `/api/player/affinity`.
+//! Each Declare button is an engine post; the view sends it and draws the
+//! panel again. The day of the declaration is the page's to know, so the
+//! button's body asks the view runtime for it (`{today}`).
+//!
 //! ## Signed export/import (Phase D)
 //! HMAC-SHA256 signed exports for tamper-resistant player data backups.
 //! The WASM layer owns the integrity check (HMAC); an optional JS-side
 //! AES-GCM encryption layer provides confidentiality on top.
 
 use crate::game::{crypto, player_doc};
-use crate::routes::util::{get_param, parse_form_body, parse_query};
+use crate::routes::util::{get_param, parse_form_body};
 
 // ── GET /api/player/affinity ───────────────────────────────────────
 
-/// Handle GET /api/player/affinity?today={YYYY-MM-DD}
+/// Handle GET /api/player/affinity
 /// Returns the full affinity panel HTML showing all 15 archetypes.
-pub fn handle_affinity_get(query: &str) -> String {
-    let params = parse_query(query);
-    let today = get_param(&params, "today").unwrap_or("");
-    render_affinity_panel(today)
+pub fn handle_affinity_get(_query: &str) -> String {
+    render_affinity_panel()
 }
 
 // ── POST /api/player/affinity ──────────────────────────────────────
@@ -39,7 +42,7 @@ pub fn handle_affinity_post(body: &str) -> String {
     }
 
     match player_doc::declare_affinity(archetype, today) {
-        Ok(_) => render_affinity_panel(today),
+        Ok(_) => render_affinity_panel(),
         Err(e) => {
             // Re-render panel with error toast at top
             let mut html = String::with_capacity(4096);
@@ -47,7 +50,7 @@ pub fn handle_affinity_post(body: &str) -> String {
                 r#"<div class="text-center text-xs text-kip-red mb-2">{}</div>"#,
                 e
             ));
-            html.push_str(&render_affinity_panel_inner(today));
+            html.push_str(&render_affinity_panel_inner());
             html
         }
     }
@@ -56,20 +59,20 @@ pub fn handle_affinity_post(body: &str) -> String {
 // ── Panel rendering ────────────────────────────────────────────────
 
 /// Render the full affinity panel (wrapper).
-fn render_affinity_panel(today: &str) -> String {
+fn render_affinity_panel() -> String {
     let mut html = String::with_capacity(4096);
     html.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     html.push_str(r#"<p class="text-lg font-bold text-center mb-1">Archetypal Affinity</p>"#);
     html.push_str(
         r#"<p class="text-xs text-slate-500 text-center mb-3">Declare once per day to grow your bond</p>"#,
     );
-    html.push_str(&render_affinity_panel_inner(today));
+    html.push_str(&render_affinity_panel_inner());
     html.push_str(r#"</div>"#);
     html
 }
 
 /// Render the inner panel content (archetype list).
-fn render_affinity_panel_inner(today: &str) -> String {
+fn render_affinity_panel_inner() -> String {
     let archetypes = player_doc::valid_archetypes();
     let active = player_doc::get_active_affinity();
     let has_affinity = active.is_some();
@@ -133,10 +136,11 @@ fn render_affinity_panel_inner(today: &str) -> String {
                 r#"<span class="text-xs text-slate-300 px-2 py-0.5">Locked</span>"#,
             );
         } else {
-            // No affinity yet — show declare button
+            // No affinity yet — show declare button. `{today}` is filled in
+            // by the view runtime when the button is tapped.
             html.push_str(&format!(
-                "<button class=\"text-xs bg-kip-red text-amber-50 px-2 py-0.5 rounded hover:bg-red-700 active:bg-red-800\" hx-post=\"/api/player/affinity\" hx-vals='{{\"archetype\":\"{}\",\"today\":\"{}\"}}' hx-target=\"#affinity-container\" hx-swap=\"innerHTML\">Declare</button>",
-                archetype, today
+                r#"<button type="button" class="text-xs bg-kip-red text-amber-50 px-2 py-0.5 rounded hover:bg-red-700 active:bg-red-800" data-engine-post="/api/player/affinity" data-engine-body="archetype={}&today={{today}}">Declare</button>"#,
+                archetype
             ));
         }
         html.push_str(r#"</div>"#);
@@ -375,6 +379,29 @@ mod tests {
         // No active affinity yet
         assert!(!html.contains("Active:"));
         reset();
+    }
+
+    #[test]
+    fn a_declare_button_is_an_engine_post_that_asks_the_page_for_the_day() {
+        reset();
+        let html = handle_affinity_get("");
+        assert!(html.contains(
+            r#"data-engine-post="/api/player/affinity" data-engine-body="archetype=Brutal&today={today}">Declare</button>"#
+        ));
+        for forbidden in ["hx-", "htmx", "onclick"] {
+            assert!(!html.contains(forbidden), "{} in the panel", forbidden);
+        }
+        // What the button sends is what the engine reads.
+        handle_affinity_post("archetype=Brutal&today=2026-02-26");
+        assert_eq!(player_doc::get_active_affinity().map(|(name, _)| name).as_deref(), Some("Brutal"));
+        reset();
+    }
+
+    #[test]
+    fn an_archetypes_name_can_go_in_a_form_body_as_it_is() {
+        for name in player_doc::valid_archetypes() {
+            assert!(name.chars().all(|c| c.is_ascii_alphanumeric()), "{}", name);
+        }
     }
 
     #[test]
