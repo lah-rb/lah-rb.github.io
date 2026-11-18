@@ -160,6 +160,12 @@
   }
 }
 
+/* A form whose post the engine has not answered yet (kipukas-view.js marks
+   it): its buttons wait, so it is not sent twice. */
+form[aria-busy="true"] button {
+  @apply pointer-events-none opacity-50;
+}
+
 /* Something that fades in each time it comes to be shown. An engine view
    keeps such a thing in its markup all along and takes its `hidden`
    attribute away to show it (the recipe lookup's pictures), which starts

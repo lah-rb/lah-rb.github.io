@@ -13,7 +13,8 @@
 //!   - whether the player is in a room, which the toolbar shows different
 //!     tools for;
 //!   - that the page is to be loaded again ([`reload`]), or another page
-//!     gone to ([`go`]).
+//!     gone to ([`go`]);
+//!   - a file for the player to keep ([`download`]).
 //! - for the worker again, that its QR decoder is wanted ([`qr`]).
 //!
 //! Both do each of these as they are told and decide none of them.
@@ -28,6 +29,7 @@ thread_local! {
     static RELOAD: Cell<bool> = const { Cell::new(false) };
     static REFRESH: Cell<bool> = const { Cell::new(false) };
     static GO: RefCell<Option<String>> = const { RefCell::new(None) };
+    static DOWNLOAD: RefCell<Option<(String, String)>> = const { RefCell::new(None) };
     static QR: Cell<Option<bool>> = const { Cell::new(None) };
     /// Whether the page was last told the player is in a room. `None` until
     /// it has been told anything.
@@ -89,6 +91,18 @@ pub fn take_go() -> Option<String> {
     GO.with(|go| go.borrow_mut().take())
 }
 
+/// Hand the player a file to keep: its name and its text. The browser saves
+/// it where it saves downloads. A backup of the player's data is one
+/// (`game::backup`).
+pub fn download(name: &str, text: &str) {
+    DOWNLOAD.with(|download| *download.borrow_mut() = Some((name.to_string(), text.to_string())));
+}
+
+/// The file to hand over, if there is one. Taken once.
+pub fn take_download() -> Option<(String, String)> {
+    DOWNLOAD.with(|download| download.borrow_mut().take())
+}
+
 /// Tell the worker its QR decoder is wanted, and whether codes are to be
 /// found by computer vision first (`cv`). The scanner does when it opens
 /// and when that switch is turned.
@@ -117,6 +131,7 @@ fn take_in_room() -> Option<bool> {
 ///            codes are found by computer vision first
 ///   go       a path on this site for the page to go to
 ///   reload   true: load the page again
+///   download a file for the player to keep: `{ name, text }`
 pub fn handle_handover_post(_body: &str) -> String {
     let mut handed = serde_json::Map::new();
 
@@ -154,6 +169,9 @@ pub fn handle_handover_post(_body: &str) -> String {
     if take_reload() {
         handed.insert("reload".into(), serde_json::json!(true));
     }
+    if let Some((name, text)) = take_download() {
+        handed.insert("download".into(), serde_json::json!({ "name": name, "text": text }));
+    }
     serde_json::Value::Object(handed).to_string()
 }
 
@@ -182,6 +200,7 @@ pub fn reset() {
     take_reload();
     take_refresh();
     take_go();
+    take_download();
     QR.with(|qr| qr.set(None));
     wire::take();
     IN_ROOM_TOLD.with(|told| told.set(None));

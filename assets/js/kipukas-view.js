@@ -45,6 +45,20 @@
  *     <input name="search">
  *   </form>
  *
+ * A file the player chooses in a form is sent as its text, under the file
+ * field's name. The engine reads files; the page only hands them over.
+ *
+ * A form marked data-engine-stay is not cleared when it is sent. It is for
+ * a form the engine may refuse, so that a chosen file need not be chosen
+ * again (what was typed, the engine draws back into its fields):
+ *
+ *   <form data-engine-post="/api/player/backup" data-engine-stay>
+ *     <input type="file" name="file"> <input type="password" name="passphrase">
+ *   </form>
+ *
+ * While a form waits for the engine's answer it is marked aria-busy="true",
+ * which the stylesheet uses to hold its buttons.
+ *
  * A form need not be inside a view. One that is not has no view of its own
  * to draw again, only those of the route it posts to.
  *
@@ -103,6 +117,7 @@
   const KEEP = 'data-engine-keep';
   const SEEN = 'data-engine-seen';
   const LIVE = 'data-engine-live';
+  const STAY = 'data-engine-stay';
 
   /** How much of an element must be in view for it to count as seen. */
   const SEEN_SHARE = 0.3;
@@ -309,15 +324,23 @@
 
   /**
    * Send a form: its body, then its fields, then the button that submitted
-   * it if that has a name.
+   * it if that has a name. A chosen file is sent as its text.
    */
-  function sendForm(form, submitter) {
+  async function sendForm(form, submitter) {
     clearTimeout(pausing.get(form));
     const data = new FormData(form);
     if (submitter && submitter.name) data.append(submitter.name, submitter.value);
-    const fields = new URLSearchParams(data).toString();
-    const body = [form.getAttribute(BODY), fields].filter(Boolean).join('&');
-    return send(form.closest('[' + VIEW + ']'), form.getAttribute(POST), body);
+    form.setAttribute('aria-busy', 'true');
+    try {
+      const fields = new URLSearchParams();
+      for (const [name, value] of data) {
+        fields.append(name, typeof value === 'string' ? value : await value.text());
+      }
+      const body = [form.getAttribute(BODY), fields.toString()].filter(Boolean).join('&');
+      await send(form.closest('[' + VIEW + ']'), form.getAttribute(POST), body);
+    } finally {
+      form.removeAttribute('aria-busy');
+    }
   }
 
   // A tap on a control inside a view.
@@ -338,7 +361,7 @@
     if (!form.hasAttribute || !form.hasAttribute(POST)) return;
     event.preventDefault();
     await sendForm(form, event.submitter);
-    if (form.isConnected && !form.hasAttribute(LIVE)) form.reset();
+    if (form.isConnected && !form.hasAttribute(LIVE) && !form.hasAttribute(STAY)) form.reset();
   });
 
   // Typing in a form that is sent as it is typed in: wait for a pause, then

@@ -33,6 +33,13 @@ base64 = "0.22"
 # no extra code in the wasm). Used directly for timer ids.
 fastrand = { version = "2", features = ["js"] }
 hmac-sha256 = "1.1"
+# AES-256-GCM for the player's backups (src/game/crypto.rs). Without its
+# default `getrandom` feature: the engine draws the salt and nonce itself.
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+# The system's random numbers (the browser's crypto.getRandomValues), for a
+# backup's salt and nonce. Already in the dependency tree through fastrand,
+# same version and `js` feature.
+getrandom = { version = "0.2", features = ["js"] }
 # JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
 jxl-oxide = { version = "0.12.6", default-features = false }
 

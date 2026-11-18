@@ -1,196 +1,37 @@
-<!-- Player Data Export/Import — Phase D signed + encrypted backup.
-     Lives in the hamburger menu. Uses Pattern 11 (modal) with Pattern 6
-     (postToWasmWithCallback) for the WASM → JS → encrypt → download flow.
-     
-     Two-layer protection:
-     1. Integrity (Rust): HMAC-SHA256 signs PLAYER_DOC with passphrase
-     2. Confidentiality (JS): AES-GCM encrypts the signed payload via Web Crypto
--->
-<div x-data="{
-  showPlayerData: false,
-  mode: 'menu',
-  passphrase: '',
-  confirmPassphrase: '',
-  importFile: null,
-  statusMsg: '',
-  statusOk: false,
-  working: false,
-  reset() {
-    this.mode = 'menu';
-    this.passphrase = '';
-    this.confirmPassphrase = '';
-    this.importFile = null;
-    this.statusMsg = '';
-    this.statusOk = false;
-    this.working = false;
-  }
-}" @open-player-data.window="showPlayerData = true; reset()">
+<!-- Player Data: a backup of the player's data as a file, and restoring from
+     one. Opened from the hamburger menu (the open-player-data event).
 
-  <!-- Modal overlay -->
-  <div x-show="showPlayerData" x-cloak
-    class="fixed inset-0 flex items-center justify-center z-50"
-    x-transition.duration.350ms>
+     What the dialog holds is an engine-owned view (Pattern 13,
+     assets/js/kipukas-view.js) of /api/player/backup: the engine draws its
+     screens, checks the passphrase, signs and encrypts the backup, and opens
+     and verifies one that is restored (kipukas-server/src/routes/backup.rs,
+     src/game/backup.rs, src/game/crypto.rs). A backup reaches the player as
+     a file through the engine's handover (DOWNLOAD in kipukas-api.js), and a
+     chosen file is sent to the engine as its text. This file only opens and
+     closes the dialog. Closing forgets what was typed, and the engine is
+     told so. -->
+<div x-data="{ showPlayerData: false }"
+     class="relative"
+     x-init="$watch('showPlayerData', value => { if (!value) kipukasViews.post('/api/player/backup', 'action=close'); })"
+     @open-player-data.window="showPlayerData = true">
 
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showPlayerData = false; reset()"></div>
+    <!-- Modal -->
+    <div x-show="showPlayerData" x-cloak
+        role="dialog" aria-modal="true" aria-label="Player data"
+        @keydown.escape.window="showPlayerData = false"
+        class="fixed inset-0 flex items-center justify-center z-50"
+        x-transition.duration.350ms>
 
-    <!-- Modal card -->
-    <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
-      <div class="p-4 text-kip-drk-sienna">
-        <p class="text-lg font-bold text-center mb-1">Player Data</p>
-        <p class="text-xs text-slate-500 text-center mb-4">Backup and restore your game progress</p>
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showPlayerData = false"></div>
 
-        <!-- Status message -->
-        <div x-show="statusMsg" x-cloak class="text-center text-sm mb-3 p-2 rounded"
-          :class="statusOk ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-kip-red'">
-          <span x-text="statusMsg"></span>
+        <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
+            <div data-engine-view="/api/player/backup"></div>
+
+            <!-- Close button -->
+            <button @click="showPlayerData = false"
+                class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm">
+                Close
+            </button>
         </div>
-
-        <!-- Main menu -->
-        <template x-if="mode === 'menu'">
-          <div class="grid gap-2">
-            <button @click="mode = 'export'"
-              class="w-full bg-kip-drk-goldenrod hover:bg-yellow-700 active:bg-yellow-800 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Export Backup
-            </button>
-            <button @click="mode = 'import'"
-              class="w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-amber-50 font-bold py-3 px-4 rounded text-sm flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-              Import Backup
-            </button>
-            <p class="text-xs text-slate-400 text-center mt-2">
-              Exports are signed and encrypted with your passphrase.
-              <br>Keep your passphrase safe — it cannot be recovered.
-            </p>
-          </div>
-        </template>
-
-        <!-- Export form -->
-        <template x-if="mode === 'export'">
-          <div class="grid gap-3">
-            <label for="export-passphrase" class="text-sm font-medium">Passphrase</label>
-            <input id="export-passphrase" type="password" x-model="passphrase" placeholder="Enter a passphrase"
-              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
-            <label for="export-confirm" class="text-sm font-medium">Confirm Passphrase</label>
-            <input id="export-confirm" type="password" x-model="confirmPassphrase" placeholder="Confirm passphrase"
-              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
-
-            <button @click="
-              statusMsg = '';
-              if (!passphrase || passphrase.length < 4) {
-                statusMsg = 'Passphrase must be at least 4 characters'; statusOk = false; return;
-              }
-              if (passphrase !== confirmPassphrase) {
-                statusMsg = 'Passphrases do not match'; statusOk = false; return;
-              }
-              working = true;
-              const ch = new MessageChannel();
-              ch.port1.onmessage = async function(msg) {
-                try {
-                  const innerJSON = msg.data.html;
-                  if (innerJSON.includes('error')) {
-                    statusMsg = 'Export failed: ' + innerJSON; statusOk = false; working = false; return;
-                  }
-                  const { encryptExport } = await import('/assets/js/kipukas-crypto.js');
-                  const encrypted = await encryptExport(passphrase, innerJSON);
-                  const blob = new Blob([encrypted], { type: 'application/json' });
-                  const a = document.createElement('a');
-                  a.href = URL.createObjectURL(blob);
-                  const date = new Date().toISOString().slice(0, 10);
-                  a.download = 'kipukas-player-backup-' + date + '.kipukas';
-                  a.click();
-                  URL.revokeObjectURL(a.href);
-                  statusMsg = '✓ Backup exported successfully'; statusOk = true;
-                  working = false;
-                } catch(e) {
-                  statusMsg = 'Encryption error: ' + e.message; statusOk = false; working = false;
-                }
-              };
-              const exportedAt = new Date().toISOString();
-              kipukasWorker.postMessage(
-                { method: 'POST', pathname: '/api/player/export/signed',
-                  search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&exported_at=' + encodeURIComponent(exportedAt) },
-                [ch.port2]
-              );
-            " :disabled="working"
-              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              <span x-show="!working">Export</span>
-              <span x-show="working" x-cloak>Encrypting…</span>
-            </button>
-            <button @click="mode = 'menu'; statusMsg = ''"
-              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              Back
-            </button>
-          </div>
-        </template>
-
-        <!-- Import form -->
-        <template x-if="mode === 'import'">
-          <div class="grid gap-3">
-            <label for="import-file" class="text-sm font-medium">Select backup file</label>
-            <input id="import-file" type="file" accept=".kipukas" @change="importFile = $event.target.files[0]"
-              class="w-full text-sm text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-slate-100 file:text-kip-drk-sienna hover:file:bg-slate-200">
-
-            <label for="import-passphrase" class="text-sm font-medium">Passphrase</label>
-            <input id="import-passphrase" type="password" x-model="passphrase" placeholder="Enter backup passphrase"
-              class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:border-kip-red focus:ring-kip-red">
-
-            <button @click="
-              statusMsg = '';
-              if (!importFile) { statusMsg = 'Please select a .kipukas file'; statusOk = false; return; }
-              if (!passphrase) { statusMsg = 'Please enter the passphrase'; statusOk = false; return; }
-              working = true;
-              const reader = new FileReader();
-              reader.onload = async function(e) {
-                try {
-                  const { decryptImport } = await import('/assets/js/kipukas-crypto.js');
-                  const innerJSON = await decryptImport(passphrase, e.target.result);
-                  const ch = new MessageChannel();
-                  ch.port1.onmessage = function(msg) {
-                    const html = msg.data.html;
-                    if (html.includes('successfully')) {
-                      statusMsg = '✓ Player data restored! Reloading…'; statusOk = true;
-                      // The engine has the restored state stored (kipukas-api.js, SAVE).
-                      setTimeout(function() { location.reload(); }, 800);
-                    } else {
-                      statusMsg = html.replace(/<[^>]*>/g, ''); statusOk = false;
-                    }
-                    working = false;
-                  };
-                  kipukasWorker.postMessage(
-                    { method: 'POST', pathname: '/api/player/import/signed',
-                      search: '', body: 'passphrase=' + encodeURIComponent(passphrase) + '&payload=' + encodeURIComponent(innerJSON) },
-                    [ch.port2]
-                  );
-                } catch(err) {
-                  statusMsg = err.message; statusOk = false; working = false;
-                }
-              };
-              reader.readAsText(importFile);
-            " :disabled="working"
-              class="w-full bg-kip-red hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              <span x-show="!working">Import</span>
-              <span x-show="working" x-cloak>Verifying…</span>
-            </button>
-            <button @click="mode = 'menu'; statusMsg = ''"
-              class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
-              Back
-            </button>
-          </div>
-        </template>
-
-      </div>
-
-      <!-- Close button -->
-      <button @click="showPlayerData = false; reset()"
-        class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded-b text-sm">
-        Close
-      </button>
     </div>
-  </div>
 </div>

@@ -148,6 +148,7 @@ export function createWire(opts) {
     if (handed.refresh) toPage({ type: 'REFRESH' });
     if (handed.go) toPage({ type: 'GO', path: handed.go });
     if (handed.reload) toPage({ type: 'RELOAD' });
+    if (handed.download) toPage({ type: 'DOWNLOAD', ...handed.download });
     if (opts.also) opts.also(handed);
     if (handed.wire) carryOut(handed.wire);
   }

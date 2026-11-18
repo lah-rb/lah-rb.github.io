@@ -39,6 +39,20 @@ pub fn date_of(ms: f64) -> String {
     format!("{:04}-{:02}-{:02}", year, month, day)
 }
 
+/// A moment (UTC) as text, to the millisecond: `YYYY-MM-DDTHH:MM:SS.mmmZ`,
+/// which is how JavaScript writes one.
+pub fn moment_of(ms: f64) -> String {
+    let in_day = ms.rem_euclid(86_400_000.0).floor() as u64;
+    format!(
+        "{}T{:02}:{:02}:{:02}.{:03}Z",
+        date_of(ms),
+        in_day / 3_600_000,
+        in_day / 60_000 % 60,
+        in_day / 1_000 % 60,
+        in_day % 1_000
+    )
+}
+
 /// Today's date (UTC), as `YYYY-MM-DD`.
 pub fn today() -> String {
     date_of(now_ms())
@@ -49,6 +63,14 @@ mod tests {
     use super::*;
 
     const DAY: f64 = 86_400_000.0;
+
+    #[test]
+    fn a_moment_is_written_as_javascript_writes_it() {
+        assert_eq!(moment_of(0.0), "1970-01-01T00:00:00.000Z");
+        // 2026-11-18T20:15:30.123Z, as `new Date(1795032930123).toISOString()` gives.
+        assert_eq!(moment_of(1_795_032_930_123.0), "2026-11-18T20:15:30.123Z");
+        assert_eq!(moment_of(20_774.0 * DAY - 1.0), "2026-11-16T23:59:59.999Z");
+    }
 
     #[test]
     fn a_moment_has_the_date_it_falls_on_in_utc() {

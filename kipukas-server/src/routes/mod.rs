@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod cards;
 pub mod device_sync;
 pub mod game;

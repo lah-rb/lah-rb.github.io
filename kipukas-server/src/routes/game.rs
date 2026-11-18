@@ -1,5 +1,5 @@
-//! `/api/game/*` routes — game state management for damage tracking,
-//! turn tracking, and player document persistence.
+//! `/api/game/*` routes — game state management for damage tracking and
+//! turn tracking.
 //!
 //! All game state is stored in PLAYER_DOC (yrs CRDT document).
 
@@ -156,51 +156,6 @@ pub fn handle_turns_post(body: &str) -> String {
     }
 
     turns::render_alarm_list()
-}
-
-// ── GET /api/player/export ─────────────────────────────────────────
-
-/// Handle GET /api/player/export
-/// Returns a <script> tag that triggers a file download of the player doc
-/// as a base64 text file.
-pub fn handle_player_export_get(_query: &str) -> String {
-    let state = player_doc::encode_full_state();
-    format!(
-        r#"<script>
-(function() {{
-  var b = new Blob(['{state}'], {{type: 'text/plain'}});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(b);
-  a.download = 'kipukas-player-data.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  console.log('[kipukas] Player data exported');
-}})();
-</script>"#,
-        state = state
-    )
-}
-
-// ── POST /api/player/import ────────────────────────────────────────
-
-/// Handle POST /api/player/import
-/// Accepts a base64 state string and restores it as the PLAYER_DOC.
-/// Used for importing a previously exported player data file.
-pub fn handle_player_import_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let state_b64 = get_param(&params, "state").unwrap_or(body.trim());
-    match player_doc::restore_from_state(state_b64) {
-        Ok(()) => {
-            r#"<span class="text-emerald-600">Player data imported successfully</span>"#
-                .to_string()
-        }
-        Err(e) => {
-            format!(
-                r#"<span class="text-kip-red">Import failed: {}</span>"#,
-                e
-            )
-        }
-    }
 }
 
 #[cfg(test)]

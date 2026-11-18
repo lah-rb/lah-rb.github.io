@@ -6,6 +6,7 @@
 //! Phase 4: Room state for multiplayer. Shared state (timers, fists combat)
 //! lives in a yrs room document synced through the WebSocket relay.
 
+pub mod backup;
 pub mod card_panel;
 pub mod connection;
 pub mod crdt;

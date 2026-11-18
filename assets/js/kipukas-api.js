@@ -12,6 +12,7 @@
  *   ROOM     whether the player is in a room, for the toolbar
  *   GO       go to another page of this site (a scanned QR code)
  *   RELOAD   load this page again
+ *   DOWNLOAD hand the player a file to keep (a backup of their data)
  *
  * It also starts the pool of workers that decode card art (JPEG XL), which
  * the service worker hands images to through this page.
@@ -120,6 +121,14 @@ wasmWorker.addEventListener('message', (event) => {
     location.assign(data.path);
   } else if (data.type === 'RELOAD') {
     location.reload();
+  } else if (data.type === 'DOWNLOAD') {
+    // A file the engine has made for the player to keep. The browser saves
+    // it where it saves downloads.
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([data.text], { type: 'application/json' }));
+    link.download = data.name;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 });
 

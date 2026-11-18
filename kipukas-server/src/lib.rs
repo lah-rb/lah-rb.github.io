@@ -74,11 +74,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/fists", "room_fists").ok();
 
     // Player document routes
-    router.insert("/api/player/export", "player_export").ok();
-    router.insert("/api/player/import", "player_import").ok();
     router.insert("/api/player/affinity", "player_affinity").ok();
-    router.insert("/api/player/export/signed", "player_export_signed").ok();
-    router.insert("/api/player/import/signed", "player_import_signed").ok();
+    router.insert("/api/player/backup", "player_backup").ok();
 
     // Pairing two devices to merge the player's state
     router.insert("/api/player/sync", "player_sync").ok();
@@ -119,12 +116,10 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_fists", "POST") => routes::room::handle_fists_post(body),
 
             // Player document routes
-            ("player_export", "GET") => routes::game::handle_player_export_get(query),
-            ("player_import", "POST") => routes::game::handle_player_import_post(body),
             ("player_affinity", "GET") => routes::player::handle_affinity_get(query),
             ("player_affinity", "POST") => routes::player::handle_affinity_post(body),
-            ("player_export_signed", "POST") => routes::player::handle_export_signed_post(body),
-            ("player_import_signed", "POST") => routes::player::handle_import_signed_post(body),
+            ("player_backup", "GET") => routes::backup::handle_get(query),
+            ("player_backup", "POST") => routes::backup::handle_post(body),
 
             // Pairing two devices to merge the player's state
             ("player_sync", "GET") => routes::device_sync::handle_sync_get(query),
