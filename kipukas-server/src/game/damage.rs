@@ -8,17 +8,87 @@
 //!
 //! **The tracker is an engine-owned view.** The engine is the only owner of
 //! damage state, and `render_damage_tracker` renders that state as plain
-//! HTML: which slots are marked is in each button's classes and
-//! `aria-pressed`, not in a copy of the state held by the page. A tap asks
+//! HTML: which slots are marked is in each button's `aria-pressed`, not in
+//! a copy of the state held by the page. A tap asks
 //! the engine for a change (`data-engine-post`), the engine applies it, and
 //! the page re-renders the view from the engine and patches the result in
 //! place (`assets/js/kipukas-view.js`). There is nothing to keep in sync:
 //! whatever changes damage — a tap, a lost round of fists, New Game, another
 //! device — the tracker is redrawn from the same state.
+//!
+//! **A slot is a heart.** Whole and red while the keal means stands, broken
+//! and pale once it is marked. Both drawings are in every slot, one over the
+//! other, and the stylesheet shows the one `aria-pressed` calls for
+//! (`.damage-heart` in `assets/css/input.css`), so marking a slot changes
+//! one attribute and the change is a transition, not a swap. The shapes are
+//! the owner's drawings, read from `assets/utility_images/` when the engine
+//! is compiled: redraw a heart there and it is the heart here. Only the
+//! outlines are taken; line weight and colours are the site's.
+
+use std::sync::OnceLock;
 
 use crate::catalog::CARDS;
 use crate::game::player_doc;
 use crate::routes::util::escape_html;
+
+/// The heart of a keal means that stands: one outline.
+const WHOLE_HEART: &str = include_str!("../../../assets/utility_images/whole_heart.svg");
+/// The heart of one that is marked: two halves, parted along a crack.
+const BROKEN_HEART: &str = include_str!("../../../assets/utility_images/broken_heart.svg");
+
+/// The value of an attribute in a drawing, from `from` on.
+fn attribute<'a>(svg: &'a str, name: &str) -> Option<&'a str> {
+    let start = svg.find(&format!(" {}=\"", name))? + name.len() + 3;
+    let end = start + svg[start..].find('"')?;
+    Some(&svg[start..end])
+}
+
+/// The outline (`d`) of every path in a drawing, in the drawing's order.
+/// One that holds anything but path data is left out, as what is taken goes
+/// into the page's markup.
+fn outlines(svg: &str) -> Vec<&str> {
+    svg.split("<path")
+        .skip(1)
+        .filter_map(|path| attribute(path.split('>').next().unwrap_or(""), "d"))
+        .filter(|d| d.chars().all(|c| c.is_ascii_digit() || " ,.-+eEMmLlHhVvCcSsQqTtAaZz".contains(c)))
+        .collect()
+}
+
+/// Where a shape lies across the drawing: the middle of the x coordinates
+/// its outline names. (The drawings use absolute coordinates in pairs, which
+/// is what a CAD export writes.)
+fn middle_x(outline: &str) -> f64 {
+    let numbers: Vec<f64> = outline
+        .split(|c: char| !(c.is_ascii_digit() || matches!(c, '.' | '-' | 'e' | 'E')))
+        .filter_map(|n| n.parse().ok())
+        .collect();
+    let xs: Vec<f64> = numbers.iter().step_by(2).copied().collect();
+    xs.iter().sum::<f64>() / xs.len().max(1) as f64
+}
+
+/// The heart every slot carries: the broken halves, and the whole heart
+/// over them. Which shows is the stylesheet's doing.
+fn heart() -> &'static str {
+    static HEART: OnceLock<String> = OnceLock::new();
+    HEART.get_or_init(|| {
+        let view_box = attribute(WHOLE_HEART, "viewBox").unwrap_or("0 0 60 60");
+        let mut halves = outlines(BROKEN_HEART);
+        // The left half first, whichever way round they were drawn.
+        halves.sort_by(|a, b| middle_x(a).total_cmp(&middle_x(b)));
+        let mut svg = format!(
+            r#"<svg class="damage-heart" viewBox="{}" aria-hidden="true" focusable="false">"#,
+            escape_html(view_box)
+        );
+        for (half, side) in halves.iter().zip(["left", "right"]) {
+            svg.push_str(&format!(r#"<path class="damage-heart-half damage-heart-{}" d="{}"/>"#, side, half));
+        }
+        for whole in outlines(WHOLE_HEART) {
+            svg.push_str(&format!(r#"<path class="damage-heart-whole" d="{}"/>"#, whole));
+        }
+        svg.push_str("</svg>");
+        svg
+    })
+}
 
 /// Look up a card by slug from the compiled-in catalog.
 fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
@@ -82,22 +152,12 @@ fn all_slots_checked(slug: &str, total: u8) -> bool {
     true
 }
 
-/// Classes for a damage slot's circle.
-fn slot_classes(checked: bool, wasted: bool) -> &'static str {
-    match (wasted, checked) {
-        // A wasted card's slots are greyed out and no longer take taps.
-        (true, true) => "bg-slate-400 border-slate-400",
-        (true, false) => "bg-transparent border-slate-400",
-        (false, true) => "bg-red-600 border-red-600",
-        (false, false) => "bg-white border-emerald-600",
-    }
-}
-
 /// Render the keal damage tracker HTML for a specific card.
 ///
 /// The markup carries the state itself. Each slot is a button whose
-/// `aria-pressed` and circle classes say whether it is marked, and whose
-/// `data-engine-post` / `data-engine-body` name the change a tap asks for.
+/// `aria-pressed` says whether it is marked (and so which heart shows), and
+/// whose `data-engine-post` / `data-engine-body` name the change a tap asks
+/// for.
 /// The Final Blows section is present but `hidden` until every slot is marked
 /// or the card is wasted. No script or reactive binding is emitted.
 pub fn render_damage_tracker(slug: &str) -> String {
@@ -192,26 +252,27 @@ pub fn render_damage_tracker(slug: &str) -> String {
     for km in card.keal_means {
         html.push_str(r#"<div class="flex mx-2 w-full place-self-center"><div>"#);
 
-        // Name + checkboxes row
-        html.push_str(r#"<div class="flex">"#);
+        // Name + hearts row
+        html.push_str(r#"<div class="flex items-center">"#);
         html.push_str(&format!(
             r#"<p class="text-kip-red mr-2">{}: </p>"#,
             km.name
         ));
 
         for n in 1..=km.count {
-            // A slot is a button. Its state is in aria-pressed and in the
-            // circle's classes; a tap asks the engine to toggle it.
+            // A slot is a button holding a heart. Its state is in
+            // aria-pressed; a tap asks the engine to toggle it. A wasted
+            // card's slots are greyed out and no longer take taps.
             let checked = player_doc::get_slot(slug, slot_idx);
             html.push_str(&format!(
                 concat!(
-                    r#"<button type="button" class="mr-1 damage-slot{}" data-slot="{}" "#,
+                    r#"<button type="button" class="mr-2 damage-slot{}" data-slot="{}" "#,
                     r#"aria-pressed="{}" aria-label="{} damage {} of {}" "#,
                     r#"data-engine-post="/api/game/damage" data-engine-body="card={}&slot={}">"#,
-                    r#"<div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {}"></div>"#,
+                    "{}",
                     r#"</button>"#,
                 ),
-                if is_wasted { " opacity-40 pointer-events-none" } else { "" },
+                if is_wasted { " damage-slot-spent" } else { "" },
                 slot_idx,
                 checked,
                 km.name,
@@ -219,7 +280,7 @@ pub fn render_damage_tracker(slug: &str) -> String {
                 km.count,
                 slug,
                 slot_idx,
-                slot_classes(checked, is_wasted),
+                heart(),
             ));
 
             slot_idx += 1;
@@ -268,14 +329,14 @@ pub fn render_damage_tracker(slug: &str) -> String {
         html.push_str(r#"<p class="mr-2">Wasted: </p>"#);
         html.push_str(&format!(
             concat!(
-                r#"<button type="button" class="mr-1 damage-slot" data-wasted aria-pressed="{}" aria-label="Wasted" "#,
+                r#"<button type="button" class="mr-2 damage-slot" data-wasted aria-pressed="{}" aria-label="Wasted" "#,
                 r#"data-engine-post="/api/game/damage" data-engine-body="card={}&action=wasted">"#,
-                r#"<div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 {}"></div>"#,
+                "{}",
                 r#"</button>"#,
             ),
             is_wasted,
             slug,
-            if is_wasted { "bg-red-600 border-red-600" } else { "bg-white border-emerald-600" },
+            heart(),
         ));
         html.push_str(r#"</div>"#);
 
@@ -358,6 +419,39 @@ mod tests {
         reset_state();
     }
 
+    #[test]
+    fn the_heart_is_the_two_drawings_one_over_the_other() {
+        let heart = heart();
+        // The broken heart's halves, left then right, under the whole one.
+        let classes: Vec<&str> = heart.split("<path class=\"").skip(1).map(|p| p.split('"').next().unwrap()).collect();
+        assert_eq!(
+            classes,
+            ["damage-heart-half damage-heart-left", "damage-heart-half damage-heart-right", "damage-heart-whole"]
+        );
+        assert!(heart.starts_with(r#"<svg class="damage-heart" viewBox="0 0 60 60" aria-hidden="true""#), "{}", heart);
+        // Only outlines are taken from the drawings: no line weight, colour
+        // or anything else of theirs.
+        for theirs in ["stroke", "fill", "#000000", "<g", "<defs", "<?xml"] {
+            assert!(!heart.contains(theirs), "{}", theirs);
+        }
+        // The halves are told apart by where they lie, not by their order.
+        let halves = outlines(BROKEN_HEART);
+        assert_eq!(halves.len(), 2);
+        let view: Vec<f64> = attribute(BROKEN_HEART, "viewBox").unwrap().split(' ').map(|n| n.parse().unwrap()).collect();
+        let centre = view[0] + view[2] / 2.0;
+        let (left, right) = (heart.find("damage-heart-left").unwrap(), heart.find("damage-heart-right").unwrap());
+        let outline_after = |at: usize| attribute(&heart[at..], "d").unwrap();
+        assert!(middle_x(outline_after(left)) < centre);
+        assert!(middle_x(outline_after(right)) > centre);
+    }
+
+    #[test]
+    fn an_outline_that_is_not_path_data_is_not_taken() {
+        let drawing = r#"<svg viewBox="0 0 1 1"><path id="a" d="M0,0 L1,1 z"/><path d="M0,0&quot;><script>"/></svg>"#;
+        assert_eq!(outlines(drawing), ["M0,0 L1,1 z"]);
+        assert_eq!(attribute(drawing, "viewBox"), Some("0 0 1 1"));
+    }
+
     /// The slot buttons of a rendered tracker, in order, as (slot, pressed).
     fn slots(html: &str) -> Vec<(u8, bool)> {
         html.split("<button")
@@ -389,11 +483,10 @@ mod tests {
         assert!(html.contains("Crushing Hope"));
         assert!(html.contains("Chain Raid"));
         assert!(html.contains("Combat"));
-        assert!(html.contains("rounded-full")); // div circles with Tailwind classes
         // Brox has three slots, none marked to begin with.
         assert_eq!(slots(&html), [(1, false), (2, false), (3, false)]);
-        assert!(html.contains("bg-white border-emerald-600"));
-        assert!(!html.contains("bg-red-600"));
+        // Each holds a heart, and so does the wasted button.
+        assert_eq!(html.matches(r#"<svg class="damage-heart""#).count(), 4);
         reset_state();
     }
 
@@ -434,7 +527,6 @@ mod tests {
         toggle_slot("brox_the_defiant", 2);
         let html = render_damage_tracker("brox_the_defiant");
         assert_eq!(slots(&html), [(1, false), (2, true), (3, false)]);
-        assert_eq!(html.matches("bg-red-600 border-red-600").count(), 1);
         // Unmarking it puts it back.
         toggle_slot("brox_the_defiant", 2);
         assert_eq!(slots(&render_damage_tracker("brox_the_defiant")), [(1, false), (2, false), (3, false)]);
@@ -470,15 +562,13 @@ mod tests {
 
         // Shown even though not every slot is marked.
         assert_eq!(final_blows_tag(&html), r#"<div class="final-blows-section">"#);
-        // The wasted button is pressed and red.
+        // The wasted button is pressed.
         let wasted = html.split("<button").find(|b| b.contains("data-wasted")).unwrap();
         assert!(wasted.contains(r#"aria-pressed="true""#));
-        assert!(wasted.contains("bg-red-600 border-red-600"));
+        assert!(!wasted.contains("damage-slot-spent"), "it can still be taken back");
         // Slots keep their marks but are grey and take no taps.
         assert_eq!(slots(&html), [(1, true), (2, false), (3, false)]);
-        assert_eq!(html.matches("opacity-40 pointer-events-none").count(), 3);
-        assert_eq!(html.matches("bg-slate-400 border-slate-400").count(), 1);
-        assert_eq!(html.matches("bg-transparent border-slate-400").count(), 2);
+        assert_eq!(html.matches(r#"class="mr-2 damage-slot damage-slot-spent""#).count(), 3);
 
         // Un-wasting restores them.
         toggle_wasted("brox_the_defiant");

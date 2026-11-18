@@ -470,12 +470,20 @@ Firefox does not keep a page that is left while its art is still loading, nor th
 ```html
 <!-- What the engine renders: the state is in the markup itself, and each
      control names the change a tap asks for. -->
-<button type="button" class="mr-1 damage-slot" data-slot="2" aria-pressed="true"
+<button type="button" class="mr-2 damage-slot" data-slot="2" aria-pressed="true"
         aria-label="Chain Raid damage 1 of 2"
         data-engine-post="/api/game/damage" data-engine-body="card=brox_the_defiant&slot=2">
-  <div class="w-5 h-5 rounded-full border-2 transition-colors duration-300 bg-red-600 border-red-600"></div>
+  <svg class="damage-heart" viewBox="0 0 60 60" aria-hidden="true" focusable="false">
+    <path class="damage-heart-half damage-heart-left" d="…"/>
+    <path class="damage-heart-half damage-heart-right" d="…"/>
+    <path class="damage-heart-whole" d="…"/>
+  </svg>
 </button>
 ```
+
+A damage slot is a heart: whole and red while the keal means stands, broken and pale once it is marked. The heart's markup is the same either way. The stylesheet shows the whole heart or the broken one from the button's `aria-pressed` (`.damage-heart` in `assets/css/input.css`), so marking a slot changes one attribute on an element the patch keeps, and the change plays as a transition. Where a state can be shown by a rule on an attribute the engine already writes, prefer that to a second set of classes: there is less to render, and nothing for the two to disagree about.
+
+The outlines are the drawings in `assets/utility_images/` (`whole_heart.svg`, `broken_heart.svg`), read when the engine is compiled (`game/damage.rs`): redraw a heart there, rebuild, and it is the heart on every card. Only the outlines are taken. The line (2px at any size) and the colours are the stylesheet's.
 
 `assets/js/kipukas-view.js` does these things:
 

@@ -119,6 +119,46 @@
   .toolbar-tile-pill:active { @apply scale-95; }
 }
 
+/* ── Damage hearts ──
+   A damage slot is a button holding a heart (the engine draws it:
+   kipukas-server/src/game/damage.rs). Every slot carries both drawings, the
+   broken heart's two halves and the whole heart over them; which shows
+   follows the button's aria-pressed, so marking a slot is a change of one
+   attribute and these transitions carry it. The outlines are the owner's
+   drawings; the line and the colours are set here. The line is 2px whatever
+   size the heart is drawn at, the weight of the site's borders. */
+@layer components {
+  .damage-slot { @apply inline-flex shrink-0 items-center justify-center rounded-md; }
+  .damage-slot:active .damage-heart { @apply scale-90; }
+  /* A wasted card's slots: greyed out, and they take no taps. */
+  .damage-slot-spent { @apply pointer-events-none opacity-40 grayscale; }
+  .damage-heart { @apply h-8 w-8 overflow-visible transition-transform duration-150; }
+  .damage-heart path {
+    @apply stroke-kip-drk-sienna;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
+  /* Standing: whole and red, covering the halves beneath. */
+  .damage-heart-whole { @apply fill-kip-red; }
+  /* Marked: the red drains away and the halves part along the crack. Each
+     half turns about the foot of its own outline, so this holds for any
+     redrawing of the heart. */
+  .damage-heart-half {
+    @apply fill-slate-50;
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+  }
+  .damage-slot[aria-pressed="true"] .damage-heart-whole { opacity: 0; }
+  .damage-slot[aria-pressed="true"] .damage-heart-left { transform: translateX(-4%) rotate(-5deg); }
+  .damage-slot[aria-pressed="true"] .damage-heart-right { transform: translateX(4%) rotate(5deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .damage-heart, .damage-heart path { transition: none; }
+  }
+}
+
 /* Idle-ghost floating toolbar (binder + rules book): after a few idle seconds the
    tiles fade to translucent gray to de-clutter; a tap re-colors them (the markup
    swallows that first wake-tap). Targets the .toolbar-tile elements only — open

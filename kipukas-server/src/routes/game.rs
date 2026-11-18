@@ -236,10 +236,10 @@ mod tests {
     fn damage_post_toggle_slot() {
         reset_state();
         let html = handle_damage_post("card=brox_the_defiant&slot=1");
-        // Slot 1 is now marked: pressed, and red.
+        // Slot 1 is now marked, and the others are not.
         assert!(html.contains(r#"data-slot="1" aria-pressed="true""#));
         assert!(html.contains(r#"data-slot="2" aria-pressed="false""#));
-        assert_eq!(html.matches("bg-red-600 border-red-600").count(), 1);
+        assert_eq!(html.matches(r#"aria-pressed="true""#).count(), 1);
         // The tracker read back from its own route shows the same thing.
         assert_eq!(handle_damage_get("?card=brox_the_defiant"), html);
         reset_state();
