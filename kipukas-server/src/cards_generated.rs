@@ -53,8 +53,6 @@ pub struct Card {
     pub hidden: bool,
     // The art is wider than tall.
     pub landscape: bool,
-    // The day the card was minted, YYYY-MM-DD (its `minted` field), if it has one.
-    pub minted: Option<&'static str>,
 }
 
 static GENETICS_0: &[&str] = &["Glitch"];
@@ -180,7 +178,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: true,
         landscape: false,
-        minted: None,
     },
     Card {
         slug: "fourohfour",
@@ -217,7 +214,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: true,
         landscape: false,
-        minted: None,
     },
     Card {
         slug: "allele_sect_explorer",
@@ -254,7 +250,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(3),
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-19"),
     },
     Card {
         slug: "arctechnic_wonderer",
@@ -291,7 +286,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(2),
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "artificer_of_the_salt_chancel",
@@ -328,7 +322,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(8),
         hidden: false,
         landscape: false,
-        minted: Some("2022-06-07"),
     },
     Card {
         slug: "avian_keepers_den",
@@ -365,7 +358,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "balanced_inline_processing_colony",
@@ -402,7 +394,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(0),
         hidden: false,
         landscape: false,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "branwen_mantillusion_practitioner",
@@ -439,7 +430,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "brox_the_defiant",
@@ -476,7 +466,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "cartesian_sea",
@@ -513,7 +502,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-04-03"),
     },
     Card {
         slug: "cloth",
@@ -550,7 +538,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "enchantress_of_cats",
@@ -587,7 +574,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-12-21"),
     },
     Card {
         slug: "feathers",
@@ -624,7 +610,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "feeding_the_piffions",
@@ -661,7 +646,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-19"),
     },
     Card {
         slug: "freezing_of_the_heart",
@@ -698,7 +682,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-11-19"),
     },
     Card {
         slug: "frost_tipped_arctic_otter",
@@ -735,7 +718,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(1),
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "gray_wolf_harbinger_of_night",
@@ -772,7 +754,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(4),
         hidden: false,
         landscape: true,
-        minted: Some("2024-06-07"),
     },
     Card {
         slug: "hidden_portal_of_lower_dreadmont_cave",
@@ -809,7 +790,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2024-06-07"),
     },
     Card {
         slug: "hilbert_king_of_avian_frogs",
@@ -846,7 +826,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "honey",
@@ -883,7 +862,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-11-19"),
     },
     Card {
         slug: "illia_and_dorsay_the_buck_skull",
@@ -920,7 +898,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-07-04"),
     },
     Card {
         slug: "incubation_egg",
@@ -957,7 +934,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "knightsoul_of_binding_time",
@@ -994,7 +970,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(5),
         hidden: false,
         landscape: false,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "liliel_healing_fairy",
@@ -1031,7 +1006,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "little_charm",
@@ -1068,7 +1042,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: Some(6),
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "location_of_the_deep_apothecary_shop",
@@ -1105,7 +1078,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "losetany_steppes",
@@ -1142,7 +1114,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-12-21"),
     },
     Card {
         slug: "meteor_shower",
@@ -1179,7 +1150,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2020-09-27"),
     },
     Card {
         slug: "mihela_cleanser_of_fields",
@@ -1216,7 +1186,6 @@ pub static CARDS: [Card; CARD_COUNT] = [
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "mutant_hide_and_seek",
@@ -1258,7 +1227,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "myrthvither_raven",
@@ -1295,7 +1263,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(2),
         hidden: false,
         landscape: false,
-        minted: Some("2024-06-07"),
     },
     Card {
         slug: "neural_network_synapse_virus",
@@ -1332,7 +1299,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(0),
         hidden: false,
         landscape: true,
-        minted: Some("2024-06-07"),
     },
     Card {
         slug: "onironauta",
@@ -1369,7 +1335,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "orbs_trail",
@@ -1406,7 +1371,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(3),
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "oshliath_and_osileth",
@@ -1443,7 +1407,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-10"),
     },
     Card {
         slug: "palace_of_the_allele_sect",
@@ -1480,7 +1443,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "parched_traveler",
@@ -1517,7 +1479,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(1),
         hidden: false,
         landscape: false,
-        minted: Some("2021-10-12"),
     },
     Card {
         slug: "passage_among_maples",
@@ -1554,7 +1515,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2021-10-19"),
     },
     Card {
         slug: "plane_table_joker",
@@ -1591,7 +1551,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(5),
         hidden: false,
         landscape: false,
-        minted: Some("2022-06-07"),
     },
     Card {
         slug: "pyrostegia_dragon",
@@ -1628,7 +1587,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "rooster_calling_of_light",
@@ -1665,7 +1623,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(1),
         hidden: false,
         landscape: false,
-        minted: Some("2023-04-03"),
     },
     Card {
         slug: "sboi_threat_plus_plus",
@@ -1702,7 +1659,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(9),
         hidden: false,
         landscape: false,
-        minted: Some("2021-11-19"),
     },
     Card {
         slug: "self_care",
@@ -1739,7 +1695,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(3),
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "shards_desert",
@@ -1776,7 +1731,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2021-10-11"),
     },
     Card {
         slug: "spectral_lands_decree_and_hearing",
@@ -1813,7 +1767,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "sprite_of_wilds_spirit",
@@ -1850,7 +1803,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: Some(7),
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "sticks",
@@ -1887,7 +1839,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "string",
@@ -1924,7 +1875,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "suspended_animation",
@@ -1961,7 +1911,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-09-05"),
     },
     Card {
         slug: "tears_for_oly",
@@ -1998,7 +1947,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-07-04"),
     },
     Card {
         slug: "tejas_curious_mech",
@@ -2035,7 +1983,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-03-13"),
     },
     Card {
         slug: "the_causal_sophist",
@@ -2072,7 +2019,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "timebattle",
@@ -2109,7 +2055,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-04-03"),
     },
     Card {
         slug: "tira_marvelous_myriad",
@@ -2146,7 +2091,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-07-04"),
     },
     Card {
         slug: "to_catch_a_spirit",
@@ -2183,7 +2127,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2021-11-19"),
     },
     Card {
         slug: "unburdened_central",
@@ -2220,7 +2163,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2024-09-20"),
     },
     Card {
         slug: "ushered_through_sabina_emporium",
@@ -2257,7 +2199,6 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: false,
-        minted: Some("2023-12-21"),
     },
     Card {
         slug: "what_do_you_see_in_the_breach",
@@ -2294,6 +2235,5 @@ Beaming a grin, our heroine returns, with victory and delight,<br> Her heart ful
         tamability: None,
         hidden: false,
         landscape: true,
-        minted: Some("2023-09-05"),
     },
 ];

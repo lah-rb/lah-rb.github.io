@@ -130,31 +130,17 @@ pub fn description(card: &Card) -> Option<String> {
 
 /// A card's structured data (schema.org, JSON-LD).
 ///
-/// A card with a known date is described as a dated article, one without as
-/// a plain web page. This is what the pages said when Jekyll built them (it
-/// treated each card file as a blog post).
+/// A card is described as a web page. It is not an article and carries no
+/// date: when Jekyll built these pages it treated each card file as a blog
+/// post, and said so here.
 fn structured_data(card: &Card) -> Value {
-    let url = address(card);
     let mut data = Map::new();
     data.insert("@context".into(), json!("https://schema.org"));
+    data.insert("@type".into(), json!("WebPage"));
     data.insert("headline".into(), json!(card.title));
-    data.insert("url".into(), json!(url));
+    data.insert("url".into(), json!(address(card)));
     if let Some(text) = description(card) {
         data.insert("description".into(), json!(text));
-    }
-    match card.minted {
-        Some(date) => {
-            data.insert("@type".into(), json!("BlogPosting"));
-            data.insert("datePublished".into(), json!(date));
-            data.insert("dateModified".into(), json!(date));
-            data.insert(
-                "mainEntityOfPage".into(),
-                json!({ "@type": "WebPage", "@id": url }),
-            );
-        }
-        None => {
-            data.insert("@type".into(), json!("WebPage"));
-        }
     }
     Value::Object(data)
 }
@@ -177,16 +163,7 @@ pub fn render_head(card: &Card) -> String {
     tags.push(format!(r#"<link rel="canonical" href="{}" />"#, url));
     tags.push(format!(r#"<meta property="og:url" content="{}" />"#, url));
     tags.push(format!(r#"<meta property="og:site_name" content="{}" />"#, SITE_NAME));
-    match card.minted {
-        Some(date) => {
-            tags.push(r#"<meta property="og:type" content="article" />"#.to_string());
-            tags.push(format!(
-                r#"<meta property="article:published_time" content="{}" />"#,
-                escape_html(date)
-            ));
-        }
-        None => tags.push(r#"<meta property="og:type" content="website" />"#.to_string()),
-    }
+    tags.push(r#"<meta property="og:type" content="website" />"#.to_string());
     tags.push(r#"<meta name="twitter:card" content="summary" />"#.to_string());
     tags.push(format!(r#"<meta property="twitter:title" content="{}" />"#, title));
 
@@ -334,17 +311,13 @@ pub fn sitemap_entry(card: &Card) -> Option<String> {
     if is_not_found_page(card) {
         return None;
     }
-    let mut entry = format!("<url>\n<loc>{}</loc>\n", escape_html(&address(card)));
-    if let Some(date) = card.minted {
-        entry.push_str(&format!("<lastmod>{}</lastmod>\n", escape_html(date)));
-    }
-    entry.push_str("</url>\n");
-    Some(entry)
+    // No date: nothing records when a card's page last changed.
+    Some(format!("<url>\n<loc>{}</loc>\n</url>\n", escape_html(&address(card))))
 }
 
 /// Add the cards to the sitemap Jekyll wrote for the rest of the site.
-/// Cards go first, oldest first. A card that is already listed is left as it
-/// is.
+/// Cards go first, in the order of their slugs. A card that is already listed
+/// is left as it is.
 pub fn merge_sitemap(existing: &str, cards: &[Card]) -> Result<String, String> {
     let open = existing
         .find("<urlset")
@@ -356,8 +329,7 @@ pub fn merge_sitemap(existing: &str, cards: &[Card]) -> Result<String, String> {
         + 1;
 
     let mut listed: Vec<&Card> = cards.iter().collect();
-    // Dated cards first, oldest first; then by slug so the order is stable.
-    listed.sort_by_key(|c| (c.minted.is_none(), c.minted, c.slug));
+    listed.sort_by_key(|c| c.slug);
 
     let mut entries = String::new();
     for card in listed {
@@ -592,20 +564,17 @@ mod tests {
     }
 
     #[test]
-    fn a_dated_card_is_an_article_and_an_undated_one_a_page() {
-        let dated = card("timebattle");
-        assert_eq!(dated.minted, Some("2023-04-03"));
-        let head = render_head(dated);
-        assert!(head.contains(r#"<meta property="og:type" content="article" />"#));
-        assert!(head.contains(
-            r#"<meta property="article:published_time" content="2023-04-03" />"#
-        ));
-
-        let undated = card("fourohfour");
-        assert_eq!(undated.minted, None);
-        let head = render_head(undated);
-        assert!(head.contains(r#"<meta property="og:type" content="website" />"#));
-        assert!(!head.contains("published_time"));
+    fn a_card_is_a_page_not_a_dated_article() {
+        for c in CARDS.iter() {
+            let head = render_head(c);
+            assert!(
+                head.contains(r#"<meta property="og:type" content="website" />"#),
+                "{}",
+                c.slug
+            );
+            assert!(!head.contains("article"), "{}", c.slug);
+            assert!(!head.contains("published_time"), "{}", c.slug);
+        }
     }
 
     /// The structured data of a rendered head, parsed back.
@@ -624,15 +593,10 @@ mod tests {
             assert_eq!(data["headline"], c.title, "{}", c.slug);
             assert_eq!(data["url"], address(c), "{}", c.slug);
             assert_eq!(data["description"], description(c).unwrap(), "{}", c.slug);
+            assert_eq!(data["@type"], "WebPage", "{}", c.slug);
+            assert!(data.get("datePublished").is_none(), "{}", c.slug);
+            assert!(data.get("dateModified").is_none(), "{}", c.slug);
         }
-        let dated = structured(&render_head(card("timebattle")));
-        assert_eq!(dated["@type"], "BlogPosting");
-        assert_eq!(dated["datePublished"], "2023-04-03");
-        assert_eq!(dated["dateModified"], "2023-04-03");
-        assert_eq!(dated["mainEntityOfPage"]["@id"], "https://www.kipukas.cards/timebattle/");
-        let undated = structured(&render_head(card("404")));
-        assert_eq!(undated["@type"], "WebPage");
-        assert!(undated.get("datePublished").is_none());
     }
 
     #[test]
@@ -813,10 +777,10 @@ mod tests {
     }
 
     #[test]
-    fn a_dated_card_says_when_it_was_minted() {
+    fn a_sitemap_entry_is_the_cards_address_and_nothing_else() {
         assert_eq!(
             sitemap_entry(card("timebattle")).unwrap(),
-            "<url>\n<loc>https://www.kipukas.cards/timebattle/</loc>\n<lastmod>2023-04-03</lastmod>\n</url>\n"
+            "<url>\n<loc>https://www.kipukas.cards/timebattle/</loc>\n</url>\n"
         );
         assert_eq!(
             sitemap_entry(card("fourohfour")).unwrap(),

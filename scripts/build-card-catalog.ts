@@ -10,7 +10,8 @@
  *
  * Jekyll does not read the card files. Their front matter keys keep their
  * Jekyll names (layout = the card's type, permalink = its address,
- * redirect_from = its short code).
+ * redirect_from = its short code). `minted`, the day a card was added, is a
+ * record for people: nothing here or in the engine reads it.
  *
  * Phase 3b: Extended to include game data (keal_means, injury_tolerance,
  * movement, die, brawl_sequence) for the WASM game state module.
@@ -54,9 +55,6 @@ interface CardMeta {
   hidden: boolean;
   // The art is wider than tall. The card page tints its toolbar differently.
   landscape: boolean;
-  // The day the card was minted (YYYY-MM-DD), from its `minted` field. Null
-  // for a card that has none.
-  minted: string | null;
   // Kippa context fields (JSON export only, not in Rust)
   description: string | null;
   play_style: string | null;
@@ -144,20 +142,6 @@ const CARDS_DIR = 'cards';
 const NOT_FOUND_SLUG = '404';
 
 /**
- * A card's `minted` field as YYYY-MM-DD, or null if the card has none. YAML
- * reads an unquoted date as a Date, so both that and a quoted date are
- * accepted. Anything else stops the build: the date goes into the card's page.
- */
-function mintedOf(value: unknown, fileName: string): string | null {
-  if (value === undefined || value === null) return null;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  throw new Error(`${fileName}: minted must be a date written YYYY-MM-DD, found "${value}"`);
-}
-
-/**
  * Parse a single card's front matter into a CardMeta, or return null if it is
  * missing the required fields.
  */
@@ -197,7 +181,6 @@ function extractCard(name: string, content: string): CardMeta | null {
     tamability: typeof fm.tamability === 'number' ? fm.tamability : null,
     hidden: fm.hidden === true,
     landscape: fm.landscape === true,
-    minted: mintedOf(fm.minted, name),
     // Kippa context fields
     description: fm.description ? String(fm.description).trim() : null,
     play_style: fm.play_style ? String(fm.play_style).trim() : null,
@@ -316,8 +299,6 @@ async function main() {
     '    pub hidden: bool,',
     '    // The art is wider than tall.',
     '    pub landscape: bool,',
-    '    // The day the card was minted, YYYY-MM-DD (its `minted` field), if it has one.',
-    "    pub minted: Option<&'static str>,",
     '}',
     '',
   ];
@@ -394,7 +375,6 @@ async function main() {
     lines.push(`        tamability: ${optionU32(card.tamability)},`);
     lines.push(`        hidden: ${card.hidden},`);
     lines.push(`        landscape: ${card.landscape},`);
-    lines.push(`        minted: ${optionStr(card.minted)},`);
     lines.push('    },');
   }
 

@@ -58,7 +58,7 @@ Card metadata is extracted from the YAML front matter of the card files (`cards/
 
 The catalog holds everything a card shows, not only what the game logic reads, so the engine can render a card by itself.
 
-Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`); a card that has it is published with that date, in its page's head and in the sitemap. The one thing Jekyll needs from the cards, how many the binder shows, reaches it as a data file the same script writes (`_data/card_catalog.json`).
+Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`). It is a record for people: nothing reads it, and a card's page carries no date. The one thing Jekyll needs from the cards, how many the binder shows, reaches it as a data file the same script writes (`_data/card_catalog.json`).
 
 ### Card Pages Are Written by the Engine
 
@@ -806,7 +806,7 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 ### Key Conventions
 
 **Adding or changing a card:**
-1. Create or edit `cards/card_name.html` (YAML front matter only), named after the card's address: `/card_name/` is `cards/card_name.html`. Give a new card `minted: YYYY-MM-DD`, the day it is added. `layout` is the card's type and must be one of the types in `card_panel.rs`
+1. Create or edit `cards/card_name.html` (YAML front matter only), named after the card's address: `/card_name/` is `cards/card_name.html`. Give a new card `minted: YYYY-MM-DD`, the day it is added (a record only; nothing reads it). `layout` is the card's type and must be one of the types in `card_panel.rs`
 2. Run `deno task build:wasm` — it regenerates the Rust card catalog and rebuilds the browser's engine
 3. Build the site (`deno task build`), or let a running `jekyll serve` rebuild: it picks up the new engine files and writes the card's page
 
