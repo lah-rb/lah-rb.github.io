@@ -36,8 +36,15 @@
  * timer is posted to /api/game/turns from the form, and the list of timers,
  * a view of /api/game/turns, shows it.
  *
- * A route or a body may ask for something only the page knows, written
- * {name}. See PAGE_VALUES.
+ * The engine can ask to be sent a change later, without a tap:
+ *
+ *   <span hidden data-engine-post="/api/game/turns"
+ *         data-engine-body="action=expire" data-engine-after="15000"></span>
+ *
+ * This is how something happens by the clock, such as a finished timer
+ * fading. The engine reads the clock and says how long until its picture
+ * next changes; the page only waits that long and asks. Each drawing of the
+ * view replaces what was waiting with what the new drawing asks for.
  *
  * When the engine changes state for another reason (a lost round of fists
  * marks damage, New Game clears it), call kipukasViews.refresh(card).
@@ -50,30 +57,19 @@
   const VIEW = 'data-engine-view';
   const POST = 'data-engine-post';
   const BODY = 'data-engine-body';
+  const AFTER = 'data-engine-after';
 
-  /**
-   * What the page knows and the engine does not. `{today}` in a view's route
-   * or in a control's route or body is replaced by the value when the request
-   * is made.
-   */
-  const PAGE_VALUES = {
-    /** Today's date, YYYY-MM-DD (UTC). */
-    today: () => new Date().toISOString().slice(0, 10),
-  };
-
-  /** A route or body with its {name} places filled in. */
-  function fill(text) {
-    return (text || '').replace(
-      /\{(\w+)\}/g,
-      (whole, name) => (PAGE_VALUES[name] ? encodeURIComponent(PAGE_VALUES[name]()) : whole),
-    );
-  }
+  /** The shortest wait before a post the engine asked for is sent. */
+  const SOONEST_MS = 50;
 
   /** Views already seen, so a view moved in the DOM is not mounted twice. */
   const mounted = new WeakSet();
 
   /** Views that were displayed when last looked at. */
   const shown = new WeakSet();
+
+  /** For each view, the waits now running for posts the engine asked for. */
+  const waiting = new WeakMap();
 
   /** Whether an element is displayed: it, and everything it is in, has a box. */
   function isDisplayed(element) {
@@ -87,7 +83,7 @@
   /** The path of a route, without its query. */
   function pathOf(route) {
     try {
-      return new URL(fill(route), location.origin).pathname;
+      return new URL(route, location.origin).pathname;
     } catch (_) {
       return '';
     }
@@ -115,13 +111,32 @@
     }
   }
 
+  /**
+   * Start the waits a view's contents ask for (data-engine-after), in place
+   * of any it had running. When one is up its post is sent as a tap's would
+   * be, which draws the view again and so starts the next.
+   */
+  function schedule(view) {
+    for (const timer of waiting.get(view) || []) clearTimeout(timer);
+    const timers = [];
+    for (const asker of view.querySelectorAll('[' + AFTER + '][' + POST + ']')) {
+      const wait = Math.max(SOONEST_MS, Number(asker.getAttribute(AFTER)) || 0);
+      timers.push(setTimeout(() => {
+        if (asker.isConnected) send(view, asker.getAttribute(POST), asker.getAttribute(BODY));
+      }, wait));
+    }
+    waiting.set(view, timers);
+  }
+
   /** Draw a view from its route. */
   async function render(view) {
     const route = view.getAttribute(VIEW);
     if (!route) return;
-    const html = await ask('GET', fill(route), '');
+    const html = await ask('GET', route, '');
     // The view may have been removed while the engine was answering.
-    if (view.isConnected) patch(view, html);
+    if (!view.isConnected) return;
+    patch(view, html);
+    schedule(view);
   }
 
   // Draws a view when it comes to be displayed. The margin is far larger than
@@ -160,7 +175,7 @@
   /** The card a view shows, from its route (`?card=<slug>`), or null. */
   function cardOf(view) {
     try {
-      return new URL(fill(view.getAttribute(VIEW)), location.origin).searchParams.get('card');
+      return new URL(view.getAttribute(VIEW), location.origin).searchParams.get('card');
     } catch (_) {
       return null;
     }
@@ -173,7 +188,6 @@
    * sent, so quick taps cannot overtake one another.
    */
   async function send(view, route, body) {
-    route = fill(route);
     await ask('POST', route, body);
     const path = pathOf(route);
     const others = allViews().filter((other) =>
@@ -190,7 +204,7 @@
     const view = control.closest('[' + VIEW + ']');
     if (!view) return;
     event.preventDefault();
-    send(view, control.getAttribute(POST), fill(control.getAttribute(BODY)));
+    send(view, control.getAttribute(POST), control.getAttribute(BODY));
   });
 
   // A form inside a view, submitted by its button or the Enter key: its body,
@@ -202,18 +216,28 @@
     if (!view) return;
     event.preventDefault();
     const fields = new URLSearchParams(new FormData(form)).toString();
-    const body = [fill(form.getAttribute(BODY)), fields].filter(Boolean).join('&');
+    const body = [form.getAttribute(BODY), fields].filter(Boolean).join('&');
     await send(view, form.getAttribute(POST), body);
     if (form.isConnected) form.reset();
   });
 
-  // Views can arrive after load: the hand view injects card panels.
+  // Views can arrive after load: the hand view injects card panels. And a
+  // view's contents can be put there by other code (the room's timers are, by
+  // the multiplayer script): what such contents ask to be sent later is
+  // started here, as it would be after a drawing.
   new MutationObserver((records) => {
+    const asked = new Set();
     for (const record of records) {
       for (const node of record.addedNodes) {
-        if (node.nodeType === 1) mount(node);
+        if (node.nodeType !== 1) continue;
+        mount(node);
+        if (node.hasAttribute(AFTER) || node.querySelector('[' + AFTER + ']')) {
+          const view = node.closest('[' + VIEW + ']');
+          if (view) asked.add(view);
+        }
       }
     }
+    asked.forEach(schedule);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
   globalThis.kipukasViews = {

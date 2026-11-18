@@ -3,6 +3,7 @@
 //!
 //! All game state is stored in PLAYER_DOC (yrs CRDT document).
 
+use crate::clock;
 use crate::game::{damage, player_doc, turns};
 use crate::routes::util::{get_param, parse_form_body, parse_query};
 
@@ -108,6 +109,8 @@ pub fn handle_turns_get(query: &str) -> String {
 ///   - action=tick                   → decrement all alarms
 ///   - action=remove&index={n}       → remove alarm at index
 ///   - action=toggle_visibility      → toggle alarm panel visibility
+///   - action=expire                 → drop timers that ran out and have faded
+///     (the list asks for this by itself, see `turns::render_alarm_list_at`)
 ///
 /// Returns updated alarm list HTML.
 pub fn handle_turns_post(body: &str) -> String {
@@ -135,6 +138,9 @@ pub fn handle_turns_post(body: &str) -> String {
         }
         "toggle_visibility" => {
             turns::toggle_alarms_visibility();
+        }
+        "expire" => {
+            turns::expire(clock::now_ms());
         }
         _ => {}
     }

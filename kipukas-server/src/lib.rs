@@ -7,6 +7,7 @@
 use wasm_bindgen::prelude::*;
 
 pub mod catalog;
+pub mod clock;
 pub mod game;
 pub mod image;
 pub mod routes;

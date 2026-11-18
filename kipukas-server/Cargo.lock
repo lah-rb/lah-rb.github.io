@@ -467,6 +467,7 @@ dependencies = [
  "fastrand",
  "hmac-sha256",
  "jpeg-encoder",
+ "js-sys",
  "jxl-oxide",
  "kipukas-catalog",
  "matchit",

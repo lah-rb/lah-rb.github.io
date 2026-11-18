@@ -227,6 +227,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/build.rs` | Build script: reads `cards/` into the catalog each time the engine is compiled |
 | `kipukas-server/catalog/` | How a card file is read and checked, and how the catalog is written as Rust. Runs at build time only |
 | `kipukas-server/src/kippa.rs` | The catalog as Kippa reads it (`cards_catalog.json`). Build time only |
+| `kipukas-server/src/clock.rs` | The time, for what the engine does by the clock (a finished timer fading, the day of an affinity declaration). Read at route handlers and passed down |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
 | `assets/js/kipukas-view.js` | Engine-owned views: draws `data-engine-view` elements from the engine when they are shown, sends taps and forms to it, patches the result in place |
@@ -616,7 +617,14 @@ The worker's handling of a request with no reply port is unchanged and still use
 
    A control with its own `data-engine-post` inside such a form must be `type="button"`, or its tap would also submit the form.
 4. **Draws related views again:** after a post, every other displayed view of the route that was posted to. The timer form posts to `/api/game/turns`; the list of timers is a view of `/api/game/turns?display=alarms`, so it shows the new timer. Give a view a route of its own when it should *not* be drawn again by its neighbour's taps: the timer form is at `/api/game/turns/form`, so a tap in the list does not clear what is being typed.
-5. **Fills in what only the page knows:** `{today}` in a route or a body becomes today's date when the request is made (`data-engine-body="archetype=Brutal&today={today}"`). The engine has no clock. Add to `PAGE_VALUES` in `kipukas-view.js` for another such value.
+5. **Sends what the engine asks to be sent later:** an element with `data-engine-after="<milliseconds>"` beside its `data-engine-post` is sent by itself after that long, as a tap would be, and the view is drawn again. Each drawing replaces what was waiting with what the new drawing asks for. This is how something happens by the clock without the page keeping time: the engine reads the clock (`kipukas-server/src/clock.rs`), decides what the picture is now, and says how long until it next changes.
+
+   ```html
+   <!-- Inside a timer that has run out: look again in 15 seconds. -->
+   <span hidden data-engine-post="/api/game/turns" data-engine-body="action=expire" data-engine-after="15000"></span>
+   ```
+
+   The element is `hidden` so that it is not also something to tap. It works in contents put into a view by other code too (the room's timers, written by the multiplayer script).
 6. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
 
 When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything. Views that are not displayed are skipped; they are drawn when shown.
@@ -625,7 +633,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 
 - A card's detail panel: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`. On a card page it is in the served HTML (written at build time by the same function, see "Card Pages Are Written by the Engine") and taken over as a view when the page loads. In the hand view it is set up per pane by `assets/js/hand-view.js`, which also means a hand opens offline for cards never viewed before.
 - The damage tracker inside it: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`.
-- The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`.
+- The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
 
 **Views do not nest.** The panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`. Redrawing an outer view would otherwise empty the inner one. Compose in Rust; a tap on the tracker then redraws the panel it sits in.
@@ -640,7 +648,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 
 **Rules for a view's markup:**
 
-- The same state must always render to the same markup (patching compares markup).
+- The same state must always render to the same markup (patching compares markup). The time counts as state where a view depends on it; such a view takes the time as an argument (`render_alarm_list_at(now)`) so it can be tested at any moment.
 - Anything the other player can influence goes through `escape_html`.
 - Keep elements that should stay put (art, focusable controls) present in every state and change their attributes, rather than adding and removing them.
 - No `id` attributes on what a view renders unless the page can only ever hold one copy. The timer form is rendered twice on a page (alone, and in the room's dialog), and controls that looked each other up by `id` read the wrong copy. A form's controls reach each other through the form.

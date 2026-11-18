@@ -399,6 +399,79 @@ pub fn remove_alarm(index: usize) {
     });
 }
 
+/// Remove the alarms that have one of these ids.
+pub fn remove_alarms_with_ids(ids: &[String]) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let alarms = doc.get_or_insert_array("alarms");
+        let mut txn = doc.transact_mut();
+        // Last first, so removing one does not move those still to check.
+        for i in (0..alarms.len(&txn)).rev() {
+            let id = match alarms.get(&txn, i) {
+                Some(yrs::Out::YMap(map)) => match map.get(&txn, "id") {
+                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+                    _ => String::new(),
+                },
+                _ => String::new(),
+            };
+            if !id.is_empty() && ids.contains(&id) {
+                alarms.remove(&mut txn, i);
+            }
+        }
+    });
+}
+
+/// When this device first saw each run-out timer say so: timer id and the
+/// moment, in milliseconds (see `turns::note_completions`). It is this
+/// device's own record, for the player's timers and a room's alike, so it
+/// does not depend on the other player's clock.
+pub fn get_alarm_done() -> Vec<(String, f64)> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let done = doc.get_or_insert_map("alarm_done");
+        let txn = doc.transact();
+        let mut entries: Vec<(String, f64)> = done
+            .iter(&txn)
+            .filter_map(|(id, value)| match value {
+                yrs::Out::Any(Any::Number(at)) => Some((id.to_string(), at)),
+                _ => None,
+            })
+            .collect();
+        entries.sort_by(|a, b| a.0.cmp(&b.0));
+        entries
+    })
+}
+
+/// Make the record of run-out timers exactly `entries`. Nothing is written
+/// if it already is.
+pub fn set_alarm_done(entries: &[(String, f64)]) {
+    if get_alarm_done().as_slice() == {
+        let mut wanted = entries.to_vec();
+        wanted.sort_by(|a, b| a.0.cmp(&b.0));
+        wanted
+    }
+    .as_slice()
+    {
+        return;
+    }
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let done = doc.get_or_insert_map("alarm_done");
+        let mut txn = doc.transact_mut();
+        let stale: Vec<String> = done
+            .keys(&txn)
+            .filter(|id| !entries.iter().any(|(wanted, _)| wanted == id))
+            .map(|id| id.to_string())
+            .collect();
+        for id in stale {
+            done.remove(&mut txn, &id);
+        }
+        for (id, at) in entries {
+            done.insert(&mut txn, id.as_str(), Any::from(*at));
+        }
+    });
+}
+
 /// Read the current alarms as a Vec<Alarm>.
 pub fn get_alarms() -> Vec<Alarm> {
     PLAYER_DOC.with(|cell| {

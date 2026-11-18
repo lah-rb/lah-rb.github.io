@@ -21,8 +21,28 @@
 //! script (`kipukasMultiplayer`), which also sends each change to the other
 //! player. Showing and hiding the list is a preference of this player alone
 //! and is an engine post in both cases.
+//!
+//! ## A timer that has run out
+//!
+//! It says "Complete!" for [`COMPLETE_SHOWN_MS`], fades, and is gone, without
+//! anyone tapping. The engine decides this by the clock: it remembers when
+//! this device first saw the timer run out ([`note_completions`]) and draws
+//! the timer according to how long ago that was. The page does not count
+//! anything. Each such timer carries a post for the view to send by itself
+//! when the picture is next due to change (`data-engine-after`), and the view
+//! is drawn again then. So a timer that ran out before a page change goes on
+//! from where it was, and one whose time passed while the page was asleep is
+//! simply not drawn.
+//!
+//! A player's own run-out timers are deleted once gone ([`expire`]). A
+//! room's are only left undrawn on this device: they stay in the room
+//! document until the next advance removes them, as before, so nothing is
+//! written to shared state by a clock, and the two players' clocks need not
+//! agree.
 
+use crate::clock;
 use crate::game::crdt;
+use crate::game::state::Alarm;
 use crate::game::player_doc;
 use crate::game::room;
 use crate::routes::util::escape_html;
@@ -133,7 +153,100 @@ pub fn render_turn_panel() -> String {
     html
 }
 
-/// Render the alarm list HTML.
+/// How long a timer that has run out stays up saying so.
+pub const COMPLETE_SHOWN_MS: f64 = 15_000.0;
+
+/// How long it then takes to fade, before it is no longer drawn. The fade
+/// itself is the `duration-700` on the timer; this leaves it time to finish.
+pub const FADE_MS: f64 = 1_000.0;
+
+/// Where a timer is in its last seconds.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Ending {
+    /// Still counting, or run out with no way to tell when (a timer saved
+    /// before timers had ids): drawn as it is until the next advance.
+    No,
+    /// Run out and saying so, for this much longer.
+    Shown { left_ms: f64 },
+    /// Fading, for this much longer.
+    Fading { left_ms: f64 },
+    /// Not drawn any more.
+    Gone,
+}
+
+/// The timers this page shows: the room's if in one, otherwise the player's.
+fn current_alarms() -> (bool, Vec<Alarm>) {
+    if room::in_room() {
+        (true, crdt::get_alarms())
+    } else {
+        (false, player_doc::get_alarms())
+    }
+}
+
+/// Remember, for each timer that has run out, when this device first saw it
+/// so, and forget timers that are no longer run out or no longer there.
+pub fn note_completions(now: f64) {
+    let (_, alarms) = current_alarms();
+    let known = player_doc::get_alarm_done();
+    let done: Vec<(String, f64)> = alarms
+        .iter()
+        .filter(|alarm| alarm.remaining == 0 && !alarm.id.is_empty())
+        .map(|alarm| {
+            let since = known
+                .iter()
+                .find(|(id, _)| *id == alarm.id)
+                .map(|(_, at)| *at)
+                .unwrap_or(now);
+            (alarm.id.clone(), since)
+        })
+        .collect();
+    player_doc::set_alarm_done(&done);
+}
+
+fn ending(alarm: &Alarm, done: &[(String, f64)], now: f64) -> Ending {
+    if alarm.remaining != 0 {
+        return Ending::No;
+    }
+    let Some((_, since)) = done.iter().find(|(id, _)| *id == alarm.id) else {
+        return Ending::No;
+    };
+    // A clock set back must not keep a timer up for ever, nor bring one back.
+    let age = (now - since).max(0.0);
+    if age < COMPLETE_SHOWN_MS {
+        Ending::Shown { left_ms: COMPLETE_SHOWN_MS - age }
+    } else if age < COMPLETE_SHOWN_MS + FADE_MS {
+        Ending::Fading { left_ms: COMPLETE_SHOWN_MS + FADE_MS - age }
+    } else {
+        Ending::Gone
+    }
+}
+
+/// Delete the player's own timers that have run out and faded. In a room
+/// nothing is deleted: see the top of this file.
+pub fn expire(now: f64) {
+    note_completions(now);
+    let (multiplayer, alarms) = current_alarms();
+    if multiplayer {
+        return;
+    }
+    let done = player_doc::get_alarm_done();
+    let gone: Vec<String> = alarms
+        .iter()
+        .filter(|alarm| ending(alarm, &done, now) == Ending::Gone)
+        .map(|alarm| alarm.id.clone())
+        .collect();
+    if !gone.is_empty() {
+        player_doc::remove_alarms_with_ids(&gone);
+        note_completions(now);
+    }
+}
+
+/// Render the alarm list as it is now. See [`render_alarm_list_at`].
+pub fn render_alarm_list() -> String {
+    render_alarm_list_at(clock::now_ms())
+}
+
+/// Render the alarm list HTML as it is at `now`.
 /// This is the floating alarm display in the top-left corner.
 ///
 /// Automatically detects multiplayer mode via `room::in_room()`.
@@ -141,19 +254,25 @@ pub fn render_turn_panel() -> String {
 /// (synced between peers) and renders multiplayer sync buttons. Otherwise
 /// reads from PLAYER_DOC, and its buttons are engine posts: the view the
 /// list is in sends them and draws the list again.
-pub fn render_alarm_list() -> String {
-    let multiplayer = room::in_room();
-    // When multiplayer, read alarms from the yrs CRDT Doc (synced between peers).
-    // When local, read from PLAYER_DOC (persisted to localStorage).
-    let (alarms, show_alarms) = if multiplayer {
-        let crdt_alarms = crdt::get_alarms();
-        let show = player_doc::get_show_alarms();
-        (crdt_alarms, show)
-    } else {
-        (player_doc::get_alarms(), player_doc::get_show_alarms())
-    };
+///
+/// Drawing the list is also when a timer is first seen to have run out, so
+/// this notes it ([`note_completions`]).
+pub fn render_alarm_list_at(now: f64) -> String {
+    note_completions(now);
+    let (multiplayer, alarms) = current_alarms();
+    let show_alarms = player_doc::get_show_alarms();
+    let done = player_doc::get_alarm_done();
 
-    if alarms.is_empty() {
+    // Each timer with its place in the list (a player's own timers are
+    // removed by place) and where it is in its ending.
+    let drawn: Vec<(usize, &Alarm, Ending)> = alarms
+        .iter()
+        .enumerate()
+        .map(|(i, alarm)| (i, alarm, ending(alarm, &done, now)))
+        .filter(|(_, _, ending)| *ending != Ending::Gone)
+        .collect();
+
+    if drawn.is_empty() {
         return String::new();
     }
 
@@ -178,13 +297,16 @@ pub fn render_alarm_list() -> String {
     }
 
     // Individual alarm cards
-    for (i, alarm) in alarms.iter().enumerate() {
+    for (i, alarm, ending) in drawn {
         let (bg, text, border) = color_classes(&alarm.color_set);
         let dot = color_dot(&alarm.color_set);
 
+        // Every timer can fade; one that is fading has `opacity-0` and the
+        // transition takes it there.
+        let fading = if matches!(ending, Ending::Fading { .. }) { " opacity-0" } else { "" };
         html.push_str(&format!(
-            r#"<div class="py-2 px-3 h-fit w-fit rounded-lg mb-2 flex items-center gap-2 border {} {} {}">"#,
-            bg, text, border
+            r#"<div class="py-2 px-3 h-fit w-fit rounded-lg mb-2 flex items-center gap-2 border transition-opacity duration-700 {} {} {}{}">"#,
+            bg, text, border, fading
         ));
 
         // Color dot
@@ -228,20 +350,31 @@ pub fn render_alarm_list() -> String {
             ));
         }
 
+        // A timer in its ending: when the picture is next due to change (it
+        // starts to fade, or is gone), the view sends this by itself and
+        // draws the list again.
+        if let Ending::Shown { left_ms } | Ending::Fading { left_ms } = ending {
+            html.push_str(&format!(
+                r#"<span hidden data-engine-post="/api/game/turns" data-engine-body="action=expire" data-engine-after="{}"></span>"#,
+                left_ms.ceil() as u64
+            ));
+        }
+
         html.push_str(r#"</div>"#);
     }
 
     html.push_str(r#"</div>"#); // close alarm-list-inner
 
-    // Show or hide the list. Whether it is shown is this player's own
-    // preference, in a room or not, so it is an engine post in both cases.
+    // Show or hide the list: a pill under the timers, in the middle of the
+    // block. Whether the list is shown is this player's own preference, in a
+    // room or not, so it is an engine post in both cases.
     let (rotate_class, toggle_label) = if show_alarms {
         ("", "Hide timers")
     } else {
         (" rotate-180", "Show timers")
     };
     html.push_str(&format!(
-        r#"<button type="button" aria-label="{}" aria-expanded="{}" data-engine-post="/api/game/turns" data-engine-body="action=toggle_visibility" class="z-50 mb-2 block w-fit cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6{}">"#,
+        r#"<button type="button" aria-label="{}" aria-expanded="{}" data-engine-post="/api/game/turns" data-engine-body="action=toggle_visibility" class="z-50 mb-2 justify-self-center flex items-center justify-center w-12 h-7 rounded-full bg-amber-50 hover:bg-amber-100 shadow cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" class="fill-none stroke-2 stroke-kip-drk-goldenrod w-5 h-5{}">"#,
         toggle_label, show_alarms, rotate_class
     ));
     html.push_str(
@@ -473,6 +606,230 @@ mod tests {
         let html = render_alarm_list();
         assert!(html.contains(r#"data-engine-body="action=toggle_visibility""#));
         crdt::reset_doc();
+        reset_state();
+    }
+
+    #[test]
+    fn the_show_and_hide_button_is_a_pill_in_the_middle_of_the_block() {
+        reset_state();
+        player_doc::add_alarm(5, "", "red");
+        let html = render_alarm_list();
+        let button = &html[html.find(r#"aria-label="Hide timers""#).unwrap()..];
+        let classes = &button[button.find("class=\"").unwrap()..button.find("><svg").unwrap()];
+        for class in ["justify-self-center", "rounded-full", "bg-amber-50", "shadow"] {
+            assert!(classes.contains(class), "{} on the button: {}", class, classes);
+        }
+        // It comes after the timers, outside the part that hides.
+        assert!(html.contains("</div><button type=\"button\" aria-label=\"Hide timers\""));
+        reset_state();
+    }
+
+    // ── A timer that has run out ───────────────────────────────────
+
+    /// Some moment; the tests move on from it.
+    const T0: f64 = 1_800_000_000_000.0;
+    const EXPIRE: &str = r#"data-engine-post="/api/game/turns" data-engine-body="action=expire" data-engine-after="#;
+
+    /// One of the player's own timers, run out.
+    fn run_out(name: &str) -> String {
+        player_doc::add_alarm(1, name, "red");
+        player_doc::tick_alarms();
+        player_doc::get_alarms().last().unwrap().id.clone()
+    }
+
+    #[test]
+    fn a_timer_that_has_run_out_says_so_and_asks_to_be_looked_at_again() {
+        reset_state();
+        run_out("Siege");
+        let html = render_alarm_list_at(T0);
+        assert!(html.contains("<strong>Siege</strong> — Complete!"));
+        assert!(html.contains(&format!("{}\"15000\"", EXPIRE)), "{}", html);
+        assert!(!html.contains("opacity-0"));
+        // The request is not something to tap.
+        assert!(html.contains("<span hidden data-engine-post="));
+        reset_state();
+    }
+
+    #[test]
+    fn the_wait_is_counted_from_when_it_was_first_seen_not_from_each_drawing() {
+        reset_state();
+        let id = run_out("Siege");
+        render_alarm_list_at(T0);
+        // Drawn again later (a tap, or another page): the same 15 seconds.
+        let html = render_alarm_list_at(T0 + 4_000.0);
+        assert!(html.contains(&format!("{}\"11000\"", EXPIRE)), "{}", html);
+        assert_eq!(player_doc::get_alarm_done(), vec![(id, T0)]);
+        reset_state();
+    }
+
+    #[test]
+    fn after_15_seconds_it_fades_and_a_second_later_it_is_not_drawn() {
+        reset_state();
+        run_out("Siege");
+        render_alarm_list_at(T0);
+
+        let last_moment = render_alarm_list_at(T0 + 14_999.0);
+        assert!(!last_moment.contains("opacity-0"));
+        assert!(last_moment.contains(&format!("{}\"1\"", EXPIRE)));
+
+        let fading = render_alarm_list_at(T0 + 15_000.0);
+        assert!(fading.contains("transition-opacity duration-700"));
+        assert!(fading.contains(" opacity-0\">"), "{}", fading);
+        assert!(fading.contains(&format!("{}\"1000\"", EXPIRE)));
+        assert!(fading.contains("Complete!"));
+
+        // The only timer: with it gone there is no list at all.
+        assert_eq!(render_alarm_list_at(T0 + 16_000.0), "");
+        reset_state();
+    }
+
+    #[test]
+    fn a_timer_fades_by_changing_one_class_on_the_same_element() {
+        reset_state();
+        run_out("Siege");
+        let shown = render_alarm_list_at(T0);
+        let fading = render_alarm_list_at(T0 + 15_500.0);
+        // The same markup but for the class and the wait, so the page patches
+        // the element in place and the transition runs.
+        let same = |html: &str| {
+            let at = html.find("data-engine-after=\"").unwrap();
+            let end = at + html[at..].find("\">").unwrap();
+            format!("{}{}", &html[..at], &html[end..]).replace(" opacity-0", "")
+        };
+        assert_eq!(same(&shown), same(&fading));
+        reset_state();
+    }
+
+    #[test]
+    fn timers_still_counting_are_left_alone_and_keep_the_list_up() {
+        reset_state();
+        player_doc::add_alarm(6, "Patrol", "green");
+        run_out("Siege"); // the advance that runs Siege out takes Patrol to 5
+        let html = render_alarm_list_at(T0);
+        assert_eq!(html.matches("data-engine-after").count(), 1);
+        let later = render_alarm_list_at(T0 + 60_000.0);
+        assert!(later.contains("<strong>Patrol</strong> — 5"));
+        assert!(!later.contains("Complete!"));
+        assert!(!later.contains("data-engine-after"));
+        assert!(later.contains("Advance on Diel Roll"));
+        // Patrol is still the first of the player's timers, and is removed
+        // as such.
+        assert!(later.contains(r#"data-engine-body="action=remove&index=0""#));
+        reset_state();
+    }
+
+    #[test]
+    fn each_run_out_timer_keeps_its_own_time() {
+        reset_state();
+        run_out("First");
+        render_alarm_list_at(T0);
+        run_out("Second"); // First is ticked away; Second runs out now
+        player_doc::add_alarm_with_id("kept", 0, "Third", "blue");
+        let html = render_alarm_list_at(T0 + 6_000.0);
+        assert_eq!(html.matches("Complete!").count(), 2);
+        assert_eq!(html.matches(&format!("{}\"15000\"", EXPIRE)).count(), 2);
+        let html = render_alarm_list_at(T0 + 12_000.0);
+        assert_eq!(html.matches(&format!("{}\"9000\"", EXPIRE)).count(), 2);
+        reset_state();
+    }
+
+    #[test]
+    fn the_players_own_timers_are_deleted_once_gone_and_no_sooner() {
+        reset_state();
+        player_doc::add_alarm(5, "Patrol", "green");
+        run_out("Siege");
+        render_alarm_list_at(T0);
+
+        expire(T0 + 15_999.0);
+        assert_eq!(player_doc::get_alarms().len(), 2, "still fading");
+
+        expire(T0 + 16_000.0);
+        let left = player_doc::get_alarms();
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].name, "Patrol");
+        // And nothing is remembered about a timer that is no more.
+        assert!(player_doc::get_alarm_done().is_empty());
+        reset_state();
+    }
+
+    #[test]
+    fn a_timer_advanced_or_removed_is_forgotten() {
+        reset_state();
+        run_out("Siege");
+        render_alarm_list_at(T0);
+        assert_eq!(player_doc::get_alarm_done().len(), 1);
+        player_doc::tick_alarms(); // a run-out timer goes on the next advance
+        assert_eq!(render_alarm_list_at(T0 + 1_000.0), "");
+        assert!(player_doc::get_alarm_done().is_empty());
+        reset_state();
+    }
+
+    #[test]
+    fn a_clock_set_back_neither_keeps_a_timer_up_nor_brings_one_back() {
+        reset_state();
+        run_out("Siege");
+        render_alarm_list_at(T0);
+        // An hour earlier by the clock: counted as no time passed.
+        let html = render_alarm_list_at(T0 - 3_600_000.0);
+        assert!(html.contains(&format!("{}\"15000\"", EXPIRE)));
+        // And once gone it stays gone.
+        expire(T0 + 20_000.0);
+        assert_eq!(render_alarm_list_at(T0 - 3_600_000.0), "");
+        reset_state();
+    }
+
+    #[test]
+    fn a_run_out_timer_without_an_id_stays_until_the_next_advance() {
+        reset_state();
+        // A timer saved before timers had ids.
+        player_doc::add_alarm_with_id("", 0, "Old", "red");
+        let html = render_alarm_list_at(T0 + 3_600_000.0);
+        assert!(html.contains("<strong>Old</strong> — Complete!"));
+        assert!(!html.contains("data-engine-after"));
+        expire(T0 + 7_200_000.0);
+        assert_eq!(player_doc::get_alarms().len(), 1);
+        reset_state();
+    }
+
+    #[test]
+    fn a_rooms_run_out_timer_fades_here_and_stays_in_the_room_document() {
+        reset_state();
+        room::with_room_mut(|r| r.room_code = "ABCD".to_string());
+        crdt::init_doc();
+        crdt::add_alarm(1, "Shared", "blue");
+        crdt::tick_alarms();
+
+        let html = render_alarm_list_at(T0);
+        assert!(html.contains("<strong>Shared</strong> — Complete!"));
+        assert!(html.contains(&format!("{}\"15000\"", EXPIRE)));
+        // The room's own controls are untouched.
+        assert!(html.contains("kipukasMultiplayer.tickTurns()"));
+
+        assert!(render_alarm_list_at(T0 + 15_200.0).contains(" opacity-0\">"));
+        assert_eq!(render_alarm_list_at(T0 + 16_000.0), "");
+
+        // Not drawn here any more, but not deleted: nothing is written to
+        // shared state by a clock. The next advance removes it.
+        expire(T0 + 60_000.0);
+        assert_eq!(crdt::get_alarms().len(), 1);
+        crdt::tick_alarms();
+        assert!(crdt::get_alarms().is_empty());
+        assert_eq!(render_alarm_list_at(T0 + 61_000.0), "");
+        assert!(player_doc::get_alarm_done().is_empty());
+
+        crdt::reset_doc();
+        reset_state();
+    }
+
+    #[test]
+    fn the_route_expires_by_the_real_clock() {
+        reset_state();
+        let id = run_out("Siege");
+        // Seen to run out a minute ago.
+        player_doc::set_alarm_done(&[(id, clock::now_ms() - 60_000.0)]);
+        let html = crate::routes::game::handle_turns_post("action=expire");
+        assert_eq!(html, "");
+        assert!(player_doc::get_alarms().is_empty());
         reset_state();
     }
 

@@ -8,14 +8,14 @@
 //!
 //! The panel is an engine-owned view (Pattern 13) of `/api/player/affinity`.
 //! Each Declare button is an engine post; the view sends it and draws the
-//! panel again. The day of the declaration is the page's to know, so the
-//! button's body asks the view runtime for it (`{today}`).
+//! panel again. The engine dates the declaration by its own clock.
 //!
 //! ## Signed export/import (Phase D)
 //! HMAC-SHA256 signed exports for tamper-resistant player data backups.
 //! The WASM layer owns the integrity check (HMAC); an optional JS-side
 //! AES-GCM encryption layer provides confidentiality on top.
 
+use crate::clock;
 use crate::game::{crypto, player_doc};
 use crate::routes::util::{get_param, parse_form_body};
 
@@ -30,12 +30,17 @@ pub fn handle_affinity_get(_query: &str) -> String {
 // ── POST /api/player/affinity ──────────────────────────────────────
 
 /// Handle POST /api/player/affinity
-/// Body: archetype={name}&today={YYYY-MM-DD}
-/// Declares affinity for the given archetype. Returns re-rendered panel.
+/// Body: archetype={name}
+/// Declares affinity for the given archetype, dated today. Returns
+/// re-rendered panel. `today={YYYY-MM-DD}` in the body names another day.
 pub fn handle_affinity_post(body: &str) -> String {
     let params = parse_form_body(body);
     let archetype = get_param(&params, "archetype").unwrap_or("");
-    let today = get_param(&params, "today").unwrap_or("");
+    let today = match get_param(&params, "today") {
+        Some(day) if !day.is_empty() => day.to_string(),
+        _ => clock::today(),
+    };
+    let today = today.as_str();
 
     if archetype.is_empty() {
         return r#"<span class="text-kip-red">Missing archetype parameter</span>"#.to_string();
@@ -136,10 +141,9 @@ fn render_affinity_panel_inner() -> String {
                 r#"<span class="text-xs text-slate-300 px-2 py-0.5">Locked</span>"#,
             );
         } else {
-            // No affinity yet — show declare button. `{today}` is filled in
-            // by the view runtime when the button is tapped.
+            // No affinity yet — show declare button
             html.push_str(&format!(
-                r#"<button type="button" class="text-xs bg-kip-red text-amber-50 px-2 py-0.5 rounded hover:bg-red-700 active:bg-red-800" data-engine-post="/api/player/affinity" data-engine-body="archetype={}&today={{today}}">Declare</button>"#,
+                r#"<button type="button" class="text-xs bg-kip-red text-amber-50 px-2 py-0.5 rounded hover:bg-red-700 active:bg-red-800" data-engine-post="/api/player/affinity" data-engine-body="archetype={}">Declare</button>"#,
                 archetype
             ));
         }
@@ -382,18 +386,29 @@ mod tests {
     }
 
     #[test]
-    fn a_declare_button_is_an_engine_post_that_asks_the_page_for_the_day() {
+    fn a_declare_button_is_an_engine_post_and_the_engine_dates_it() {
         reset();
         let html = handle_affinity_get("");
         assert!(html.contains(
-            r#"data-engine-post="/api/player/affinity" data-engine-body="archetype=Brutal&today={today}">Declare</button>"#
+            r#"data-engine-post="/api/player/affinity" data-engine-body="archetype=Brutal">Declare</button>"#
         ));
         for forbidden in ["hx-", "htmx", "onclick"] {
             assert!(!html.contains(forbidden), "{} in the panel", forbidden);
         }
-        // What the button sends is what the engine reads.
-        handle_affinity_post("archetype=Brutal&today=2026-02-26");
+        // What the button sends is what the engine reads, and the day is today.
+        handle_affinity_post("archetype=Brutal");
+        let (_, declared) = player_doc::get_affinity("Brutal").expect("Brutal is declared");
+        assert_eq!(declared, clock::today());
         assert_eq!(player_doc::get_active_affinity().map(|(name, _)| name).as_deref(), Some("Brutal"));
+        reset();
+    }
+
+    #[test]
+    fn a_declaration_can_name_its_day() {
+        reset();
+        handle_affinity_post("archetype=Avian&today=2026-02-26");
+        let (_, declared) = player_doc::get_affinity("Avian").expect("Avian is declared");
+        assert_eq!(declared, "2026-02-26");
         reset();
     }
 

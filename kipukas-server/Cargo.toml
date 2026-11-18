@@ -41,6 +41,11 @@ jxl-oxide = { version = "0.12.6", default-features = false }
 [build-dependencies]
 kipukas-catalog = { path = "catalog" }
 
+# The browser's clock (src/clock.rs). Already in the WASM build through
+# fastrand and yrs, so naming it here adds nothing to the module.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+
 # Build time only (src/preview.rs): writes the cards' preview pictures. Not
 # compiled for the browser, so it adds nothing to the WASM module.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
