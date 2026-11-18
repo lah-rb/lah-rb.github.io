@@ -42,8 +42,8 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **D
 | Layer | Technology | Examples |
 |-------|-----------|----------|
 | **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
-| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | The room tools' modal content, QR Scanner interface. Being replaced by engine-owned views |
-| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, solo turn timer, affinity panel, type matchup calculator, hand page — see [Pattern 13](#pattern-13-engine-owned-views) |
+| **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | The room dialog's contents (create, join, leave), QR Scanner interface. Being replaced by engine-owned views |
+| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, turn timer, fists in a room, affinity panel, type matchup calculator, binder, hand page — see [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
 A feature belongs to HTMX when its content doesn't always need to live in the DOM — modals, long scrollable lists, tool panels that are hidden most of the time. HTMX fetches that content from Rust and swaps it in on demand. A feature stays in Alpine when it's an always-present DOM element that just needs reactive class/style changes. Rust is the single source of truth for all game state — anytime a component needs to know game state, it consults Rust directly via HTMX or the Worker messaging API.
@@ -222,6 +222,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room state, CRDT sync |
 | `kipukas-server/src/game/crdt.rs` | The room document (`ROOM_DOC`): shared timers, persistence, sync handshake |
 | `kipukas-server/src/game/fists.rs` | Fists combat in the room document — pure functions over a `Doc`, tested with two documents |
+| `kipukas-server/src/page.rs` | What the engine asks of the page after a post: room-document updates to send to the other player, and views to draw again |
 | `kipukas-server/src/game/card_panel.rs` | The card schema (fields, and card types as compositions of them) and the card detail panel renderer |
 | `kipukas-server/src/catalog.rs` | The card catalog: `Card`, and the cards themselves, included from the build script's output |
 | `kipukas-server/build.rs` | Build script: reads `cards/` into the catalog each time the engine is compiled |
@@ -233,7 +234,7 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
 | `assets/js/kipukas-view.js` | Engine-owned views: draws `data-engine-view` elements from the engine when they are shown, sends taps and forms to it, patches the result in place |
-| `assets/js/kipukas-multiplayer.js` | Multiplayer manager — what to send when the socket opens, room-document sync, fists and timer actions |
+| `assets/js/kipukas-multiplayer.js` | Multiplayer manager — creating, joining and leaving a room, what to send when the socket opens, and carrying room-document updates between the engine and the other player. It draws nothing of the game: timers and fists are the engine's views |
 | `assets/js/kipukas-link.js` | The relay socket's state machine: one socket, one retry timer, backoff, heartbeat. No DOM access, so it runs under `deno test` |
 | `tests/link_test.ts` | Tests for `kipukas-link.js`, including two clients through a local relay |
 | `_includes/room_status.html` | Status pill shown on every page while in a room |
@@ -283,7 +284,7 @@ These are patterns that have been tested and work well. Understanding **why** th
 
 **When to use Alpine:** Elements that always live in the DOM but need reactive appearance changes — show/hide toggles, CSS class switching, animations, transition states. Alpine never fetches data or reads game state.
 
-**When to use HTMX:** Content that doesn't always need to live in the DOM — modal content, paginated lists, tool panels. HTMX fetches from Rust and swaps it in; HTMX also posts user actions (combat submissions) to Rust to update game state.
+**When to use HTMX:** For nothing new. It still fetches the room dialog's contents and the QR scanner's status from Rust and swaps them in.
 
 **When to use an engine-owned view:** Content that shows game state — the keal damage tracker, the solo turn timer, the affinity panel. Neither Alpine nor HTMX holds it: Rust renders it, a tap asks Rust for a change, and the page patches in the result. It may sit inside a dialog that Alpine opens and closes. New tools should be built this way; the tools still on HTMX (Pattern 11) are being moved over one at a time. See [Pattern 13](#pattern-13-engine-owned-views).
 
@@ -291,15 +292,15 @@ These are patterns that have been tested and work well. Understanding **why** th
 
 ### Pattern 4: x-effect for Modal Refresh
 
-**The pattern:** The multiplayer modal uses `x-effect` to re-fetch both `#room-status` and `#fists-container` from WASM every time the modal opens:
+**The pattern:** The multiplayer modal uses `x-effect` to re-fetch `#room-status` from WASM every time the modal opens:
 
 ```html
 x-effect="if (showMultiplayer) $nextTick(() => {
   htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
-  var fc = document.getElementById('fists-container');
-  if (fc) htmx.ajax('GET', fc.getAttribute('hx-get'), {target:'#fists-container', swap:'innerHTML'});
 })"
 ```
+
+An engine-owned view (Pattern 13) needs none of this: it is drawn each time it comes to be displayed.
 
 **Why it works:** `hx-trigger="load"` only fires on initial page load. When a user modifies state (e.g., marks damage) and reopens the modal, the stale HTML would be shown. The `x-effect` ensures fresh data every time the modal becomes visible.
 
@@ -396,6 +397,8 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 - Earlier rounds stay. A player who was away when a round ended still finds its outcome and applies it, even if the opponent has already moved on.
 - "Did you win?" is recorded as `attacker_won` in the answering player's entry. Each player applies a finished round once on their own device (the defender's card takes the damage) and records `settled` in their entry, so a reload, a reconnect or both players answering cannot mark damage twice. Conflicting answers are shown as disputed and mark nothing.
 - Closing the fists dialog only hides it. "Cancel round" in the waiting view starts a new round for both players.
+- What a player has picked and not locked in is not in the document. It is that player's engine's alone (`FistsChoice` in `game/room.rs`); the opponent learns of a choice when it is locked in.
+- Nothing polls. A player who is waiting sees the result when the opponent's update arrives: applying it asks for the dialog to be drawn again (see "Changes that must reach the other player" under Pattern 13).
 
 **Shared timers in the document:** the `timers` map is keyed by a stable timer id that travels with the timer between a player's own timers and a room. Both players seed their own timers on create and join; the same timer held by both (each keeps a copy when a session ends) lands on one key and stays one timer.
 
@@ -446,70 +449,58 @@ A page sends `relay` (pass this to the other player), `leave` (give up my place)
 
 **The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state (always-in-DOM visibility control), `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get`/`hx-post` for fetching content from Rust and posting user actions, Tailwind utilities for all styling, and auto-persistence via the Worker `PERSIST_STATE` message bridge. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
 
-**Reference implementation:** `_includes/multiplayer_fists_tool.html`.
+**Reference implementation:** `_includes/multiplayer.html`, the room dialog (create, join, leave). It is the last tool built this way.
 
-> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the turn timer, alone and in a room (`turn_tracker.html`, `multiplayer_turn_tool.html`), the affinity panel (`affinity_tool.html`) and the type matchup calculator (`local_fists_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
+> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the turn timer, alone and in a room (`turn_tracker.html`, `multiplayer_turn_tool.html`), fists in a room (`multiplayer_fists_tool.html`), the affinity panel (`affinity_tool.html`) and the type matchup calculator (`local_fists_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
 
 **Layer breakdown:**
 
 | Layer | Technology | Role in the component |
 |-------|-----------|----------------------|
-| **UI state** | Alpine `x-data` | Local booleans like `showFistsMenu` — purely visual, never persisted |
+| **UI state** | Alpine `x-data` | Local booleans like `showMultiplayer` — purely visual, never persisted |
 | **Room state** | `$store.room` | `{ inRoom, link, peer, outdated }`, registered by `kipukas-api.js` and kept current by `kipukas-multiplayer.js`. Read at initialisation, so a tool is right from the first render after a page change |
 | **Behavior** | Alpine `@click`, `$watch`, `x-effect` | `@click` toggles visibility; `$watch` handles side effects; `x-effect` bridges to HTMX |
 | **Data fetching** | HTMX `hx-get` + `hx-trigger` | Declarative WASM endpoint on the container div; `x-effect` re-fetches via `htmx.ajax()` on reopen |
 | **Styling** | Tailwind utilities | Layout, theming, spacing, responsiveness — all inline classes, zero custom CSS |
 | **Persistence** | base64 yrs binary → localStorage (via kipukas-api.js) | WASM state auto-persists after every mutation via Worker `PERSIST_STATE` message; component reads fresh state from WASM on each open |
 
-**How the layers connect (annotated from `multiplayer_fists_tool.html`):**
+**How the layers connect (annotated from `multiplayer.html`):**
 
 ```html
 <!-- 1. Alpine x-data: declare the tool's own visual state locally -->
-<div x-data="{ showFistsMenu: false }"
-     class="relative place-content-center"
+<div x-data="{ showMultiplayer: false }" class="relative place-content-center"
+     @close-multiplayer.window="showMultiplayer = false">
 
-     <!-- 2. $watch: side effects when state changes. Room state comes from $store.room.
-          Closing the dialog does not cancel a round: closeFists() only starts a new
-          round if the current one has finished. -->
-     x-init="
-       $watch('$store.room.inRoom', value => { if (!value) showFistsMenu = false });
-       $watch('showFistsMenu', value => { if (!value && window.kipukasMultiplayer) kipukasMultiplayer.closeFists(); });
-     ">
+    <!-- 2. @click toggles visibility (Alpine handles show/hide) -->
+    <button aria-label="Toggle Multiplayer" @click="showMultiplayer = !showMultiplayer" class="toolbar-tile">...</button>
 
-    <!-- 3/4. Shown while in a room; @click toggles visibility (Alpine handles show/hide) -->
-    <button x-show="$store.room.inRoom" x-cloak>
-        <svg @click="showFistsMenu = !showFistsMenu" ...>...</svg>
-    </button>
-
-    <!-- 5. Modal overlay: Tailwind utilities for layout + theming -->
-    <div x-show="showFistsMenu" x-cloak
+    <!-- 3. Modal overlay: Tailwind utilities for layout + theming -->
+    <div x-show="showMultiplayer" x-cloak
         class="fixed inset-0 flex items-center justify-center z-50"
         x-transition.duration.350ms
 
-        <!-- 6. x-effect: bridge Alpine → HTMX. Re-fetch WASM data every time modal opens -->
-        x-effect="if (showFistsMenu) $nextTick(() => {
+        <!-- 4. x-effect: bridge Alpine → HTMX. Re-fetch WASM data every time modal opens -->
+        x-effect="if (showMultiplayer) $nextTick(() => {
             if (typeof htmx !== 'undefined') {
-                var fc = document.getElementById('fists-container');
-                if (fc) htmx.ajax('GET', fc.getAttribute('hx-get') || '/api/room/fists',
-                    {target:'#fists-container', swap:'innerHTML'});
+                htmx.ajax('GET', '/api/room/status', {target:'#room-status', swap:'innerHTML'});
             }
         })">
 
         <!-- Backdrop: click-to-close -->
-        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showFistsMenu = false"></div>
+        <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showMultiplayer = false"></div>
 
         <!-- Modal content: Tailwind for card-like appearance -->
         <div class="bg-amber-50 z-50 rounded-lg shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto relative">
 
-            <!-- 7. HTMX container: declares WASM endpoint, loads on page init -->
-            <div id="fists-container"
-              hx-get="/api/room/fists"
+            <!-- 5. HTMX container: declares WASM endpoint, loads on page init -->
+            <div id="room-status"
+              hx-get="/api/room/status"
               hx-trigger="load"
               hx-swap="innerHTML">
             </div>
 
-            <!-- 8. Close button: Alpine @click, Tailwind styling -->
-            <button @click="showFistsMenu = false"
+            <!-- 6. Close button: Alpine @click, Tailwind styling -->
+            <button @click="showMultiplayer = false"
               class="w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm">
               Close
             </button>
@@ -517,6 +508,8 @@ A page sends `relay` (pass this to the other player), `leave` (give up my place)
     </div>
 </div>
 ```
+
+For the same outer layer around an engine-owned view, see `multiplayer_fists_tool.html`: the dialog is opened and closed by Alpine, `$store.room.inRoom` decides whether its button shows, and its contents are one `data-engine-view` element with no `hx-get` and no `x-effect`.
 
 **Why it works:**
 
@@ -628,13 +621,14 @@ The worker's handling of a request with no reply port is unchanged and still use
    <span hidden data-engine-post="/api/game/turns" data-engine-body="action=expire" data-engine-after="15000"></span>
    ```
 
-   The element is `hidden` so that it is not also something to tap. It works in contents put into a view by other code too (the room's timers, written by the multiplayer script).
+   The element is `hidden` so that it is not also something to tap.
 6. **Fills in what only the page knows:** `{hash}` in a view's route becomes what follows the `#` in the page's address, each time the view is drawn, and the view is drawn again when that changes. The hand page is `data-engine-view="/api/hand?codes={hash}"`. `{columns}` becomes how many columns the view's own CSS grid has just now. Add to `PAGE_VALUES` in `kipukas-view.js` for another such value; the time is not one (the engine reads the clock).
 7. **Sends a post when its element scrolls into view:** an element with `data-engine-seen` beside its `data-engine-post` is sent once enough of it is in view, and the view is drawn again. If it is still in view after that, it is sent again. This is how the binder grows as it is read (below).
 8. **Leaves alone what is not the view's to change:** when a view is drawn again, a view inside it and any element marked `data-engine-keep` stay exactly as they are (see "Views inside views" below).
 9. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
+10. **Draws again the views the engine names.** A post can change what a view elsewhere shows: a lost round of fists marks damage on a card's panel; the other player's move changes the fists dialog and the timers. The engine route says so with `page::redraw("/api/card/panel")` (`kipukas-server/src/page.rs`), the engine's worker passes it on after the post as a `REDRAW` message, and the displayed views of that route are drawn again, whatever their query. No page script has to know what a change touches.
 
-When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything. Views that are not displayed are skipped; they are drawn when shown.
+When a page script changes the engine's state from outside a view, it calls `kipukasViews.refresh()` (every view) afterwards; New Game does. Views that are not displayed are skipped; they are drawn when shown.
 
 **Reference implementations:**
 
@@ -642,6 +636,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 - The damage tracker inside it: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`.
 - The turn timer, two views that work together, alone and in a room: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
+- Fists in a room, a view inside an Alpine dialog that both players' moves change: `kipukas-server/src/routes/room.rs` (from `handle_fists_get`); template `_includes/multiplayer_fists_tool.html`. One route draws this player's side of the round (the form, waiting, the result with "Did you win?", the outcome) and takes every tap. The engine holds what is picked before it is locked in, so the form can be drawn again at any moment (the opponent locking in adds a note to it) and still shows the picks; a radio button is a post, checked by the engine's next drawing. Locking in with something still to pick is refused by the engine, which says what is missing in its next drawing. Alpine opens and closes the dialog, and tells the engine of the closing (`kipukasViews.post`), because a round that is over then gives way to the next.
 - The type matchup calculator, three views of one route that are drawn together: `kipukas-server/src/game/matchup.rs`; template `_includes/local_fists_tool.html`. The engine holds what is picked, as a scratch pad that lasts until the page is left. A checkbox is a post; the page does not check it, the engine's next drawing does, and that drawing also disables the rest of a side that has its three. Alpine only folds the two sections.
 - The binder: its grid, its filter menu and its search, all of one route. `kipukas-server/src/routes/cards.rs` holds what the binder shows: the boxes ticked in the menu, whether a search is on and what is typed, and how many tiles are on the page so far. The menu's parts (`_includes/filter.html`) are views of `/api/cards?menu=…`, so ticking a box draws the menu and the grid again; Alpine only opens the menu and folds its groups. The search field (`_includes/toolbar.html`) is a form sent as it is typed in; an open search shows the cards matching what is typed and nothing while nothing is typed, and closing it gives back what the menu says. The grid is a list that grows as it is read: in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
 - The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
@@ -649,11 +644,11 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 **Changes that must reach the other player.** In a room some state is shared (the room document, `game/crdt.rs`), and a change one player makes has to be sent to the other. The engine cannot send anything; the page holds the connection. So:
 
 1. The engine route makes the change to the room document and queues the resulting update: `crdt::queue_for_peer(update)`.
-2. After every post, the engine's worker takes what is queued (`POST /api/room/outbox`) and posts it to the page as a `ROOM_UPDATES` message.
+2. After every post, the engine's worker takes what the engine has queued for the page (`POST /api/handover`, `kipukas-server/src/page.rs`) and posts the updates to the page as a `ROOM_UPDATES` message.
 3. `kipukas-multiplayer.js` sends each update to the other player, in the message the players already exchange (`yrs_update`).
-4. When an update arrives from the other player, the multiplayer script applies it and has the views drawn again (`kipukasViews.redraw('/api/game/turns')`).
+4. When an update arrives from the other player, the multiplayer script posts it to the engine (`/api/room/yrs/apply`) and does nothing more. The engine applies it and asks for the views that show the room to be drawn again (`page::redraw`, item 10 above): the timers, the fists dialog, and a card's panel if the update brought a lost round. Anything to send back (that a finished round was applied here) is queued as in step 1.
 
-A view's control is therefore the same in a room as out of one: the turn timer's form and buttons post to `/api/game/turns` either way, and `game/turns.rs` decides whether the change is to the player's own timers or the room's. An update that cannot be sent just now (the other player is away) is made up by the exchange of state the players do whenever they connect.
+A view's control is therefore the same in a room as out of one: the turn timer's form and buttons post to `/api/game/turns` either way, and `game/turns.rs` decides whether the change is to the player's own timers or the room's. And nothing in a room polls: a player waiting on the other sees the change when it arrives. An update that cannot be sent just now (the other player is away) is made up by the exchange of state the players do whenever they connect.
 
 **Views inside views.** Usually compose in Rust: the panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`, and a tap on the tracker redraws the panel it sits in.
 
@@ -683,7 +678,7 @@ A view may hold other views where each inner one should be drawn by itself: the 
 
 **When NOT to use it:**
 - Purely visual state the engine has no interest in (a menu or dialog being open): Alpine.
-- Fists in a room: its controls still go through the multiplayer script. A control whose change must reach the other player can be a view's, though: see "Changes that must reach the other player" below.
+- The room dialog (create, join, leave) and the status pill: they show the connection, which the page still holds (`kipukas-multiplayer.js`, `kipukas-link.js`). They move when the connection does.
 
 ---
 
@@ -897,7 +892,7 @@ Do not skip step 2. The site build compiles its own engine from the card files, 
 
 **Alpine vs HTMX decision (DOM residency model):**
 - Use **Alpine** for: always-in-DOM elements that need reactive appearance changes — visibility toggles, CSS class swaps, animations, transition states
-- Use **HTMX** for: nothing new. It still serves the room tools' modal content and is being replaced tool by tool
+- Use **HTMX** for: nothing new. It still serves the room dialog's contents (create, join, leave) and the QR scanner's status, and is being replaced
 - Use an **engine-owned view** for: content that shows game state — damage trackers, the solo turn timer, the affinity panel (see Pattern 13). Rust renders it, a tap asks Rust for a change, the page patches in the result. No Alpine scope, no HTMX swap
 - **Rust is the single source of truth** for all game state — components consult Rust directly, never localStorage or JS variables
 

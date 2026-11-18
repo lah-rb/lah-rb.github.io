@@ -3,15 +3,20 @@
 //! Shared state (timers, fists combat) lives in the room document, which the
 //! two players sync through the WebSocket relay; see `game::crdt` and `game::fists`.
 //! Local game state (damage, turns) remains per-user.
+//!
+//! A route here that changes what a view elsewhere on the page shows asks
+//! for that view to be drawn again (`page::redraw`): whose timers the turn
+//! tracker lists depends on being in a room, for one.
 
 use crate::catalog::CARDS;
+use crate::clock;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::fists;
 use crate::game::player_doc;
-use crate::game::room::{self, CombatRole, FistsSubmission};
+use crate::game::room::{self, CombatRole, FistsChoice, FistsSubmission};
 use crate::game::state::new_alarm_id;
-use crate::game::turns;
+use crate::page;
 use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
 use crate::typing;
 
@@ -113,6 +118,7 @@ pub fn handle_create_post(body: &str) -> String {
         r.player_id = player_id_or_new(player);
         r.peer_id.clear();
         r.fists.reset();
+        r.choice = FistsChoice::default();
     });
 
     // Initialize yrs CRDT Doc for this multiplayer session.
@@ -125,6 +131,8 @@ pub fn handle_create_post(body: &str) -> String {
     if !skip_seed {
         crdt::seed_from_local();
     }
+    // The turn tracker now lists the room's timers.
+    page::redraw("/api/game/turns");
 
     r#"<span class="text-emerald-600 text-sm">Room created. Waiting for peer...</span>"#
         .to_string()
@@ -148,6 +156,7 @@ pub fn handle_join_post(body: &str) -> String {
         r.player_id = player_id_or_new(player);
         r.peer_id.clear();
         r.fists.reset();
+        r.choice = FistsChoice::default();
     });
 
     // Initialize yrs CRDT Doc for this multiplayer session.
@@ -156,6 +165,8 @@ pub fn handle_join_post(body: &str) -> String {
     if !skip_seed {
         crdt::seed_from_local();
     }
+    // The turn tracker now lists the room's timers.
+    page::redraw("/api/game/turns");
 
     room::with_room(|r| render_waiting_status(r))
 }
@@ -224,19 +235,18 @@ fn player_id_or_new(player: &str) -> String {
 
 /// Record the opponent's id (from their hello). Only that player's entries
 /// then count as the opponent's submissions.
-/// Body: `id=<opponent's id>`. Returns JSON `{ phase, remote_ready }`.
+/// Body: `id=<opponent's id>`.
 pub fn handle_peer_post(body: &str) -> String {
     let params = parse_form_body(body);
     let id = get_param(&params, "id").unwrap_or("");
     if fists::is_valid_player_id(id) {
         room::with_room_mut(|r| r.peer_id = id.to_string());
     }
-    let view = sync_fists_view();
-    serde_json::json!({
-        "phase": view.phase().as_str(),
-        "remote_ready": view.remote_ready(),
-    })
-    .to_string()
+    sync_fists_view();
+    // Whose entries count as the opponent's has changed, and with it what
+    // the fists dialog shows.
+    page::redraw("/api/room/fists");
+    "ok".to_string()
 }
 
 // ── POST /api/room/connected ──────────────────────────────────────
@@ -255,6 +265,7 @@ pub fn handle_connected_post(body: &str) -> String {
             r.room_name = name.to_string();
         }
     });
+    page::redraw("/api/game/turns");
 
     room::with_room(|r| render_connected_status(r))
 }
@@ -269,6 +280,8 @@ pub fn handle_disconnect_post(_body: &str) -> String {
     crdt::export_to_local();
     room::reset_room();
     crdt::reset_doc();
+    // The turn tracker goes back to listing the player's own timers.
+    page::redraw("/api/game/turns");
     render_disconnected_status()
 }
 
@@ -286,10 +299,15 @@ pub fn handle_peer_left_post(_body: &str) -> String {
 
 // ── Fists combat ───────────────────────────────────────────────────
 //
-// Combat state lives in the room document (see `game::fists`). These routes
-// read this player's view of it and write this player's entries. Every route
-// that changes the document returns the change as an update for the page to
-// relay to the opponent.
+// Combat state lives in the room document (see `game::fists`). The fists
+// dialog is an engine-owned view of it (Pattern 13 in CONTRIBUTING.md): the
+// GET route draws this player's side of the round, and every control in the
+// dialog posts to the same route.
+//
+// A post that changes the room document queues the change for the opponent
+// (`crdt::queue_for_peer`). When the opponent's change arrives, the engine
+// asks for the dialog to be drawn again (`handle_yrs_apply_post`). The page
+// script takes no part in either.
 
 fn player_ids() -> (String, String) {
     room::with_room(|r| (r.player_id.clone(), r.peer_id.clone()))
@@ -311,21 +329,22 @@ fn sync_fists_view() -> fists::View {
 /// document, so a reload, a reconnect, or the opponent reporting the same
 /// result again cannot apply it a second time.
 ///
-/// Returns the cards whose damage changed, and whether the room document
-/// changed (so the caller knows there is an update to relay).
-fn settle_fists() -> (Vec<String>, bool) {
+/// Returns whether the room document changed (so the caller knows there is
+/// an update for the opponent).
+fn settle_fists() -> bool {
     let (me, peer) = player_ids();
     let pending = crdt::with_doc(|doc| fists::unsettled(doc, &me, &peer));
     let changed = !pending.is_empty();
-    let mut damaged = Vec::new();
     for p in pending {
         let marked = apply_outcome(&p);
         if marked {
-            damaged.push(p.mine.card().to_string());
+            // The card's panel, which shows its damage, is a view of its
+            // own elsewhere on the page.
+            page::redraw("/api/card/panel");
         }
         crdt::with_doc(|doc| fists::mark_settled(doc, p.round, &me, marked));
     }
-    (damaged, changed)
+    changed
 }
 
 /// Apply one finished round to this player's own card. Returns whether
@@ -349,25 +368,9 @@ fn apply_outcome(p: &fists::Pending) -> bool {
     }
 }
 
-/// JSON reply for the fists routes:
-///   html          the dialog contents
-///   update        room-document update to relay to the opponent ("" if none)
-///   damage        cards whose damage tracker needs refreshing
-///   phase         form | waiting | result | outcome
-///   remote_ready  the opponent has locked in
-fn fists_reply(html: &str, update: &str, damaged: &[String], view: &fists::View) -> String {
-    serde_json::json!({
-        "html": html,
-        "update": update,
-        "damage": damaged,
-        "phase": view.phase().as_str(),
-        "remote_ready": view.remote_ready(),
-    })
-    .to_string()
-}
-
 // ── GET /api/room/fists ────────────────────────────────────────────
 
+/// The fists dialog's contents for the page's card: `?card=<slug>`.
 pub fn handle_fists_get(query: &str) -> String {
     let params = parse_query(query);
     let slug = get_param(&params, "card").unwrap_or("");
@@ -389,29 +392,66 @@ fn render_fists_view(view: &fists::View, slug: &str) -> String {
         fists::Phase::Result => render_fists_result(),
         fists::Phase::Waiting => {
             if view.combat.local_final_blows.is_some() {
-                render_final_blows_waiting(slug)
+                render_final_blows_waiting()
             } else {
-                render_fists_waiting(slug)
+                render_fists_waiting()
             }
         }
-        fists::Phase::Form => {
-            let form = render_fists_form(slug);
-            if view.remote_ready() {
-                // Fill the form's message area (also what the page script
-                // writes to when the opponent locks in while the form is open).
-                form.replace(
-                    FISTS_MESSAGE_EMPTY,
-                    r#"<div id="fists-message" class="mt-2 text-center"><p class="text-sm text-emerald-600">&#x2713; Opponent has locked in their choice!</p></div>"#,
-                )
-            } else {
-                form
-            }
-        }
+        fists::Phase::Form => render_fists_form(slug, view),
     }
 }
 
-/// The empty message area the fists forms end with.
-const FISTS_MESSAGE_EMPTY: &str = r#"<div id="fists-message" class="mt-2 text-center"></div>"#;
+/// This player's picks for a card: those noted for it, or none yet.
+fn choice_for(slug: &str) -> FistsChoice {
+    room::with_room(|r| {
+        if r.choice.card == slug {
+            r.choice.clone()
+        } else {
+            FistsChoice {
+                card: slug.to_string(),
+                ..FistsChoice::default()
+            }
+        }
+    })
+}
+
+/// Forget this player's picks: the next form starts with nothing chosen.
+fn clear_choice() {
+    room::with_room_mut(|r| r.choice = FistsChoice::default());
+}
+
+/// The message area the forms end with: why locking in was refused, and
+/// whether the opponent has locked in and is waiting.
+fn fists_message(view: &fists::View, refusal: &str) -> String {
+    let mut h = String::from(r#"<div class="mt-2 text-center">"#);
+    if !refusal.is_empty() {
+        h.push_str(&format!(r#"<p class="text-sm text-kip-red">{}</p>"#, refusal));
+    }
+    if view.remote_ready() {
+        h.push_str(r#"<p class="text-sm text-emerald-600">&#x2713; Opponent has locked in their choice!</p>"#);
+    }
+    h.push_str("</div>");
+    h
+}
+
+/// For each of a card's keal means, in order, whether every damage slot of
+/// it is marked: such a keal means can no longer be fought with.
+fn exhausted_keal_means(card: &crate::catalog::Card) -> Vec<bool> {
+    let mut slot_start: u8 = 1;
+    card.keal_means
+        .iter()
+        .map(|km| {
+            let slots = slot_start..slot_start + km.count;
+            slot_start += km.count;
+            km.count > 0 && slots.into_iter().all(|s| player_doc::get_slot(card.slug, s))
+        })
+        .collect()
+}
+
+/// Whether a card can still fight with its keal means number `idx` (1-based).
+fn keal_means_is_open(card: &crate::catalog::Card, idx: u8) -> bool {
+    idx >= 1 && exhausted_keal_means(card).get(idx as usize - 1) == Some(&false)
+}
 
 /// Check if ALL keal means groups on a card are fully exhausted (every damage slot checked).
 fn all_keal_means_exhausted(slug: &str) -> bool {
@@ -436,7 +476,7 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
 
 /// Render Final Blows section for a card whose keal means are all exhausted.
 /// Shows local card motivation + D20 roll instruction + button to send to opponent.
-fn render_final_blows(card: &crate::catalog::Card) -> String {
+fn render_final_blows(card: &crate::catalog::Card, message: &str) -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(&format!(
@@ -469,53 +509,49 @@ fn render_final_blows(card: &crate::catalog::Card) -> String {
 
     // State Final Blows button
     h.push_str(&format!(
-        r#"<button onclick="kipukasMultiplayer.submitFinalBlows('{}')" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">State Final Blows to Opponent</button>"#,
+        r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=final&card={}" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">State Final Blows to Opponent</button>"#,
         card.slug
     ));
 
-    // Dedicated message area at the bottom
-    h.push_str(FISTS_MESSAGE_EMPTY);
+    h.push_str(message);
 
     h.push_str(r#"</div>"#);
     h
 }
 
 /// Render the "waiting for opponent" state when Final Blows has been stated.
-fn render_final_blows_waiting(slug: &str) -> String {
+fn render_final_blows_waiting() -> String {
     let mut h = String::with_capacity(512);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
     h.push_str(r#"<p class="text-lg font-bold mb-2">Final Blows Stated!</p>"#);
     h.push_str(r#"<div class="animate-pulse text-kip-red text-2xl mb-2">&#9876;</div>"#);
     h.push_str(r#"<p class="text-sm">Waiting for opponent to submit...</p>"#);
-    h.push_str(&waiting_controls(slug));
+    h.push_str(CANCEL_ROUND);
     h.push_str(r#"</div>"#);
     h
 }
 
-/// What both waiting views end with: a poll that swaps in the result when the
-/// opponent submits, and a way to call the round off.
-///
-/// The poll carries the page's card so that, if the opponent cancels the
-/// round, the form it falls back to is the form for this card.
-fn waiting_controls(slug: &str) -> String {
-    let mut h = String::with_capacity(512);
-    h.push_str(&format!(
-        r##"<div hx-get="/api/room/fists/poll?card={}" hx-trigger="every 2s" hx-target="#fists-container" hx-swap="innerHTML"></div>"##,
-        escape_html(slug)
-    ));
-    // Closing the dialog no longer cancels a round, so cancelling is explicit.
-    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="mt-4 text-xs underline text-slate-500 hover:text-kip-red cursor-pointer">Cancel round</button>"#);
-    h
-}
+/// What both waiting views end with: a way to call the round off. (Closing
+/// the dialog does not: the round carries on.) Nothing here asks whether the
+/// opponent has submitted yet: when they do, their change arrives and the
+/// dialog is drawn again.
+const CANCEL_ROUND: &str = r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=reset" class="mt-4 text-xs underline text-slate-500 hover:text-kip-red cursor-pointer">Cancel round</button>"#;
 
-fn render_fists_form(slug: &str) -> String {
+/// The form a round starts with: a role and a keal means to pick, and a
+/// button to lock them in.
+///
+/// A pick is posted to the engine like any other tap. The engine notes it
+/// (`choose`) and the form is drawn again with it checked, so the form can
+/// be drawn again whenever something changes, such as the opponent locking
+/// in, and the picks are still there.
+fn render_fists_form(slug: &str, view: &fists::View) -> String {
     let card = match find_card(slug) {
         Some(c) => c,
         None if slug.is_empty() => return render_fists_no_card(),
         None => {
             return format!(
                 r#"<div class="p-4"><span class="text-kip-red">Card not found: {}</span></div>"#,
-                slug
+                escape_html(slug)
             );
         }
     };
@@ -524,9 +560,12 @@ fn render_fists_form(slug: &str) -> String {
         return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm">This card has no keal means for combat.</p></div>"#.to_string();
     }
 
+    let choice = choice_for(card.slug);
+    let message = fists_message(view, &choice.refusal);
+
     // If all keal means are exhausted, show Final Blows instead of the normal form
     if all_keal_means_exhausted(slug) {
-        return render_final_blows(card);
+        return render_final_blows(card, &message);
     }
 
     let mut h = String::with_capacity(2048);
@@ -539,27 +578,26 @@ fn render_fists_form(slug: &str) -> String {
     // Role selector
     h.push_str(r#"<p class="text-sm mb-2 font-bold">Your Role:</p>"#);
     h.push_str(r#"<div class="flex gap-2 mb-3">"#);
-    h.push_str(r#"<label class="flex-1 text-center"><input type="radio" name="fists-role" value="attacking" class="mr-1 text-kip-red focus:ring-kip-red">Attacking</label>"#);
-    h.push_str(r#"<label class="flex-1 text-center"><input type="radio" name="fists-role" value="defending" class="mr-1 text-kip-red focus:ring-kip-red">Defending</label>"#);
+    for (value, label, role) in [
+        ("attacking", "Attacking", CombatRole::Attacking),
+        ("defending", "Defending", CombatRole::Defending),
+    ] {
+        h.push_str(&format!(
+            r#"<label class="flex-1 text-center"><input type="radio" name="fists-role" value="{value}" class="mr-1 text-kip-red focus:ring-kip-red" data-engine-post="/api/room/fists" data-engine-body="action=choose&card={slug}&role={value}"{checked}>{label}</label>"#,
+            slug = card.slug,
+            checked = if choice.role == Some(role) { " checked" } else { "" },
+        ));
+    }
     h.push_str(r#"</div>"#);
 
     // Keal means selector — disable groups where all damage slots are checked
     h.push_str(r#"<p class="text-sm mb-2 font-bold">Select Keal Means:</p>"#);
 
-    let mut slot_start: u8 = 1;
-    let mut idx: u8 = 1;
-    for km in card.keal_means {
-        // Check if all slots in this keal means group are checked (exhausted)
-        let all_checked = if km.count > 0 {
-            (slot_start..slot_start + km.count)
-                .all(|s| player_doc::get_slot(slug, s))
-        } else {
-            false
-        };
-        slot_start += km.count;
-
+    let exhausted = exhausted_keal_means(card);
+    for (place, km) in card.keal_means.iter().enumerate() {
+        let idx = place as u8 + 1;
         let genetics_str = km.genetics.join("-");
-        if all_checked {
+        if exhausted[place] {
             // Disabled: all checkboxes used up
             h.push_str(&format!(
                 r#"<label class="block mb-1 text-sm opacity-40 line-through"><input type="radio" name="fists-keal" value="{}" class="mr-1" disabled><span class="font-bold">{}</span> <span class="text-xs">({})</span></label>"#,
@@ -567,21 +605,21 @@ fn render_fists_form(slug: &str) -> String {
             ));
         } else {
             h.push_str(&format!(
-                r#"<label class="block mb-1 text-sm"><input type="radio" name="fists-keal" value="{}" class="mr-1 text-kip-red focus:ring-kip-red"><span class="text-kip-red font-bold">{}</span> <span class="text-xs">({})</span></label>"#,
-                idx, km.name, genetics_str
+                r#"<label class="block mb-1 text-sm"><input type="radio" name="fists-keal" value="{idx}" class="mr-1 text-kip-red focus:ring-kip-red" data-engine-post="/api/room/fists" data-engine-body="action=choose&card={slug}&keal={idx}"{checked}><span class="text-kip-red font-bold">{name}</span> <span class="text-xs">({genetics_str})</span></label>"#,
+                slug = card.slug,
+                checked = if choice.keal_idx == Some(idx) { " checked" } else { "" },
+                name = km.name,
             ));
         }
-        idx += 1;
     }
 
-    // Submit button
+    // Lock In button
     h.push_str(&format!(
-        r#"<button onclick="kipukasMultiplayer.submitFists('{}')" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mt-3 text-sm">Lock In Choice</button>"#,
-        slug
+        r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=lock&card={}" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mt-3 text-sm">Lock In Choice</button>"#,
+        card.slug
     ));
 
-    // Dedicated message area at the bottom (used by JS for status messages)
-    h.push_str(FISTS_MESSAGE_EMPTY);
+    h.push_str(&message);
 
     h.push_str(r#"</div>"#);
     h
@@ -591,13 +629,13 @@ fn render_fists_no_card() -> String {
     r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm">Navigate to a Character or Species card page, then open the Fists tool to select your keal means for combat.</p></div>"#.to_string()
 }
 
-fn render_fists_waiting(slug: &str) -> String {
+fn render_fists_waiting() -> String {
     let mut h = String::with_capacity(512);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
     h.push_str(r#"<p class="text-lg font-bold mb-2">Choice Locked In!</p>"#);
     h.push_str(r#"<div class="animate-pulse text-kip-red text-2xl mb-2">&#9876;</div>"#);
     h.push_str(r#"<p class="text-sm">Waiting for opponent...</p>"#);
-    h.push_str(&waiting_controls(slug));
+    h.push_str(CANCEL_ROUND);
     h.push_str(r#"</div>"#);
     h
 }
@@ -612,195 +650,188 @@ fn render_role_conflict(role_name: &str) -> String {
         role_name
     ));
     h.push_str(r#"<p class="text-sm mb-4">One player must be <strong>Attacking</strong> and the other <strong>Defending</strong>. Please try again with different roles.</p>"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
+    h.push_str(r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=reset" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">Try Again</button>"#);
     h.push_str(r#"</div>"#);
     h
 }
 
 // ── POST /api/room/fists ───────────────────────────────────────────
 
-/// Lock in this player's choice for the round.
-/// Body: `role=attacking|defending&card=<slug>&keal=<n>&today=<yyyy-mm-dd>`
-/// Returns the fists JSON reply (see `fists_reply`).
+/// A tap in the fists dialog. Body:
+///
+///   - action=choose&card=<slug>&role=attacking|defending   pick a role
+///   - action=choose&card=<slug>&keal=<n>                   pick a keal means
+///   - action=lock&card=<slug>                              lock the picks in
+///   - action=final&card=<slug>                             state Final Blows
+///   - action=outcome&won=yes|no                            answer "Did you win?"
+///   - action=reset          New Round, Try Again, Cancel round
+///   - action=close          the dialog was closed
+///
+/// Returns nothing: the dialog is drawn again from the GET route.
 pub fn handle_fists_post(body: &str) -> String {
     let params = parse_form_body(body);
-    let role_str = get_param(&params, "role").unwrap_or("");
-    let card = get_param(&params, "card").unwrap_or("");
-    let keal_str = get_param(&params, "keal").unwrap_or("1");
-    let today = get_param(&params, "today").unwrap_or("");
-
-    let role = match role_str {
-        "attacking" => CombatRole::Attacking,
-        "defending" => CombatRole::Defending,
-        _ => {
-            return fists_error("Please select Attacking or Defending");
+    if room::in_room() {
+        let card = get_param(&params, "card").unwrap_or("");
+        match get_param(&params, "action").unwrap_or("") {
+            "choose" => choose(card, get_param(&params, "role"), get_param(&params, "keal")),
+            "lock" => lock_in(card),
+            "final" => state_final_blows(card),
+            "outcome" => answer_did_you_win(get_param(&params, "won").unwrap_or("")),
+            "reset" => start_new_round(),
+            "close" => close_dialog(),
+            _ => {}
         }
+    }
+    String::new()
+}
+
+/// Note a pick made in the form. Nothing is shared: the opponent learns of a
+/// choice when it is locked in.
+fn choose(slug: &str, role: Option<&str>, keal: Option<&str>) {
+    let Some(card) = find_card(slug) else {
+        return;
+    };
+    let mut choice = choice_for(card.slug);
+    choice.refusal.clear();
+    match role {
+        Some("attacking") => choice.role = Some(CombatRole::Attacking),
+        Some("defending") => choice.role = Some(CombatRole::Defending),
+        _ => {}
+    }
+    if let Some(idx) = keal.and_then(|k| k.parse::<u8>().ok()) {
+        if keal_means_is_open(card, idx) {
+            choice.keal_idx = Some(idx);
+        }
+    }
+    room::with_room_mut(|r| r.choice = choice);
+}
+
+/// A Character or Species card used in combat grows more loyal, once a day.
+fn count_loyalty(card: &crate::catalog::Card) {
+    if card.layout == "Character" || card.layout == "Species" {
+        let plays = || player_doc::get_loyalty(card.slug).map(|(plays, _)| plays);
+        let before = plays();
+        let _ = player_doc::increment_loyalty(card.slug, &clock::today());
+        if plays() != before {
+            // The card's panel shows its loyalty.
+            page::redraw("/api/card/panel");
+        }
+    }
+}
+
+/// Lock in this player's picks for the round, or say what is still to pick.
+fn lock_in(slug: &str) {
+    let Some(card) = find_card(slug) else {
+        return;
+    };
+    // Only the form locks in: a second tap that was on its way when the
+    // first changed the screen asks for nothing.
+    if sync_fists_view().phase() != fists::Phase::Form {
+        return;
+    }
+
+    let mut choice = choice_for(card.slug);
+    let keal_idx = choice.keal_idx.filter(|idx| keal_means_is_open(card, *idx));
+    let (Some(role), Some(keal_idx)) = (choice.role, keal_idx) else {
+        choice.refusal = if choice.role.is_none() {
+            "Please select Attacking or Defending."
+        } else {
+            "Please select a Keal Means."
+        }
+        .to_string();
+        room::with_room_mut(|r| r.choice = choice);
+        return;
     };
 
-    let keal_idx: u8 = keal_str.parse().unwrap_or(1);
-
-    if card.is_empty() {
-        return fists_error("Missing card");
-    }
-
-    // Phase C: Increment loyalty for Character/Species cards used in combat
-    if !today.is_empty() {
-        if let Some(c) = find_card(card) {
-            if c.layout == "Character" || c.layout == "Species" {
-                let _ = player_doc::increment_loyalty(card, today);
-            }
-        }
-    }
+    count_loyalty(card);
 
     let (me, peer) = player_ids();
     let submission = FistsSubmission {
         role,
-        card: card.to_string(),
+        card: card.slug.to_string(),
         keal_idx,
     };
-    let update = crdt::capture_update(|| {
+    crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::submit(doc, &me, &peer, submission));
         true
-    });
-
-    let view = sync_fists_view();
-    fists_reply(&render_fists_view(&view, card), &update, &[], &view)
+    }));
+    clear_choice();
+    sync_fists_view();
 }
-
-/// A fists reply carrying only a message (nothing changed).
-fn fists_error(message: &str) -> String {
-    let view = sync_fists_view();
-    fists_reply(
-        &format!(r#"<span class="text-kip-red text-sm">{}</span>"#, message),
-        "",
-        &[],
-        &view,
-    )
-}
-
-// ── GET /api/room/fists/poll ───────────────────────────────────────
-
-/// Polled by the waiting view. Returns whatever this player should see now:
-/// still waiting, the result, or (if the opponent cancelled) the form again.
-pub fn handle_fists_poll_get(query: &str) -> String {
-    let params = parse_query(query);
-    let slug = get_param(&params, "card").unwrap_or("");
-    render_fists_view(&sync_fists_view(), slug)
-}
-
-// ── POST /api/room/fists/final ─────────────────────────────────────
 
 /// State Final Blows for a card whose keal means are all exhausted.
-/// Body: `card=<slug>&today=<yyyy-mm-dd>`. Returns the fists JSON reply.
-pub fn handle_final_blows_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let card = get_param(&params, "card").unwrap_or("");
-    let today = get_param(&params, "today").unwrap_or("");
-
-    if card.is_empty() {
-        return fists_error("Missing card");
+fn state_final_blows(slug: &str) {
+    let Some(card) = find_card(slug) else {
+        return;
+    };
+    if sync_fists_view().phase() != fists::Phase::Form || !all_keal_means_exhausted(slug) {
+        return;
     }
 
-    // Phase C: Increment loyalty for Character/Species cards used in Final Blows
-    if !today.is_empty() {
-        if let Some(c) = find_card(card) {
-            if c.layout == "Character" || c.layout == "Species" {
-                let _ = player_doc::increment_loyalty(card, today);
-            }
-        }
-    }
+    count_loyalty(card);
 
     let (me, peer) = player_ids();
     let submission = room::FinalBlowsSubmission {
-        card: card.to_string(),
+        card: card.slug.to_string(),
     };
-    let update = crdt::capture_update(|| {
+    crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::final_blows(doc, &me, &peer, submission));
         true
-    });
-
-    let view = sync_fists_view();
-    fists_reply(&render_fists_view(&view, card), &update, &[], &view)
+    }));
+    clear_choice();
+    sync_fists_view();
 }
-
-// ── POST /api/room/fists/reset ─────────────────────────────────────
 
 /// Start a new round for both players: "New Round", "Try Again" and
-/// "Cancel round". Returns the fists JSON reply.
-pub fn handle_fists_reset_post(_body: &str) -> String {
+/// "Cancel round".
+fn start_new_round() {
     let (me, _) = player_ids();
-    let update = crdt::capture_update(|| crdt::with_doc(|doc| fists::new_round(doc, &me)));
-    let view = sync_fists_view();
-    fists_reply(
-        r#"<div class="p-4 text-center text-emerald-600 text-sm">Combat reset. Ready for next round.</div>"#,
-        &update,
-        &[],
-        &view,
-    )
+    crdt::queue_for_peer(crdt::capture_update(|| {
+        crdt::with_doc(|doc| fists::new_round(doc, &me))
+    }));
+    clear_choice();
+    sync_fists_view();
 }
-
-// ── POST /api/room/fists/close ─────────────────────────────────────
 
 /// The fists dialog was closed. A round in progress carries on untouched; a
 /// finished round gives way to a new one so reopening shows a fresh form.
-/// Returns the fists JSON reply (with empty html).
-pub fn handle_fists_close_post(_body: &str) -> String {
+/// Picks that were not locked in are dropped.
+fn close_dialog() {
     let (me, peer) = player_ids();
-    let update = crdt::capture_update(|| crdt::with_doc(|doc| fists::close(doc, &me, &peer)));
-    let view = sync_fists_view();
-    fists_reply("", &update, &[], &view)
+    crdt::queue_for_peer(crdt::capture_update(|| {
+        crdt::with_doc(|doc| fists::close(doc, &me, &peer))
+    }));
+    clear_choice();
+    sync_fists_view();
 }
 
-// ── POST /api/room/fists/outcome ───────────────────────────────────
-
-/// Handle this player's answer to "Did you win?".
-/// Body: `won=yes|no`. Returns the fists JSON reply.
+/// This player's answer to "Did you win?": `yes` or `no`.
 ///
 /// The answer is recorded in the room document as `attacker_won`, which is
 /// how the opponent learns of it. This player's side of the round is then
 /// applied: if the attacker won and this player defended, the next unchecked
 /// slot of the keal means used is marked on their card (see `settle_fists`).
-pub fn handle_fists_outcome_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let won = get_param(&params, "won").unwrap_or("");
-
+fn answer_did_you_win(won: &str) {
     let view = sync_fists_view();
     // For Final Blows (no regular submission) the Final Blows card defends.
     let Some(local_role) = view.mine.as_ref().and_then(|e| e.role()) else {
-        return fists_reply(
-            r#"<div class="p-4 text-kip-red text-sm">Error: No combat data.</div>"#,
-            "",
-            &[],
-            &view,
-        );
+        return;
     };
-
     let attacker_won = match (local_role, won) {
         (CombatRole::Attacking, "yes") => true,
         (CombatRole::Attacking, "no") => false,
         (CombatRole::Defending, "yes") => false,
         (CombatRole::Defending, "no") => true,
-        _ => {
-            return fists_reply(
-                r#"<div class="p-4 text-kip-red text-sm">Error: Missing outcome param.</div>"#,
-                "",
-                &[],
-                &view,
-            );
-        }
+        _ => return,
     };
 
     let (me, _) = player_ids();
-    let mut damaged = Vec::new();
-    let update = crdt::capture_update(|| {
+    crdt::queue_for_peer(crdt::capture_update(|| {
         let reported = crdt::with_doc(|doc| fists::report_outcome(doc, &me, attacker_won));
-        let (cards, settled) = settle_fists();
-        damaged = cards;
+        let settled = settle_fists();
         reported || settled
-    });
-
-    let view = sync_fists_view();
-    fists_reply(&render_fists_view(&view, ""), &update, &damaged, &view)
+    }));
+    sync_fists_view();
 }
 
 /// The outcome screen for this player. Pure: applying the outcome (marking
@@ -811,7 +842,7 @@ fn render_fists_outcome(view: &fists::View) -> String {
     let is_final_blows = view.combat.is_final_blows();
     let local_card = mine.card();
 
-    const NEW_ROUND: &str = r#"<button onclick="kipukasMultiplayer.resetFists()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#;
+    const NEW_ROUND: &str = r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=reset" class="w-full bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">New Round</button>"#;
 
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna text-center">"#);
@@ -932,54 +963,33 @@ pub fn handle_yrs_diff_post(body: &str) -> String {
 
 /// POST /api/room/yrs/apply — apply a base64-encoded update from peer.
 ///
-/// The update may carry timers, combat, or both. Returns JSON:
-///   alarms        refreshed alarm list HTML
-///   phase         this player's fists phase after the update
-///   remote_ready  the opponent has locked in
-///   update        a follow-up update to relay back ("" if none): applying a
-///                 finished round records that it was applied
-///   damage        cards whose damage tracker needs refreshing
-/// or `{ "error": "..." }`.
+/// The update may carry timers, combat, or both. Returns `ok`, or
+/// `{ "error": "..." }`.
+///
+/// What follows from it is queued for the page (see `crate::page`): the
+/// views that show the room's state are drawn again, and so are the card
+/// panels if the update delivered a lost round, to show the damage.
 pub fn handle_yrs_apply_post(body: &str) -> String {
     let params = parse_form_body(body);
     let update = get_param(&params, "update").unwrap_or(body.trim());
     match crdt::apply_update(update) {
         Ok(()) => {
             // Keep PLAYER_DOC in sync with what the peer changed, the same as
-            // the local mutation routes below do. If the session ends without
-            // a clean disconnect, this player's own timers are still current.
+            // this player's own changes do. If the session ends without a
+            // clean disconnect, this player's own timers are still current.
             crdt::export_to_local();
 
-            // The update may have delivered the outcome of a round.
-            let mut damaged = Vec::new();
-            let reply = crdt::capture_update(|| {
-                let (cards, changed) = settle_fists();
-                damaged = cards;
-                changed
-            });
+            // The update may have delivered the outcome of a round. Applying
+            // it is recorded in the room document, and that is sent back.
+            crdt::queue_for_peer(crdt::capture_update(settle_fists));
+            sync_fists_view();
 
-            let view = sync_fists_view();
-            serde_json::json!({
-                "alarms": turns::render_alarm_list(),
-                "phase": view.phase().as_str(),
-                "remote_ready": view.remote_ready(),
-                "update": reply,
-                "damage": damaged,
-            })
-            .to_string()
+            page::redraw("/api/game/turns");
+            page::redraw("/api/room/fists");
+            "ok".to_string()
         }
         Err(e) => serde_json::json!({ "error": e }).to_string(),
     }
-}
-
-/// POST /api/room/outbox — take the room-document updates queued for the
-/// other player (see `crdt::queue_for_peer`). Returns a JSON array of base64
-/// updates, oldest first, and empties the queue.
-///
-/// The engine's worker calls this after every post and hands what it gets to
-/// the page, which holds the connection.
-pub fn handle_outbox_post(_body: &str) -> String {
-    serde_json::json!(crdt::take_outbox()).to_string()
 }
 
 /// GET /api/room/yrs/state — return the full CRDT Doc state as URL-safe base64.
@@ -1001,6 +1011,18 @@ pub fn handle_yrs_restore_post(body: &str) -> String {
 }
 
 // ── Result rendering ───────────────────────────────────────────────
+
+/// What both result screens end with. Each player answers for themselves;
+/// see `answer_did_you_win`.
+const DID_YOU_WIN: &str = concat!(
+    r#"<div class="mt-3 border-t border-slate-300 pt-3">"#,
+    r#"<p class="text-sm font-bold text-center mb-2">Did you win?</p>"#,
+    r#"<div class="flex gap-2">"#,
+    r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=outcome&won=yes" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">Yes!</button>"#,
+    r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=outcome&won=no" class="flex-1 bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">No</button>"#,
+    r#"</div>"#,
+    r#"</div>"#,
+);
 
 fn render_fists_result() -> String {
     room::with_room(|r| {
@@ -1236,13 +1258,7 @@ fn render_final_blows_result() -> String {
     h.push_str(r#"</div>"#); // close unified Final Blows info box
 
     // "Did you win?" outcome buttons
-    h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
-    h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Did you win?</p>"#);
-    h.push_str(r#"<div class="flex gap-2">"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('yes')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">Yes!</button>"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('no')" class="flex-1 bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">No</button>"#);
-    h.push_str(r#"</div>"#);
-    h.push_str(r#"</div>"#);
+    h.push_str(DID_YOU_WIN);
 
     h.push_str(r#"</div>"#);
     h
@@ -1425,13 +1441,7 @@ fn build_result_html(
     }
 
     // "Did you win?" outcome buttons
-    h.push_str(r#"<div class="mt-3 border-t border-slate-300 pt-3">"#);
-    h.push_str(r#"<p class="text-sm font-bold text-center mb-2">Did you win?</p>"#);
-    h.push_str(r#"<div class="flex gap-2">"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('yes')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-amber-50 font-bold py-2 px-4 rounded text-sm">Yes!</button>"#);
-    h.push_str(r#"<button onclick="kipukasMultiplayer.reportOutcome('no')" class="flex-1 bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">No</button>"#);
-    h.push_str(r#"</div>"#);
-    h.push_str(r#"</div>"#);
+    h.push_str(DID_YOU_WIN);
 
     h.push_str(r#"</div>"#);
     h
@@ -1448,25 +1458,35 @@ mod tests {
 
     const ME: &str = "me";
     const THEM: &str = "them";
+    const BROX: &str = "?card=brox_the_defiant";
 
     fn reset() {
         room::reset_room();
         crdt::reset_doc();
+        crdt::take_outbox();
+        page::take_redraws();
         crate::game::player_doc::init_player_doc();
     }
 
     /// Put this player in a room as ME, with the opponent known as THEM.
     /// The opponent is not marked connected: none of the fists routes need
-    /// them to be.
+    /// them to be. Nothing is left queued for the page.
     fn enter_room() {
         handle_create_post(&format!("code=ABCD&name=Test&player={}", ME));
         handle_peer_post(&format!("id={}", THEM));
+        handed_over();
+    }
+
+    /// What the engine has queued for the page since this was last asked:
+    /// how many updates for the opponent, and the routes to draw again.
+    fn handed_over() -> (usize, Vec<&'static str>) {
+        (crdt::take_outbox().len(), page::take_redraws())
     }
 
     /// Act as the opponent's device: start from the room document as we have
     /// it, change it with `f`, and deliver the change the way the relay
-    /// would, as a peer update. Returns the JSON reply of the apply route.
-    fn opponent(f: impl FnOnce(&Doc)) -> serde_json::Value {
+    /// would, as a peer update.
+    fn opponent(f: impl FnOnce(&Doc)) {
         let theirs = Doc::new();
         let ours = URL_SAFE_NO_PAD.decode(crdt::encode_full_state()).unwrap();
         theirs
@@ -1477,15 +1497,47 @@ mod tests {
         f(&theirs);
         let diff = theirs.transact().encode_diff_v1(&before);
         let reply = handle_yrs_apply_post(&format!("update={}", URL_SAFE_NO_PAD.encode(diff)));
-        serde_json::from_str(&reply).expect("apply returns JSON")
+        assert_eq!(reply, "ok");
     }
 
-    fn json(reply: &str) -> serde_json::Value {
-        serde_json::from_str(reply).expect("fists routes return JSON")
+    /// A tap in the fists dialog on Brox's page, and what the dialog then
+    /// shows: the page posts, then draws the view again.
+    fn tap(body: &str) -> String {
+        assert_eq!(handle_fists_post(body), "");
+        handle_fists_get(BROX)
     }
 
-    fn html(reply: &serde_json::Value) -> &str {
-        reply["html"].as_str().unwrap_or("")
+    /// Pick a role and Brox's first keal means, and lock them in.
+    fn lock_in_brox(role: &str) -> String {
+        tap(&format!("action=choose&card=brox_the_defiant&role={}", role));
+        tap("action=choose&card=brox_the_defiant&keal=1");
+        tap("action=lock&card=brox_the_defiant")
+    }
+
+    /// The values of the radio buttons a drawing of the form shows checked.
+    fn checked(html: &str) -> Vec<String> {
+        html.split("<input")
+            .skip(1)
+            .filter_map(|rest| {
+                let tag = rest.split('>').next()?;
+                if !tag.ends_with(" checked") {
+                    return None;
+                }
+                let value = tag.split("value=\"").nth(1)?.split('"').next()?;
+                Some(value.to_string())
+            })
+            .collect()
+    }
+
+    /// Mark every damage slot of one of Brox's keal means (1-based).
+    fn exhaust_brox_keal_means(idx: usize) {
+        let card = find_card("brox_the_defiant").unwrap();
+        let total: u8 = card.keal_means.iter().map(|k| k.count).sum();
+        damage::ensure_card_state("brox_the_defiant", total);
+        let before: u8 = card.keal_means[..idx - 1].iter().map(|k| k.count).sum();
+        for slot in before + 1..=before + card.keal_means[idx - 1].count {
+            damage::toggle_slot("brox_the_defiant", slot);
+        }
     }
 
     fn their_attack(card: &str) -> FistsSubmission {
@@ -1558,13 +1610,36 @@ mod tests {
         crdt::reset_doc(); // our own doc starts empty
 
         assert!(crate::game::player_doc::get_alarms().is_empty());
-        handle_yrs_apply_post(&format!("update={}", update));
+        assert_eq!(handle_yrs_apply_post(&format!("update={}", update)), "ok");
 
         let local = crate::game::player_doc::get_alarms();
         assert_eq!(local.len(), 1);
         assert_eq!(local[0].name, "from peer");
         assert_eq!(local[0].remaining, 6);
         crdt::reset_doc();
+        reset();
+    }
+
+    #[test]
+    fn applying_a_peer_update_asks_for_the_rooms_views_to_be_drawn_again() {
+        reset();
+        enter_room();
+        opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
+        });
+        let (updates, redraw) = handed_over();
+        assert_eq!(updates, 0, "nothing to send back");
+        assert_eq!(redraw, ["/api/game/turns", "/api/room/fists"]);
+        reset();
+    }
+
+    #[test]
+    fn a_peer_update_that_cannot_be_read_is_an_error_and_asks_for_nothing() {
+        reset();
+        enter_room();
+        let reply = handle_yrs_apply_post("update=not-an-update");
+        assert!(reply.contains("error"));
+        assert_eq!(handed_over(), (0, vec![]));
         reset();
     }
 
@@ -1612,6 +1687,31 @@ mod tests {
     }
 
     #[test]
+    fn entering_and_leaving_a_room_draws_the_turn_tracker_again() {
+        reset();
+        handle_create_post("code=ABCD&name=Test");
+        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        handle_connected_post("code=ABCD&name=Test");
+        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        handle_disconnect_post("");
+        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        handle_join_post("code=WXYZ&name=Other");
+        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        reset();
+    }
+
+    #[test]
+    fn learning_who_the_opponent_is_draws_the_fists_dialog_again() {
+        reset();
+        handle_create_post(&format!("code=ABCD&name=Test&player={}", ME));
+        handed_over();
+        assert_eq!(handle_peer_post(&format!("id={}", THEM)), "ok");
+        assert_eq!(page::take_redraws(), ["/api/room/fists"]);
+        room::with_room(|r| assert_eq!(r.peer_id, THEM));
+        reset();
+    }
+
+    #[test]
     fn fists_role_conflict_shows_try_again() {
         reset();
         room::with_room_mut(|r| {
@@ -1630,7 +1730,7 @@ mod tests {
         let html = render_fists_result();
         assert!(html.contains("Both players chose Attacking"));
         assert!(html.contains("Try Again"));
-        assert!(html.contains("resetFists"));
+        assert!(html.contains(r#"data-engine-body="action=reset""#));
         reset();
     }
 
@@ -1649,8 +1749,22 @@ mod tests {
     #[test]
     fn fists_get_not_connected() {
         reset();
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Not connected"));
+        reset();
+    }
+
+    #[test]
+    fn a_tap_outside_a_room_does_nothing() {
+        reset();
+        handle_fists_post("action=choose&card=brox_the_defiant&role=attacking");
+        handle_fists_post("action=lock&card=brox_the_defiant");
+        handle_fists_post("action=close");
+        room::with_room(|r| {
+            assert!(r.choice.role.is_none());
+            assert!(r.choice.refusal.is_empty());
+        });
+        assert_eq!(handed_over(), (0, vec![]));
         reset();
     }
 
@@ -1659,42 +1773,176 @@ mod tests {
         reset();
         enter_room();
         assert!(!room::is_peer_connected());
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Brox The Defiant"));
         assert!(html.contains("Crushing Hope"));
         assert!(html.contains("Chain Raid"));
         assert!(html.contains("Attacking"));
         assert!(html.contains("Defending"));
+        assert!(checked(&html).is_empty(), "nothing is picked to begin with");
         reset();
     }
 
     #[test]
-    fn fists_post_locks_in_and_returns_an_update_to_relay() {
+    fn the_dialog_asks_nothing_of_the_page_script_and_does_not_poll() {
         reset();
         enter_room();
-        let reply = json(&handle_fists_post("role=attacking&card=brox_the_defiant&keal=1"));
-        assert!(html(&reply).contains("Waiting for opponent"));
-        assert!(html(&reply).contains("Cancel round"));
-        // The poll keeps the page's card so a cancelled round falls back to its form.
-        assert!(html(&reply).contains("/api/room/fists/poll?card=brox_the_defiant"));
-        assert_eq!(reply["phase"], "waiting");
-        assert!(!reply["update"].as_str().unwrap().is_empty());
+        let form = handle_fists_get(BROX);
+        let waiting = lock_in_brox("attacking");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        let result = handle_fists_get(BROX);
+        let outcome = tap("action=outcome&won=yes");
+        for html in [form, waiting, result, outcome] {
+            assert!(!html.contains("onclick"));
+            assert!(!html.contains("kipukasMultiplayer"));
+            assert!(!html.contains("hx-"));
+        }
+        reset();
+    }
+
+    #[test]
+    fn a_pick_is_noted_and_drawn_checked_and_is_not_shared() {
+        reset();
+        enter_room();
+        let html = tap("action=choose&card=brox_the_defiant&role=defending");
+        assert_eq!(checked(&html), ["defending"]);
+        let html = tap("action=choose&card=brox_the_defiant&keal=2");
+        assert_eq!(checked(&html), ["defending", "2"]);
+
+        // Changing one's mind replaces the pick.
+        let html = tap("action=choose&card=brox_the_defiant&role=attacking");
+        assert_eq!(checked(&html), ["attacking", "2"]);
+
+        assert_eq!(handed_over(), (0, vec![]), "the opponent is told nothing yet");
+        reset();
+    }
+
+    #[test]
+    fn picks_made_for_another_card_do_not_count() {
+        reset();
+        enter_room();
+        handle_fists_post("action=choose&card=liliel_healing_fairy&role=attacking");
+        let html = handle_fists_get(BROX);
+        assert!(checked(&html).is_empty());
+
+        // Nor does a pick that names no card of the catalog, or no such
+        // role or keal means.
+        tap("action=choose&card=no_such_card&role=attacking");
+        tap("action=choose&card=brox_the_defiant&role=sideways");
+        let html = tap("action=choose&card=brox_the_defiant&keal=9");
+        assert!(checked(&html).is_empty());
+        reset();
+    }
+
+    #[test]
+    fn the_picks_survive_the_form_being_drawn_again() {
+        reset();
+        enter_room();
+        tap("action=choose&card=brox_the_defiant&role=attacking");
+        // The opponent locks in while this player is still choosing: the
+        // dialog is drawn again, and must not lose what was picked.
+        opponent(|doc| {
+            fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
+        });
+        let html = handle_fists_get(BROX);
+        assert!(html.contains("Lock In Choice"));
+        assert!(html.contains("Opponent has locked in their choice"));
+        assert_eq!(checked(&html), ["attacking"]);
+        reset();
+    }
+
+    #[test]
+    fn locking_in_queues_the_choice_for_the_opponent() {
+        reset();
+        enter_room();
+        let html = lock_in_brox("attacking");
+        assert!(html.contains("Waiting for opponent"));
+        assert!(html.contains("Cancel round"));
+        assert_eq!(handed_over().0, 1);
         room::with_room(|r| {
             let local = r.fists.local.as_ref().unwrap();
             assert_eq!(local.role, CombatRole::Attacking);
             assert_eq!(local.card, "brox_the_defiant");
+            assert_eq!(local.keal_idx, 1);
+            assert!(r.choice.role.is_none(), "the picks are spent");
         });
         reset();
     }
 
     #[test]
-    fn fists_post_rejects_a_missing_role_without_changing_anything() {
+    fn a_cards_first_fight_of_the_day_counts_towards_its_loyalty_and_shows_on_its_panel() {
         reset();
         enter_room();
-        let reply = json(&handle_fists_post("card=brox_the_defiant&keal=1"));
-        assert!(html(&reply).contains("Please select Attacking or Defending"));
-        assert_eq!(reply["update"], "");
-        assert_eq!(reply["phase"], "form");
+        assert!(player_doc::get_loyalty("brox_the_defiant").is_none());
+        lock_in_brox("attacking");
+        assert_eq!(player_doc::get_loyalty("brox_the_defiant").unwrap().0, 1);
+        assert_eq!(handed_over(), (1, vec!["/api/card/panel"]));
+
+        // A second fight the same day counts nothing, and draws nothing again.
+        tap("action=reset");
+        handed_over();
+        lock_in_brox("defending");
+        assert_eq!(player_doc::get_loyalty("brox_the_defiant").unwrap().0, 1);
+        assert_eq!(handed_over(), (1, vec![]));
+        reset();
+    }
+
+    #[test]
+    fn locking_in_says_what_is_still_to_pick_and_changes_nothing() {
+        reset();
+        enter_room();
+        let html = tap("action=lock&card=brox_the_defiant");
+        assert!(html.contains("Please select Attacking or Defending."));
+        assert!(html.contains("Lock In Choice"));
+
+        // A pick clears the message.
+        let html = tap("action=choose&card=brox_the_defiant&role=attacking");
+        assert!(!html.contains("Please select"));
+
+        let html = tap("action=lock&card=brox_the_defiant");
+        assert!(html.contains("Please select a Keal Means."));
+        assert_eq!(checked(&html), ["attacking"], "the role picked is still picked");
+
+        assert_eq!(handed_over(), (0, vec![]));
+        room::with_room(|r| assert!(r.fists.local.is_none()));
+        reset();
+    }
+
+    #[test]
+    fn an_exhausted_keal_means_cannot_be_picked_or_locked_in() {
+        reset();
+        enter_room();
+        exhaust_brox_keal_means(1);
+        let html = tap("action=choose&card=brox_the_defiant&keal=1");
+        assert!(checked(&html).is_empty());
+
+        // One that was picked and has run out since no longer counts.
+        tap("action=choose&card=brox_the_defiant&role=attacking");
+        let html = tap("action=choose&card=brox_the_defiant&keal=2");
+        assert_eq!(checked(&html), ["attacking", "2"]);
+        exhaust_brox_keal_means(2);
+        // (Every keal means is now exhausted, so the form is Final Blows.)
+        let html = tap("action=lock&card=brox_the_defiant");
+        assert!(html.contains("Please select a Keal Means."));
+        assert_eq!(handed_over(), (0, vec![]));
+        reset();
+    }
+
+    #[test]
+    fn a_second_tap_on_lock_in_asks_for_nothing() {
+        reset();
+        enter_room();
+        lock_in_brox("attacking");
+        handed_over();
+
+        let html = tap("action=lock&card=brox_the_defiant");
+        assert!(html.contains("Waiting for opponent"));
+        assert_eq!(handed_over(), (0, vec![]));
+
+        // And leaves no complaint behind for the next form.
+        let html = tap("action=reset");
+        assert!(html.contains("Lock In Choice"));
+        assert!(!html.contains("Please select"));
         reset();
     }
 
@@ -1702,13 +1950,15 @@ mod tests {
     fn the_opponents_submission_completes_the_round() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
-        let reply = opponent(|doc| {
+        lock_in_brox("attacking");
+        handed_over();
+        opponent(|doc| {
             fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
         });
-        assert_eq!(reply["phase"], "result");
-        assert_eq!(reply["update"], "", "nothing to send back");
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let (updates, redraw) = handed_over();
+        assert_eq!(updates, 0, "nothing to send back");
+        assert!(redraw.contains(&"/api/room/fists"));
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Combat Result"));
         assert!(html.contains("Did you win"));
         reset();
@@ -1718,29 +1968,27 @@ mod tests {
     fn the_opponent_locking_in_first_is_noted_on_the_form() {
         reset();
         enter_room();
-        let reply = opponent(|doc| {
+        opponent(|doc| {
             fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
         });
-        assert_eq!(reply["phase"], "form");
-        assert_eq!(reply["remote_ready"], true);
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Lock In Choice"));
         assert!(html.contains("Opponent has locked in their choice"));
         reset();
     }
 
     #[test]
-    fn the_poll_falls_back_to_this_cards_form_when_the_opponent_cancels() {
+    fn the_form_comes_back_for_this_card_when_the_opponent_cancels() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
-        let reply = opponent(|doc| {
+        lock_in_brox("attacking");
+        opponent(|doc| {
             assert!(fists::new_round(doc, THEM));
         });
-        assert_eq!(reply["phase"], "form");
-        let html = handle_fists_poll_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Brox The Defiant"));
         assert!(html.contains("Lock In Choice"));
+        assert!(checked(&html).is_empty());
         reset();
     }
 
@@ -1748,7 +1996,7 @@ mod tests {
     fn resume_restores_a_round_in_progress() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
         let state = crdt::encode_full_state();
 
         // A page change: the engine starts from nothing.
@@ -1766,10 +2014,10 @@ mod tests {
         });
 
         // The opponent, who stayed, locks in: the round completes here.
-        let reply = opponent(|doc| {
+        opponent(|doc| {
             fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy"));
         });
-        assert_eq!(reply["phase"], "result");
+        assert!(handle_fists_get("?card=liliel_healing_fairy").contains("Combat Result"));
         reset();
     }
 
@@ -1797,7 +2045,8 @@ mod tests {
         assert!(html.contains("Liliel: Healing Fairy"));
         assert!(html.contains("Attack Die Modifier"));
         assert!(html.contains("Did you win"));
-        assert!(html.contains("reportOutcome"));
+        assert!(html.contains(r#"data-engine-body="action=outcome&won=yes""#));
+        assert!(html.contains(r#"data-engine-body="action=outcome&won=no""#));
         reset();
     }
 
@@ -1805,16 +2054,17 @@ mod tests {
     fn fists_outcome_attacker_wins_marks_defender_damage() {
         reset();
         enter_room();
-        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        lock_in_brox("defending");
         opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+        handed_over();
 
-        let reply = json(&handle_fists_outcome_post("won=no")); // defender says no → attacker won
-        assert!(html(&reply).contains("Ouch"));
-        assert!(html(&reply).contains("Damage has been recorded"));
-        assert!(html(&reply).contains("New Round"));
-        assert_eq!(reply["phase"], "outcome");
-        assert_eq!(reply["damage"][0], "brox_the_defiant");
-        assert!(!reply["update"].as_str().unwrap().is_empty());
+        let html = tap("action=outcome&won=no"); // defender says no → attacker won
+        assert!(html.contains("Ouch"));
+        assert!(html.contains("Damage has been recorded"));
+        assert!(html.contains("New Round"));
+        // The answer goes to the opponent, and the card's panel, a view of
+        // its own that shows the damage, is drawn again.
+        assert_eq!(handed_over(), (1, vec!["/api/card/panel"]));
         // Verify slot 1 of brox was toggled in PLAYER_DOC
         assert!(player_doc::get_slot("brox_the_defiant", 1));
         assert!(!player_doc::get_slot("brox_the_defiant", 2));
@@ -1825,23 +2075,24 @@ mod tests {
     fn damage_is_marked_once_when_both_players_answer() {
         reset();
         enter_room();
-        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        lock_in_brox("defending");
         opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
 
         // This player answers...
-        handle_fists_outcome_post("won=no");
+        tap("action=outcome&won=no");
         assert!(player_doc::get_slot("brox_the_defiant", 1));
+        handed_over();
 
         // ...and so does the opponent, with the same result.
-        let reply = opponent(|doc| {
+        opponent(|doc| {
             assert!(fists::report_outcome(doc, THEM, true));
         });
-        assert_eq!(reply["phase"], "outcome");
-        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
-        assert_eq!(reply["update"], "");
+        let (updates, redraw) = handed_over();
+        assert_eq!(updates, 0);
+        assert!(!redraw.contains(&"/api/card/panel"));
 
         // Reopening the dialog, or the answer arriving again, marks nothing more.
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Damage has been recorded"));
         opponent(|doc| {
             fists::report_outcome(doc, THEM, true);
@@ -1854,19 +2105,21 @@ mod tests {
     fn an_outcome_reported_by_the_opponent_marks_damage_here() {
         reset();
         enter_room();
-        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        lock_in_brox("defending");
         opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+        handed_over();
 
-        let reply = opponent(|doc| {
+        opponent(|doc| {
             assert!(fists::report_outcome(doc, THEM, true));
         });
-        assert_eq!(reply["phase"], "outcome");
-        assert_eq!(reply["damage"][0], "brox_the_defiant");
+        let (updates, redraw) = handed_over();
         // Applying it is recorded in the room document and sent back.
-        assert!(!reply["update"].as_str().unwrap().is_empty());
+        assert_eq!(updates, 1);
+        assert!(redraw.contains(&"/api/card/panel"));
+        assert!(redraw.contains(&"/api/room/fists"));
         assert!(player_doc::get_slot("brox_the_defiant", 1));
 
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Ouch"));
         reset();
     }
@@ -1875,21 +2128,25 @@ mod tests {
     fn a_finished_round_is_applied_even_if_the_opponent_already_moved_on() {
         reset();
         enter_room();
-        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        lock_in_brox("defending");
+        handed_over();
 
         // While this player was away the opponent attacked, reported a win,
         // closed the dialog and locked in for the next round. It all arrives
         // at once.
-        let reply = opponent(|doc| {
+        opponent(|doc| {
             fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy"));
             assert!(fists::report_outcome(doc, THEM, true));
             assert!(fists::close(doc, THEM, ME));
             fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy"));
         });
-        assert_eq!(reply["phase"], "form");
-        assert_eq!(reply["remote_ready"], true);
-        assert_eq!(reply["damage"][0], "brox_the_defiant");
+        let (_, redraw) = handed_over();
+        assert!(redraw.contains(&"/api/card/panel"));
         assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        let html = handle_fists_get(BROX);
+        assert!(html.contains("Lock In Choice"));
+        assert!(html.contains("Opponent has locked in their choice"));
         reset();
     }
 
@@ -1897,19 +2154,20 @@ mod tests {
     fn a_disputed_outcome_is_reported_and_marks_nothing_more() {
         reset();
         enter_room();
-        handle_fists_post("role=defending&card=brox_the_defiant&keal=1");
+        lock_in_brox("defending");
         opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
 
         // This player says the defence held; the opponent says the attack won.
-        handle_fists_outcome_post("won=yes");
-        let reply = opponent(|doc| {
+        tap("action=outcome&won=yes");
+        handed_over();
+        opponent(|doc| {
             assert!(fists::report_outcome(doc, THEM, true));
         });
-        assert_eq!(reply["phase"], "outcome");
-        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        let (_, redraw) = handed_over();
+        assert!(!redraw.contains(&"/api/card/panel"));
         assert!(!player_doc::get_slot("brox_the_defiant", 1));
 
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("reported different results"));
         assert!(html.contains("New Round"));
         reset();
@@ -1919,16 +2177,17 @@ mod tests {
     fn fists_outcome_defender_wins_shows_message_no_buttons() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
         opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        handed_over();
 
-        let reply = json(&handle_fists_outcome_post("won=no")); // attacker says no → defender won
-        assert!(html(&reply).contains("Too bad"));
+        let html = tap("action=outcome&won=no"); // attacker says no → defender won
+        assert!(html.contains("Too bad"));
         // Defender-won outcomes have no action buttons — closing the dialog
         // after an outcome starts the next round.
-        assert!(!html(&reply).contains("New Round"));
-        assert!(!html(&reply).contains("resetFists"));
-        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        assert!(!html.contains("New Round"));
+        assert!(!html.contains("<button"));
+        assert_eq!(handed_over(), (1, vec![]));
         reset();
     }
 
@@ -1936,25 +2195,32 @@ mod tests {
     fn fists_outcome_attacker_sees_the_win() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
         opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        handed_over();
 
-        let reply = json(&handle_fists_outcome_post("won=yes"));
-        assert!(html(&reply).contains("Nice Play"));
-        assert!(html(&reply).contains("New Round"));
+        let html = tap("action=outcome&won=yes");
+        assert!(html.contains("Nice Play"));
+        assert!(html.contains("New Round"));
         // The attacker's own card is untouched.
-        assert_eq!(reply["damage"].as_array().unwrap().len(), 0);
+        assert_eq!(handed_over(), (1, vec![]));
         assert!(!player_doc::get_slot("brox_the_defiant", 1));
         reset();
     }
 
     #[test]
-    fn fists_outcome_without_a_submission_is_an_error() {
+    fn an_answer_without_a_round_or_without_sense_changes_nothing() {
         reset();
         enter_room();
-        let reply = json(&handle_fists_outcome_post("won=yes"));
-        assert!(html(&reply).contains("No combat data"));
-        assert_eq!(reply["update"], "");
+        let html = tap("action=outcome&won=yes");
+        assert!(html.contains("Lock In Choice"));
+
+        lock_in_brox("attacking");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        handed_over();
+        let html = tap("action=outcome&won=maybe");
+        assert!(html.contains("Did you win"));
+        assert_eq!(handed_over(), (0, vec![]));
         reset();
     }
 
@@ -1962,21 +2228,22 @@ mod tests {
     fn fists_reset_starts_a_new_round_for_both() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
         opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
+        handed_over();
 
-        let reply = json(&handle_fists_reset_post(""));
-        assert_eq!(reply["phase"], "form");
-        assert_eq!(reply["remote_ready"], false);
-        assert!(!reply["update"].as_str().unwrap().is_empty());
+        let html = tap("action=reset");
+        assert!(html.contains("Lock In Choice"));
+        assert!(!html.contains("Opponent has locked in"));
+        assert_eq!(handed_over(), (1, vec![]));
         room::with_room(|r| {
             assert!(r.fists.local.is_none());
             assert!(r.fists.remote.is_none());
         });
 
         // Nothing to reset: nothing to send.
-        let again = json(&handle_fists_reset_post(""));
-        assert_eq!(again["update"], "");
+        tap("action=reset");
+        assert_eq!(handed_over(), (0, vec![]));
         reset();
     }
 
@@ -1984,17 +2251,19 @@ mod tests {
     fn closing_the_dialog_keeps_a_round_in_progress() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
+        handed_over();
 
-        let reply = json(&handle_fists_close_post(""));
-        assert_eq!(reply["update"], "", "closing mid-round changes nothing");
-        assert_eq!(reply["phase"], "waiting");
+        let html = tap("action=close");
+        assert!(html.contains("Waiting for opponent"));
+        assert_eq!(handed_over().0, 0, "closing mid-round changes nothing");
         room::with_room(|r| assert!(r.fists.local.is_some()));
 
         opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
-        let reply = json(&handle_fists_close_post(""));
-        assert_eq!(reply["update"], "", "closing on the result changes nothing");
-        assert_eq!(reply["phase"], "result");
+        handed_over();
+        let html = tap("action=close");
+        assert!(html.contains("Combat Result"));
+        assert_eq!(handed_over().0, 0, "closing on the result changes nothing");
         reset();
     }
 
@@ -2002,15 +2271,26 @@ mod tests {
     fn closing_the_dialog_after_an_outcome_starts_the_next_round() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
         opponent(|doc| fists::submit(doc, THEM, ME, their_defence("liliel_healing_fairy")));
-        handle_fists_outcome_post("won=no");
+        tap("action=outcome&won=no");
+        handed_over();
 
-        let reply = json(&handle_fists_close_post(""));
-        assert!(!reply["update"].as_str().unwrap().is_empty());
-        assert_eq!(reply["phase"], "form");
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = tap("action=close");
         assert!(html.contains("Lock In Choice"));
+        assert_eq!(handed_over().0, 1);
+        reset();
+    }
+
+    #[test]
+    fn closing_the_dialog_drops_picks_that_were_not_locked_in() {
+        reset();
+        enter_room();
+        tap("action=choose&card=brox_the_defiant&role=attacking");
+        tap("action=lock&card=brox_the_defiant"); // refused: no keal means
+        let html = tap("action=close");
+        assert!(checked(&html).is_empty());
+        assert!(!html.contains("Please select"));
         reset();
     }
 
@@ -2018,7 +2298,9 @@ mod tests {
     fn create_and_join_start_with_no_combat_and_no_known_opponent() {
         reset();
         enter_room();
-        handle_fists_post("role=attacking&card=brox_the_defiant&keal=1");
+        lock_in_brox("attacking");
+        tap("action=reset");
+        tap("action=choose&card=brox_the_defiant&role=attacking");
         handle_disconnect_post("");
 
         handle_join_post("code=WXYZ&name=Other&player=me2");
@@ -2027,8 +2309,9 @@ mod tests {
             assert!(r.peer_id.is_empty());
             assert!(r.fists.local.is_none());
         });
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Lock In Choice"));
+        assert!(checked(&html).is_empty());
         reset();
     }
 
@@ -2075,14 +2358,9 @@ mod tests {
     fn fists_form_shows_final_blows_when_all_keal_exhausted() {
         reset();
         enter_room();
-        // Brox has keal means — mark ALL slots as checked
-        let card = find_card("brox_the_defiant").unwrap();
-        let total: u8 = card.keal_means.iter().map(|k| k.count).sum();
-        damage::ensure_card_state("brox_the_defiant", total);
-        for slot in 1..=total {
-            damage::toggle_slot("brox_the_defiant", slot);
-        }
-        let html = handle_fists_get("?card=brox_the_defiant");
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        let html = handle_fists_get(BROX);
         assert!(html.contains("Final Blows"));
         assert!(html.contains("All keal means are exhausted"));
         assert!(html.contains("D20"));
@@ -2094,10 +2372,60 @@ mod tests {
     }
 
     #[test]
+    fn stating_final_blows_waits_for_the_opponent() {
+        reset();
+        enter_room();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+
+        // The opponent has attacked already: the Final Blows form says so.
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack("liliel_healing_fairy")));
+        let html = handle_fists_get(BROX);
+        assert!(html.contains("State Final Blows to Opponent"));
+        assert!(html.contains("Opponent has locked in their choice"));
+        handed_over();
+
+        let html = tap("action=final&card=brox_the_defiant");
+        assert!(html.contains("Final Blows"));
+        assert!(html.contains("Did you win"));
+        // Stated to the opponent; and the card's first fight today shows on
+        // its panel.
+        assert_eq!(handed_over(), (1, vec!["/api/card/panel"]));
+        reset();
+    }
+
+    #[test]
+    fn final_blows_stated_first_waits_and_can_be_called_off() {
+        reset();
+        enter_room();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        let html = tap("action=final&card=brox_the_defiant");
+        assert!(html.contains("Final Blows Stated"));
+        assert!(html.contains("Cancel round"));
+        assert_eq!(handed_over().0, 1);
+
+        let html = tap("action=reset");
+        assert!(html.contains("State Final Blows to Opponent"));
+        reset();
+    }
+
+    #[test]
+    fn final_blows_cannot_be_stated_while_a_keal_means_is_left() {
+        reset();
+        enter_room();
+        exhaust_brox_keal_means(1);
+        let html = tap("action=final&card=brox_the_defiant");
+        assert!(html.contains("Lock In Choice"));
+        assert_eq!(handed_over(), (0, vec![]));
+        reset();
+    }
+
+    #[test]
     fn fists_form_normal_when_keal_not_exhausted() {
         reset();
         enter_room();
-        let html = handle_fists_get("?card=brox_the_defiant");
+        let html = handle_fists_get(BROX);
         assert!(!html.contains("Final Blows"));
         assert!(html.contains("Your Role"));
         assert!(html.contains("Lock In Choice"));
@@ -2110,6 +2438,16 @@ mod tests {
         enter_room();
         let html = handle_fists_get("");
         assert!(html.contains("Navigate to a Character"));
+        reset();
+    }
+
+    #[test]
+    fn a_card_that_is_not_in_the_catalog_is_named_safely() {
+        reset();
+        enter_room();
+        let html = handle_fists_get("?card=%3Cb%3Ex");
+        assert!(html.contains("Card not found"));
+        assert!(!html.contains("<b>"));
         reset();
     }
 }

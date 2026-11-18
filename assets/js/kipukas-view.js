@@ -75,8 +75,14 @@
  * in once loaded. Kept things are still removed when the outer view no
  * longer renders them, so give what holds them an id if there can be several.
  *
- * When the engine changes state for another reason (a lost round of fists
- * marks damage, New Game clears it), call kipukasViews.refresh(card).
+ * The engine can also change what a view shows by some other way than a tap
+ * in it: the other player's move arrives, or a lost round of fists marks
+ * damage on a card. It then names the route, and the views of that route are
+ * drawn again (REDRAW below; `page::redraw` in the engine). The page's own
+ * scripts need not know what changed.
+ *
+ * When the page changes the engine's state from outside a view (New Game
+ * clears it), call kipukasViews.refresh().
  *
  * Requests go straight to the engine's worker (set up by kipukas-api.js),
  * not through fetch and the service worker: a tap is answered in the time it
@@ -278,15 +284,6 @@
     }
   }
 
-  /** The card a view shows, from its route (`?card=<slug>`), or null. */
-  function cardOf(view) {
-    try {
-      return new URL(fill(view.getAttribute(VIEW), view), location.origin).searchParams.get('card');
-    } catch (_) {
-      return null;
-    }
-  }
-
   /**
    * Ask the engine for a change, then draw again what may show it: the view
    * the change was asked from, if it was asked from one, and every other
@@ -344,42 +341,29 @@
     pausing.set(form, setTimeout(() => sendForm(form), pause));
   });
 
-  // Views can arrive after load: the hand view injects card panels. And a
-  // view's contents can be put there by other code (the room's timers are, by
-  // the multiplayer script): what such contents ask to be sent later is
-  // started here, as it would be after a drawing.
+  // Views can arrive after load: the hand view renders a card panel, itself
+  // a view, for each card.
   new MutationObserver((records) => {
-    const asked = new Set();
     for (const record of records) {
       for (const node of record.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        mount(node);
-        if (node.hasAttribute(AFTER) || node.querySelector('[' + AFTER + ']')) {
-          const view = node.closest('[' + VIEW + ']');
-          if (view) asked.add(view);
-        }
+        if (node.nodeType === 1) mount(node);
       }
     }
-    asked.forEach(schedule);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
   globalThis.kipukasViews = {
     /**
-     * Draw again from the engine. With a card slug, only that card's views;
-     * without one, every view on the page. Views that are not displayed are
-     * left for when they are shown.
+     * Draw every view on the page again from the engine. Views that are not
+     * displayed are left for when they are shown.
      */
-    refresh(card) {
-      const views = allViews().filter((view) =>
-        isDisplayed(view) && (!card || cardOf(view) === card)
-      );
-      return Promise.all(views.map(render));
+    refresh() {
+      return Promise.all(allViews().filter(isDisplayed).map(render));
     },
 
     /**
-     * Draw again the displayed views of a route, whatever their query: for
-     * when the engine's state changed by some other way than a tap here (the
-     * other player changed the room's timers).
+     * Draw again the displayed views of a route, whatever their query. The
+     * engine asks for this when it has changed what they show by some other
+     * way than a tap in them (REDRAW, below).
      */
     redraw(route) {
       const path = pathOf(route);
@@ -402,6 +386,15 @@
       return send(null, route, body);
     },
   };
+
+  // The engine changed what the views of these routes show, by some other
+  // way than a tap in them. Its worker says so after the post that did it.
+  if (globalThis.kipukasWorker) {
+    globalThis.kipukasWorker.addEventListener('message', (event) => {
+      if (!event.data || event.data.type !== 'REDRAW') return;
+      for (const route of event.data.routes) globalThis.kipukasViews.redraw(route);
+    });
+  }
 
   // The address's codes changed: draw again the views that are given them.
   globalThis.addEventListener('hashchange', () => {

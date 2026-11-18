@@ -245,19 +245,24 @@ async function decodeQR(rgba, width, height) {
 
 let processingFrame = false;
 
-// ── Room updates for the other player ──────────────────────────────
+// ── What the engine asks of the page ───────────────────────────────
 
 /**
- * After a post: hand the page any room-document updates the engine queued
- * for the other player (crdt::queue_for_peer in the engine). The page holds
- * the connection and sends them (kipukas-multiplayer.js).
+ * After a post: hand the page what the engine has queued for it (page.rs in
+ * the engine).
+ *
+ * - Room-document updates for the other player. The page holds the
+ *   connection and sends them (kipukas-multiplayer.js).
+ * - Routes whose views are to be drawn again, because the post changed what
+ *   they show (kipukas-view.js).
  */
-function handOverRoomUpdates() {
+function handOver() {
   try {
-    const updates = JSON.parse(handle_request('POST', '/api/room/outbox', '', ''));
+    const { updates, redraw } = JSON.parse(handle_request('POST', '/api/handover', '', ''));
     if (updates.length) self.postMessage({ type: 'ROOM_UPDATES', updates });
+    if (redraw.length) self.postMessage({ type: 'REDRAW', routes: redraw });
   } catch (err) {
-    console.error('[kipukas-worker] Could not take room updates:', err);
+    console.error('[kipukas-worker] Could not hand over to the page:', err);
   }
 }
 
@@ -329,7 +334,7 @@ self.onmessage = async (event) => {
     try {
       if (!initialized) await wasmReady;
       handle_request(method, pathname, search || '', body || '');
-      if (method === 'POST') handOverRoomUpdates();
+      if (method === 'POST') handOver();
       if (
         method === 'POST' &&
         (pathname.startsWith('/api/game/') ||
@@ -351,7 +356,7 @@ self.onmessage = async (event) => {
 
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
-    if (method === 'POST') handOverRoomUpdates();
+    if (method === 'POST') handOver();
 
     // Auto-persist: after any POST to /api/game/*, /api/room/*, or
     // /api/player/*, notify main thread so it can fetch PLAYER_DOC base64

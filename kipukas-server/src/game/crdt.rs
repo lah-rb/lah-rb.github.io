@@ -237,8 +237,8 @@ fn alarms_in(doc: &Doc) -> Vec<Alarm> {
 // A change this player makes to the room document has to reach the other
 // player. The engine cannot send anything: the page holds the connection.
 // So a change made through an engine route is queued here, and after every
-// post the engine's worker takes what is queued and hands it to the page,
-// which sends it (`ROOM_UPDATES` in kipukas-worker.js and
+// post the engine's worker takes what is queued (see `crate::page`) and hands
+// it to the page, which sends it (`ROOM_UPDATES` in kipukas-worker.js and
 // kipukas-multiplayer.js). An update that is lost on the way (the other
 // player is away) is made up by the exchange both players do when they are
 // next connected.

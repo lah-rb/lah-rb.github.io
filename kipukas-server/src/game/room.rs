@@ -126,6 +126,24 @@ impl FistsCombat {
     }
 }
 
+/// What this player has picked in the fists form and not yet locked in.
+///
+/// It is this engine's alone: the opponent learns of a choice when it is
+/// locked in. It is kept here and not on the page so that the form can be
+/// drawn again at any moment (the opponent locking in draws it again) and
+/// still show the picks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct FistsChoice {
+    /// The card the picks are for. Picks made for another card do not count.
+    pub card: String,
+    pub role: Option<CombatRole>,
+    /// Which keal means (1-based, as in `FistsSubmission`).
+    pub keal_idx: Option<u8>,
+    /// Why the last attempt to lock in was refused, for the form to say.
+    /// Empty when it was not.
+    pub refusal: String,
+}
+
 /// Room-level shared state for multiplayer sessions.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RoomState {
@@ -146,6 +164,9 @@ pub struct RoomState {
     /// the room document (see `game::fists`), refreshed whenever it changes;
     /// the result renderers read it.
     pub fists: FistsCombat,
+    /// This player's picks in the fists form, not yet locked in.
+    #[serde(default)]
+    pub choice: FistsChoice,
 }
 
 thread_local! {

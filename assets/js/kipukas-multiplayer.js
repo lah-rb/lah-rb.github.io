@@ -36,10 +36,6 @@ const PROTOCOL = 2;
 const HELLO_TIMEOUT_MS = 3000;
 let helloTimer = null;
 
-// The fists phase (form | waiting | result | outcome) the dialog last showed,
-// so it is only redrawn when the phase really changes.
-let fistsPhase = null;
-
 // What the user just asked for, if anything: `{ action: 'create', name }` or
 // `{ action: 'join', code, name }`, set only by createRoom() and joinRoom().
 // While it is null, a connection is a *resume*: it asks the relay to `rejoin`
@@ -287,9 +283,9 @@ function setPeerId(id) {
   if (typeof id !== 'string' || !id || id === peerId) return;
   peerId = id;
   saveSession();
-  postToWasmWithCallback('POST', '/api/room/peer', 'id=' + encodeURIComponent(peerId), (r) => {
-    showFistsPhase(parseReply(r));
-  });
+  // The engine draws the fists dialog again: whose entries count as the
+  // opponent's has changed.
+  postToWasm('POST', '/api/room/peer', 'id=' + encodeURIComponent(peerId));
 }
 
 /** Leave the room locally: forget the session and return the engine to solo mode. */
@@ -301,16 +297,12 @@ function leaveRoom({ refreshStatus = true } = {}) {
   roomName = '';
   playerId = '';
   peerId = '';
-  fistsPhase = null;
   clearTimeout(helloTimer);
   link.stop();
   setRoomStore({ inRoom: false, peer: false, link: 'idle', outdated: false });
-  // POST disconnect runs export_to_local() in WASM, copying shared CRDT
-  // alarms back to the local player document. After it completes, refresh
-  // the alarm display in local mode so exported timers appear.
-  postToWasmWithCallback('POST', '/api/room/disconnect', '', () => {
-    refreshAlarms();
-  });
+  // The engine copies the room's timers back to this player's own, and has
+  // the turn tracker drawn again to show them.
+  postToWasm('POST', '/api/room/disconnect', '');
   if (refreshStatus) refreshRoomStatus();
 }
 
@@ -333,8 +325,6 @@ function onPeerConnected() {
     console.warn('[multiplayer] No hello from opponent: they need to update');
     setRoomStore({ outdated: true });
   }, HELLO_TIMEOUT_MS);
-
-  refreshAlarms();
 
   // Exchange state vectors so both room documents converge after every
   // (re)connect. This is what repairs anything missed while either player
@@ -410,18 +400,12 @@ function handleRelayedMessage(msg) {
 
     case 'yrs_update': {
       // Peer sent a room-document update (timers, fists combat, or both).
+      // The engine applies it, and what follows is the engine's to ask for:
+      // the views that show the room are drawn again (kipukas-view.js), and
+      // anything to send back comes as ROOM_UPDATES, below.
       console.log('[multiplayer] Received yrs update from peer');
-      postToWasmWithCallback('POST', '/api/room/yrs/apply', 'update=' + msg.update, (response) => {
-        const reply = parseReply(response);
-        if (!reply || reply.error) {
-          console.warn('[multiplayer] Could not apply peer update:', reply && reply.error);
-          return;
-        }
-        refreshAlarms();
-        // Applying a finished round records that it was applied: send that back.
-        if (reply.update) sendToPeer({ type: 'yrs_update', update: reply.update });
-        refreshDamage(reply.damage);
-        showFistsPhase(reply);
+      postToWasmWithCallback('POST', '/api/room/yrs/apply', 'update=' + msg.update, (reply) => {
+        if (reply !== 'ok') console.warn('[multiplayer] Could not apply peer update:', reply);
       });
       break;
     }
@@ -429,79 +413,6 @@ function handleRelayedMessage(msg) {
     default:
       console.log('[multiplayer] Unknown relayed message:', msg);
   }
-}
-
-/** Show a message in the dedicated fists message area. */
-function showFistsMessage(text, colorClass) {
-  const msgEl = document.getElementById('fists-message');
-  if (msgEl) {
-    msgEl.innerHTML = `<p class="text-sm ${colorClass || 'text-kip-drk-sienna'}">${text}</p>`;
-  }
-}
-
-/** Parse a JSON reply from the engine (null if it is not JSON). */
-function parseReply(text) {
-  try {
-    return JSON.parse(text);
-  } catch (_) {
-    return null;
-  }
-}
-
-/** Re-fetch the fists dialog contents for this page's card. */
-function refreshFists() {
-  const fists = document.getElementById('fists-container');
-  if (!fists || typeof htmx === 'undefined') return;
-  const url = fists.getAttribute('hx-get') || '/api/room/fists';
-  htmx.ajax('GET', url, { target: '#fists-container', swap: 'innerHTML' });
-}
-
-/**
- * Put a fists reply's HTML into the dialog, relay its room-document update
- * to the opponent, and refresh any damage tracker it changed.
- */
-function applyFistsReply(response, { render = true } = {}) {
-  const reply = parseReply(response);
-  if (!reply) return null;
-  if (render && reply.html != null) {
-    const container = document.getElementById('fists-container');
-    if (container) {
-      container.innerHTML = reply.html;
-      if (typeof htmx !== 'undefined') htmx.process(container);
-    }
-  }
-  if (reply.update) sendToPeer({ type: 'yrs_update', update: reply.update });
-  refreshDamage(reply.damage);
-  if (reply.phase) fistsPhase = reply.phase;
-  return reply;
-}
-
-/**
- * The room document changed under us (the opponent did something). Redraw
- * the fists dialog only if this player's phase changed: redrawing the form
- * while they are choosing would wipe their selection.
- */
-function showFistsPhase(reply) {
-  if (!reply || !reply.phase) return;
-  const changed = reply.phase !== fistsPhase;
-  // First news after a page load: the dialog already drew itself from the
-  // restored document, so only redraw if it is past the form.
-  const firstNews = fistsPhase === null;
-  fistsPhase = reply.phase;
-  if (changed && !(firstNews && reply.phase === 'form')) {
-    refreshFists();
-  } else if (reply.phase === 'form' && reply.remote_ready) {
-    showFistsMessage('\u2713 Opponent has locked in their choice!', 'text-emerald-600');
-  }
-}
-
-/**
- * The engine just marked damage on these cards (a lost round). Their damage
- * trackers are engine-owned views, so redraw them from the engine.
- */
-function refreshDamage(cards) {
-  if (!Array.isArray(cards) || !globalThis.kipukasViews) return;
-  for (const slug of cards) globalThis.kipukasViews.refresh(slug);
 }
 
 // ── WASM helpers ───────────────────────────────────────────────────
@@ -543,21 +454,11 @@ function wasmRequest(method, path, search, body, callback) {
   );
 }
 
-/**
- * Draw the turn timers again. They are engine-owned views (kipukas-view.js);
- * the engine shows the room's timers when in a room and the player's own
- * otherwise, so this is called whenever that changes or the other player
- * has changed the room's.
- */
-function refreshAlarms() {
-  if (globalThis.kipukasViews) globalThis.kipukasViews.redraw('/api/game/turns');
-}
-
 // A change this player makes to the room's shared state through the engine
-// (a turn timer added, advanced or removed) is queued by the engine for the
-// other player, and the engine's worker hands it over after the post. Send
-// it on. One that cannot be sent just now is made up by the exchange of
-// state when the players are next connected.
+// (a turn timer advanced, a choice locked in for a round of fists) is queued
+// by the engine for the other player, and the engine's worker hands it over
+// after the post. Send it on. One that cannot be sent just now is made up by
+// the exchange of state when the players are next connected.
 if (globalThis.kipukasWorker) {
   globalThis.kipukasWorker.addEventListener('message', (event) => {
     if (!event.data || event.data.type !== 'ROOM_UPDATES') return;
@@ -565,7 +466,7 @@ if (globalThis.kipukasWorker) {
   });
 }
 
-/** Refresh the room status panel and fists section in the UI. */
+/** Refresh the room status panel. */
 function refreshRoomStatus() {
   if (typeof htmx === 'undefined') return;
   setTimeout(() => {
@@ -573,7 +474,6 @@ function refreshRoomStatus() {
     if (status) {
       htmx.ajax('GET', '/api/room/status', { target: '#room-status', swap: 'innerHTML' });
     }
-    refreshFists();
   }, 100);
 }
 
@@ -647,63 +547,6 @@ const kipukasMultiplayer = {
     // free for someone else. (Being away keeps the place; leaving does not.)
     link.send({ type: 'leave' });
     leaveRoom();
-  },
-
-  /** Submit fists combat choice. Called from WASM-rendered HTML button. */
-  submitFists(cardSlug) {
-    const roleEl = document.querySelector('input[name="fists-role"]:checked');
-    const kealEl = document.querySelector('input[name="fists-keal"]:checked');
-
-    if (!roleEl) {
-      showFistsMessage('Please select Attacking or Defending.', 'text-kip-red');
-      return;
-    }
-    if (!kealEl) {
-      showFistsMessage('Please select a Keal Means.', 'text-kip-red');
-      return;
-    }
-
-    const role = roleEl.value;
-    const keal = kealEl.value;
-
-    // The engine writes the choice into the room document and returns the
-    // update to relay (include today for loyalty tracking).
-    const today = new Date().toISOString().slice(0, 10);
-    const body = `role=${role}&card=${cardSlug}&keal=${keal}&today=${today}`;
-    postToWasmWithCallback('POST', '/api/room/fists', body, applyFistsReply);
-  },
-
-  /** Submit Final Blows for a card with exhausted keal means. */
-  submitFinalBlows(cardSlug) {
-    const today = new Date().toISOString().slice(0, 10);
-    const body = `card=${cardSlug}&today=${today}`;
-    postToWasmWithCallback('POST', '/api/room/fists/final', body, applyFistsReply);
-  },
-
-  /** Start a new round for both players (New Round, Try Again, Cancel round). */
-  resetFists() {
-    postToWasmWithCallback('POST', '/api/room/fists/reset', '', (response) => {
-      applyFistsReply(response);
-      refreshFists();
-    });
-  },
-
-  /**
-   * The fists dialog was closed. This does NOT cancel a round in progress:
-   * the round stays in the room document and reopening the dialog shows
-   * where it stands. Only a finished round gives way to a new one.
-   */
-  closeFists() {
-    postToWasmWithCallback('POST', '/api/room/fists/close', '', (response) => {
-      applyFistsReply(response, { render: false });
-    });
-  },
-
-  /** Report combat outcome ("Did you win?" answer). */
-  reportOutcome(won) {
-    // The engine records the answer in the room document (that is how the
-    // opponent learns of it) and marks this player's damage if they lost.
-    postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, applyFistsReply);
   },
 
   /** Check if currently connected to a peer. */

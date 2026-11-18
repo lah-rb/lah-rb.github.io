@@ -10,6 +10,7 @@ pub mod catalog;
 pub mod clock;
 pub mod game;
 pub mod image;
+pub mod page;
 pub mod routes;
 pub mod typing;
 
@@ -66,11 +67,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/disconnect", "room_disconnect").ok();
     router.insert("/api/room/peer_left", "room_peer_left").ok();
     router.insert("/api/room/fists", "room_fists").ok();
-    router.insert("/api/room/fists/poll", "room_fists_poll").ok();
-    router.insert("/api/room/fists/reset", "room_fists_reset").ok();
-    router.insert("/api/room/fists/close", "room_fists_close").ok();
-    router.insert("/api/room/fists/outcome", "room_fists_outcome").ok();
-    router.insert("/api/room/fists/final", "room_fists_final").ok();
     router.insert("/api/room/state", "room_state").ok();
 
     // Player document routes
@@ -93,7 +89,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
     router.insert("/api/room/yrs/diff", "yrs_diff").ok();
     router.insert("/api/room/yrs/apply", "yrs_apply").ok();
-    router.insert("/api/room/outbox", "room_outbox").ok();
+    router.insert("/api/handover", "handover").ok();
     router.insert("/api/room/yrs/state", "yrs_state").ok();
     router.insert("/api/room/yrs/restore", "yrs_restore").ok();
 
@@ -118,7 +114,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             // Room/multiplayer routes
             ("room_status", "GET") => routes::room::handle_status_get(query),
             ("room_fists", "GET") => routes::room::handle_fists_get(query),
-            ("room_fists_poll", "GET") => routes::room::handle_fists_poll_get(query),
             ("room_state", "GET") => routes::room::handle_room_state_get(query),
             ("room_create", "POST") => routes::room::handle_create_post(body),
             ("room_join", "POST") => routes::room::handle_join_post(body),
@@ -128,10 +123,6 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("room_disconnect", "POST") => routes::room::handle_disconnect_post(body),
             ("room_peer_left", "POST") => routes::room::handle_peer_left_post(body),
             ("room_fists", "POST") => routes::room::handle_fists_post(body),
-            ("room_fists_reset", "POST") => routes::room::handle_fists_reset_post(body),
-            ("room_fists_close", "POST") => routes::room::handle_fists_close_post(body),
-            ("room_fists_outcome", "POST") => routes::room::handle_fists_outcome_post(body),
-            ("room_fists_final", "POST") => routes::room::handle_final_blows_post(body),
 
             // Player document routes
             ("player_state", "GET") => routes::game::handle_player_state_get(query),
@@ -154,7 +145,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
             ("yrs_diff", "POST") => routes::room::handle_yrs_diff_post(body),
             ("yrs_apply", "POST") => routes::room::handle_yrs_apply_post(body),
-            ("room_outbox", "POST") => routes::room::handle_outbox_post(body),
+            ("handover", "POST") => page::handle_handover_post(body),
             ("yrs_state", "GET") => routes::room::handle_yrs_state_get(query),
             ("yrs_restore", "POST") => routes::room::handle_yrs_restore_post(body),
 
@@ -276,6 +267,40 @@ mod tests {
         game::player_doc::init_player_doc();
         let html = handle_request("POST", "/api/game/turns", "", "action=add&turns=5");
         assert!(html.contains("Turns to Alarm"));
+        game::player_doc::init_player_doc();
+    }
+
+    /// A round of fists through the route table, as the page drives it: a
+    /// tap is a post, the dialog is drawn again by a get, and what the engine
+    /// wants of the page is taken by the worker after each post.
+    #[test]
+    fn routes_room_fists_and_handover() {
+        game::player_doc::init_player_doc();
+        handle_request("POST", "/api/room/create", "", "code=ABCD&name=Test&player=me");
+        handle_request("POST", "/api/handover", "", "");
+
+        let fists = |body: &str| {
+            assert_eq!(handle_request("POST", "/api/room/fists", "", body), "");
+            handle_request("GET", "/api/room/fists", "?card=brox_the_defiant", "")
+        };
+        assert!(fists("action=choose&card=brox_the_defiant&role=attacking").contains("Lock In Choice"));
+        fists("action=choose&card=brox_the_defiant&keal=1");
+        assert!(fists("action=lock&card=brox_the_defiant").contains("Waiting for opponent"));
+
+        let handed: serde_json::Value =
+            serde_json::from_str(&handle_request("POST", "/api/handover", "", "")).unwrap();
+        assert_eq!(handed["updates"].as_array().unwrap().len(), 1);
+        assert_eq!(handed["redraw"], serde_json::json!(["/api/card/panel"]));
+
+        // The routes fists used to have are gone.
+        for old in ["poll", "reset", "close", "outcome", "final"] {
+            let path = format!("/api/room/fists/{}", old);
+            assert!(handle_request("POST", &path, "", "").contains("404"), "{}", path);
+        }
+        assert!(handle_request("POST", "/api/room/outbox", "", "").contains("404"));
+
+        handle_request("POST", "/api/room/disconnect", "", "");
+        handle_request("POST", "/api/handover", "", "");
         game::player_doc::init_player_doc();
     }
 }

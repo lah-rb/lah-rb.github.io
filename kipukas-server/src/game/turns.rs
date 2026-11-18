@@ -980,11 +980,9 @@ mod tests {
         assert_eq!(crdt::get_alarms()[0].remaining, 3);
         crate::routes::game::handle_turns_post(&format!("action=remove&id={}", id));
         assert!(crdt::get_alarms().is_empty());
-        // Three changes, three updates, handed over as a JSON list.
-        let outbox = crate::routes::room::handle_outbox_post("");
-        let updates: Vec<String> = serde_json::from_str(&outbox).unwrap();
-        assert_eq!(updates.len(), 3);
-        assert_eq!(crate::routes::room::handle_outbox_post(""), "[]");
+        // Three changes, three updates, handed over to the page once.
+        assert_eq!(crdt::take_outbox().len(), 3);
+        assert!(crdt::take_outbox().is_empty());
         leave_the_room();
     }
 
@@ -996,7 +994,7 @@ mod tests {
         crdt::tick_alarms();
         crate::routes::game::handle_turns_post("action=toggle_visibility");
         crate::routes::game::handle_turns_post("action=expire");
-        assert_eq!(crate::routes::room::handle_outbox_post(""), "[]");
+        assert!(crdt::take_outbox().is_empty());
         leave_the_room();
     }
 
