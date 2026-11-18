@@ -10,6 +10,9 @@
 @source "../../sections/*.{html,js,yml}";
 @source "../../game_rules/*.{html,js,yml}";
 @source "../../kipukas-server/src/**/*.rs";
+/* The crate that reads the card files draws no HTML. Keep Tailwind from taking
+   its code for class names (`if !hidden` became a `!hidden` rule). */
+@source not "../../kipukas-server/catalog";
 @source "../../kipukas_rules_book/**/*.{html,js}";
 
 /* ── Safelist (classes generated dynamically) ── */

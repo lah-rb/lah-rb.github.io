@@ -48,8 +48,8 @@ exclude:
   # Card files, one per card. Jekyll does not build card pages: it renders one
   # card shell (card-shell.html) and the engine writes a page for each card
   # from it after every build (_plugins/card_pages.rb,
-  # kipukas-server/src/site.rs). The card files are read by
-  # scripts/build-card-catalog.ts only.
+  # kipukas-server/src/site.rs). The card files are read by the engine alone,
+  # when it is compiled (kipukas-server/build.rs).
   - cards/
   - kipukas-server/
   - signaling-server/

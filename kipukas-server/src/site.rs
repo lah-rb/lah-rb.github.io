@@ -37,6 +37,13 @@
 //! write, and which preview pictures the pages name. Reading and writing
 //! files, and making the pictures, is left to the binary.
 //!
+//! ## Data files
+//!
+//! Two small files tell the site's scripts about the cards: the hand view's
+//! index of short codes ([`hand_index`]) and the list of art the service
+//! worker fetches for offline play ([`offline_manifest`]). They are written
+//! with the pages.
+//!
 //! Building twice gives the same result as building once: adding the cards
 //! to a sitemap or an index of redirects that already has them changes
 //! nothing. Jekyll's watch mode rebuilds the site over and over (and the
@@ -46,7 +53,7 @@ use std::collections::BTreeSet;
 
 use serde_json::{json, Map, Value};
 
-use crate::cards_generated::{Card, CARDS};
+use crate::catalog::{Card, CARDS};
 use crate::game::{card_panel, player_doc};
 use crate::preview;
 use crate::routes::util::escape_html;
@@ -59,6 +66,19 @@ pub const SITE_NAME: &str = "Kipukas";
 /// The two files Jekyll writes that cards are added to.
 pub const SITEMAP_PATH: &str = "sitemap.xml";
 pub const REDIRECTS_PATH: &str = "redirects.json";
+
+/// The data files, relative to the site folder. The scripts that read them
+/// (`assets/js/hand-view.js`, `sw-src.js`) know them by these addresses.
+pub const HAND_INDEX_PATH: &str = "assets/data/hand-index.json";
+pub const OFFLINE_MANIFEST_PATH: &str = "offline-manifest.json";
+
+/// What the service worker fetches for offline play besides the card art:
+/// the QR decoder, which is left out of the precache because only the
+/// scanner needs it.
+const OFFLINE_EXTRA: [&str; 2] = [
+    "/assets/js-wasm/zxing_reader.js",
+    "/assets/js-wasm/zxing_reader.wasm",
+];
 
 const HOLE_OPEN: &str = "[[card.";
 const HOLE_CLOSE: &str = "]]";
@@ -390,12 +410,60 @@ pub fn merge_sitemap(existing: &str, cards: &[Card]) -> Result<String, String> {
     Ok(format!("{}\n{}{}", head, entries, tail.trim_start_matches('\n')))
 }
 
+// ── Data files ─────────────────────────────────────────────────────
+
+/// How many cards the binder shows. Jekyll puts the number in the binder's
+/// filter menu (`_plugins/card_pages.rb` asks for it).
+pub fn shown_count(cards: &[Card]) -> usize {
+    cards.iter().filter(|card| !card.hidden).count()
+}
+
+/// A string as JSON.
+fn json_text(text: &str) -> String {
+    Value::String(text.to_string()).to_string()
+}
+
+/// The hand view's index: each shown card's short code, with what the hand
+/// view needs to show the card (`{"yDLL":{"slug":…,"img_name":…,"title":…},…}`).
+/// The hand view reads the codes out of its address four characters at a
+/// time and looks each one up here.
+pub fn hand_index(cards: &[Card]) -> String {
+    let entries: Vec<String> = cards
+        .iter()
+        .filter(|card| !card.hidden && !card.code.is_empty())
+        .map(|card| {
+            format!(
+                r#"{}:{{"slug":{},"img_name":{},"title":{}}}"#,
+                json_text(card.code),
+                json_text(card.slug),
+                json_text(card.img_name),
+                json_text(card.title)
+            )
+        })
+        .collect();
+    format!("{{{}}}", entries.join(","))
+}
+
+/// What the service worker fetches once the site is installed, so that it
+/// works offline: every shown card's art, and [`OFFLINE_EXTRA`].
+pub fn offline_manifest(cards: &[Card]) -> String {
+    let images: Vec<String> = cards
+        .iter()
+        .filter(|card| !card.hidden)
+        .map(|card| json_text(&format!("/{}", art_path(card))))
+        .collect();
+    let extra: Vec<String> = OFFLINE_EXTRA.iter().map(|path| json_text(path)).collect();
+    format!(r#"{{"images":[{}],"extra":[{}]}}"#, images.join(","), extra.join(","))
+}
+
 // ── The whole build ────────────────────────────────────────────────
 
 /// Everything the build writes for the cards.
 pub struct Output {
     /// The cards' files: path relative to the site folder, and contents.
     pub files: Vec<(String, String)>,
+    /// The data files: path relative to the site folder, and contents.
+    pub data: Vec<(String, String)>,
     /// The sitemap, with the cards added.
     pub sitemap: String,
     /// The index of redirects, with the cards' short addresses added.
@@ -491,12 +559,26 @@ pub fn build(cards: &[Card], shell: &str, sitemap: &str, redirects: &str) -> Res
         });
     }
 
+    let data = vec![
+        (claim_data(&mut paths, HAND_INDEX_PATH)?, hand_index(cards)),
+        (claim_data(&mut paths, OFFLINE_MANIFEST_PATH)?, offline_manifest(cards)),
+    ];
+
     Ok(Output {
         files,
+        data,
         previews,
         sitemap: merge_sitemap(sitemap, cards)?,
         redirects: merge_redirects(redirects, cards)?,
     })
+}
+
+/// Take a data file's path, unless a card's file is already written there.
+fn claim_data(paths: &mut BTreeSet<String>, path: &str) -> Result<String, String> {
+    if !paths.insert(path.to_lowercase()) {
+        return Err(format!("a card would be written to {}, which is a data file", path));
+    }
+    Ok(path.to_string())
 }
 
 /// [`build`] for the cards compiled into this engine.
@@ -834,6 +916,7 @@ mod tests {
         assert_eq!(twice.redirects, once.redirects);
         assert_eq!(twice.files, once.files);
         assert_eq!(twice.previews, once.previews);
+        assert_eq!(twice.data, once.data);
     }
 
     // ── Sitemap ────────────────────────────────────────────────────
@@ -892,6 +975,76 @@ mod tests {
     fn a_file_that_is_not_a_sitemap_is_refused() {
         assert!(merge_sitemap("<html></html>", &CARDS).is_err());
         assert!(merge_sitemap("<urlset", &CARDS).is_err());
+    }
+
+    // ── Data files ─────────────────────────────────────────────────
+
+    #[test]
+    fn the_binder_shows_every_card_that_is_not_hidden() {
+        let hidden = CARDS.iter().filter(|c| c.hidden).count();
+        assert_eq!(shown_count(&CARDS), CARDS.len() - hidden);
+        // The 404 Glitch's two pages are the hidden ones.
+        assert_eq!(hidden, 2);
+    }
+
+    #[test]
+    fn the_hand_index_finds_every_shown_card_by_its_short_code() {
+        let index: Map<String, Value> = serde_json::from_str(&hand_index(&CARDS)).unwrap();
+        assert_eq!(index.len(), shown_count(&CARDS));
+        for c in CARDS.iter().filter(|c| !c.hidden) {
+            let entry = &index[c.code];
+            assert_eq!(entry["slug"], c.slug);
+            assert_eq!(entry["img_name"], c.img_name);
+            assert_eq!(entry["title"], c.title);
+            // The hand view cuts its address into codes of this length.
+            assert_eq!(c.code.len(), 4, "{}", c.slug);
+        }
+        assert!(!index.contains_key("eUN0"), "a hidden card is not in the index");
+    }
+
+    #[test]
+    fn the_hand_index_is_written_in_catalog_order_with_its_fields_in_order() {
+        let cards = [card("cloth").clone(), card("timebattle").clone()];
+        assert_eq!(
+            hand_index(&cards),
+            format!(
+                concat!(
+                    r#"{{"{}":{{"slug":"cloth","img_name":"cloth.jxl","title":"Cloth"}},"#,
+                    r#""yDLL":{{"slug":"timebattle","img_name":"timebattle.jxl","title":"Timebattle"}}}}"#
+                ),
+                card("cloth").code
+            )
+        );
+    }
+
+    #[test]
+    fn a_title_with_a_quote_cannot_break_the_hand_index() {
+        let odd = Card { title: "The \"Glitch\" \\ Card", ..card("cloth").clone() };
+        let index: Map<String, Value> = serde_json::from_str(&hand_index(&[odd])).unwrap();
+        assert_eq!(index[card("cloth").code]["title"], "The \"Glitch\" \\ Card");
+    }
+
+    #[test]
+    fn the_offline_list_has_every_shown_cards_art_and_the_qr_decoder() {
+        let manifest: Value = serde_json::from_str(&offline_manifest(&CARDS)).unwrap();
+        let images = manifest["images"].as_array().unwrap();
+        assert_eq!(images.len(), shown_count(&CARDS));
+        assert!(images.contains(&json!("/assets/images/timebattle.jxl")));
+        assert!(!images.contains(&json!("/assets/images/404.jxl")));
+        assert_eq!(
+            manifest["extra"],
+            json!(["/assets/js-wasm/zxing_reader.js", "/assets/js-wasm/zxing_reader.wasm"])
+        );
+        assert!(offline_manifest(&CARDS).starts_with(r#"{"images":["#));
+    }
+
+    #[test]
+    fn the_data_files_are_written_with_the_pages() {
+        let output = built();
+        let paths: Vec<&str> = output.data.iter().map(|(path, _)| path.as_str()).collect();
+        assert_eq!(paths, ["assets/data/hand-index.json", "offline-manifest.json"]);
+        assert_eq!(output.data[0].1, hand_index(&CARDS));
+        assert_eq!(output.data[1].1, offline_manifest(&CARDS));
     }
 
     // ── The whole build ────────────────────────────────────────────

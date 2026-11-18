@@ -3,7 +3,9 @@ name = "kipukas-server"
 version = "0.1.0"
 edition = "2024"
 
-# The engine is an ordinary Rust library. Two things are built from it:
+# The engine is an ordinary Rust library. The cards are compiled into it:
+# build.rs reads the card files in ../cards/ each time it is compiled (the
+# catalog/ crate does the reading). Two things are built from it:
 #
 #   - wasm/ wraps it as the WASM module the browser loads
 #     (`deno task build:wasm`).
@@ -15,7 +17,10 @@ edition = "2024"
 # a library that is both `cdylib` and `rlib`. Measured here, that made the
 # module 230 KB larger.
 [workspace]
-members = ["wasm"]
+members = ["wasm", "catalog"]
+# What `cargo build` and `cargo test` cover when run here: the engine and the
+# crate that reads the card files. The WASM wrapper is built by wasm-pack.
+default-members = [".", "catalog"]
 
 [dependencies]
 wasm-bindgen = "0.2"
@@ -30,6 +35,11 @@ fastrand = { version = "2", features = ["js"] }
 hmac-sha256 = "1.1"
 # JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
 jxl-oxide = { version = "0.12.6", default-features = false }
+
+# For build.rs: reads the card files. Runs on the building machine; neither it
+# nor its YAML parser is compiled into the engine.
+[build-dependencies]
+kipukas-catalog = { path = "catalog" }
 
 # Build time only (src/preview.rs): writes the cards' preview pictures. Not
 # compiled for the browser, so it adds nothing to the WASM module.

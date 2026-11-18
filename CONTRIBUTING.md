@@ -52,13 +52,21 @@ A feature belongs to HTMX when its content doesn't always need to live in the DO
 
 Game logic has been ported from JavaScript to Rust, compiled to WASM. The Rust type system catches bugs at compile time that JavaScript hides. The crate currently has **over 100 unit tests** covering route handlers, game logic, matchup tables, combat outcomes, and edge cases.
 
-### Build-Time Code Generation
+### The Cards Are Compiled into the Engine
 
-Card metadata is extracted from the YAML front matter of the card files (`cards/*.html`, one file per card, named after the card's address) at build time by a Deno script (`scripts/build-card-catalog.ts`). This generates a Rust source file (`kipukas-server/src/cards_generated.rs`) containing a static array of `Card` structs compiled directly into the engine. No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
+Every card is one file in `cards/`, named after the card's address (`/timebattle/` is `cards/timebattle.html`), holding YAML front matter and nothing else. The engine reads those files when it is compiled: its build script (`kipukas-server/build.rs`) turns them into a static array of `Card` structs (`kipukas-server/src/catalog.rs`). No runtime data fetching, no JSON loading, no IndexedDB — just compiled-in data.
+
+Cargo runs the build script again whenever a card file changes, so an engine is always compiled from the card files as they are, whether for the browser (`deno task build:wasm`) or for the site build (`card-pages`). There is no separate step and no generated source in the repository.
 
 The catalog holds everything a card shows, not only what the game logic reads, so the engine can render a card by itself.
 
-Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`). It is a record for people: nothing reads it, and a card's page carries no date. The one thing Jekyll needs from the cards, how many the binder shows, reaches it as a data file the same script writes (`_data/card_catalog.json`).
+How a card file is read is in its own small crate, `kipukas-server/catalog/`:
+
+- **The field decides the type.** A text field takes its value as written, whatever it looks like (`404`, `no` and `1e3` stay text). A number field must hold a whole number, a yes-or-no field `true` or `false`.
+- **A card file that is wrong stops the build**, with every problem listed by file (and line): a missing `permalink`, `title`, `layout` or `img_name`; a file not named after its address; a short code that is not 4 characters, or missing on a card the binder shows; two cards with one address or one short code; a number, flag or `thumbnail` that is not one; YAML that does not parse. Nothing is skipped quietly.
+- **Long text may be written the house way**: in quotes over several lines, with the later lines starting at the left edge. Strict YAML wants those lines indented, and the parser (`yaml-rust2`) holds to it, so the reader indents them itself before parsing. Indented or not, the value is the same.
+
+Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`). It is a record for people: nothing reads it, and a card's page carries no date. The one thing Jekyll needs from the cards, how many the binder shows, it asks the engine for at the start of every build (`card-pages count`, see `_plugins/card_pages.rb`).
 
 ### Card Pages Are Written by the Engine
 
@@ -71,6 +79,7 @@ The engine writes those files. The same Rust code that renders a card in the bro
 | The card shell: the page every card is shown in (scripts, styles, toolbar, the frame around the art), with holes where the card goes | `card-shell.html`, rendered once by Jekyll |
 | What goes in the holes: head tags, slug, art, the detail panel | `kipukas-server/src/site.rs` |
 | Each card's preview picture for link shares | `kipukas-server/src/preview.rs` |
+| The data files the site's scripts read: the hand view's index of short codes, and the list of art fetched for offline play | `kipukas-server/src/site.rs` |
 | Reading and writing the files, and keeping the preview pictures it has made | `kipukas-server/src/bin/card-pages.rs` |
 | Running it after every Jekyll build, and keeping the shell out of the site | `_plugins/card_pages.rb` |
 
@@ -80,7 +89,9 @@ The panel in the served page is the engine's render with no player state. In the
 
 The site's not-found page is a card page too: `cards/404.html` is in the catalog as a hidden card and is written to `/404.html`.
 
-`site.rs` and `preview.rs` are left out of the browser's engine (`#[cfg(not(target_arch = "wasm32"))]`).
+`card-pages` also keeps Kippa's copy of the catalog, `kipukas-server/cards_catalog.json` (`src/kippa.rs`), up to date. That file is in the repository and is handed to Kippa by hand; it is not part of the site. It is rewritten only when the catalog changes, so commit it when it shows up as modified.
+
+`site.rs`, `preview.rs` and `kippa.rs` are left out of the browser's engine (`#[cfg(not(target_arch = "wasm32"))]`).
 
 #### Preview pictures
 
@@ -101,7 +112,7 @@ What a card shows is defined once, in `kipukas-server/src/game/card_panel.rs`:
 
 | To… | Do this |
 |---|---|
-| Add a field | Add it to the card file's front matter, to `CardMeta` and the generated `Card` in `build-card-catalog.ts`, to `Field` (with how to read it), and to the group(s) that show it |
+| Add a field | Add it to the card file's front matter, to `Card` in `src/catalog.rs`, to the reader and writer in the `catalog/` crate (`parse_card`, `emit`), to `Field` (with how to read it), and to the group(s) that show it |
 | Show an existing field on another type | Add a row to one of that type's groups |
 | Retire a field | Delete its `Field` variant; the compiler lists every group that used it |
 | Add or retire a type | Add or delete its entry in `CARD_TYPES` |
@@ -212,7 +223,10 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/game/crdt.rs` | The room document (`ROOM_DOC`): shared timers, persistence, sync handshake |
 | `kipukas-server/src/game/fists.rs` | Fists combat in the room document — pure functions over a `Doc`, tested with two documents |
 | `kipukas-server/src/game/card_panel.rs` | The card schema (fields, and card types as compositions of them) and the card detail panel renderer |
-| `kipukas-server/src/cards_generated.rs` | Auto-generated card catalog (do not edit) |
+| `kipukas-server/src/catalog.rs` | The card catalog: `Card`, and the cards themselves, included from the build script's output |
+| `kipukas-server/build.rs` | Build script: reads `cards/` into the catalog each time the engine is compiled |
+| `kipukas-server/catalog/` | How a card file is read and checked, and how the catalog is written as Rust. Runs at build time only |
+| `kipukas-server/src/kippa.rs` | The catalog as Kippa reads it (`cards_catalog.json`). Build time only |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
 | `assets/js/kipukas-view.js` | Engine-owned views: fills `data-engine-view` elements from the engine, sends taps to it, patches the result in place |
@@ -229,7 +243,6 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `signaling-server/src/room.js` | The room rules (who may enter, taking over a place, leaving) as pure functions |
 | `signaling-server/test/` | Tests for the rules and for the whole relay running locally |
 | `signaling-server/wrangler.jsonc` | Relay deployment config: address, allowed sites, room lifetime |
-| `scripts/build-card-catalog.ts` | Extracts card YAML → Rust source, plus the hand index, the offline manifest and the card count for Jekyll |
 | `scripts/bundle-alpine.ts` | Bundles Alpine.js + plugins via esbuild |
 | `.tmuxinator.yml` | Multi-pane dev environment config |
 
@@ -650,6 +663,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 | [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
 | [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports. At build time, names the cached preview pictures |
 | [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
+| [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
 
 ### Server & Runtime
 
@@ -707,20 +721,21 @@ deno task build
 The complete build runs in this order (executed by `deno task build`):
 
 ```
-1. build:card-catalog  → Extract card file YAML → Rust source (cards_generated.rs)
-2. build:wasm          → wasm-pack compile kipukas-server/wasm → assets/js-wasm/kipukas-server-pkg/
-3. build:htmx          → Vendor HTMX → assets/js/htmx.min.js
-4. build:css           → Tailwind compile + minify → assets/css/output.css
-5. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
-6. build:rules         → Build rules book subproject → game_rules/
-7. jekyll build        → Generate _site/ from all sources, then (its last step,
-                         _plugins/card_pages.rb) the engine writes the card pages
-                         and their preview pictures
-8. build:sw            → Workbox injectManifest → sw.js with precache manifest
-9. build:minify        → Minify the site's JavaScript
+1. build:wasm          → wasm-pack compile kipukas-server/wasm → assets/js-wasm/kipukas-server-pkg/
+                         (the engine's build script reads the card files first)
+2. build:htmx          → Vendor HTMX → assets/js/htmx.min.js
+3. build:css           → Tailwind compile + minify → assets/css/output.css
+4. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
+5. build:rules         → Build rules book subproject → game_rules/
+6. jekyll build        → Generate _site/ from all sources. _plugins/card_pages.rb
+                         asks the engine for the card count first, and as the last
+                         step has it write the card pages, their preview pictures
+                         and the cards' data files
+7. build:sw            → Workbox injectManifest → sw.js with precache manifest
+8. build:minify        → Minify the site's JavaScript
 ```
 
-Step 7 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
+Step 6 runs `cargo run --bin card-pages` in `kipukas-server/` twice, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
 Individual build tasks can be run separately:
 
@@ -820,10 +835,10 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 
 **Adding or changing a card:**
 1. Create or edit `cards/card_name.html` (YAML front matter only), named after the card's address: `/card_name/` is `cards/card_name.html`. Give a new card `minted: YYYY-MM-DD`, the day it is added (a record only; nothing reads it). `layout` is the card's type and must be one of the types in `card_panel.rs`
-2. Run `deno task build:wasm` — it regenerates the Rust card catalog and rebuilds the browser's engine
+2. Run `deno task build:wasm` — it rebuilds the browser's engine, which reads the card files as it compiles. A card file that is wrong stops here, with what is wrong and where
 3. Build the site (`deno task build`), or let a running `jekyll serve` rebuild: it picks up the new engine files and writes the card's page and its preview picture
 
-A change to a card file shows nowhere until step 2: both the served page and the browser's panel come from the compiled catalog.
+Do not skip step 2. The site build compiles its own engine from the card files, so the served page shows the change either way, but the browser's engine is the one built in step 2: until it is rebuilt it redraws the panel from the cards it was compiled with.
 
 **Adding a new `/api/*` route:**
 1. Create or extend a route handler in `kipukas-server/src/routes/`
@@ -841,8 +856,7 @@ A change to a card file shows nowhere until step 2: both the served page and the
 Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to prevent Jekyll from processing them (especially `kipukas-server/target/` which contains thousands of Rust build files). The card files (`cards/`) are listed there too: Jekyll must not build pages from them.
 
 **Generated files (do not edit manually):**
-- `kipukas-server/src/cards_generated.rs` — regenerated by `deno task build:card-catalog`
-- `_data/card_catalog.json` — the card count for Jekyll, regenerated by the same task
+- `kipukas-server/cards_catalog.json` — Kippa's copy of the catalog, rewritten by the site build when the cards change
 - `assets/js/alpine.bundle.min.js` — regenerated by `deno task build:alpine`
 - `assets/js/htmx.min.js` — vendored by `deno task build:htmx`
 - `sw.js` / `sw.js.map` — regenerated by `deno task build:sw`

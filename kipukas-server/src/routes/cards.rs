@@ -7,7 +7,7 @@
 //! - `search` — case-insensitive search string matched against tags + slug
 //! - `all` — if "true", show all cards (ignore filter). Default behavior.
 
-use crate::cards_generated::{Card, CARDS};
+use crate::catalog::{Card, CARDS};
 
 /// Parse a query string into key-value pairs.
 /// Handles `?key=value&key2=value2` format.

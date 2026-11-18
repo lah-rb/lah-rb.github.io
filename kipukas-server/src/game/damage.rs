@@ -16,12 +16,12 @@
 //! whatever changes damage — a tap, a lost round of fists, New Game, another
 //! device — the tracker is redrawn from the same state.
 
-use crate::cards_generated::CARDS;
+use crate::catalog::CARDS;
 use crate::game::player_doc;
 use crate::routes::util::escape_html;
 
 /// Look up a card by slug from the compiled-in catalog.
-fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
+fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
     CARDS.iter().find(|c| c.slug == slug)
 }
 
@@ -65,7 +65,7 @@ pub fn clear_all() {
 }
 
 /// Count total keal means slots for a card.
-fn total_slots(card: &crate::cards_generated::Card) -> u8 {
+fn total_slots(card: &crate::catalog::Card) -> u8 {
     card.keal_means.iter().map(|km| km.count).sum()
 }
 

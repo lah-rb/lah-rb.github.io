@@ -4,7 +4,7 @@
 //! two players sync through the WebSocket relay; see `game::crdt` and `game::fists`.
 //! Local game state (damage, turns) remains per-user.
 
-use crate::cards_generated::CARDS;
+use crate::catalog::CARDS;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::fists;
@@ -15,7 +15,7 @@ use crate::game::turns;
 use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
 use crate::typing;
 
-fn find_card(slug: &str) -> Option<&'static crate::cards_generated::Card> {
+fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
     CARDS.iter().find(|c| c.slug == slug)
 }
 
@@ -436,7 +436,7 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
 
 /// Render Final Blows section for a card whose keal means are all exhausted.
 /// Shows local card motivation + D20 roll instruction + button to send to opponent.
-fn render_final_blows(card: &crate::cards_generated::Card) -> String {
+fn render_final_blows(card: &crate::catalog::Card) -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(&format!(
@@ -1302,12 +1302,12 @@ fn render_final_blows_result() -> String {
 }
 
 fn build_result_html(
-    atk_card: &crate::cards_generated::Card,
+    atk_card: &crate::catalog::Card,
     atk_slug: &str,
-    atk_km: &crate::cards_generated::KealMeans,
-    def_card: &crate::cards_generated::Card,
+    atk_km: &crate::catalog::KealMeans,
+    def_card: &crate::catalog::Card,
     def_slug: &str,
-    def_km: &crate::cards_generated::KealMeans,
+    def_km: &crate::catalog::KealMeans,
     result: &typing::MatchupResult,
 ) -> String {
     let mut h = String::with_capacity(2048);

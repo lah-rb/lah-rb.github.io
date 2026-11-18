@@ -13,7 +13,7 @@
 /// Query params for /api/qr/found:
 ///   url — the decoded QR URL to validate and display
 
-use crate::cards_generated::CARDS;
+use crate::catalog::CARDS;
 
 // ── SVG icon constants ─────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ mod tests {
     // -- handle_found --
 
     /// A real card and its short code, taken from the compiled catalog.
-    fn a_card() -> &'static crate::cards_generated::Card {
+    fn a_card() -> &'static crate::catalog::Card {
         CARDS
             .iter()
             .find(|c| c.slug == "brox_the_defiant")

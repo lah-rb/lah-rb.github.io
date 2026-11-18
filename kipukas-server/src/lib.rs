@@ -6,7 +6,7 @@
 
 use wasm_bindgen::prelude::*;
 
-pub mod cards_generated;
+pub mod catalog;
 pub mod game;
 pub mod image;
 pub mod routes;
@@ -20,6 +20,10 @@ pub mod site;
 /// The cards' preview pictures for link shares. Build time only, like `site`.
 #[cfg(not(target_arch = "wasm32"))]
 pub mod preview;
+
+/// The card catalog as Kippa reads it. Build time only, like `site`.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod kippa;
 
 /// Process an HTTP-like request and return an HTML fragment.
 ///

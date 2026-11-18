@@ -36,11 +36,11 @@
 //! [`damage::render_damage_tracker`], not a view nested inside it. A tap on a
 //! damage slot therefore redraws the panel it sits in.
 //!
-//! Card text comes from the card files at build time
-//! (`scripts/build-card-catalog.ts`). It is written by the game's authors,
+//! Card text comes from the card files, compiled into the engine
+//! (`catalog.rs`). It is written by the game's authors,
 //! may contain markup (`<b>`, `<br>`), and is emitted as written.
 
-use crate::cards_generated::{Card, CARDS};
+use crate::catalog::{Card, CARDS};
 use crate::game::damage;
 use crate::routes::util::escape_html;
 
