@@ -13,7 +13,6 @@
  *   - Vendored Workbox libraries (workbox/)
  *   - Vendored game_rules libraries (game_rules/js/vendor/)
  *   - Emscripten / wasm-pack generated code (js-wasm/zxing_reader.js, kipukas-server-pkg/)
- *   - Non-JS files with .js extension (demoScript.js is an HTML fragment)
  *
  * Output: overwrites each file in-place inside _site/ and prints a size report.
  */
@@ -32,7 +31,6 @@ const SKIP_PATTERNS = [
   /\/vendor\//, // Vendored game_rules libraries
   /\/kipukas-server-pkg\//, // wasm-pack generated glue code
   /\/zxing_reader\.js$/, // Emscripten-generated (106 KB, already optimized)
-  /\/demoScript\.js$/, // HTML fragment with <script> wrapper, not valid JS
 ];
 
 /** Recursively collect all .js files under a directory. */
