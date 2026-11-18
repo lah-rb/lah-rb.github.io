@@ -72,7 +72,10 @@ fn downscale_rgb(w: u32, h: u32, rgb: Vec<u8>, max_dim: u32) -> (u32, u32, Vec<u
 /// a full-resolution, fully-colored image. The `render_loading_frame` branch is
 /// only a fallback if a complete keyframe somehow isn't loaded (e.g. a truncated
 /// byte range); the normal grid/detail paths supply the whole file.
-fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
+///
+/// Also used at build time, natively, to make the cards' preview pictures
+/// (`preview.rs`).
+pub(crate) fn decode_to_rgb(bytes: &[u8]) -> Result<(u32, u32, Vec<u8>), String> {
     let mut uninit = JxlImage::builder().build_uninit();
     uninit
         .feed_bytes(bytes)

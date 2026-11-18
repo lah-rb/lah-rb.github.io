@@ -17,6 +17,10 @@ pub mod typing;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod site;
 
+/// The cards' preview pictures for link shares. Build time only, like `site`.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod preview;
+
 /// Process an HTTP-like request and return an HTML fragment.
 ///
 /// Called from JavaScript (Web Worker) via wasm-bindgen.

@@ -7,8 +7,8 @@ edition = "2024"
 #
 #   - wasm/ wraps it as the WASM module the browser loads
 #     (`deno task build:wasm`).
-#   - src/bin/card-pages.rs runs it natively at build time to write the card
-#     pages (`deno task build:cards`).
+#   - src/bin/card-pages.rs runs it natively after every Jekyll build to
+#     write the card pages and preview pictures (`_plugins/card_pages.rb`).
 #
 # The WASM module is a crate of its own, not a second crate-type of this one,
 # because Cargo does not run link-time optimisation (see [profile.release]) on
@@ -31,6 +31,11 @@ hmac-sha256 = "1.1"
 # JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
 jxl-oxide = { version = "0.12.6", default-features = false }
 
+# Build time only (src/preview.rs): writes the cards' preview pictures. Not
+# compiled for the browser, so it adds nothing to the WASM module.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+jpeg-encoder = "0.7.1"
+
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 
@@ -40,3 +45,14 @@ wasm-bindgen-test = "0.3"
 [profile.release]
 opt-level = "s"
 lto = true
+
+# Development builds are optimised too: lightly for the engine, fully for its
+# dependencies. card-pages runs as a development build after every Jekyll
+# build, and the first time it makes the cards' preview pictures it decodes and
+# scales every card's art. Measured here for 57 pictures: 146 s unoptimised,
+# 8 s with these settings. Tests are built the same way.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2

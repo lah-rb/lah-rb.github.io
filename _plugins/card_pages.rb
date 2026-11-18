@@ -5,8 +5,14 @@
 # Jekyll renders one page for all cards, the card shell (card-shell.html): the
 # site's chrome with holes where a card goes. After every build this plugin
 # hands the rendered shell to the engine's `card-pages` program, which writes
-# a page for each card, the page behind each card's short address, and adds
-# the cards to sitemap.xml and redirects.json. See kipukas-server/src/site.rs.
+# a page for each card, the page behind each card's short address, each
+# card's preview picture for link shares, and adds the cards to sitemap.xml
+# and redirects.json. See kipukas-server/src/site.rs and src/preview.rs.
+#
+# Preview pictures are slow to make, so the program keeps them in Jekyll's
+# cache folder (.jekyll-cache/card-previews) and makes one only when a card's
+# art is new or has changed. The first build after the cache is emptied
+# (`jekyll clean`) makes them all and takes noticeably longer.
 #
 # It runs after every build, including each rebuild of `jekyll serve` and
 # `jekyll build --watch`: Jekyll removes files it did not write itself at the
@@ -23,6 +29,7 @@ require "open3"
 module Kipukas
   module CardPages
     SHELL_URL = "/card-shell.html"
+    PREVIEW_CACHE = "card-previews"
 
     # The rendered shell of the build in progress.
     @shell = nil
@@ -43,8 +50,9 @@ module Kipukas
       # After Jekyll has written the site: let the engine add the cards.
       def write(site)
         engine = File.join(site.source, "kipukas-server")
+        cache = File.join(site.cache_dir, PREVIEW_CACHE)
         output, status = Open3.capture2e(
-          "cargo", "run", "--quiet", "--bin", "card-pages", "--", site.dest,
+          "cargo", "run", "--quiet", "--bin", "card-pages", "--", site.dest, cache,
           chdir: engine, stdin_data: @shell.to_s
         )
         output = output.strip

@@ -17,7 +17,8 @@
 //!   engine renders it again with the player's state, and the difference
 //!   (damage marks) is patched in.
 //! - The head tags ([`render_head`]) are what search engines and link
-//!   previews read: title, description, address, structured data.
+//!   previews read: title, description, address, structured data, and the
+//!   address of the card's preview picture (`preview.rs` draws it).
 //!
 //! ## The shell
 //!
@@ -33,7 +34,8 @@
 //!
 //! Everything here is text in, text out. [`build`] takes the shell and the
 //! two files Jekyll wrote that cards are added to, and returns every file to
-//! write. Reading and writing files is left to the binary.
+//! write, and which preview pictures the pages name. Reading and writing
+//! files, and making the pictures, is left to the binary.
 //!
 //! Building twice gives the same result as building once: adding the cards
 //! to a sitemap or an index of redirects that already has them changes
@@ -46,6 +48,7 @@ use serde_json::{json, Map, Value};
 
 use crate::cards_generated::{Card, CARDS};
 use crate::game::{card_panel, player_doc};
+use crate::preview;
 use crate::routes::util::escape_html;
 
 /// The site's address and name. Also in `_config.yml` (`url`, `title`), which
@@ -96,6 +99,22 @@ pub fn redirect_path(card: &Card) -> Option<String> {
     }
 }
 
+/// The file a card's preview picture is written to, relative to the site
+/// folder. See `preview.rs` for what the picture is.
+pub fn preview_path(card: &Card) -> String {
+    format!("assets/previews/{}.jpg", card.slug)
+}
+
+/// The file a card's art is read from, relative to the site folder.
+pub fn art_path(card: &Card) -> String {
+    format!("assets/images/{}", card.img_name)
+}
+
+/// The full address of a card's preview picture.
+fn preview_address(card: &Card) -> String {
+    format!("{}/{}", SITE_URL, preview_path(card))
+}
+
 /// The site's not-found page is a card page too (the 404 Glitch). The host
 /// serves it for any address that has no file.
 pub fn is_not_found_page(card: &Card) -> bool {
@@ -139,6 +158,7 @@ fn structured_data(card: &Card) -> Value {
     data.insert("@type".into(), json!("WebPage"));
     data.insert("headline".into(), json!(card.title));
     data.insert("url".into(), json!(address(card)));
+    data.insert("image".into(), json!(preview_address(card)));
     if let Some(text) = description(card) {
         data.insert("description".into(), json!(text));
     }
@@ -164,7 +184,28 @@ pub fn render_head(card: &Card) -> String {
     tags.push(format!(r#"<meta property="og:url" content="{}" />"#, url));
     tags.push(format!(r#"<meta property="og:site_name" content="{}" />"#, SITE_NAME));
     tags.push(r#"<meta property="og:type" content="website" />"#.to_string());
-    tags.push(r#"<meta name="twitter:card" content="summary" />"#.to_string());
+
+    // The picture a shared link shows. Its size is told so that an app can
+    // lay the preview out before it has fetched the picture.
+    let picture = escape_html(&preview_address(card));
+    tags.push(format!(r#"<meta property="og:image" content="{}" />"#, picture));
+    tags.push(r#"<meta property="og:image:type" content="image/jpeg" />"#.to_string());
+    tags.push(format!(
+        r#"<meta property="og:image:width" content="{}" />"#,
+        preview::WIDTH
+    ));
+    tags.push(format!(
+        r#"<meta property="og:image:height" content="{}" />"#,
+        preview::HEIGHT
+    ));
+    if !card.img_alt.trim().is_empty() {
+        tags.push(format!(
+            r#"<meta property="og:image:alt" content="{}" />"#,
+            escape_html(card.img_alt.trim())
+        ));
+    }
+    tags.push(r#"<meta name="twitter:card" content="summary_large_image" />"#.to_string());
+    tags.push(format!(r#"<meta property="twitter:image" content="{}" />"#, picture));
     tags.push(format!(r#"<meta property="twitter:title" content="{}" />"#, title));
 
     // Inside a script element only "</" could end it early; JSON allows the
@@ -359,6 +400,16 @@ pub struct Output {
     pub sitemap: String,
     /// The index of redirects, with the cards' short addresses added.
     pub redirects: String,
+    /// The preview pictures the pages name, for the binary to make.
+    pub previews: Vec<Preview>,
+}
+
+/// A preview picture a card's page names: where it goes and what it is made
+/// from, both relative to the site folder.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Preview {
+    pub path: String,
+    pub art: String,
 }
 
 fn is_name_char(c: char) -> bool {
@@ -412,6 +463,7 @@ pub fn build(cards: &[Card], shell: &str, sitemap: &str, redirects: &str) -> Res
     player_doc::init_player_doc();
 
     let mut files: Vec<(String, String)> = Vec::new();
+    let mut previews: Vec<Preview> = Vec::new();
     let mut paths: BTreeSet<String> = BTreeSet::new();
     let mut claim = |path: String, card: &Card| -> Result<String, String> {
         if !paths.insert(path.to_lowercase()) {
@@ -433,10 +485,15 @@ pub fn build(cards: &[Card], shell: &str, sitemap: &str, redirects: &str) -> Res
             let path = claim(path, card)?;
             files.push((path, render_redirect(card)));
         }
+        previews.push(Preview {
+            path: claim(preview_path(card), card)?,
+            art: art_path(card),
+        });
     }
 
     Ok(Output {
         files,
+        previews,
         sitemap: merge_sitemap(sitemap, cards)?,
         redirects: merge_redirects(redirects, cards)?,
     })
@@ -575,6 +632,36 @@ mod tests {
             assert!(!head.contains("article"), "{}", c.slug);
             assert!(!head.contains("published_time"), "{}", c.slug);
         }
+    }
+
+    #[test]
+    fn the_head_names_the_cards_preview_picture_and_its_size() {
+        let head = render_head(card("timebattle"));
+        let picture = "https://www.kipukas.cards/assets/previews/timebattle.jpg";
+        for tag in [
+            format!(r#"<meta property="og:image" content="{}" />"#, picture),
+            r#"<meta property="og:image:type" content="image/jpeg" />"#.to_string(),
+            r#"<meta property="og:image:width" content="1200" />"#.to_string(),
+            r#"<meta property="og:image:height" content="630" />"#.to_string(),
+            concat!(
+                r#"<meta property="og:image:alt" content=""#,
+                r#"Horse, dragon, horse, horse, and imp. The battle wages... horse." />"#
+            )
+            .to_string(),
+            r#"<meta name="twitter:card" content="summary_large_image" />"#.to_string(),
+            format!(r#"<meta property="twitter:image" content="{}" />"#, picture),
+        ] {
+            assert!(head.contains(&tag), "missing {}", tag);
+        }
+        assert_eq!(structured(&head)["image"], picture);
+    }
+
+    #[test]
+    fn art_with_no_description_gets_no_empty_alt_text() {
+        let silent = Card { img_alt: "  ", ..card("cloth").clone() };
+        let head = render_head(&silent);
+        assert!(!head.contains("og:image:alt"));
+        assert!(head.contains(r#"<meta property="og:image" content="#));
     }
 
     /// The structured data of a rendered head, parsed back.
@@ -746,6 +833,7 @@ mod tests {
         assert_eq!(twice.sitemap, once.sitemap);
         assert_eq!(twice.redirects, once.redirects);
         assert_eq!(twice.files, once.files);
+        assert_eq!(twice.previews, once.previews);
     }
 
     // ── Sitemap ────────────────────────────────────────────────────
@@ -820,6 +908,23 @@ mod tests {
             if let Some(path) = redirect_path(c) {
                 assert!(file(&output, &path).contains(&address(c)));
             }
+        }
+    }
+
+    #[test]
+    fn every_card_has_a_preview_made_from_its_art_and_named_by_its_page() {
+        let output = built();
+        assert_eq!(output.previews.len(), CARDS.len());
+        for c in CARDS.iter() {
+            let preview = output
+                .previews
+                .iter()
+                .find(|p| p.path == preview_path(c))
+                .unwrap_or_else(|| panic!("{} has a preview", c.slug));
+            assert_eq!(preview.path, format!("assets/previews/{}.jpg", c.slug));
+            assert_eq!(preview.art, format!("assets/images/{}", c.img_name));
+            let named = format!(r#"content="{}/{}""#, SITE_URL, preview.path);
+            assert!(file(&output, &page_path(c)).contains(&named), "{}", c.slug);
         }
     }
 

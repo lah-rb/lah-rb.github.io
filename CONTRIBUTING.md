@@ -70,7 +70,8 @@ The engine writes those files. The same Rust code that renders a card in the bro
 |---|---|
 | The card shell: the page every card is shown in (scripts, styles, toolbar, the frame around the art), with holes where the card goes | `card-shell.html`, rendered once by Jekyll |
 | What goes in the holes: head tags, slug, art, the detail panel | `kipukas-server/src/site.rs` |
-| Reading and writing the files | `kipukas-server/src/bin/card-pages.rs` |
+| Each card's preview picture for link shares | `kipukas-server/src/preview.rs` |
+| Reading and writing the files, and keeping the preview pictures it has made | `kipukas-server/src/bin/card-pages.rs` |
 | Running it after every Jekyll build, and keeping the shell out of the site | `_plugins/card_pages.rb` |
 
 A hole is written `[[card.<name>]]`. Anything that differs between cards must come through a hole: Jekyll knows nothing about any one card. The build fails if the shell has a hole the engine does not know, lacks one it needs, or if a file that is not the card's page already exists at a card's address.
@@ -79,7 +80,16 @@ The panel in the served page is the engine's render with no player state. In the
 
 The site's not-found page is a card page too: `cards/404.html` is in the catalog as a hidden card and is written to `/404.html`.
 
-`site.rs` is left out of the browser's engine (`#[cfg(not(target_arch = "wasm32"))]`).
+`site.rs` and `preview.rs` are left out of the browser's engine (`#[cfg(not(target_arch = "wasm32"))]`).
+
+#### Preview pictures
+
+When a card's address is pasted into a chat or a post, the app showing it reads the page's head for a picture (`og:image`). Those apps read JPEG; the card art is JPEG XL only. So the build writes one JPEG per card, `/assets/previews/<slug>.jpg`, and each card page names its own.
+
+- **What it shows:** the whole art, never cropped, scaled to fit a 1200 × 630 canvas (the shape link previews are shown in) and centred on a mat of the art's own average colour, darkened. Every preview is that size.
+- **Who fetches it:** only the app building a link preview. It is named in a head tag, not shown on the page, and it matches no pattern in the service worker's precache list (`workbox-config.cjs`). Keep it that way: a visitor should never download previews.
+- **When it is made:** `card-pages` reads the art from the built site (`_site/assets/images/`), so nothing is added to the source tree. Making a preview is slow next to everything else the build does, so each one is kept in Jekyll's cache folder (`.jekyll-cache/card-previews/`) under a name derived from the art's bytes and the recipe (`preview::cache_key`). A build makes only the previews that are not there: after new or changed art, after a change to the constants in `preview.rs`, or after the cache is emptied (`jekyll clean`). Making all of them takes about 8 seconds; with them cached, `card-pages` adds well under a second to a build.
+- **Changing how previews look:** edit `preview.rs`. A change to its constants renames every preview by itself; for any other change to what is drawn, raise `RECIPE` so the old ones are not reused.
 
 ### Card Schema: Types as Compositions of Fields
 
@@ -190,7 +200,8 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/src/lib.rs` | Engine entry point (`handle_request`) + route registration |
 | `kipukas-server/wasm/` | The engine wrapped as the WASM module the browser loads. A crate of its own so link-time optimisation still runs (see the note in `kipukas-server/Cargo.toml`) |
 | `kipukas-server/src/site.rs` | The card pages of the built site: head tags, filling the card shell, short-address pages, sitemap entries. Build time only |
-| `kipukas-server/src/bin/card-pages.rs` | The native program that writes the card pages into `_site/` |
+| `kipukas-server/src/preview.rs` | A card's preview picture for link shares: the art scaled onto a 1200 × 630 canvas, as a JPEG. Build time only |
+| `kipukas-server/src/bin/card-pages.rs` | The native program that writes the card pages and preview pictures into `_site/` |
 | `card-shell.html` | The card shell: the one page Jekyll renders for all cards, with `[[card.…]]` holes |
 | `_plugins/card_pages.rb` | Jekyll hook: runs `card-pages` after every build |
 | `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, player, shared utils) |
@@ -637,7 +648,8 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 | [serde](https://serde.rs/) + serde_json | 1.x | MIT / Apache-2.0 | State serialization (localStorage + WebSocket relay) |
 | [yrs](https://crates.io/crates/yrs) | 0.25 | MIT | Yjs CRDT port — conflict-free replicated data types for multiplayer sync |
 | [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
-| [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports |
+| [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports. At build time, names the cached preview pictures |
+| [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
 
 ### Server & Runtime
 
@@ -703,11 +715,12 @@ The complete build runs in this order (executed by `deno task build`):
 6. build:rules         → Build rules book subproject → game_rules/
 7. jekyll build        → Generate _site/ from all sources, then (its last step,
                          _plugins/card_pages.rb) the engine writes the card pages
+                         and their preview pictures
 8. build:sw            → Workbox injectManifest → sw.js with precache manifest
 9. build:minify        → Minify the site's JavaScript
 ```
 
-Step 7 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
+Step 7 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
 Individual build tasks can be run separately:
 
@@ -808,7 +821,7 @@ Scope: `scripts/` and `assets/js/` (excluding vendored/generated files).
 **Adding or changing a card:**
 1. Create or edit `cards/card_name.html` (YAML front matter only), named after the card's address: `/card_name/` is `cards/card_name.html`. Give a new card `minted: YYYY-MM-DD`, the day it is added (a record only; nothing reads it). `layout` is the card's type and must be one of the types in `card_panel.rs`
 2. Run `deno task build:wasm` — it regenerates the Rust card catalog and rebuilds the browser's engine
-3. Build the site (`deno task build`), or let a running `jekyll serve` rebuild: it picks up the new engine files and writes the card's page
+3. Build the site (`deno task build`), or let a running `jekyll serve` rebuild: it picks up the new engine files and writes the card's page and its preview picture
 
 A change to a card file shows nowhere until step 2: both the served page and the browser's panel come from the compiled catalog.
 
