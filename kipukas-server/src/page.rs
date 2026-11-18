@@ -18,7 +18,7 @@
 
 use std::cell::{Cell, RefCell};
 
-use crate::game::{connection, room};
+use crate::game::{connection, device_sync, room};
 use crate::{store, wire};
 
 thread_local! {
@@ -80,9 +80,14 @@ fn take_in_room() -> Option<bool> {
 pub fn handle_handover_post(_body: &str) -> String {
     let mut handed = serde_json::Map::new();
 
-    // What this player changed in the room goes to the opponent first: it
-    // is sent through the wire.
+    // What this player changed goes to whoever shares it first, because
+    // it is sent through the wire: changes to the room to the opponent, and
+    // a change of the player's own state to a device paired with this one.
     connection::send_updates();
+    let saves = store::take_saves();
+    if saves.contains_key(store::PLAYER_DOC) {
+        device_sync::player_changed();
+    }
     let wire = wire::take();
     if !wire.is_empty() {
         handed.insert("wire".into(), serde_json::json!(wire));
@@ -91,7 +96,6 @@ pub fn handle_handover_post(_body: &str) -> String {
     if !redraws.is_empty() {
         handed.insert("redraw".into(), serde_json::json!(redraws));
     }
-    let saves = store::take_saves();
     if !saves.is_empty() {
         handed.insert("save".into(), serde_json::json!(saves));
     }
@@ -143,6 +147,7 @@ mod tests {
         crdt::take_outbox();
         store::reset();
         connection::reset();
+        device_sync::reset();
         reset();
     }
 
@@ -236,6 +241,36 @@ mod tests {
         let sent = handed();
         assert_eq!(sent["wire"][0]["send"], socket.as_str());
         assert!(sent["wire"][0]["text"].as_str().unwrap().contains(&update));
+        fresh();
+    }
+
+    #[test]
+    fn a_change_of_the_players_state_is_offered_to_a_paired_device_with_the_same_handover() {
+        fresh();
+        store::handle_start_post("{}");
+        device_sync::create("correct horse");
+        let socket = handed()["wire"][0]["open"].as_str().unwrap().to_string();
+        assert!(socket.starts_with("sync:"));
+        let report = |event: &str, data: String| {
+            let report = serde_json::json!({ "socket": socket, "event": event, "data": data });
+            wire::handle_wire_post(&report.to_string());
+        };
+        report("open", String::new());
+        report("message", r#"{"type":"room_created","code":"ABCD"}"#.to_string());
+        report("message", r#"{"type":"peer_joined","peerId":"other"}"#.to_string());
+        let mac = crate::game::crypto::sign_export("correct horse", "ABCD").unwrap();
+        let proof = serde_json::json!({ "type": "relay", "data": { "type": "sync_auth", "mac": mac } });
+        report("message", proof.to_string());
+        handed();
+
+        player_doc::add_alarm(3, "mine", "red");
+        let changed = handed();
+        assert!(changed["save"].as_object().unwrap().contains_key(store::PLAYER_DOC));
+        assert_eq!(changed["wire"][0]["send"], socket.as_str());
+        assert!(changed["wire"][0]["text"].as_str().unwrap().contains("player_sv"));
+
+        // Nothing changed: nothing is offered.
+        assert_eq!(handed(), serde_json::json!({}));
         fresh();
     }
 

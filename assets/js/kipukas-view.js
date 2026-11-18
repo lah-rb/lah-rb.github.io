@@ -26,6 +26,12 @@
  *     <input name="turns" type="number"> <button>New Timer</button>
  *   </form>
  *
+ * A form with more than one button says which was pressed: the button's name
+ * and value are sent with the fields.
+ *
+ *   <button name="action" value="create">Create Room</button>
+ *   <button name="action" value="code">Join Room</button>
+ *
  * The engine applies the change, and the view is drawn again from its route
  * and patched into the page: only what differs is touched, so elements keep
  * their identity (focus, transitions, anything else attached to them).
@@ -300,10 +306,15 @@
     await Promise.all((view ? [view, ...others] : others).map(render));
   }
 
-  /** Send a form: its body, then its fields. */
-  function sendForm(form) {
+  /**
+   * Send a form: its body, then its fields, then the button that submitted
+   * it if that has a name.
+   */
+  function sendForm(form, submitter) {
     clearTimeout(pausing.get(form));
-    const fields = new URLSearchParams(new FormData(form)).toString();
+    const data = new FormData(form);
+    if (submitter && submitter.name) data.append(submitter.name, submitter.value);
+    const fields = new URLSearchParams(data).toString();
     const body = [form.getAttribute(BODY), fields].filter(Boolean).join('&');
     return send(form.closest('[' + VIEW + ']'), form.getAttribute(POST), body);
   }
@@ -325,7 +336,7 @@
     const form = event.target;
     if (!form.hasAttribute || !form.hasAttribute(POST)) return;
     event.preventDefault();
-    await sendForm(form);
+    await sendForm(form, event.submitter);
     if (form.isConnected && !form.hasAttribute(LIVE)) form.reset();
   });
 

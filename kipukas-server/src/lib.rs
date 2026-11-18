@@ -72,12 +72,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/player/export/signed", "player_export_signed").ok();
     router.insert("/api/player/import/signed", "player_import_signed").ok();
 
-    // Cross-device sync routes (Phase E)
-    router.insert("/api/player/sync/sv", "player_sync_sv").ok();
-    router.insert("/api/player/sync/diff", "player_sync_diff").ok();
-    router.insert("/api/player/sync/apply", "player_sync_apply").ok();
-    router.insert("/api/player/sync/auth", "player_sync_auth").ok();
-    router.insert("/api/player/sync/verify", "player_sync_verify").ok();
+    // Pairing two devices to merge the player's state
+    router.insert("/api/player/sync", "player_sync").ok();
 
     // Between the engine and what holds it: the page (`page`, `store`) and
     // its own worker (`wire`)
@@ -120,12 +116,9 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("player_export_signed", "POST") => routes::player::handle_export_signed_post(body),
             ("player_import_signed", "POST") => routes::player::handle_import_signed_post(body),
 
-            // Cross-device sync routes (Phase E)
-            ("player_sync_sv", "GET") => routes::player::handle_sync_sv_get(query),
-            ("player_sync_diff", "POST") => routes::player::handle_sync_diff_post(body),
-            ("player_sync_apply", "POST") => routes::player::handle_sync_apply_post(body),
-            ("player_sync_auth", "POST") => routes::player::handle_sync_auth_post(body),
-            ("player_sync_verify", "POST") => routes::player::handle_sync_verify_post(body),
+            // Pairing two devices to merge the player's state
+            ("player_sync", "GET") => routes::device_sync::handle_sync_get(query),
+            ("player_sync", "POST") => routes::device_sync::handle_sync_post(body),
 
             // Between the engine and what holds it
             ("start", "POST") => store::handle_start_post(body),
@@ -260,6 +253,7 @@ mod tests {
         game::crdt::reset_doc();
         game::crdt::take_outbox();
         game::connection::reset();
+        game::device_sync::reset();
         store::reset();
         page::reset();
     }
@@ -384,6 +378,11 @@ mod tests {
             ("POST", "/api/room/yrs/restore"),
             ("POST", "/api/room/outbox"),
             ("POST", "/api/room/fists/poll"),
+            ("GET", "/api/player/sync/sv"),
+            ("POST", "/api/player/sync/diff"),
+            ("POST", "/api/player/sync/apply"),
+            ("POST", "/api/player/sync/auth"),
+            ("POST", "/api/player/sync/verify"),
         ] {
             assert!(handle_request(method, path, "", "").contains("404"), "{}", path);
         }

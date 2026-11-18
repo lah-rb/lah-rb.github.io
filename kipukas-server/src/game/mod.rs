@@ -11,6 +11,7 @@ pub mod connection;
 pub mod crdt;
 pub mod crypto;
 pub mod damage;
+pub mod device_sync;
 pub mod fists;
 pub mod matchup;
 pub mod player_doc;

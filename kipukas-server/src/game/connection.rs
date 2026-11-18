@@ -254,6 +254,13 @@ fn relay_address() -> String {
     with_query(&base, &wants)
 }
 
+/// The relay's address with `set` in its query. For a pairing of two
+/// devices, which meets on the same relay (`game::device_sync`).
+pub fn relay_address_with(set: &[(&str, String)]) -> String {
+    let base = CONN.with(|conn| conn.borrow().relay.clone().unwrap_or_else(|| RELAY.to_string()));
+    with_query(&base, set)
+}
+
 /// `address` with each of `set` in its query, in place of any value the
 /// query already has for that name.
 fn with_query(address: &str, set: &[(&str, String)]) -> String {

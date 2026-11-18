@@ -26,13 +26,14 @@
 //! ```
 //!
 //! A name starts with whose it is: `room` for the room's connection
-//! (`game::connection`).
+//! (`game::connection`), `sync` for a pairing of two devices
+//! (`game::device_sync`).
 
 use std::cell::RefCell;
 
 use serde::Deserialize;
 
-use crate::game::connection;
+use crate::game::{connection, device_sync};
 use crate::link::{Ask, Timer};
 
 thread_local! {
@@ -43,18 +44,21 @@ thread_local! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Channel {
     Room,
+    Sync,
 }
 
 impl Channel {
     fn name(self) -> &'static str {
         match self {
             Channel::Room => "room",
+            Channel::Sync => "sync",
         }
     }
 
     fn named(name: &str) -> Option<Channel> {
         match name {
             "room" => Some(Channel::Room),
+            "sync" => Some(Channel::Sync),
             _ => None,
         }
     }
@@ -155,6 +159,7 @@ pub fn handle_wire_post(body: &str) -> String {
         };
         match channel {
             Channel::Room => connection::socket_event(id, event),
+            Channel::Sync => device_sync::socket_event(id, event),
         }
     } else if let Some(name) = report.timer {
         let Some((channel, wait)) = split(&name) else {
@@ -163,6 +168,8 @@ pub fn handle_wire_post(body: &str) -> String {
         match (channel, link_timer(wait)) {
             (Channel::Room, Some(timer)) => connection::link_timer(timer),
             (Channel::Room, None) => connection::wait_over(wait),
+            (Channel::Sync, Some(timer)) => device_sync::link_timer(timer),
+            (Channel::Sync, None) => {}
         }
     }
     "ok".to_string()
@@ -189,18 +196,18 @@ mod tests {
         take();
         pass(Channel::Room, Ask::Open { socket: 3, url: "wss://relay/ws".to_string() });
         pass(Channel::Room, Ask::Send { socket: 3, text: "hi".to_string() });
-        pass(Channel::Room, Ask::Close { socket: 1 });
+        pass(Channel::Sync, Ask::Close { socket: 1 });
         pass(Channel::Room, Ask::Set { timer: Timer::Retry, ms: 1000 });
-        pass(Channel::Room, Ask::Clear { timer: Timer::Pong });
+        pass(Channel::Sync, Ask::Clear { timer: Timer::Pong });
         set(Channel::Room, "hello", 3000);
         assert_eq!(
             take(),
             [
                 serde_json::json!({ "open": "room:3", "url": "wss://relay/ws" }),
                 serde_json::json!({ "send": "room:3", "text": "hi" }),
-                serde_json::json!({ "close": "room:1" }),
+                serde_json::json!({ "close": "sync:1" }),
                 serde_json::json!({ "set": "room:retry", "ms": 1000 }),
-                serde_json::json!({ "clear": "room:pong" }),
+                serde_json::json!({ "clear": "sync:pong" }),
                 serde_json::json!({ "set": "room:hello", "ms": 3000 }),
             ]
         );
@@ -225,8 +232,9 @@ mod tests {
 
     #[test]
     fn a_socket_is_alive_if_the_worker_names_it_among_those_open() {
-        let alive = vec!["room:4".to_string(), "elsewhere:1".to_string()];
+        let alive = vec!["room:4".to_string(), "sync:1".to_string()];
         assert!(is_alive(&alive, Channel::Room, Some(4)));
+        assert!(is_alive(&alive, Channel::Sync, Some(1)));
         assert!(!is_alive(&alive, Channel::Room, Some(1)));
         assert!(!is_alive(&alive, Channel::Room, None));
         assert!(!is_alive(&[], Channel::Room, Some(4)));

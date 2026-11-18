@@ -1,4 +1,5 @@
 pub mod cards;
+pub mod device_sync;
 pub mod game;
 pub mod hand;
 pub mod player;

@@ -22,27 +22,6 @@
  */
 
 // ============================================
-// RELAY ADDRESS — single source of truth
-// ============================================
-// The multiplayer / device-sync relay address lives here because every page
-// that can hold a room loads this file: the Jekyll layout and the standalone
-// rules book. Moving the relay to another host is a change to this one line
-// (and to the matching route in signaling-server/wrangler.jsonc).
-//
-// For local work, run the relay locally (`deno task dev` in signaling-server/)
-// and point at it without editing code:
-//   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
-const KIPUKAS_RELAY_URL = 'wss://signal.kipukas.us/ws';
-
-globalThis.kipukasRelayUrl = function () {
-  try {
-    const override = localStorage.getItem('kipukas_relay_url');
-    if (override && /^wss?:\/\//.test(override)) return override;
-  } catch (_) { /* storage unavailable — use the default */ }
-  return KIPUKAS_RELAY_URL;
-};
-
-// ============================================
 // THE ENGINE AND THE BROWSER'S STORAGE
 // ============================================
 // Every page load starts a fresh game engine, in a worker of its own. What
@@ -60,7 +39,9 @@ globalThis.kipukasRelayUrl = function () {
 const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', 'kipukas_room_tab'];
 
 // Read by the engine at load and written by nobody but a developer: a relay
-// address to use in place of the engine's own, for local work.
+// address to use in place of the engine's own, for local work. Run the relay
+// locally (`deno task dev` in signaling-server/) and point at it with:
+//   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
 const RELAY_KEY = 'kipukas_relay_url';
 
 /** What is stored under one of the engine's keys, or null. */
@@ -126,10 +107,6 @@ wasmWorker.addEventListener('message', (event) => {
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
       } catch (_) { /* quota or storage unavailable */ }
-    }
-    // A device paired for syncing is sent the player's new state.
-    if ('kipukas_player_doc' in data.writes && globalThis.kipukasSync?.isConnected()) {
-      globalThis.kipukasSync.broadcastUpdate();
     }
   } else if (data.type === 'ROOM') {
     // Whether the player is in a room, for the toolbar.
