@@ -450,6 +450,10 @@ pub fn reset() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
     use crate::game::{crdt, room};
     use crate::store;
 
@@ -642,7 +646,7 @@ mod tests {
         let socket = in_a_room();
         relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
         asked();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
 
         // It asks for our state, and offers its own, without a proof.
         from_peer(socket, serde_json::json!({ "type": "player_sv", "sv": "AA" }));
@@ -656,12 +660,12 @@ mod tests {
     fn the_two_devices_each_send_what_the_other_lacks() {
         fresh();
         // The other device's state: one timer of its own.
-        player_doc::add_alarm(5, "theirs", "blue");
+        player_doc::add_alarm(NOW, 5, "theirs", "blue");
         let their_state = player_doc::encode_full_state();
         player_doc::init_player_doc();
         let empty_sv = player_doc::encode_state_vector();
 
-        player_doc::add_alarm(3, "ours", "red");
+        player_doc::add_alarm(NOW, 3, "ours", "red");
         let socket = paired();
 
         // Their state vector (they have nothing of ours): our update, then our own state vector.

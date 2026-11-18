@@ -13,7 +13,10 @@
 //! │       ├── "slots" (YArray<bool>)  — index 0 = slot 1
 //! │       └── "wasted" (bool)
 //! ├── "alarms" (YArray<YMap>)
-//! │   └── [0] { "remaining": i32, "name": String, "color_set": String }
+//! │   └── [0] { "id": String, "remaining": i32, "name": String,
+//! │             "color_set": String, "changed": f64 (ms, when last changed) }
+//! ├── "retired" (YMap) — timers removed lately while out of a room:
+//! │   └── "<timer id>": f64 (ms, when)
 //! └── "settings" (YMap)
 //!     └── "show_alarms" (bool)
 //! ```
@@ -32,9 +35,12 @@ use base64::Engine;
 use std::cell::RefCell;
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
-use yrs::{Any, Array, ArrayPrelim, Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn};
+use yrs::{
+    Any, Array, ArrayPrelim, Doc, Map, MapPrelim, MapRef, ReadTxn, StateVector, Transact, TransactionMut, Update,
+    WriteTxn,
+};
 
-use crate::game::state::{new_alarm_id, Alarm};
+use crate::game::state::{dated, is_valid_alarm_id, new_alarm_id, Alarm};
 
 thread_local! {
     static PLAYER_DOC: RefCell<Doc> = RefCell::new(new_player_doc());
@@ -326,14 +332,20 @@ fn validate_color_set(color: &str) -> &str {
     }
 }
 
-/// Add a new alarm with a fresh id.
-pub fn add_alarm(turns: i32, name: &str, color_set: &str) {
-    add_alarm_with_id(&new_alarm_id(), turns, name, color_set);
+/// How long a timer that was removed is remembered as removed (see
+/// [`retired`]): longer than a room is kept by anyone who might still hold
+/// the timer.
+const RETIRED_KEPT_MS: f64 = 24.0 * 60.0 * 60.0 * 1000.0;
+
+/// Add a new alarm with a fresh id, made at `now`.
+pub fn add_alarm(now: f64, turns: i32, name: &str, color_set: &str) {
+    add_alarm_with_id(&new_alarm_id(), turns, name, color_set, dated(now, 0.0));
 }
 
 /// Add an alarm that already has an id (a shared timer coming back from a
-/// room), so it keeps its identity for the next room.
-pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str) {
+/// room), so it keeps its identity for the next room. `changed` is when it
+/// was last changed, which it keeps too.
+pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str, changed: f64) {
     let color = validate_color_set(color_set);
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
@@ -344,14 +356,114 @@ pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str) {
             ("remaining".to_string(), Any::from(turns as f64)),
             ("name".to_string(), Any::from(name.to_string())),
             ("color_set".to_string(), Any::from(color.to_string())),
+            ("changed".to_string(), Any::from(changed)),
         ]);
         let len = alarms.len(&txn);
         alarms.insert(&mut txn, len, alarm_map);
     });
 }
 
-/// Tick all alarms: decrement by 1, remove completed (were already at 0).
-pub fn tick_alarms() {
+/// What a stored alarm says of itself: its id and when it was last changed.
+fn id_and_changed<T: ReadTxn>(map: &MapRef, txn: &T) -> (String, f64) {
+    let id = match map.get(txn, "id") {
+        Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
+        _ => String::new(),
+    };
+    let changed = match map.get(txn, "changed") {
+        Some(yrs::Out::Any(Any::Number(at))) => at,
+        _ => 0.0,
+    };
+    (id, changed)
+}
+
+/// Remember that the timer `id`, last changed at `changed`, was removed at
+/// `now`, and forget removals too old to matter.
+///
+/// A timer the player removes while out of a room may still be in a room
+/// they return to, as the other player has it. Joining offers the removal
+/// along with the player's timers (`crdt::seed_from_local`), and the later
+/// of the two wins: the timer stays removed unless it was changed in the
+/// room after that.
+fn retire(txn: &mut TransactionMut, id: &str, changed: f64, now: f64) {
+    let retired = txn.get_or_insert_map("retired");
+    if is_valid_alarm_id(id) {
+        retired.insert(txn, id, Any::from(dated(now, changed)));
+    }
+    forget_old(&retired, txn, now);
+}
+
+/// Forget the removals made more than a day before `latest`.
+fn forget_old(retired: &MapRef, txn: &mut TransactionMut, latest: f64) {
+    let old: Vec<String> = retired
+        .iter(txn)
+        .filter_map(|(id, value)| match value {
+            yrs::Out::Any(Any::Number(at)) if latest - at <= RETIRED_KEPT_MS => None,
+            _ => Some(id.to_string()),
+        })
+        .collect();
+    for id in old {
+        retired.remove(txn, &id);
+    }
+}
+
+/// Remember the timers that were removed in a room (id, and when), the same
+/// as those the player removes alone.
+///
+/// The other player may have left the room before the removal reached them,
+/// and still hold the timer. The removal has to go with this player to the
+/// next room to meet it there. Called with all of a room's removals each
+/// time the room's timers are copied to the player's own
+/// (`crdt::export_to_local`), so it writes only what it does not hold yet,
+/// and takes nothing it would at once forget as too old.
+pub fn remember_removed(removed: &[(String, f64)]) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let mut txn = doc.transact_mut();
+        let retired = txn.get_or_insert_map("retired");
+        let held: Vec<(String, f64)> = retired
+            .iter(&txn)
+            .filter_map(|(id, value)| match value {
+                yrs::Out::Any(Any::Number(at)) => Some((id.to_string(), at)),
+                _ => None,
+            })
+            .collect();
+        let latest = held.iter().chain(removed).map(|(_, at)| *at).fold(0.0, f64::max);
+        let mut changed = false;
+        for (id, at) in removed {
+            if !is_valid_alarm_id(id) || latest - at > RETIRED_KEPT_MS {
+                continue;
+            }
+            if held.iter().any(|(known, since)| known == id && since >= at) {
+                continue;
+            }
+            retired.insert(&mut txn, id.as_str(), Any::from(*at));
+            changed = true;
+        }
+        if changed {
+            forget_old(&retired, &mut txn, latest);
+        }
+    });
+}
+
+/// The timers this player removed lately while out of a room: id, and when.
+pub fn retired() -> Vec<(String, f64)> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let retired = doc.get_or_insert_map("retired");
+        let txn = doc.transact();
+        retired
+            .iter(&txn)
+            .filter_map(|(id, value)| match value {
+                yrs::Out::Any(Any::Number(at)) => Some((id.to_string(), at)),
+                _ => None,
+            })
+            .collect()
+    })
+}
+
+/// Tick all alarms at `now`: decrement by 1, remove completed (were already
+/// at 0).
+pub fn tick_alarms(now: f64) {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let alarms = doc.get_or_insert_array("alarms");
@@ -359,20 +471,22 @@ pub fn tick_alarms() {
         let len = alarms.len(&txn);
 
         // First pass: collect indices to remove (were at 0)
-        let mut to_remove: Vec<u32> = Vec::new();
+        let mut to_remove: Vec<(u32, String, f64)> = Vec::new();
         for i in 0..len {
             if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
                 if let Some(yrs::Out::Any(Any::Number(r))) = map.get(&txn, "remaining") {
                     if (r as i32) <= 0 {
-                        to_remove.push(i);
+                        let (id, changed) = id_and_changed(&map, &txn);
+                        to_remove.push((i, id, changed));
                     }
                 }
             }
         }
 
         // Remove expired (reverse order to preserve indices)
-        for &idx in to_remove.iter().rev() {
-            alarms.remove(&mut txn, idx);
+        for (idx, id, changed) in to_remove.iter().rev() {
+            alarms.remove(&mut txn, *idx);
+            retire(&mut txn, id, *changed, now);
         }
 
         // Second pass: decrement remaining alarms
@@ -381,43 +495,47 @@ pub fn tick_alarms() {
             if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
                 if let Some(yrs::Out::Any(Any::Number(r))) = map.get(&txn, "remaining") {
                     let remaining = r as i32;
+                    let (_, changed) = id_and_changed(&map, &txn);
                     map.insert(&mut txn, "remaining", Any::from((remaining - 1) as f64));
+                    map.insert(&mut txn, "changed", Any::from(dated(now, changed)));
                 }
             }
         }
     });
 }
 
-/// Remove an alarm by index.
-pub fn remove_alarm(index: usize) {
+/// Remove an alarm by index, at `now`.
+pub fn remove_alarm(now: f64, index: usize) {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let alarms = doc.get_or_insert_array("alarms");
         let mut txn = doc.transact_mut();
         let len = alarms.len(&txn);
         if (index as u32) < len {
+            if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, index as u32) {
+                let (id, changed) = id_and_changed(&map, &txn);
+                retire(&mut txn, &id, changed, now);
+            }
             alarms.remove(&mut txn, index as u32);
         }
     });
 }
 
-/// Remove the alarms that have one of these ids.
-pub fn remove_alarms_with_ids(ids: &[String]) {
+/// Remove the alarms that have one of these ids, at `now`.
+pub fn remove_alarms_with_ids(now: f64, ids: &[String]) {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let alarms = doc.get_or_insert_array("alarms");
         let mut txn = doc.transact_mut();
         // Last first, so removing one does not move those still to check.
         for i in (0..alarms.len(&txn)).rev() {
-            let id = match alarms.get(&txn, i) {
-                Some(yrs::Out::YMap(map)) => match map.get(&txn, "id") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                },
-                _ => String::new(),
+            let (id, changed) = match alarms.get(&txn, i) {
+                Some(yrs::Out::YMap(map)) => id_and_changed(&map, &txn),
+                _ => (String::new(), 0.0),
             };
             if !id.is_empty() && ids.contains(&id) {
                 alarms.remove(&mut txn, i);
+                retire(&mut txn, &id, changed, now);
             }
         }
     });
@@ -488,15 +606,13 @@ pub fn get_alarms() -> Vec<Alarm> {
                 };
                 // Timers saved before ids existed have none; one is assigned
                 // when the timer is first shared (crdt::seed_from_local).
-                let id = match map.get(&txn, "id") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                };
+                let (id, changed) = id_and_changed(&map, &txn);
                 result.push(Alarm {
                     id,
                     remaining,
                     name,
                     color_set,
+                    changed,
                 });
             }
         }
@@ -657,7 +773,32 @@ pub fn clear_affinity() {
     });
 }
 
-/// Clear all alarms (used by "New Game" reset).
+/// Remove every alarm at `now`, each remembered as removed: "New Game"
+/// while out of a room. A copy of one of them that the other player brings
+/// to the next room does not bring it back.
+pub fn remove_all_alarms(now: f64) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let alarms = doc.get_or_insert_array("alarms");
+        let mut txn = doc.transact_mut();
+        let len = alarms.len(&txn);
+        let mut removed: Vec<(String, f64)> = Vec::new();
+        for i in 0..len {
+            if let Some(yrs::Out::YMap(map)) = alarms.get(&txn, i) {
+                removed.push(id_and_changed(&map, &txn));
+            }
+        }
+        for _ in 0..len {
+            alarms.remove(&mut txn, 0);
+        }
+        for (id, changed) in &removed {
+            retire(&mut txn, id, *changed, now);
+        }
+    });
+}
+
+/// Clear all alarms without remembering any as removed: the player's timers
+/// are moving into a room, or being rewritten as a copy of a room's.
 pub fn clear_alarms() {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
@@ -833,6 +974,10 @@ pub fn apply_update(update_b64: &str) -> Result<(), String> {
 mod tests {
     use super::*;
 
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
+
     fn reset() {
         init_player_doc();
     }
@@ -925,7 +1070,7 @@ mod tests {
     #[test]
     fn add_alarm_works() {
         reset();
-        add_alarm(5, "Scout patrol", "green");
+        add_alarm(NOW, 5, "Scout patrol", "green");
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].remaining, 5);
@@ -936,7 +1081,7 @@ mod tests {
     #[test]
     fn add_alarm_validates_color() {
         reset();
-        add_alarm(1, "", "invalid");
+        add_alarm(NOW, 1, "", "invalid");
         let alarms = get_alarms();
         assert_eq!(alarms[0].color_set, "red");
     }
@@ -944,21 +1089,21 @@ mod tests {
     #[test]
     fn tick_decrements_and_removes_expired() {
         reset();
-        add_alarm(2, "stays", "red");
-        add_alarm(1, "completes", "blue");
+        add_alarm(NOW, 2, "stays", "red");
+        add_alarm(NOW, 1, "completes", "blue");
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 1);
         assert_eq!(alarms[1].remaining, 0);
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].remaining, 0);
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert!(alarms.is_empty());
     }
@@ -966,10 +1111,10 @@ mod tests {
     #[test]
     fn remove_alarm_by_index() {
         reset();
-        add_alarm(5, "first", "red");
-        add_alarm(3, "second", "green");
-        add_alarm(1, "third", "blue");
-        remove_alarm(1);
+        add_alarm(NOW, 5, "first", "red");
+        add_alarm(NOW, 3, "second", "green");
+        add_alarm(NOW, 1, "third", "blue");
+        remove_alarm(NOW, 1);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -979,12 +1124,151 @@ mod tests {
     #[test]
     fn remove_alarm_out_of_bounds_is_noop() {
         reset();
-        add_alarm(5, "", "red");
-        remove_alarm(99);
+        add_alarm(NOW, 5, "", "red");
+        remove_alarm(NOW, 99);
         assert_eq!(get_alarms().len(), 1);
     }
 
     // ── Settings tests ─────────────────────────────────────────────
+
+    #[test]
+    fn a_timer_is_dated_when_it_is_made_and_each_time_it_is_advanced() {
+        reset();
+        add_alarm(NOW, 3, "alpha", "red");
+        assert_eq!(get_alarms()[0].changed, NOW);
+
+        tick_alarms(NOW + 5_000.0);
+        assert_eq!(get_alarms()[0].changed, NOW + 5_000.0);
+
+        // A clock that has not moved on, or has gone back, still dates the
+        // change after the one before it.
+        tick_alarms(NOW + 5_000.0);
+        assert_eq!(get_alarms()[0].changed, NOW + 5_001.0);
+        tick_alarms(NOW);
+        assert_eq!(get_alarms()[0].changed, NOW + 5_002.0);
+
+        // A timer brought back from a room keeps the date it had there.
+        add_alarm_with_id("t1", 2, "from a room", "blue", NOW + 9_000.0);
+        assert_eq!(get_alarms()[1].changed, NOW + 9_000.0);
+        reset();
+    }
+
+    #[test]
+    fn a_timer_the_player_removes_is_remembered_as_removed_and_when() {
+        reset();
+        add_alarm_with_id("ran-out", 0, "ran out", "red", NOW);
+        add_alarm_with_id("by-hand", 4, "removed by hand", "blue", NOW);
+        add_alarm_with_id("faded", 0, "ran out and faded", "green", NOW);
+        add_alarm_with_id("stays", 4, "stays", "pink", NOW);
+        assert!(retired().is_empty());
+
+        // By hand, by its place in the list.
+        remove_alarm(NOW + 1_000.0, 1);
+        // By the clock, once it has faded.
+        remove_alarms_with_ids(NOW + 2_000.0, &["faded".to_string()]);
+        // By the next advance, having run out.
+        tick_alarms(NOW + 3_000.0);
+
+        let mut gone = retired();
+        gone.sort_by(|a, b| a.0.cmp(&b.0));
+        assert_eq!(
+            gone,
+            [
+                ("by-hand".to_string(), NOW + 1_000.0),
+                ("faded".to_string(), NOW + 2_000.0),
+                ("ran-out".to_string(), NOW + 3_000.0),
+            ]
+        );
+        let left: Vec<String> = get_alarms().into_iter().map(|alarm| alarm.id).collect();
+        assert_eq!(left, ["stays"]);
+        reset();
+    }
+
+    #[test]
+    fn clearing_the_timers_remembers_none_as_removed() {
+        // The player's timers moving into a room, or being rewritten as a
+        // copy of a room's: neither is the player removing a timer.
+        reset();
+        add_alarm_with_id("t1", 3, "alpha", "red", NOW);
+        clear_alarms();
+        assert!(get_alarms().is_empty());
+        assert!(retired().is_empty());
+        reset();
+    }
+
+    #[test]
+    fn removing_every_timer_remembers_each_as_removed() {
+        // New Game, alone.
+        reset();
+        add_alarm_with_id("t1", 3, "alpha", "red", NOW);
+        add_alarm_with_id("t2", 5, "beta", "blue", NOW + 9_000.0);
+        add_alarm_with_id("", 2, "from before ids", "red", 0.0);
+        remove_all_alarms(NOW + 1_000.0);
+        assert!(get_alarms().is_empty());
+        let mut removed = retired();
+        removed.sort_by(|a, b| a.0.cmp(&b.0));
+        // Each is dated after the timer's last change, though the clock
+        // (here behind the second timer's) says earlier.
+        assert_eq!(removed, [("t1".to_string(), NOW + 1_000.0), ("t2".to_string(), NOW + 9_001.0)]);
+        reset();
+    }
+
+    #[test]
+    fn removals_made_in_a_room_are_remembered_once_and_the_later_date_kept() {
+        reset();
+        let encoded = || PLAYER_DOC.with(|cell| cell.borrow().transact().state_vector());
+        remember_removed(&[("t1".to_string(), NOW), ("not an id!".to_string(), NOW)]);
+        assert_eq!(retired(), [("t1".to_string(), NOW)]);
+
+        // Told the same again, or an earlier date: nothing is written.
+        let before = encoded();
+        remember_removed(&[("t1".to_string(), NOW)]);
+        remember_removed(&[("t1".to_string(), NOW - 5_000.0)]);
+        assert_eq!(encoded(), before, "nothing was written");
+        assert_eq!(retired(), [("t1".to_string(), NOW)]);
+
+        // A later date replaces it.
+        remember_removed(&[("t1".to_string(), NOW + 5_000.0)]);
+        assert_eq!(retired(), [("t1".to_string(), NOW + 5_000.0)]);
+        reset();
+    }
+
+    #[test]
+    fn removals_made_in_a_room_more_than_a_day_before_the_latest_are_not_kept() {
+        reset();
+        let day = RETIRED_KEPT_MS + 60_000.0;
+        let room = [("old".to_string(), NOW), ("new".to_string(), NOW + day)];
+        remember_removed(&room);
+        assert_eq!(retired(), [("new".to_string(), NOW + day)]);
+
+        // Told of the same room again, the old one is not taken up and
+        // dropped again: nothing is written.
+        let encoded = || PLAYER_DOC.with(|cell| cell.borrow().transact().state_vector());
+        let before = encoded();
+        remember_removed(&room);
+        assert_eq!(encoded(), before, "nothing was written");
+
+        // One held from before is forgotten when a much later one arrives.
+        remember_removed(&[("later".to_string(), NOW + 3.0 * day)]);
+        assert_eq!(retired(), [("later".to_string(), NOW + 3.0 * day)]);
+        reset();
+    }
+
+    #[test]
+    fn a_removal_is_forgotten_after_a_day_and_a_timer_without_an_id_is_not_remembered() {
+        reset();
+        add_alarm_with_id("old", 3, "old", "red", NOW);
+        add_alarm_with_id("", 3, "from before ids", "red", 0.0);
+        add_alarm_with_id("new", 3, "new", "red", NOW);
+        remove_alarm(NOW, 0);
+        remove_alarm(NOW, 0);
+        assert_eq!(retired(), [("old".to_string(), NOW + 1.0)]);
+
+        // The next removal, more than a day on, forgets it.
+        remove_alarm(NOW + RETIRED_KEPT_MS + 60_000.0, 0);
+        assert_eq!(retired(), [("new".to_string(), NOW + RETIRED_KEPT_MS + 60_000.0)]);
+        reset();
+    }
 
     #[test]
     fn show_alarms_default_true() {
@@ -1008,7 +1292,7 @@ mod tests {
         reset();
         ensure_card_state("test_card", 3);
         toggle_slot("test_card", 2);
-        add_alarm(5, "timer", "green");
+        add_alarm(NOW, 5, "timer", "green");
         set_show_alarms(false);
 
         let state = encode_full_state();
@@ -1034,7 +1318,7 @@ mod tests {
     #[test]
     fn restore_empty_is_noop() {
         reset();
-        add_alarm(1, "keep", "red");
+        add_alarm(NOW, 1, "keep", "red");
         let result = restore_from_state("");
         assert!(result.is_ok());
         assert_eq!(get_alarms().len(), 1);
@@ -1102,8 +1386,8 @@ mod tests {
     #[test]
     fn clear_alarms_removes_all() {
         reset();
-        add_alarm(5, "first", "red");
-        add_alarm(3, "second", "green");
+        add_alarm(NOW, 5, "first", "red");
+        add_alarm(NOW, 3, "second", "green");
         assert_eq!(get_alarms().len(), 2);
         clear_alarms();
         assert!(get_alarms().is_empty());
@@ -1259,7 +1543,7 @@ mod tests {
     #[test]
     fn state_vector_is_valid_base64() {
         reset();
-        add_alarm(3, "test", "blue");
+        add_alarm(NOW, 3, "test", "blue");
         let sv = encode_state_vector();
         assert!(!sv.is_empty());
         let decoded = URL_SAFE_NO_PAD.decode(&sv);
@@ -1270,7 +1554,7 @@ mod tests {
     fn encode_diff_returns_valid_update() {
         use yrs::updates::encoder::Encode;
         reset();
-        add_alarm(5, "local timer", "green");
+        add_alarm(NOW, 5, "local timer", "green");
 
         // Create a separate Doc to simulate the remote device
         let remote_doc = Doc::new();
@@ -1306,7 +1590,7 @@ mod tests {
     #[test]
     fn apply_update_merges_remote_changes() {
         reset();
-        add_alarm(5, "local", "red");
+        add_alarm(NOW, 5, "local", "red");
 
         // Create a separate Doc to simulate remote device
         let remote_doc = Doc::new();
@@ -1352,7 +1636,7 @@ mod tests {
         use yrs::updates::encoder::Encode;
         // Verify that encode_diff → apply_update merges remote data into PLAYER_DOC
         reset();
-        add_alarm(5, "local_timer", "green");
+        add_alarm(NOW, 5, "local_timer", "green");
 
         // Create a remote doc with different data
         let remote = Doc::new();

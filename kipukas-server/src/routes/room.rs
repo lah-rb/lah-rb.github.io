@@ -1255,6 +1255,10 @@ fn build_result_html(
 mod tests {
     use super::*;
 
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
+
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine;
     use yrs::updates::decoder::Decode;
@@ -1365,11 +1369,11 @@ mod tests {
     fn resume_restores_the_room_document_without_seeding() {
         reset();
         // A solo timer that must NOT be copied into the room on resume.
-        crate::game::player_doc::add_alarm(9, "solo", "red");
+        crate::game::player_doc::add_alarm(NOW, 9, "solo", "red");
 
         // The room document as it was persisted on the previous page.
         crdt::init_doc();
-        crdt::add_alarm(4, "shared", "blue");
+        crdt::add_alarm(NOW, 4, "shared", "blue");
         let state = crdt::encode_full_state();
         crdt::reset_doc();
 
@@ -1409,7 +1413,7 @@ mod tests {
         reset();
         // Build an update as the peer would produce it.
         crdt::init_doc();
-        let update = crdt::add_alarm(6, "from peer", "green");
+        let update = crdt::add_alarm(NOW, 6, "from peer", "green");
         crdt::reset_doc(); // our own doc starts empty
 
         assert!(crate::game::player_doc::get_alarms().is_empty());

@@ -391,6 +391,10 @@ pub fn reset() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
     use crate::game::fists;
 
     const ME: &str = "aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -435,7 +439,7 @@ mod tests {
     #[test]
     fn the_players_state_comes_back_and_is_not_written_again_until_it_changes() {
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         let state = player_doc::encode_full_state();
         fresh();
 
@@ -443,7 +447,7 @@ mod tests {
         assert_eq!(player_doc::get_alarms().len(), 1);
         assert!(take_saves().is_empty(), "nothing changed, nothing to write");
 
-        player_doc::add_alarm(5, "another", "blue");
+        player_doc::add_alarm(NOW, 5, "another", "blue");
         let saves = take_saves();
         assert_eq!(saves.keys().collect::<Vec<_>>(), [&PLAYER_DOC]);
         assert_eq!(saves[PLAYER_DOC], Some(player_doc::encode_full_state()));
@@ -464,7 +468,7 @@ mod tests {
     fn a_room_comes_back_with_its_document_and_this_tab_takes_it() {
         fresh();
         crdt::init_doc();
-        crdt::add_alarm(4, "shared", "blue");
+        crdt::add_alarm(NOW, 4, "shared", "blue");
         let doc = crdt::encode_full_state();
         fresh();
 
@@ -540,7 +544,7 @@ mod tests {
         assert!(saves[ROOM_TAB].is_some());
         assert!(take_saves().is_empty());
 
-        crdt::add_alarm(2, "shared", "red");
+        crdt::add_alarm(NOW, 2, "shared", "red");
         let saves = take_saves();
         assert!(saves.contains_key(ROOM_DOC));
         // The room's timers are mirrored to the player's own, hence both.
@@ -591,7 +595,7 @@ mod tests {
         assert!(is_stale());
 
         // The other tab's document is the current one.
-        crdt::add_alarm(2, "late", "red");
+        crdt::add_alarm(NOW, 2, "late", "red");
         let saves = take_saves();
         assert!(!saves.contains_key(ROOM_DOC));
         assert!(!saves.contains_key(ROOM));
@@ -622,7 +626,7 @@ mod tests {
 
         // A later visit: what is stored is what this page was started with.
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         let state = player_doc::encode_full_state();
         fresh();
         start(&[(PLAYER_DOC, &state)]);
@@ -632,7 +636,7 @@ mod tests {
         assert!(!page::take_refresh());
 
         // And what this page itself had stored since.
-        player_doc::add_alarm(5, "another", "blue");
+        player_doc::add_alarm(NOW, 5, "another", "blue");
         let written = take_saves()[PLAYER_DOC].clone().unwrap();
         let same = serde_json::json!({ "event": "restored", "stored": { PLAYER_DOC: written } });
         assert_eq!(report(same), Follows::CameBack);
@@ -645,11 +649,11 @@ mod tests {
     fn a_page_brought_back_takes_up_the_players_state_as_another_page_left_it() {
         // What the page left for (a card page) stored: a timer more.
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
-        player_doc::add_alarm(7, "made on the card page", "green");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
+        player_doc::add_alarm(NOW, 7, "made on the card page", "green");
         let later = player_doc::encode_full_state();
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         let earlier = player_doc::encode_full_state();
         fresh();
         start(&[(PLAYER_DOC, &earlier)]);
@@ -693,7 +697,7 @@ mod tests {
         // The player's state is there but cannot be read, or is gone.
         for stored in [serde_json::json!({ PLAYER_DOC: "not a document" }), serde_json::json!({})] {
             fresh();
-            player_doc::add_alarm(3, "mine", "red");
+            player_doc::add_alarm(NOW, 3, "mine", "red");
             let state = player_doc::encode_full_state();
             fresh();
             start(&[(PLAYER_DOC, &state)]);

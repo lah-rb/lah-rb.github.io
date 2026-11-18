@@ -4,7 +4,7 @@
 //! All game state is stored in PLAYER_DOC (yrs CRDT document).
 
 use crate::clock;
-use crate::game::{damage, player_doc, turns};
+use crate::game::{damage, player_doc, room, turns};
 use crate::routes::util::{get_param, parse_form_body, parse_query};
 
 // ── GET /api/game/damage ───────────────────────────────────────────
@@ -27,7 +27,8 @@ pub fn handle_damage_get(query: &str) -> String {
 ///   - card={slug}&slot={n}     → toggle a damage slot
 ///   - card={slug}&action=wasted → toggle wasted state
 ///   - card={slug}&action=clear  → clear damage for one card
-///   - action=new_game           → New Game: clear ALL damage, affinity, and alarms
+///   - action=new_game           → New Game: clear ALL damage and affinity, and the
+///     player's own timers (a room's timers stay)
 ///
 /// Returns updated damage tracker HTML for the affected card. The page does
 /// not need it: after a change it re-renders each affected view from its own
@@ -41,7 +42,12 @@ pub fn handle_damage_post(body: &str) -> String {
         "new_game" => {
             damage::clear_all();
             player_doc::clear_affinity();
-            player_doc::clear_alarms();
+            // The player's own timers go, and are remembered as removed (a
+            // copy the other player still holds does not bring them back to
+            // the next room). A room's timers are both players': they stay.
+            if !room::in_room() {
+                player_doc::remove_all_alarms(clock::now_ms());
+            }
             // If a card slug is provided, return re-rendered tracker for that card.
             // This eliminates the need for a chained GET request from the toolbar JS.
             if !card.is_empty() {
@@ -121,6 +127,8 @@ pub fn handle_turns_get(query: &str) -> String {
 pub fn handle_turns_post(body: &str) -> String {
     let params = parse_form_body(body);
     let action = get_param(&params, "action").unwrap_or("");
+    // Each change to a timer is dated: the later of two made apart wins.
+    let now = clock::now_ms();
 
     match action {
         "add" => {
@@ -129,20 +137,20 @@ pub fn handle_turns_post(body: &str) -> String {
                 .unwrap_or(1);
             let name = get_param(&params, "name").unwrap_or("");
             let color_set = get_param(&params, "color_set").unwrap_or("red");
-            turns::add(t, name, color_set);
+            turns::add(now, t, name, color_set);
         }
         "tick" => {
-            turns::advance();
+            turns::advance(now);
         }
         "remove" => {
             let place = get_param(&params, "index").and_then(|s| s.parse().ok());
-            turns::remove(get_param(&params, "id"), place);
+            turns::remove(now, get_param(&params, "id"), place);
         }
         "toggle_visibility" => {
             turns::toggle_alarms_visibility();
         }
         "expire" => {
-            turns::expire(clock::now_ms());
+            turns::expire(now);
         }
         _ => {}
     }
@@ -198,7 +206,11 @@ pub fn handle_player_import_post(body: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::room;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
+    use crate::game::crdt;
 
     fn reset_state() {
         crate::game::player_doc::init_player_doc();
@@ -251,7 +263,7 @@ mod tests {
         reset_state();
         handle_damage_post("card=brox_the_defiant&slot=1");
         player_doc::declare_affinity("Brutal", "2026-02-25").unwrap();
-        player_doc::add_alarm(5, "timer", "red");
+        player_doc::add_alarm(NOW, 5, "timer", "red");
 
         let html = handle_damage_post("action=new_game");
         assert!(html.contains("New game started"));
@@ -260,6 +272,36 @@ mod tests {
         assert!(!player_doc::has_card_state("brox_the_defiant"));
         assert!(player_doc::get_active_affinity().is_none());
         assert!(player_doc::get_alarms().is_empty());
+        reset_state();
+    }
+
+    #[test]
+    fn a_new_game_alone_remembers_the_players_timers_as_removed() {
+        reset_state();
+        player_doc::add_alarm_with_id("mine", 5, "timer", "red", NOW);
+        handle_damage_post("action=new_game");
+        assert!(player_doc::get_alarms().is_empty());
+        let removed = player_doc::retired();
+        assert_eq!(removed.len(), 1);
+        assert_eq!(removed[0].0, "mine");
+        assert!(removed[0].1 > NOW, "dated after the timer's last change");
+        reset_state();
+    }
+
+    #[test]
+    fn a_new_game_in_a_room_leaves_the_rooms_timers() {
+        reset_state();
+        crdt::reset_doc();
+        room::with_room_mut(|r| r.room_code = "ABCD".to_string());
+        handle_turns_post("action=add&turns=4&name=shared&color_set=red");
+        handle_damage_post("card=brox_the_defiant&slot=1");
+
+        handle_damage_post("action=new_game");
+        assert!(!player_doc::has_card_state("brox_the_defiant"));
+        assert_eq!(crdt::get_alarms().len(), 1, "the room's timer stays");
+        assert_eq!(player_doc::get_alarms().len(), 1, "and so does the player's copy of it");
+        assert!(player_doc::retired().is_empty(), "nothing is remembered as removed");
+        crdt::reset_doc();
         reset_state();
     }
 
@@ -290,7 +332,7 @@ mod tests {
     #[test]
     fn turns_post_toggle_visibility() {
         reset_state();
-        player_doc::add_alarm(5, "", "red");
+        player_doc::add_alarm(NOW, 5, "", "red");
         handle_turns_post("action=toggle_visibility");
         let html = turns::render_alarm_list();
         assert!(html.contains("hidden"));
@@ -304,7 +346,7 @@ mod tests {
         reset_state();
         crate::store::handle_start_post("{}");
         // Set some state
-        crate::game::player_doc::add_alarm(5, "test", "green");
+        crate::game::player_doc::add_alarm(NOW, 5, "test", "green");
         crate::game::player_doc::ensure_card_state("test_card", 3);
         crate::game::player_doc::toggle_slot("test_card", 1);
 

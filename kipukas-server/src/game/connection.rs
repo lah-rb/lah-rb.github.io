@@ -52,7 +52,10 @@ pub const RELAY: &str = "wss://signal.kipukas.us/ws";
 
 /// Both players' engines must speak the same room-document format. Each says
 /// hello with this number when the opponent appears.
-pub const PROTOCOL: u64 = 2;
+///
+/// 3: a timer is kept as each player's dated version of it, so that the
+/// later of two changes made apart wins (`game::crdt`).
+pub const PROTOCOL: u64 = 3;
 
 /// An opponent who has not said hello after this long is running an older
 /// copy of the site, which never does.
@@ -760,6 +763,10 @@ pub fn reset() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
     use crate::game::{fists, player_doc};
     use crate::routes::room_status;
 
@@ -831,7 +838,7 @@ mod tests {
     fn with_the_opponent() -> u32 {
         let socket = in_a_room();
         relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
-        from_peer(socket, serde_json::json!({ "type": "hello", "proto": 2, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
         asked();
         page::take_redraws();
         socket
@@ -887,7 +894,7 @@ mod tests {
     #[test]
     fn creating_a_room_enters_it_when_the_relay_answers_and_not_before() {
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         create("Table");
         assert_eq!(dialog().stage, Stage::Connecting);
         assert!(!room::in_room());
@@ -985,7 +992,7 @@ mod tests {
     #[test]
     fn a_create_on_its_way_can_be_called_off_and_the_players_timers_are_left_alone() {
         fresh();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         create("Table");
         leave();
         assert_eq!(dialog().stage, Stage::Out);
@@ -1020,7 +1027,7 @@ mod tests {
         assert_eq!(
             sent(&asked),
             [
-                format!(r#"{{"type":"relay","data":{{"type":"hello","proto":2,"playerId":"{}"}}}}"#, me),
+                format!(r#"{{"type":"relay","data":{{"type":"hello","proto":3,"playerId":"{}"}}}}"#, me),
                 format!(r#"{{"type":"relay","data":{{"type":"yrs_sv","sv":"{}"}}}}"#, crdt::encode_state_vector()),
             ]
         );
@@ -1040,12 +1047,12 @@ mod tests {
         assert_eq!(face(), Face::OpponentOutdated);
 
         // Their hello arrives after all (a slow phone): all is well.
-        from_peer(socket, serde_json::json!({ "type": "hello", "proto": 2, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
         assert_eq!(face(), Face::Connected);
         room::with_room(|r| assert_eq!(r.peer_id, THEM));
 
         // One speaking another protocol is not.
-        from_peer(socket, serde_json::json!({ "type": "hello", "proto": 1, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL - 1, "playerId": THEM }));
         wait_over("face");
         assert_eq!(face(), Face::OpponentOutdated);
         fresh();
@@ -1057,7 +1064,7 @@ mod tests {
         let socket = in_a_room();
         relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
         asked();
-        from_peer(socket, serde_json::json!({ "type": "hello", "proto": 2, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
         assert!(asked().contains(&"clear room:hello".to_string()));
         // A wait reported late all the same changes nothing.
         wait_over("hello");
@@ -1069,7 +1076,7 @@ mod tests {
     fn the_two_documents_are_brought_together_by_exchanging_state_vectors() {
         fresh();
         let socket = with_the_opponent();
-        crdt::add_alarm(4, "ours", "blue");
+        crdt::add_alarm(NOW, 4, "ours", "blue");
         crdt::take_outbox();
 
         // Their state vector, from a document that has nothing of ours.
@@ -1110,7 +1117,7 @@ mod tests {
 
         // Build an update as the opponent's engine would.
         let before = crdt::encode_full_state();
-        let update = crdt::add_alarm(6, "from them", "green");
+        let update = crdt::add_alarm(NOW, 6, "from them", "green");
         crdt::reset_doc();
         crdt::restore_from_state(&before).unwrap();
         crdt::take_outbox();
@@ -1128,7 +1135,7 @@ mod tests {
     fn a_change_this_player_makes_is_sent_before_the_handover_and_only_once() {
         fresh();
         let socket = with_the_opponent();
-        let update = crdt::add_alarm(2, "ours", "red");
+        let update = crdt::add_alarm(NOW, 2, "ours", "red");
         crdt::queue_for_peer(update.clone());
 
         send_updates();
@@ -1161,7 +1168,7 @@ mod tests {
         assert_eq!(face(), Face::Connected);
         for gone in ["peer_away", "peer_left"] {
             relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
-            from_peer(socket, serde_json::json!({ "type": "hello", "proto": 2, "playerId": THEM }));
+            from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
             relay(socket, serde_json::json!({ "type": gone }));
             assert_eq!(dialog().stage, Stage::Waiting, "{}", gone);
             assert!(room::in_room());
@@ -1177,7 +1184,7 @@ mod tests {
     fn a_lost_socket_in_a_room_is_retried_as_a_return_that_starts_nothing_afresh() {
         fresh();
         let socket = with_the_opponent();
-        crdt::add_alarm(4, "shared", "blue");
+        crdt::add_alarm(NOW, 4, "shared", "blue");
         crdt::take_outbox();
         let me = room::with_room(|r| r.player_id.clone());
 
@@ -1209,7 +1216,7 @@ mod tests {
     fn a_relay_that_recreates_the_room_on_return_does_not_start_it_afresh_either() {
         fresh();
         let socket = with_the_opponent();
-        crdt::add_alarm(4, "shared", "blue");
+        crdt::add_alarm(NOW, 4, "shared", "blue");
         socket_event(socket, SocketEvent::Close);
         link_timer(Timer::Retry);
         let (second, _) = opened(&asked());
@@ -1265,7 +1272,7 @@ mod tests {
     fn leaving_tells_the_relay_closes_the_socket_and_keeps_the_rooms_timers() {
         fresh();
         let socket = with_the_opponent();
-        crdt::add_alarm(4, "shared", "blue");
+        crdt::add_alarm(NOW, 4, "shared", "blue");
         crdt::take_outbox();
 
         leave();
@@ -1360,7 +1367,7 @@ mod tests {
         // The opponent arrives first: the wait is called off, the pill goes green.
         page::take_redraws();
         relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": THEM }));
-        from_peer(socket, serde_json::json!({ "type": "hello", "proto": 2, "playerId": THEM }));
+        from_peer(socket, serde_json::json!({ "type": "hello", "proto": PROTOCOL, "playerId": THEM }));
         assert_eq!(face(), Face::Connected);
         assert!(asked().contains(&"clear room:face".to_string()));
         assert!(page::take_redraws().contains(&"/api/room/pill"));

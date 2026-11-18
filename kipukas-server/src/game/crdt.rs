@@ -10,21 +10,59 @@
 //!
 //! ```text
 //! yrs::Doc
-//! └── "timers" (MapRef) — shared turn timers, keyed by a stable timer id
-//!     ├── "<id>" → JSON string { "remaining": i32, "name": String,
-//!     │                          "color_set": String, "seq": u32 }
+//! └── "timers" (MapRef) — shared turn timers
+//!     ├── "<timer id>:<player id>" → JSON string { "remaining": i32,
+//!     │       "name": String, "color_set": String, "seq": u32,
+//!     │       "at": u64, "gone": bool }
 //!     └── ...
 //! ```
 //!
-//! Timers are keyed by id rather than held in a list for two reasons:
+//! ## The latest change to a timer wins
 //!
-//! - Both players may bring the same timer into a room (after an earlier
-//!   session each keeps a copy). Under the same key the two copies converge
-//!   to one entry; in a list they appeared twice.
-//! - "Remove" targets a timer, not a position, so it cannot hit the wrong
-//!   one when the other player adds or removes at the same moment.
+//! The two players are often apart: a page change, a locked phone, one of
+//! them leaving the room and joining it again. Each can change a timer
+//! meanwhile, and when they meet again there are two versions of it. The
+//! one changed last is the one both keep.
 //!
-//! Each value is one JSON string, so a timer is always replaced as a whole.
+//! A yrs map cannot decide that by itself. Two values written to one key by
+//! players who had not seen each other's are settled by comparing the ids
+//! of their documents, which are random: either may win, and the loser is
+//! gone. (A value written knowing of the other does always replace it. That
+//! covers a phone that was offline and came back, but not a player who left
+//! and joined again, whose timers are written into a new document.)
+//!
+//! So no key is ever written by two players:
+//!
+//! - **Each player writes a timer under a key of their own**, the timer's
+//!   id and theirs. Both versions survive a merge.
+//! - **Each version is dated** (`at`, milliseconds since 1970). The date is
+//!   the clock's, or just after the latest version the writer could see if
+//!   the clock says no later (`state::dated`). So a change made knowing of
+//!   another is always the later one, whatever the two clocks say; changes
+//!   made apart are ordered by the clocks, and two with the same date by
+//!   the players' ids.
+//! - **The timer is its latest version.** A reader takes, for each timer id,
+//!   the version with the latest date. Both players see the same versions
+//!   after a merge, so both take the same one.
+//! - **A removal is a version too** (`gone`), so that a timer one player
+//!   removed is not brought back by the other's older version of it. It
+//!   stays in the document for the life of the room.
+//! - **The date travels with the timer** when it leaves the room as a
+//!   player's own (`Alarm::changed`) and when it is brought into a room
+//!   again, and so does the removal of a timer while out of a room
+//!   (`player_doc::retired`).
+//!
+//! Whoever writes a version removes the older ones it replaces, so a timer
+//! is usually one entry.
+//!
+//! A key without a player id is a timer written before this (by anyone, at
+//! no date): it is read as the oldest version.
+//!
+//! Timers are keyed by id rather than held in a list so that the same timer
+//! brought into a room by both players (after an earlier session each keeps
+//! a copy) is one timer, and so that "remove" targets a timer, not a
+//! position.
+//!
 //! `seq` gives display order; ties are broken by id so both players sort
 //! identically.
 //!
@@ -48,16 +86,19 @@ use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{Any, Doc, Map, MapRef, ReadTxn, StateVector, Transact, TransactionMut, Update, WriteTxn};
 
-use crate::game::fists::FISTS;
+use crate::game::fists::{self, FISTS};
 use crate::game::player_doc;
-use crate::game::state::{is_valid_alarm_id, new_alarm_id, Alarm};
+use crate::game::room;
+use crate::game::state::{dated, is_valid_alarm_id, new_alarm_id, Alarm};
 
 /// Root map holding the shared timers.
 const TIMERS: &str = "timers";
 
-/// One shared timer as stored in the room document (a JSON string under its id).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// One player's version of a shared timer, as stored in the room document
+/// (a JSON string under the timer's id and the player's).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct TimerEntry {
+    #[serde(default)]
     remaining: i32,
     #[serde(default)]
     name: String,
@@ -66,6 +107,30 @@ struct TimerEntry {
     /// Display order. Ties are broken by id.
     #[serde(default)]
     seq: u32,
+    /// When this version was made, in milliseconds since 1970 (see
+    /// `state::dated`). The latest version of a timer is the timer.
+    #[serde(default)]
+    at: u64,
+    /// This version is the timer's removal.
+    #[serde(default)]
+    gone: bool,
+}
+
+/// One version of a timer in the document: whose it is, the key it is
+/// under, and what it says.
+struct Version {
+    id: String,
+    writer: String,
+    key: String,
+    entry: TimerEntry,
+}
+
+impl Version {
+    /// What orders two versions of one timer: the later date, then the
+    /// greater writer, so that both players order them alike.
+    fn rank(&self) -> (u64, &str) {
+        (self.entry.at, &self.writer)
+    }
 }
 
 thread_local! {
@@ -146,21 +211,48 @@ pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
 
 // ── Timers on a document ───────────────────────────────────────────
 //
-// These take the document as an argument so tests can run two of them and
-// sync between them. The public functions below apply them to the room doc.
+// These take the document, the writer and the time as arguments so tests
+// can run two documents, sync between them, and say what time it is. The
+// public functions below apply them to the room doc.
 
-/// All timers in display order: by `seq`, then by id.
-fn read_timers<T: ReadTxn>(timers: &MapRef, txn: &T) -> Vec<(String, TimerEntry)> {
-    let mut out: Vec<(String, TimerEntry)> = Vec::new();
-    for (id, value) in timers.iter(txn) {
-        // Ids and values come from the other player too: skip anything that is
-        // not a well-formed timer rather than trusting it.
-        if !is_valid_alarm_id(id) {
+/// Every version of every timer in the document.
+fn versions<T: ReadTxn>(timers: &MapRef, txn: &T) -> Vec<Version> {
+    let mut out = Vec::new();
+    for (key, value) in timers.iter(txn) {
+        // A key without a player id is a timer written before versions were
+        // kept apart.
+        let (id, writer) = key.split_once(':').unwrap_or((key, ""));
+        // Keys and values come from the other player too: skip anything that
+        // is not a well-formed timer rather than trusting it.
+        if !is_valid_alarm_id(id) || !(writer.is_empty() || fists::is_valid_player_id(writer)) {
             continue;
         }
         if let yrs::Out::Any(Any::String(json)) = value {
             if let Ok(entry) = serde_json::from_str::<TimerEntry>(&json) {
-                out.push((id.to_string(), entry));
+                out.push(Version { id: id.to_string(), writer: writer.to_string(), key: key.to_string(), entry });
+            }
+        }
+    }
+    out
+}
+
+/// The latest version of the timer `id`, if the document has any.
+fn latest<'a>(versions: &'a [Version], id: &str) -> Option<&'a Version> {
+    versions.iter().filter(|v| v.id == id).max_by(|a, b| a.rank().cmp(&b.rank()))
+}
+
+/// All timers in display order: by `seq`, then by id. A timer is its latest
+/// version; one whose latest version is its removal is not a timer.
+fn read_timers<T: ReadTxn>(timers: &MapRef, txn: &T) -> Vec<(String, TimerEntry)> {
+    let versions = versions(timers, txn);
+    let mut out: Vec<(String, TimerEntry)> = Vec::new();
+    for version in &versions {
+        if out.iter().any(|(id, _)| *id == version.id) {
+            continue;
+        }
+        if let Some(latest) = latest(&versions, &version.id) {
+            if !latest.entry.gone {
+                out.push((latest.id.clone(), latest.entry.clone()));
             }
         }
     }
@@ -168,9 +260,33 @@ fn read_timers<T: ReadTxn>(timers: &MapRef, txn: &T) -> Vec<(String, TimerEntry)
     out
 }
 
-fn write_timer(timers: &MapRef, txn: &mut TransactionMut, id: &str, entry: &TimerEntry) {
+/// Write `writer`'s version of the timer `id`, if it is later than every
+/// version the document has, and remove the versions it replaces. Returns
+/// whether it was written.
+fn write_version(timers: &MapRef, txn: &mut TransactionMut, id: &str, writer: &str, entry: &TimerEntry) -> bool {
+    let versions = versions(timers, txn);
+    let mine = (entry.at, writer);
+    if latest(&versions, id).is_some_and(|latest| latest.rank() >= mine) {
+        return false;
+    }
+    let key = format!("{}:{}", id, writer);
+    // Each of these is an older version, so removing it loses nothing. If
+    // its writer makes a newer one meanwhile, that is another entry in the
+    // document and is not removed by this.
+    for old in versions.iter().filter(|v| v.id == id && v.key != key) {
+        timers.remove(txn, &old.key);
+    }
     let json = serde_json::to_string(entry).unwrap_or_else(|_| "{}".to_string());
-    timers.insert(txn, id.to_string(), Any::from(json));
+    timers.insert(txn, key, Any::from(json));
+    true
+}
+
+/// The date of a version of the timer `id` made at `now`: after every
+/// version of it the document has.
+fn date_for<T: ReadTxn>(timers: &MapRef, txn: &T, id: &str, now: f64) -> u64 {
+    let versions = versions(timers, txn);
+    let seen = latest(&versions, id).map_or(0, |latest| latest.entry.at);
+    dated(now, seen as f64) as u64
 }
 
 /// The `seq` for a timer added now: one past the highest in use.
@@ -182,7 +298,13 @@ fn next_seq<T: ReadTxn>(timers: &MapRef, txn: &T) -> u32 {
         .map_or(1, |m| m.saturating_add(1))
 }
 
-fn add_timer_in(doc: &Doc, id: &str, turns: i32, name: &str, color_set: &str) {
+/// A timer's removal, as a version of it.
+fn removal(at: u64) -> TimerEntry {
+    TimerEntry { remaining: 0, name: String::new(), color_set: String::new(), seq: 0, at, gone: true }
+}
+
+/// `me` makes a timer at `now`.
+fn add_timer_in(doc: &Doc, me: &str, now: f64, id: &str, turns: i32, name: &str, color_set: &str) {
     if !is_valid_alarm_id(id) {
         return;
     }
@@ -193,28 +315,85 @@ fn add_timer_in(doc: &Doc, id: &str, turns: i32, name: &str, color_set: &str) {
         name: name.to_string(),
         color_set: validate_color_set(color_set).to_string(),
         seq: next_seq(&timers, &txn),
+        at: date_for(&timers, &txn, id, now),
+        gone: false,
     };
-    write_timer(&timers, &mut txn, id, &entry);
+    write_version(&timers, &mut txn, id, me, &entry);
 }
 
-/// Decrement every timer by 1; remove those that were already at 0.
-fn tick_timers_in(doc: &Doc) {
+/// `me` brings a timer of their own into the room, as it was last changed
+/// (`alarm.changed`). It becomes the room's timer of that id unless the
+/// room has a later version of it.
+fn bring_timer_in(doc: &Doc, me: &str, alarm: &Alarm) {
+    let timers = doc.get_or_insert_map(TIMERS);
+    let mut txn = doc.transact_mut();
+    let entry = TimerEntry {
+        remaining: alarm.remaining,
+        name: alarm.name.clone(),
+        color_set: validate_color_set(&alarm.color_set).to_string(),
+        seq: next_seq(&timers, &txn),
+        at: alarm.changed.max(0.0) as u64,
+        gone: false,
+    };
+    write_version(&timers, &mut txn, &alarm.id, me, &entry);
+}
+
+/// `me` brings into the room that they removed the timer `id` at `at`,
+/// while out of it.
+fn bring_removal_in(doc: &Doc, me: &str, id: &str, at: f64) {
+    if !is_valid_alarm_id(id) {
+        return;
+    }
+    let timers = doc.get_or_insert_map(TIMERS);
+    let mut txn = doc.transact_mut();
+    write_version(&timers, &mut txn, id, me, &removal(at.max(0.0) as u64));
+}
+
+/// `me` advances every timer by 1 at `now`; those that were already at 0
+/// are removed.
+fn tick_timers_in(doc: &Doc, me: &str, now: f64) {
     let timers = doc.get_or_insert_map(TIMERS);
     let mut txn = doc.transact_mut();
     for (id, mut entry) in read_timers(&timers, &txn) {
+        entry.at = date_for(&timers, &txn, &id, now);
         if entry.remaining <= 0 {
-            timers.remove(&mut txn, &id);
+            entry = removal(entry.at);
         } else {
             entry.remaining -= 1;
-            write_timer(&timers, &mut txn, &id, &entry);
         }
+        write_version(&timers, &mut txn, &id, me, &entry);
     }
 }
 
-fn remove_timer_in(doc: &Doc, id: &str) {
+/// `me` removes the timer `id` at `now`.
+fn remove_timer_in(doc: &Doc, me: &str, now: f64, id: &str) {
     let timers = doc.get_or_insert_map(TIMERS);
     let mut txn = doc.transact_mut();
-    timers.remove(&mut txn, id);
+    if !read_timers(&timers, &txn).iter().any(|(timer, _)| timer == id) {
+        return;
+    }
+    let at = date_for(&timers, &txn, id, now);
+    write_version(&timers, &mut txn, id, me, &removal(at));
+}
+
+/// The timers that were removed, each with when: those whose latest version
+/// is their removal.
+fn removals_in(doc: &Doc) -> Vec<(String, f64)> {
+    let timers = doc.get_or_insert_map(TIMERS);
+    let txn = doc.transact();
+    let versions = versions(&timers, &txn);
+    let mut out: Vec<(String, f64)> = Vec::new();
+    for version in &versions {
+        if out.iter().any(|(id, _)| *id == version.id) {
+            continue;
+        }
+        if let Some(latest) = latest(&versions, &version.id) {
+            if latest.entry.gone {
+                out.push((latest.id.clone(), latest.entry.at as f64));
+            }
+        }
+    }
+    out
 }
 
 fn alarms_in(doc: &Doc) -> Vec<Alarm> {
@@ -227,6 +406,7 @@ fn alarms_in(doc: &Doc) -> Vec<Alarm> {
             remaining: e.remaining,
             name: e.name,
             color_set: validate_color_set(&e.color_set).to_string(),
+            changed: e.at as f64,
         })
         .collect()
 }
@@ -270,27 +450,29 @@ fn mutate_room_doc(f: impl FnOnce(&Doc)) -> String {
 
 // ── Alarm mutations (return update bytes as base64) ────────────────
 
-/// Add a new alarm to the room doc under a fresh id. Returns the update as a
-/// base64 string.
-pub fn add_alarm(turns: i32, name: &str, color_set: &str) -> String {
-    add_alarm_with_id(&new_alarm_id(), turns, name, color_set)
+/// This player's id in the room: whose versions of the timers these are.
+fn me() -> String {
+    room::with_room(|r| r.player_id.clone())
 }
 
-/// Add an alarm that already has an id (a player's own timer being shared).
-/// Returns the update as a base64 string.
-pub fn add_alarm_with_id(id: &str, turns: i32, name: &str, color_set: &str) -> String {
-    mutate_room_doc(|doc| add_timer_in(doc, id, turns, name, color_set))
+/// Add a new alarm to the room doc under a fresh id, at `now`. Returns the
+/// update as a base64 string.
+pub fn add_alarm(now: f64, turns: i32, name: &str, color_set: &str) -> String {
+    let me = me();
+    mutate_room_doc(|doc| add_timer_in(doc, &me, now, &new_alarm_id(), turns, name, color_set))
 }
 
-/// Tick all alarms: decrement by 1, remove completed (were already at 0).
-/// Returns the update as a base64 string.
-pub fn tick_alarms() -> String {
-    mutate_room_doc(tick_timers_in)
+/// Tick all alarms at `now`: decrement by 1, remove completed (were already
+/// at 0). Returns the update as a base64 string.
+pub fn tick_alarms(now: f64) -> String {
+    let me = me();
+    mutate_room_doc(|doc| tick_timers_in(doc, &me, now))
 }
 
-/// Remove an alarm by id. Returns the update as a base64 string.
-pub fn remove_alarm(id: &str) -> String {
-    mutate_room_doc(|doc| remove_timer_in(doc, id))
+/// Remove an alarm by id, at `now`. Returns the update as a base64 string.
+pub fn remove_alarm(now: f64, id: &str) -> String {
+    let me = me();
+    mutate_room_doc(|doc| remove_timer_in(doc, &me, now, id))
 }
 
 // ── Read state ─────────────────────────────────────────────────────
@@ -348,41 +530,33 @@ pub fn apply_update(update_b64: &str) -> Result<(), String> {
 
 // ── Player doc ↔ room doc bridge ───────────────────────────────────
 
-/// Move this player's own timers into the room doc.
+/// Bring this player's own timers into the room doc.
 ///
 /// Called on room create and on room join, so both players' pre-existing
-/// timers become shared. Each timer goes in under its own id: when both
-/// players hold a copy of the same timer (each kept one after an earlier
-/// session), the copies land on the same key and converge to a single timer.
+/// timers become shared. Each timer comes in under its own id and as it was
+/// last changed. When both players hold a copy of the same timer (each kept
+/// one after an earlier session, or one of them left this room and is
+/// joining it again), the copy changed last is the room's timer; a timer
+/// this player removed meanwhile comes in as removed.
 pub fn seed_from_local() {
     let local_alarms: Vec<Alarm> = player_doc::get_alarms();
-    if local_alarms.is_empty() {
+    let removed = player_doc::retired();
+    if local_alarms.is_empty() && removed.is_empty() {
         return;
     }
+    let me = me();
     CRDT_DOC.with(|cell| {
         let doc = cell.borrow();
-        let timers = doc.get_or_insert_map(TIMERS);
-        let mut txn = doc.transact_mut();
-        let mut seq = next_seq(&timers, &txn);
         for alarm in &local_alarms {
             // Timers saved before ids existed get one now.
-            let id = if is_valid_alarm_id(&alarm.id) {
-                alarm.id.clone()
-            } else {
-                new_alarm_id()
-            };
-            // Already in the room under this id: keep the room's copy.
-            if timers.get(&txn, &id).is_some() {
-                continue;
+            let mut alarm = alarm.clone();
+            if !is_valid_alarm_id(&alarm.id) {
+                alarm.id = new_alarm_id();
             }
-            let entry = TimerEntry {
-                remaining: alarm.remaining,
-                name: alarm.name.clone(),
-                color_set: validate_color_set(&alarm.color_set).to_string(),
-                seq,
-            };
-            write_timer(&timers, &mut txn, &id, &entry);
-            seq = seq.saturating_add(1);
+            bring_timer_in(&doc, &me, &alarm);
+        }
+        for (id, at) in &removed {
+            bring_removal_in(&doc, &me, id, *at);
         }
     });
     // The timers now live in the room doc. The room routes call
@@ -391,15 +565,19 @@ pub fn seed_from_local() {
     player_doc::clear_alarms();
 }
 
-/// Copy the room's timers back into this player's own timers, ids included.
-/// Called after each change and on disconnect, so shared timers survive as
-/// the player's own once the session ends.
+/// Copy the room's timers back into this player's own timers, with their
+/// ids and when each was last changed, and the room's removals into what
+/// the player remembers as removed. Called after each change and on
+/// disconnect, so shared timers survive as the player's own once the
+/// session ends, and a timer removed in the room stays removed in the next.
 pub fn export_to_local() {
     let crdt_alarms = get_alarms();
     player_doc::clear_alarms();
     for alarm in &crdt_alarms {
-        player_doc::add_alarm_with_id(&alarm.id, alarm.remaining, &alarm.name, &alarm.color_set);
+        player_doc::add_alarm_with_id(&alarm.id, alarm.remaining, &alarm.name, &alarm.color_set, alarm.changed);
     }
+    let removed = CRDT_DOC.with(|cell| removals_in(&cell.borrow()));
+    player_doc::remember_removed(&removed);
 }
 
 // ── Internal helpers ───────────────────────────────────────────────
@@ -425,6 +603,10 @@ fn validate_color_set(color: &str) -> &str {
 mod tests {
     use super::*;
 
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
+
     fn reset() {
         init_doc();
     }
@@ -439,7 +621,7 @@ mod tests {
     #[test]
     fn add_alarm_works() {
         reset();
-        let _update = add_alarm(5, "Scout patrol", "green");
+        let _update = add_alarm(NOW, 5, "Scout patrol", "green");
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].remaining, 5);
@@ -450,7 +632,7 @@ mod tests {
     #[test]
     fn add_alarm_validates_color() {
         reset();
-        add_alarm(1, "", "invalid");
+        add_alarm(NOW, 1, "", "invalid");
         let alarms = get_alarms();
         assert_eq!(alarms[0].color_set, "red");
     }
@@ -458,8 +640,8 @@ mod tests {
     #[test]
     fn add_multiple_alarms() {
         reset();
-        add_alarm(5, "first", "red");
-        add_alarm(3, "second", "blue");
+        add_alarm(NOW, 5, "first", "red");
+        add_alarm(NOW, 3, "second", "blue");
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].name, "first");
@@ -469,21 +651,21 @@ mod tests {
     #[test]
     fn tick_decrements_and_removes_expired() {
         reset();
-        add_alarm(2, "stays", "red");
-        add_alarm(1, "completes", "blue");
+        add_alarm(NOW, 2, "stays", "red");
+        add_alarm(NOW, 1, "completes", "blue");
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 1);
         assert_eq!(alarms[1].remaining, 0);
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].remaining, 0);
 
-        tick_alarms();
+        tick_alarms(NOW);
         let alarms = get_alarms();
         assert!(alarms.is_empty());
     }
@@ -491,11 +673,11 @@ mod tests {
     #[test]
     fn remove_alarm_by_id() {
         reset();
-        add_alarm(5, "first", "red");
-        add_alarm(3, "second", "green");
-        add_alarm(1, "third", "blue");
+        add_alarm(NOW, 5, "first", "red");
+        add_alarm(NOW, 3, "second", "green");
+        add_alarm(NOW, 1, "third", "blue");
         let second = get_alarms()[1].id.clone();
-        remove_alarm(&second);
+        remove_alarm(NOW, &second);
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -505,8 +687,8 @@ mod tests {
     #[test]
     fn remove_alarm_unknown_id_is_noop() {
         reset();
-        add_alarm(5, "", "red");
-        remove_alarm("nope");
+        add_alarm(NOW, 5, "", "red");
+        remove_alarm(NOW, "nope");
         let alarms = get_alarms();
         assert_eq!(alarms.len(), 1);
     }
@@ -515,7 +697,7 @@ mod tests {
     fn alarms_have_distinct_valid_ids_and_keep_insertion_order() {
         reset();
         for name in ["a", "b", "c", "d", "e"] {
-            add_alarm(1, name, "red");
+            add_alarm(NOW, 1, name, "red");
         }
         let alarms = get_alarms();
         let names: Vec<&str> = alarms.iter().map(|a| a.name.as_str()).collect();
@@ -529,7 +711,11 @@ mod tests {
 
     // ── Two players' documents ─────────────────────────────────────
 
-    /// A second player's room document.
+    /// The two players' ids in the room.
+    const A: &str = "player-a";
+    const B: &str = "player-b";
+
+    /// A player's room document.
     fn peer_doc() -> Doc {
         let doc = Doc::new();
         {
@@ -558,25 +744,55 @@ mod tests {
         alarms_in(doc).into_iter().map(|a| a.name).collect()
     }
 
+    /// What is left of the first timer, or `None` if there is no timer.
+    fn remaining(doc: &Doc) -> Option<i32> {
+        alarms_in(doc).first().map(|alarm| alarm.remaining)
+    }
+
+    /// How many entries the document holds for timers, versions and all.
+    fn entries(doc: &Doc) -> usize {
+        let timers = doc.get_or_insert_map(TIMERS);
+        let txn = doc.transact();
+        timers.iter(&txn).count()
+    }
+
+    /// A timer as a player holds it outside a room.
+    fn own(id: &str, remaining: i32, changed: f64) -> Alarm {
+        Alarm { id: id.to_string(), remaining, name: "alpha".to_string(), color_set: "red".to_string(), changed }
+    }
+
+    /// Two players in a room with one timer at 3, made at NOW, in step.
+    fn a_room_with_a_timer() -> (Doc, Doc) {
+        let (a, b) = (peer_doc(), peer_doc());
+        add_timer_in(&a, A, NOW, "t1", 3, "alpha", "red");
+        sync_both(&a, &b);
+        (a, b)
+    }
+
+    /// Which of two versions written apart a yrs map keeps depends on the
+    /// random ids of the two documents. Anything said of such a case is
+    /// checked over many pairs of documents.
+    const PAIRS: usize = 60;
+
     #[test]
     fn the_same_timer_seeded_by_both_players_appears_once() {
         // After an earlier session both players kept a copy of each shared
-        // timer, with the same ids. Each seeds its copy into a new room.
+        // timer, with the same ids. Each brings its copy into a new room.
         let (a, b) = (peer_doc(), peer_doc());
-        for doc in [&a, &b] {
-            add_timer_in(doc, "t1", 3, "alpha", "red");
-            add_timer_in(doc, "t2", 5, "beta", "blue");
+        for (doc, who) in [(&a, A), (&b, B)] {
+            bring_timer_in(doc, who, &own("t1", 3, NOW));
+            bring_timer_in(doc, who, &own("t2", 5, NOW));
         }
         sync_both(&a, &b);
-        assert_eq!(names(&a), ["alpha", "beta"]);
-        assert_eq!(names(&b), ["alpha", "beta"]);
+        assert_eq!(alarms_in(&a).len(), 2);
+        assert_eq!(alarms_in(&b).len(), 2);
     }
 
     #[test]
     fn different_timers_from_each_player_merge_to_the_union() {
         let (a, b) = (peer_doc(), peer_doc());
-        add_timer_in(&a, "a1", 3, "from a", "red");
-        add_timer_in(&b, "b1", 5, "from b", "blue");
+        add_timer_in(&a, A, NOW, "a1", 3, "from a", "red");
+        add_timer_in(&b, B, NOW, "b1", 5, "from b", "blue");
         sync_both(&a, &b);
         let mut got = names(&a);
         assert_eq!(got, names(&b), "both players show the same order");
@@ -587,13 +803,13 @@ mod tests {
     #[test]
     fn remove_targets_the_timer_even_if_the_peer_adds_concurrently() {
         let (a, b) = (peer_doc(), peer_doc());
-        add_timer_in(&a, "t1", 3, "keep", "red");
-        add_timer_in(&a, "t2", 5, "remove me", "blue");
+        add_timer_in(&a, A, NOW, "t1", 3, "keep", "red");
+        add_timer_in(&a, A, NOW, "t2", 5, "remove me", "blue");
         sync_both(&a, &b);
 
         // At the same moment: A removes t2, B adds a new timer.
-        remove_timer_in(&a, "t2");
-        add_timer_in(&b, "t3", 7, "new", "green");
+        remove_timer_in(&a, A, NOW + 1_000.0, "t2");
+        add_timer_in(&b, B, NOW + 1_000.0, "t3", 7, "new", "green");
         sync_both(&a, &b);
 
         let mut got = names(&a);
@@ -606,37 +822,241 @@ mod tests {
 
     #[test]
     fn a_missed_update_is_repaired_by_the_handshake() {
-        let (a, b) = (peer_doc(), peer_doc());
-        add_timer_in(&a, "t1", 3, "alpha", "red");
-        sync_both(&a, &b);
+        let (a, b) = a_room_with_a_timer();
 
         // B is away: A's tick is never delivered as a live update.
-        tick_timers_in(&a);
-        assert_eq!(alarms_in(&b)[0].remaining, 3);
+        tick_timers_in(&a, A, NOW + 1_000.0);
+        assert_eq!(remaining(&b), Some(3));
 
         // B comes back and the two exchange state vectors.
         sync_both(&a, &b);
-        assert_eq!(alarms_in(&b)[0].remaining, 2);
+        assert_eq!(remaining(&b), Some(2));
     }
 
     #[test]
     fn malformed_entries_from_a_peer_are_ignored() {
         let doc = peer_doc();
-        add_timer_in(&doc, "good", 3, "ok", "red");
+        add_timer_in(&doc, A, NOW, "good", 3, "ok", "red");
         {
             let timers = doc.get_or_insert_map(TIMERS);
             let mut txn = doc.transact_mut();
             timers.insert(&mut txn, "x');alert(1);('", Any::from("{\"remaining\":1}".to_string()));
+            timers.insert(&mut txn, "bad:x');alert(1);('", Any::from("{\"remaining\":1}".to_string()));
             timers.insert(&mut txn, "notjson", Any::from("oops".to_string()));
             timers.insert(&mut txn, "notstring", Any::from(5.0));
         }
         assert_eq!(names(&doc), ["ok"]);
     }
 
+    // ── The latest change wins ─────────────────────────────────────
+
+    #[test]
+    fn an_advance_made_while_offline_is_kept_when_the_player_comes_back() {
+        for _ in 0..PAIRS {
+            let (a, b) = a_room_with_a_timer();
+            tick_timers_in(&a, A, NOW + 1_000.0);
+            sync_both(&a, &b);
+            assert_eq!((remaining(&a), remaining(&b)), (Some(2), Some(2)));
+        }
+    }
+
+    #[test]
+    fn an_advance_made_after_leaving_wins_when_the_player_joins_again() {
+        // A leaves the room with its copy of the timer, advances it alone,
+        // and joins again: a new document, into which the copy is brought.
+        for _ in 0..PAIRS {
+            let (_, b) = a_room_with_a_timer();
+            let again = peer_doc();
+            bring_timer_in(&again, "player-a-again", &own("t1", 2, NOW + 60_000.0));
+            sync_both(&again, &b);
+            assert_eq!((remaining(&again), remaining(&b)), (Some(2), Some(2)));
+        }
+    }
+
+    #[test]
+    fn a_copy_left_untouched_does_not_undo_an_advance_made_in_the_room_meanwhile() {
+        // A leaves; B advances the room's timer; A joins again with the
+        // copy it left with.
+        for _ in 0..PAIRS {
+            let (_, b) = a_room_with_a_timer();
+            tick_timers_in(&b, B, NOW + 60_000.0);
+            let again = peer_doc();
+            bring_timer_in(&again, "player-a-again", &own("t1", 3, NOW));
+            sync_both(&again, &b);
+            assert_eq!((remaining(&again), remaining(&b)), (Some(2), Some(2)));
+        }
+    }
+
+    #[test]
+    fn of_two_advances_made_apart_the_later_is_kept_by_both() {
+        for _ in 0..PAIRS {
+            // A once, then B twice.
+            let (a, b) = a_room_with_a_timer();
+            tick_timers_in(&a, A, NOW + 1_000.0);
+            tick_timers_in(&b, B, NOW + 2_000.0);
+            tick_timers_in(&b, B, NOW + 3_000.0);
+            sync_both(&a, &b);
+            assert_eq!((remaining(&a), remaining(&b)), (Some(1), Some(1)));
+
+            // B twice, then A once.
+            let (a, b) = a_room_with_a_timer();
+            tick_timers_in(&b, B, NOW + 1_000.0);
+            tick_timers_in(&b, B, NOW + 2_000.0);
+            tick_timers_in(&a, A, NOW + 3_000.0);
+            sync_both(&a, &b);
+            assert_eq!((remaining(&a), remaining(&b)), (Some(2), Some(2)));
+        }
+    }
+
+    #[test]
+    fn two_changes_dated_the_same_are_settled_the_same_way_by_both() {
+        for _ in 0..PAIRS {
+            let (a, b) = a_room_with_a_timer();
+            tick_timers_in(&a, A, NOW + 1_000.0);
+            remove_timer_in(&b, B, NOW + 1_000.0, "t1");
+            sync_both(&a, &b);
+            // The greater player id has it: B's removal.
+            assert_eq!((remaining(&a), remaining(&b)), (None, None));
+        }
+    }
+
+    #[test]
+    fn a_change_made_knowing_of_another_is_the_later_one_whatever_the_clocks_say() {
+        // A's clock is an hour ahead. B sees A's advance and then advances
+        // too: B's is the later change, though B's clock says otherwise.
+        let (a, b) = a_room_with_a_timer();
+        tick_timers_in(&a, A, NOW + 3_600_000.0);
+        sync_both(&a, &b);
+        tick_timers_in(&b, B, NOW + 5_000.0);
+        sync_both(&a, &b);
+        assert_eq!((remaining(&a), remaining(&b)), (Some(1), Some(1)));
+
+        // Two changes in the same millisecond by one player, likewise.
+        let doc = peer_doc();
+        add_timer_in(&doc, A, NOW, "t1", 3, "alpha", "red");
+        tick_timers_in(&doc, A, NOW);
+        tick_timers_in(&doc, A, NOW);
+        assert_eq!(remaining(&doc), Some(1));
+    }
+
+    #[test]
+    fn a_timer_removed_in_the_room_is_not_brought_back_by_an_older_copy() {
+        for _ in 0..PAIRS {
+            let (_, b) = a_room_with_a_timer();
+            remove_timer_in(&b, B, NOW + 60_000.0, "t1");
+            let again = peer_doc();
+            bring_timer_in(&again, "player-a-again", &own("t1", 3, NOW));
+            sync_both(&again, &b);
+            assert_eq!((remaining(&again), remaining(&b)), (None, None));
+        }
+    }
+
+    #[test]
+    fn a_timer_that_ran_out_in_the_room_is_not_brought_back_either() {
+        let (a, b) = (peer_doc(), peer_doc());
+        add_timer_in(&a, A, NOW, "t1", 1, "alpha", "red");
+        sync_both(&a, &b);
+        // B advances it to nothing, then past: it goes.
+        tick_timers_in(&b, B, NOW + 1_000.0);
+        tick_timers_in(&b, B, NOW + 2_000.0);
+        assert_eq!(remaining(&b), None);
+        sync_both(&a, &b);
+        assert_eq!(remaining(&a), None);
+    }
+
+    #[test]
+    fn a_timer_removed_after_leaving_goes_from_the_room_when_the_player_joins_again() {
+        for _ in 0..PAIRS {
+            let (_, b) = a_room_with_a_timer();
+            let again = peer_doc();
+            bring_removal_in(&again, "player-a-again", "t1", NOW + 60_000.0);
+            sync_both(&again, &b);
+            assert_eq!((remaining(&again), remaining(&b)), (None, None));
+        }
+    }
+
+    #[test]
+    fn a_timer_changed_in_the_room_after_the_other_removed_theirs_stays() {
+        // A leaves and removes its copy. Later still, B advances the
+        // room's. A joins again: the advance is the later change.
+        for _ in 0..PAIRS {
+            let (_, b) = a_room_with_a_timer();
+            tick_timers_in(&b, B, NOW + 120_000.0);
+            let again = peer_doc();
+            bring_removal_in(&again, "player-a-again", "t1", NOW + 60_000.0);
+            sync_both(&again, &b);
+            assert_eq!((remaining(&again), remaining(&b)), (Some(2), Some(2)));
+        }
+    }
+
+    #[test]
+    fn a_timer_is_one_entry_once_its_latest_version_is_seen_by_who_changes_it_next() {
+        let (a, b) = a_room_with_a_timer();
+        assert_eq!(entries(&a), 1);
+
+        // Changed apart: both versions are in the document after the merge.
+        tick_timers_in(&a, A, NOW + 1_000.0);
+        tick_timers_in(&b, B, NOW + 2_000.0);
+        sync_both(&a, &b);
+        assert_eq!((entries(&a), entries(&b)), (2, 2));
+
+        // The later of the two (B's, at 2) is the timer. The next change is
+        // made to that, and replaces both.
+        assert_eq!((remaining(&a), remaining(&b)), (Some(2), Some(2)));
+        tick_timers_in(&a, A, NOW + 3_000.0);
+        sync_both(&a, &b);
+        assert_eq!((entries(&a), entries(&b)), (1, 1));
+        assert_eq!((remaining(&a), remaining(&b)), (Some(1), Some(1)));
+
+        // A removal stays, as the timer's one entry, for older copies to meet.
+        tick_timers_in(&b, B, NOW + 4_000.0);
+        tick_timers_in(&b, B, NOW + 5_000.0);
+        sync_both(&a, &b);
+        assert_eq!((entries(&a), entries(&b)), (1, 1));
+        assert_eq!((remaining(&a), remaining(&b)), (None, None));
+    }
+
+    #[test]
+    fn removing_an_older_version_does_not_remove_a_newer_one_its_writer_made_meanwhile() {
+        for _ in 0..PAIRS {
+            let (a, b) = a_room_with_a_timer();
+            tick_timers_in(&b, B, NOW + 1_000.0);
+            sync_both(&a, &b);
+            // A replaces B's version (and removes it) while B, apart, makes a newer one.
+            tick_timers_in(&a, A, NOW + 2_000.0);
+            tick_timers_in(&b, B, NOW + 3_000.0);
+            sync_both(&a, &b);
+            // B's newest: 3 → 2 (B) → 1 (B again). A's 3 → 2 → 1 was earlier.
+            assert_eq!((remaining(&a), remaining(&b)), (Some(1), Some(1)));
+            let latest_is_bs = alarms_in(&a)[0].changed == NOW + 3_000.0;
+            assert!(latest_is_bs);
+        }
+    }
+
+    #[test]
+    fn a_timer_written_before_versions_were_kept_apart_is_read_and_then_replaced() {
+        let doc = peer_doc();
+        {
+            let timers = doc.get_or_insert_map(TIMERS);
+            let mut txn = doc.transact_mut();
+            let old = r#"{"remaining":4,"name":"from before","color_set":"blue","seq":1}"#;
+            timers.insert(&mut txn, "t1", Any::from(old.to_string()));
+        }
+        let before = alarms_in(&doc);
+        assert_eq!((before[0].name.as_str(), before[0].remaining, before[0].changed), ("from before", 4, 0.0));
+
+        tick_timers_in(&doc, A, NOW);
+        assert_eq!(remaining(&doc), Some(3));
+        assert_eq!(entries(&doc), 1, "the old entry is replaced");
+        let timers = doc.get_or_insert_map(TIMERS);
+        let txn = doc.transact();
+        assert!(timers.get(&txn, "t1:player-a").is_some());
+    }
+
     #[test]
     fn add_returns_nonempty_update() {
         reset();
-        let update = add_alarm(5, "test", "red");
+        let update = add_alarm(NOW, 5, "test", "red");
         assert!(!update.is_empty());
         let decoded = URL_SAFE_NO_PAD.decode(&update);
         assert!(decoded.is_ok());
@@ -645,7 +1065,7 @@ mod tests {
     #[test]
     fn state_vector_is_valid_base64() {
         reset();
-        add_alarm(3, "test", "blue");
+        add_alarm(NOW, 3, "test", "blue");
         let sv = encode_state_vector();
         assert!(!sv.is_empty());
         let decoded = URL_SAFE_NO_PAD.decode(&sv);
@@ -655,7 +1075,7 @@ mod tests {
     #[test]
     fn sync_two_docs_converge() {
         reset();
-        add_alarm(5, "peer_a_timer", "green");
+        add_alarm(NOW, 5, "peer_a_timer", "green");
 
         // Peer B starts empty and asks for everything it is missing.
         let doc_b = peer_doc();
@@ -680,7 +1100,7 @@ mod tests {
 
         let remote_doc = peer_doc();
         let sv_before = remote_doc.transact().state_vector();
-        add_timer_in(&remote_doc, "r1", 7, "remote_timer", "pink");
+        add_timer_in(&remote_doc, B, NOW, "r1", 7, "remote_timer", "pink");
         let update_bytes = remote_doc.transact().encode_diff_v1(&sv_before);
         let update_b64 = URL_SAFE_NO_PAD.encode(&update_bytes);
 
@@ -705,7 +1125,7 @@ mod tests {
     #[test]
     fn reset_doc_clears_state() {
         reset();
-        add_alarm(5, "test", "red");
+        add_alarm(NOW, 5, "test", "red");
         assert_eq!(get_alarms().len(), 1);
         reset_doc();
         assert_eq!(get_alarms().len(), 0);
@@ -715,11 +1135,11 @@ mod tests {
     fn concurrent_adds_both_survive() {
         reset();
 
-        let update_a = add_alarm(5, "from_a", "red");
+        let update_a = add_alarm(NOW, 5, "from_a", "red");
 
         let doc_b = peer_doc();
         let sv_b_before = doc_b.transact().state_vector();
-        add_timer_in(&doc_b, "b1", 3, "from_b", "blue");
+        add_timer_in(&doc_b, B, NOW, "b1", 3, "from_b", "blue");
         let update_b_bytes = doc_b.transact().encode_diff_v1(&sv_b_before);
         let update_b = URL_SAFE_NO_PAD.encode(&update_b_bytes);
 
@@ -738,8 +1158,8 @@ mod tests {
     #[test]
     fn persist_and_restore_roundtrip() {
         reset();
-        add_alarm(5, "persisted", "green");
-        add_alarm(2, "also persisted", "pink");
+        add_alarm(NOW, 5, "persisted", "green");
+        add_alarm(NOW, 2, "also persisted", "pink");
 
         let state = encode_full_state();
         assert!(!state.is_empty());
@@ -761,7 +1181,7 @@ mod tests {
     #[test]
     fn restore_empty_is_noop() {
         reset();
-        add_alarm(1, "keep", "red");
+        add_alarm(NOW, 1, "keep", "red");
         let result = restore_from_state("");
         assert!(result.is_ok());
         assert_eq!(get_alarms().len(), 1);
@@ -771,8 +1191,8 @@ mod tests {
     fn seed_from_local_copies_alarms_and_clears_local() {
         // Set up local PLAYER_DOC with alarms
         player_doc::init_player_doc();
-        player_doc::add_alarm(5, "local timer", "green");
-        player_doc::add_alarm(2, "another", "blue");
+        player_doc::add_alarm(NOW, 5, "local timer", "green");
+        player_doc::add_alarm(NOW, 2, "another", "blue");
 
         // Fresh CRDT Doc
         reset();
@@ -797,10 +1217,10 @@ mod tests {
     #[test]
     fn seed_from_local_adds_to_timers_already_in_the_room() {
         player_doc::init_player_doc();
-        player_doc::add_alarm(5, "local", "red");
+        player_doc::add_alarm(NOW, 5, "local", "red");
 
         reset();
-        add_alarm(3, "existing", "pink");
+        add_alarm(NOW, 3, "existing", "pink");
 
         seed_from_local();
         let alarms = get_alarms();
@@ -812,13 +1232,16 @@ mod tests {
     }
 
     #[test]
-    fn seed_from_local_keeps_ids_and_does_not_duplicate_a_timer_already_shared() {
+    fn seed_from_local_keeps_ids_and_the_later_of_two_copies_of_a_timer() {
+        // The room already holds this timer under the same id, changed
+        // after the player's copy was.
         player_doc::init_player_doc();
-        player_doc::add_alarm_with_id("t1", 5, "local copy", "red");
-
-        // The room already holds this timer under the same id.
+        player_doc::add_alarm_with_id("t1", 5, "local copy", "red", NOW);
         reset();
-        add_alarm_with_id("t1", 2, "room copy", "blue");
+        CRDT_DOC.with(|cell| bring_timer_in(&cell.borrow(), B, &Alarm {
+            id: "t1".to_string(), remaining: 2, name: "room copy".to_string(), color_set: "blue".to_string(),
+            changed: NOW + 1_000.0,
+        }));
 
         seed_from_local();
         let alarms = get_alarms();
@@ -826,6 +1249,37 @@ mod tests {
         assert_eq!(alarms[0].id, "t1");
         assert_eq!(alarms[0].name, "room copy");
         assert!(player_doc::get_alarms().is_empty());
+
+        // And the other way about: the player's copy was changed last.
+        player_doc::init_player_doc();
+        player_doc::add_alarm_with_id("t1", 5, "local copy", "red", NOW + 2_000.0);
+        seed_from_local();
+        let alarms = get_alarms();
+        assert_eq!(alarms.len(), 1);
+        assert_eq!(alarms[0].name, "local copy");
+        assert_eq!(alarms[0].changed, NOW + 2_000.0, "it keeps its date");
+
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn a_timer_removed_while_out_of_a_room_is_brought_in_as_removed() {
+        // The player left a room with a timer, and it ran out and went.
+        player_doc::init_player_doc();
+        player_doc::add_alarm_with_id("t1", 0, "alpha", "red", NOW);
+        player_doc::tick_alarms(NOW + 60_000.0);
+        assert!(player_doc::get_alarms().is_empty());
+
+        // The room they join again still has it, as the other player left it.
+        reset();
+        CRDT_DOC.with(|cell| bring_timer_in(&cell.borrow(), B, &Alarm {
+            id: "t1".to_string(), remaining: 1, name: "alpha".to_string(), color_set: "red".to_string(),
+            changed: NOW,
+        }));
+        assert_eq!(get_alarms().len(), 1);
+
+        seed_from_local();
+        assert!(get_alarms().is_empty(), "the removal is the later change");
 
         player_doc::init_player_doc();
     }
@@ -836,8 +1290,8 @@ mod tests {
         // and each player keeps a copy (export_to_local on disconnect).
         player_doc::init_player_doc();
         reset();
-        add_alarm(3, "alpha", "red");
-        add_alarm(5, "beta", "blue");
+        add_alarm(NOW, 3, "alpha", "red");
+        add_alarm(NOW, 5, "beta", "blue");
         let session_one = get_alarms();
         export_to_local();
         reset_doc();
@@ -847,7 +1301,7 @@ mod tests {
         // ...and so does the other player, whose copy has the same ids.
         let other = peer_doc();
         for (i, t) in session_one.iter().enumerate() {
-            add_timer_in(&other, &t.id, t.remaining, &t.name, &t.color_set);
+            bring_timer_in(&other, B, t);
             assert_eq!(alarms_in(&other)[i].id, t.id);
         }
 
@@ -864,7 +1318,7 @@ mod tests {
     #[test]
     fn timers_saved_before_ids_existed_get_one_when_shared() {
         player_doc::init_player_doc();
-        player_doc::add_alarm_with_id("", 4, "legacy", "green");
+        player_doc::add_alarm_with_id("", 4, "legacy", "green", 0.0);
         assert_eq!(player_doc::get_alarms()[0].id, "");
 
         reset();
@@ -878,14 +1332,38 @@ mod tests {
     }
 
     #[test]
-    fn export_to_local_keeps_ids() {
+    fn a_timer_removed_in_the_room_stays_removed_in_the_next_room() {
+        // B was cut off when A removed the timer, and left without hearing
+        // of it: B still holds the timer. They meet in a new room.
         player_doc::init_player_doc();
         reset();
-        add_alarm_with_id("keep-me", 7, "shared timer", "yellow");
+        CRDT_DOC.with(|cell| add_timer_in(&cell.borrow(), A, NOW, "shared", 7, "shared timer", "yellow"));
+        let held_by_b = get_alarms().remove(0);
+        remove_alarm(NOW + 5_000.0, "shared");
+        export_to_local();
+        assert!(player_doc::get_alarms().is_empty());
+        assert_eq!(player_doc::retired(), [("shared".to_string(), NOW + 5_000.0)]);
+
+        // A leaves and makes the new room; B joins it with the copy.
+        reset();
+        seed_from_local();
+        CRDT_DOC.with(|cell| bring_timer_in(&cell.borrow(), B, &held_by_b));
+        assert!(get_alarms().is_empty(), "the removal was the later change");
+        player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn export_to_local_keeps_ids_and_when_each_timer_was_last_changed() {
+        player_doc::init_player_doc();
+        reset();
+        CRDT_DOC.with(|cell| add_timer_in(&cell.borrow(), A, NOW, "keep-me", 7, "shared timer", "yellow"));
+        tick_alarms(NOW + 5_000.0);
         export_to_local();
         let local = player_doc::get_alarms();
         assert_eq!(local.len(), 1);
         assert_eq!(local[0].id, "keep-me");
+        assert_eq!(local[0].remaining, 6);
+        assert_eq!(local[0].changed, NOW + 5_000.0);
         player_doc::init_player_doc();
     }
 
@@ -903,8 +1381,8 @@ mod tests {
         player_doc::init_player_doc();
 
         reset();
-        add_alarm(7, "shared timer", "yellow");
-        add_alarm(1, "quick one", "pink");
+        add_alarm(NOW, 7, "shared timer", "yellow");
+        add_alarm(NOW, 1, "quick one", "pink");
 
         export_to_local();
         let alarms = player_doc::get_alarms();
@@ -920,10 +1398,10 @@ mod tests {
     #[test]
     fn export_to_local_replaces_existing_alarms() {
         player_doc::init_player_doc();
-        player_doc::add_alarm(99, "old local", "red");
+        player_doc::add_alarm(NOW, 99, "old local", "red");
 
         reset();
-        add_alarm(3, "from crdt", "blue");
+        add_alarm(NOW, 3, "from crdt", "blue");
 
         export_to_local();
         let alarms = player_doc::get_alarms();
@@ -940,8 +1418,8 @@ mod tests {
         // gets the CRDT alarms back, and the next handover has it stored,
         // preventing ghost timers.
         player_doc::init_player_doc();
-        player_doc::add_alarm(5, "round trip", "green");
-        player_doc::add_alarm(2, "also round trip", "pink");
+        player_doc::add_alarm(NOW, 5, "round trip", "green");
+        player_doc::add_alarm(NOW, 2, "also round trip", "pink");
 
         // Room create: seed local → CRDT (clears local)
         reset();
@@ -969,7 +1447,7 @@ mod tests {
         // Simulate: local alarms → seed → mutation (exports to local) → disconnect
         // The mutation route's export_to_local() keeps PLAYER_DOC in sync.
         player_doc::init_player_doc();
-        player_doc::add_alarm(5, "original", "green");
+        player_doc::add_alarm(NOW, 5, "original", "green");
 
         // Room create: seed local → CRDT (clears local)
         reset();
@@ -979,7 +1457,7 @@ mod tests {
 
         // Simulate a CRDT mutation during the session — the mutation route
         // calls export_to_local() after each mutation to keep PLAYER_DOC in sync.
-        add_alarm(1, "shared new", "blue");
+        add_alarm(NOW, 1, "shared new", "blue");
         export_to_local(); // This is what the mutation routes do
         assert_eq!(get_alarms().len(), 2);
         assert_eq!(player_doc::get_alarms().len(), 2);

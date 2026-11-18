@@ -190,6 +190,10 @@ pub fn reset() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
     use crate::game::{crdt, player_doc};
 
     fn fresh() {
@@ -253,7 +257,7 @@ mod tests {
         fresh();
         store::handle_start_post("{}");
         handed();
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         let saved = handed();
         assert_eq!(saved["save"][store::PLAYER_DOC], player_doc::encode_full_state());
         fresh();
@@ -288,7 +292,7 @@ mod tests {
         report("message", r#"{"type":"room_created","code":"ABCD","name":"Table"}"#);
         handed();
 
-        let update = crdt::add_alarm(2, "ours", "red");
+        let update = crdt::add_alarm(NOW, 2, "ours", "red");
         crdt::queue_for_peer(update.clone());
         let sent = handed();
         assert_eq!(sent["wire"][0]["send"], socket.as_str());
@@ -315,7 +319,7 @@ mod tests {
         report("message", proof.to_string());
         handed();
 
-        player_doc::add_alarm(3, "mine", "red");
+        player_doc::add_alarm(NOW, 3, "mine", "red");
         let changed = handed();
         assert!(changed["save"].as_object().unwrap().contains_key(store::PLAYER_DOC));
         assert_eq!(changed["wire"][0]["send"], socket.as_str());

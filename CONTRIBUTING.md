@@ -130,7 +130,7 @@ All data is tracked across three distinct stores. Rust is the single source of t
 |-------|-------|-------------|---------|----------|
 | **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes — opt-in cross-device sync via WebSocket relay (HMAC-authenticated) | Card damage, turn alarms, settings, affinity, loyalty |
 | **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
-| **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, keyed by timer id) and fists combat (`fists`, one entry per round per player) |
+| **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player) |
 
 A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Anything both players must agree on goes in `ROOM_DOC`: it is the only thing that is synced, persisted across page loads and repaired after a dropped connection. `RoomState.fists` is just a cache of the current round for the renderers. Single-player behavior is completely unaffected by multiplayer code.
 
@@ -308,7 +308,7 @@ Everything else the engine holds is kept the same way: the room's connection and
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
-| `hello` | Both → peer | `{ proto: 2, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
+| `hello` | Both → peer | `{ proto: 3, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
 | `yrs_sv` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector (sync handshake step 1) |
 | `yrs_sv_reply` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector reply (sync handshake step 2) |
 | `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (a change to timers or fists combat) |
@@ -328,7 +328,19 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 - What a player has picked and not locked in is not in the document. It is that player's engine's alone (`FistsChoice` in `game/room.rs`); the opponent learns of a choice when it is locked in.
 - Nothing polls. A player who is waiting sees the result when the opponent's update arrives: applying it asks for the dialog to be drawn again (see "Changes that must reach the other player" under Pattern 13).
 
-**Shared timers in the document:** the `timers` map is keyed by a stable timer id that travels with the timer between a player's own timers and a room. Both players seed their own timers on create and join; the same timer held by both (each keeps a copy when a session ends) lands on one key and stays one timer.
+**Shared timers in the document: the latest change wins.** The players are often apart (a page change, a locked phone, one of them leaving the room and joining again), and each can change a timer meanwhile. When they meet again, the version changed last is the one both keep (`game/crdt.rs`).
+
+A yrs map does not decide that by itself. Two values written to one key by players who had not seen each other's are settled by comparing the ids of their documents, which are random: either may win, and the loser is gone. A value written knowing of the other always replaces it, which covers a phone that was offline and came back, but not a player who left and joined again, whose timers are written into a new document. So no key is written by two players:
+
+- **Each player writes a timer under a key of their own**, `<timer id>:<player id>`, so both versions survive a merge. A version is the timer (`remaining`, `name`, `color_set`, `seq` for display order) with `at`, when it was changed, and `gone` if the change was its removal.
+- **The timer is its latest version.** Both players hold the same versions after a merge and so pick the same one. Two with the same date are settled by the players' ids.
+- **A change is dated by the clock, or just after the version it replaces if the clock says no later** (`state::dated`). A change made knowing of another is therefore always the later one, whatever the two phones' clocks say. Only changes made apart are ordered by the clocks.
+- **Whoever writes a version removes the older ones it replaces**, so a timer is usually one entry. A removal stays for the life of the room.
+- **The date travels with the timer.** A player's own timers carry `changed` (set by every change made alone, and copied from the room). Both players bring their own timers into a room on create and join; the same timer held by both lands on one timer id, and the copy changed last is the room's.
+- **A removal travels too.** A timer removed alone (by hand, by running out, or by New Game) or in a room is remembered in the player's own state for a day (`retired`), and brought into the next room as a removal. A copy the other player still holds does not bring the timer back, unless they changed it after the removal.
+- A key with no player id was written before protocol 3 and is read as the oldest version.
+
+What this does not do: add up advances. Two players who each advance a timer while apart end with one advance, not two (the later version wins whole). And two phones whose clocks disagree by more than the time between two changes made apart can keep the earlier one. New Game in a room leaves the room's timers alone.
 
 **Connection lifecycle:** a link (`kipukas-server/src/link.rs`) wants one socket and one retry at a time: capped exponential backoff that never gives up while the player is in a room, a connect timeout, a 20 s ping, and an immediate retry when the tab becomes visible, the network returns, or the page is restored. Every socket has a generation number, and what is reported of any socket but the current one is ignored. A reconnect is always a *return*: only a create or join the player asked for starts the room's shared state.
 
@@ -694,7 +706,7 @@ deno task build:wasm                      # once, and after changing the engine
 cd signaling-server && deno task test
 ```
 
-The last step plays two of the site's engines against the local relay, each held by `kipukas-wire.js` as the site's worker holds it: create, join, a shared timer, a dropped socket, a change made while away, leaving. It needs the built engine, hence the first line.
+The last step plays two of the site's engines against the local relay, each held by `kipukas-wire.js` as the site's worker holds it: create, join, a shared timer, a dropped socket, a change made while away, leaving, and then leaving and joining again several times with a timer advanced or removed on one side meanwhile (the later change must win every time). It needs the built engine, hence the first line.
 
 **Browser integration checks** (DevTools console):
 
@@ -858,7 +870,8 @@ The core tameability infrastructure shipped in the Player Document sprint: `tama
 | Root key | yrs type | Contents |
 |----------|----------|----------|
 | `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool }` per card |
-| `"alarms"` | `YArray<YMap>` | `{ remaining: i32, name: String, color_set: String }` |
+| `"alarms"` | `YArray<YMap>` | `{ id: String, remaining: i32, name: String, color_set: String, changed: f64 }` (`changed`: when it was last changed, ms) |
+| `"retired"` | `YMap<timer id, f64>` | When each timer removed in the last day was removed (ms) |
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |
 | `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
 | `"loyalty"` | `YMap<slug, YMap>` | `{ total_plays: i64, last_played: String }` |

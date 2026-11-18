@@ -267,6 +267,10 @@ pub fn handle_import_signed_post(body: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
     use crate::game::player_doc;
 
     fn reset() {
@@ -385,7 +389,7 @@ mod tests {
     #[test]
     fn signed_export_returns_valid_json() {
         reset();
-        player_doc::add_alarm(5, "test", "red");
+        player_doc::add_alarm(NOW, 5, "test", "red");
         let json = handle_export_signed_post("passphrase=secret&exported_at=2026-02-27T12:00:00Z");
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(parsed.get("player_doc").is_some());
@@ -425,7 +429,7 @@ mod tests {
     fn signed_import_roundtrip() {
         reset();
         // Set up some state
-        player_doc::add_alarm(3, "roundtrip", "green");
+        player_doc::add_alarm(NOW, 3, "roundtrip", "green");
         player_doc::declare_affinity("Brutal", "2026-02-25").unwrap();
 
         // Export signed
@@ -453,7 +457,7 @@ mod tests {
     #[test]
     fn signed_import_rejects_wrong_passphrase() {
         reset();
-        player_doc::add_alarm(1, "test", "red");
+        player_doc::add_alarm(NOW, 1, "test", "red");
         let json = handle_export_signed_post("passphrase=correct&exported_at=2026-02-27");
 
         player_doc::init_player_doc();
@@ -468,7 +472,7 @@ mod tests {
     #[test]
     fn signed_import_rejects_tampered_data() {
         reset();
-        player_doc::add_alarm(1, "test", "red");
+        player_doc::add_alarm(NOW, 1, "test", "red");
         let json = handle_export_signed_post("passphrase=secret&exported_at=2026-02-27");
 
         // Tamper with the payload: modify the player_doc value

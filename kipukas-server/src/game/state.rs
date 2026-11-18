@@ -19,6 +19,20 @@ pub struct Alarm {
     /// Color set identifier: "red", "green", "blue", "yellow", "pink".
     #[serde(default = "default_color_set")]
     pub color_set: String,
+    /// When this timer was last changed (made, advanced), in milliseconds
+    /// since 1970. It travels with the timer between a player's own timers
+    /// and a room's, and is how the later of two changes made apart is told
+    /// (see `game::crdt`). 0 for a timer saved before changes were dated.
+    #[serde(default)]
+    pub changed: f64,
+}
+
+/// The date of a change made at `now` to something last changed at `seen`:
+/// now, or if the clock says a time not after `seen`, just after it. A
+/// change made knowing of another is therefore always the later of the two,
+/// whatever the clocks of the devices that made them say.
+pub fn dated(now: f64, seen: f64) -> f64 {
+    now.floor().max(seen + 1.0)
 }
 
 fn default_color_set() -> String {
@@ -53,6 +67,15 @@ mod tests {
         assert_eq!(a.len(), 12);
         assert!(is_valid_alarm_id(&a));
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn a_change_is_dated_now_and_always_after_the_one_it_follows() {
+        assert_eq!(dated(5_000.7, 0.0), 5_000.0);
+        assert_eq!(dated(5_000.0, 4_999.0), 5_000.0);
+        // A clock that is behind, or two changes in the same millisecond.
+        assert_eq!(dated(5_000.0, 5_000.0), 5_001.0);
+        assert_eq!(dated(1_000.0, 9_000.0), 9_001.0);
     }
 
     #[test]

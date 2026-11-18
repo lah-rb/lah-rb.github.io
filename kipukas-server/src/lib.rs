@@ -332,11 +332,11 @@ mod tests {
         let greeted = handed();
         assert!(greeted["wire"].to_string().contains("hello"));
         assert!(handle_request("GET", "/api/room/status", "", "").contains("Connected"));
-        socket(
-            &name,
-            "message",
-            r#"{"type":"relay","data":{"type":"hello","proto":2,"playerId":"bbbbbbbbbbbbbbbbbbbbbbbb"}}"#,
+        let hello = format!(
+            r#"{{"type":"relay","data":{{"type":"hello","proto":{},"playerId":"bbbbbbbbbbbbbbbbbbbbbbbb"}}}}"#,
+            game::connection::PROTOCOL
         );
+        socket(&name, "message", &hello);
         assert!(handle_request("GET", "/api/room/pill", "", "").contains(r#"data-tone="ok""#));
 
         assert_eq!(handle_request("POST", "/api/room/status", "", "action=leave"), "");

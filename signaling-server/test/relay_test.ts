@@ -432,61 +432,120 @@ Deno.test('relay', async (t) => {
       await p.got('peer_joined');
     });
 
-    await t.step('the site: two engines create, join, share a timer, drop and resume', async () => {
-      // The site's own game engine (kipukas-server, as the WASM module the
-      // browser loads), one per player, each held the way the site's worker
-      // holds it: kipukas-wire.js opens the sockets the engine asks for and
-      // reports what they do. Everything else is the engine's.
-      const [a, b] = [await engine('a', relay.ws), await engine('b', relay.ws)];
-      const status = (e: Engine) => e.get('/api/room/status');
-      const timers = (e: Engine) => e.get('/api/game/turns?display=alarms');
-      try {
-        a.post('/api/room/status', 'action=create&name=Table');
-        await until(() => status(a).includes('Code:'), 'A in a room');
-        const code = /Code: <strong>([A-Z0-9]{4})<\/strong>/.exec(status(a))![1];
-        assert(a.stored().kipukas_room?.includes(code), 'A has the room stored');
+    await t.step(
+      'the site: two engines create, join, share timers, drop, resume, leave and return',
+      async () => {
+        // The site's own game engine (kipukas-server, as the WASM module the
+        // browser loads), one per player, each held the way the site's worker
+        // holds it: kipukas-wire.js opens the sockets the engine asks for and
+        // reports what they do. Everything else is the engine's.
+        const [a, b] = [await engine('a', relay.ws), await engine('b', relay.ws)];
+        const status = (e: Engine) => e.get('/api/room/status');
+        const timers = (e: Engine) => e.get('/api/game/turns?display=alarms');
+        try {
+          a.post('/api/room/status', 'action=create&name=Table');
+          await until(() => status(a).includes('Code:'), 'A in a room');
+          const code = /Code: <strong>([A-Z0-9]{4})<\/strong>/.exec(status(a))![1];
+          assert(a.stored().kipukas_room?.includes(code), 'A has the room stored');
 
-        b.post('/api/room/status', `action=join&code=${code.toLowerCase()}&name=Table`);
-        await until(
-          () => status(a).includes('Connected') && status(b).includes('Connected'),
-          'both connected',
-        );
-        // Each knows who the other is: they said hello through the relay.
-        const ids = [a, b].map((e) => JSON.parse(e.stored().kipukas_room!));
-        await until(() => JSON.parse(a.stored().kipukas_room!).peerId !== '', 'A knows B');
-        assertEquals(JSON.parse(a.stored().kipukas_room!).peerId, ids[1].playerId, 'A knows B');
-        assert(ids[0].playerId !== ids[1].playerId, 'the two players have different ids');
-        assert(a.pill().includes('data-tone="ok"') && b.pill().includes('data-tone="ok"'), 'pills');
+          b.post('/api/room/status', `action=join&code=${code.toLowerCase()}&name=Table`);
+          await until(
+            () => status(a).includes('Connected') && status(b).includes('Connected'),
+            'both connected',
+          );
+          // Each knows who the other is: they said hello through the relay.
+          const ids = [a, b].map((e) => JSON.parse(e.stored().kipukas_room!));
+          await until(() => JSON.parse(a.stored().kipukas_room!).peerId !== '', 'A knows B');
+          assertEquals(JSON.parse(a.stored().kipukas_room!).peerId, ids[1].playerId, 'A knows B');
+          assert(ids[0].playerId !== ids[1].playerId, 'the two players have different ids');
+          assert(
+            a.pill().includes('data-tone="ok"') && b.pill().includes('data-tone="ok"'),
+            'pills',
+          );
 
-        // A change one player makes to the room reaches the other.
-        a.post('/api/game/turns', 'action=add&turns=3&name=alpha&color_set=red');
-        await until(() => timers(b).includes('alpha'), 'B sees the timer A made');
+          // A change one player makes to the room reaches the other.
+          a.post('/api/game/turns', 'action=add&turns=3&name=alpha&color_set=red');
+          await until(() => timers(b).includes('alpha'), 'B sees the timer A made');
 
-        // B loses its socket, as on a page change, and returns by itself.
-        b.dropSocket();
-        await until(() => status(a).includes('Waiting for peer'), 'A told B is away');
-        // While B is away it makes a change, which cannot be sent.
-        b.post('/api/game/turns', 'action=add&turns=5&name=beta&color_set=blue');
-        await until(
-          () => status(a).includes('Connected') && status(b).includes('Connected'),
-          'B back',
-          8000,
-        );
-        // The exchange of state on returning makes up for it.
-        await until(() => timers(a).includes('beta'), 'A sees the timer B made while away');
-        assert(timers(a).includes('alpha') && timers(b).includes('alpha'), 'nothing was lost');
+          // B loses its socket, as on a page change, and returns by itself.
+          b.dropSocket();
+          await until(() => status(a).includes('Waiting for peer'), 'A told B is away');
+          // While B is away it makes a change, which cannot be sent.
+          b.post('/api/game/turns', 'action=add&turns=5&name=beta&color_set=blue');
+          await until(
+            () => status(a).includes('Connected') && status(b).includes('Connected'),
+            'B back',
+            8000,
+          );
+          // The exchange of state on returning makes up for it.
+          await until(() => timers(a).includes('beta'), 'A sees the timer B made while away');
+          assert(timers(a).includes('alpha') && timers(b).includes('alpha'), 'nothing was lost');
 
-        // Leaving tells the other player, and the room's timers stay with each.
-        b.post('/api/room/status', 'action=leave');
-        await until(() => status(a).includes('Waiting for peer'), 'A told B left');
-        assert(status(b).includes('Create Room'), 'B is out');
-        assertEquals(b.stored().kipukas_room, undefined, 'B has forgotten the room');
-        assert(timers(b).includes('alpha') && timers(b).includes('beta'), 'B keeps the timers');
-      } finally {
-        a.shutDown();
-        b.shutDown();
-      }
-    });
+          // Leaving tells the other player, and the room's timers stay with each.
+          b.post('/api/room/status', 'action=leave');
+          await until(() => status(a).includes('Waiting for peer'), 'A told B left');
+          assert(status(b).includes('Create Room'), 'B is out');
+          assertEquals(b.stored().kipukas_room, undefined, 'B has forgotten the room');
+          assert(timers(b).includes('alpha') && timers(b).includes('beta'), 'B keeps the timers');
+
+          // The later of two changes made apart wins, whoever made it. B is
+          // out of the room with its copies of the timers (alpha at 3, beta at
+          // 5). Turn about, B advances its copies alone, or A advances the
+          // room's, and B joins again. Either way both must end on the
+          // advanced count. (Which of two documents a merge favours by itself
+          // is chance, so this is gone through several times.)
+          const count = (e: Engine, name: string) => {
+            const found = new RegExp(`<strong>${name}</strong> — (\\d+|Complete!)`).exec(timers(e));
+            return found ? found[1] : 'gone';
+          };
+          const rejoin = async () => {
+            b.post('/api/room/status', `action=join&code=${code}&name=Table`);
+            await until(
+              () => status(a).includes('Connected') && status(b).includes('Connected'),
+              'B in the room again',
+            );
+          };
+          const leave = async () => {
+            b.post('/api/room/status', 'action=leave');
+            await until(() => status(a).includes('Waiting for peer'), 'A told B left');
+          };
+          for (
+            const [round, who, beta, alpha] of [
+              [1, b, '4', '2'],
+              [2, a, '3', '1'],
+              [3, b, '2', 'Complete!'],
+              [4, a, '1', 'gone'], // alpha had run out: this advance removes it
+            ] as const
+          ) {
+            who.post('/api/game/turns', 'action=tick');
+            await rejoin();
+            await until(
+              () => count(a, 'beta') === beta && count(b, 'beta') === beta,
+              `round ${round}: both at beta ${beta} (A ${count(a, 'beta')}, B ${count(b, 'beta')})`,
+            );
+            assertEquals(
+              [count(a, 'alpha'), count(b, 'alpha')],
+              [alpha, alpha],
+              `round ${round}: alpha`,
+            );
+            await leave();
+          }
+
+          // A timer B removes while out stays removed when B joins again,
+          // though the room still had it.
+          assertEquals(count(a, 'beta'), '1', 'the room still has beta');
+          b.post('/api/game/turns', 'action=remove&index=0');
+          assertEquals(count(b, 'beta'), 'gone', 'B removed its copy');
+          await rejoin();
+          await until(() => count(a, 'beta') === 'gone', 'beta is gone from the room');
+          assertEquals(count(b, 'beta'), 'gone');
+          await leave();
+        } finally {
+          a.shutDown();
+          b.shutDown();
+        }
+      },
+    );
   } finally {
     for (const p of open) await p.close().catch(() => {});
     await relay.stop();

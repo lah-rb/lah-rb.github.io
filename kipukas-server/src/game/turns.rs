@@ -20,9 +20,13 @@
 //! views differs: the same form and the same list, with the same posts.
 //! What differs is where a change goes ([`add`], [`advance`], [`remove`]):
 //! in a room it is made to the room document and queued for the other
-//! player (`crdt::queue_for_peer`), and the page sends it. A change the other
-//! player makes arrives through the room's own routes, after which the page
-//! draws these views again.
+//! player (`crdt::queue_for_peer`), and the room's connection sends it. A
+//! change the other player makes arrives through the connection, after
+//! which the page draws these views again.
+//!
+//! Each change is dated by the caller's clock. When the two players have
+//! changed a timer while apart, the later change is the one both keep (see
+//! `game::crdt`).
 //!
 //! Showing and hiding the list is a preference of this player alone.
 //!
@@ -219,38 +223,38 @@ fn ending(alarm: &Alarm, done: &[(String, f64)], now: f64) -> Ending {
 
 /// Add a timer: to the room's timers when in a room, telling the other
 /// player, otherwise to the player's own.
-pub fn add(turns: i32, name: &str, color_set: &str) {
+pub fn add(now: f64, turns: i32, name: &str, color_set: &str) {
     let turns = turns.clamp(1, 99);
     if room::in_room() {
-        crdt::queue_for_peer(crdt::add_alarm(turns, name, color_set));
+        crdt::queue_for_peer(crdt::add_alarm(now, turns, name, color_set));
         // Keep the player's own copy in step, so that the timers are still
         // there if the room ends without a clean goodbye.
         crdt::export_to_local();
     } else {
-        player_doc::add_alarm(turns, name, color_set);
+        player_doc::add_alarm(now, turns, name, color_set);
     }
 }
 
 /// Advance every timer by one diel cycle; one that had already run out goes.
-pub fn advance() {
+pub fn advance(now: f64) {
     if room::in_room() {
-        crdt::queue_for_peer(crdt::tick_alarms());
+        crdt::queue_for_peer(crdt::tick_alarms(now));
         crdt::export_to_local();
     } else {
-        player_doc::tick_alarms();
+        player_doc::tick_alarms(now);
     }
 }
 
 /// Remove one timer. A room's timer is named by its id, which both players
 /// agree on; a player's own by its place in the list.
-pub fn remove(id: Option<&str>, place: Option<usize>) {
+pub fn remove(now: f64, id: Option<&str>, place: Option<usize>) {
     if room::in_room() {
         if let Some(id) = id {
-            crdt::queue_for_peer(crdt::remove_alarm(id));
+            crdt::queue_for_peer(crdt::remove_alarm(now, id));
             crdt::export_to_local();
         }
     } else if let Some(place) = place {
-        player_doc::remove_alarm(place);
+        player_doc::remove_alarm(now, place);
     }
 }
 
@@ -269,7 +273,7 @@ pub fn expire(now: f64) {
         .map(|alarm| alarm.id.clone())
         .collect();
     if !gone.is_empty() {
-        player_doc::remove_alarms_with_ids(&gone);
+        player_doc::remove_alarms_with_ids(now, &gone);
         note_completions(now);
     }
 }
@@ -414,6 +418,10 @@ pub fn render_alarm_list_at(now: f64) -> String {
 mod tests {
     use super::*;
 
+    /// When the timers in these tests are made and changed, where the test
+    /// does not care when.
+    const NOW: f64 = 1_800_000_000_000.0;
+
     fn reset_state() {
         player_doc::init_player_doc();
         room::reset_room();
@@ -422,8 +430,8 @@ mod tests {
     #[test]
     fn add_alarm_works() {
         reset_state();
-        player_doc::add_alarm(5, "Scout patrol", "green");
-        player_doc::add_alarm(3, "", "red");
+        player_doc::add_alarm(NOW, 5, "Scout patrol", "green");
+        player_doc::add_alarm(NOW, 3, "", "red");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -438,7 +446,7 @@ mod tests {
     #[test]
     fn add_alarm_validates_color() {
         reset_state();
-        player_doc::add_alarm(1, "", "invalid");
+        player_doc::add_alarm(NOW, 1, "", "invalid");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms[0].color_set, "red"); // defaults to red
         reset_state();
@@ -447,21 +455,21 @@ mod tests {
     #[test]
     fn tick_decrements_and_removes_expired() {
         reset_state();
-        player_doc::add_alarm(2, "", "red");
-        player_doc::add_alarm(1, "", "blue");
+        player_doc::add_alarm(NOW, 2, "", "red");
+        player_doc::add_alarm(NOW, 1, "", "blue");
 
-        player_doc::tick_alarms();
+        player_doc::tick_alarms(NOW);
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 1);
         assert_eq!(alarms[1].remaining, 0); // complete
 
-        player_doc::tick_alarms();
+        player_doc::tick_alarms(NOW);
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 1); // 0→-1 removed
         assert_eq!(alarms[0].remaining, 0); // 1→0 complete
 
-        player_doc::tick_alarms();
+        player_doc::tick_alarms(NOW);
         let alarms = player_doc::get_alarms();
         assert!(alarms.is_empty()); // all removed
 
@@ -471,10 +479,10 @@ mod tests {
     #[test]
     fn remove_alarm_by_index() {
         reset_state();
-        player_doc::add_alarm(5, "first", "red");
-        player_doc::add_alarm(3, "second", "green");
-        player_doc::add_alarm(1, "third", "blue");
-        player_doc::remove_alarm(1); // remove the 3-turn alarm
+        player_doc::add_alarm(NOW, 5, "first", "red");
+        player_doc::add_alarm(NOW, 3, "second", "green");
+        player_doc::add_alarm(NOW, 1, "third", "blue");
+        player_doc::remove_alarm(NOW, 1); // remove the 3-turn alarm
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms.len(), 2);
         assert_eq!(alarms[0].remaining, 5);
@@ -485,8 +493,8 @@ mod tests {
     #[test]
     fn remove_alarm_out_of_bounds_is_noop() {
         reset_state();
-        player_doc::add_alarm(5, "", "red");
-        player_doc::remove_alarm(99);
+        player_doc::add_alarm(NOW, 5, "", "red");
+        player_doc::remove_alarm(NOW, 99);
         assert_eq!(player_doc::get_alarms().len(), 1);
         reset_state();
     }
@@ -514,8 +522,8 @@ mod tests {
     #[test]
     fn render_alarm_list_shows_alarms_with_colors() {
         reset_state();
-        player_doc::add_alarm(5, "Dragon siege", "green");
-        player_doc::add_alarm(0, "", "red");
+        player_doc::add_alarm(NOW, 5, "Dragon siege", "green");
+        player_doc::add_alarm(NOW, 0, "", "red");
         // room disconnected → local mode (reads from PLAYER_DOC)
         let html = render_alarm_list();
         assert!(html.contains("Dragon siege"));
@@ -536,7 +544,7 @@ mod tests {
             r.connected = true;
         });
         crdt::init_doc();
-        crdt::add_alarm(3, "", "blue");
+        crdt::add_alarm(NOW, 3, "", "blue");
         let html = render_alarm_list();
         assert!(html.contains(r#"data-engine-post="/api/game/turns" data-engine-body="action=tick""#));
         // Shared timers are removed by id, not by position.
@@ -554,7 +562,7 @@ mod tests {
     #[test]
     fn timer_names_are_escaped() {
         reset_state();
-        player_doc::add_alarm(3, "<img src=x onerror=alert(1)>", "red");
+        player_doc::add_alarm(NOW, 3, "<img src=x onerror=alert(1)>", "red");
         let html = render_alarm_list();
         assert!(!html.contains("<img src=x"));
         assert!(html.contains("&lt;img src=x onerror=alert(1)&gt;"));
@@ -566,9 +574,9 @@ mod tests {
         reset_state();
         // In a room, peer not connected (mid page-load, asleep, brief drop).
         room::with_room_mut(|r| r.room_code = "ABCD".to_string());
-        player_doc::add_alarm(9, "solo copy", "red");
+        player_doc::add_alarm(NOW, 9, "solo copy", "red");
         crdt::init_doc();
-        crdt::add_alarm(3, "shared", "blue");
+        crdt::add_alarm(NOW, 3, "shared", "blue");
 
         let html = render_alarm_list();
         assert!(html.contains("shared"));
@@ -581,7 +589,7 @@ mod tests {
     #[test]
     fn render_alarm_list_is_local_outside_a_room() {
         reset_state();
-        player_doc::add_alarm(9, "solo", "red");
+        player_doc::add_alarm(NOW, 9, "solo", "red");
         let html = render_alarm_list();
         assert!(html.contains("solo"));
         assert!(html.contains(r#"data-engine-post="/api/game/turns" data-engine-body="action=tick""#));
@@ -592,8 +600,8 @@ mod tests {
     #[test]
     fn a_solo_lists_controls_are_engine_posts_and_nothing_else() {
         reset_state();
-        player_doc::add_alarm(5, "first", "red");
-        player_doc::add_alarm(3, "second", "green");
+        player_doc::add_alarm(NOW, 5, "first", "red");
+        player_doc::add_alarm(NOW, 3, "second", "green");
         let html = render_alarm_list();
         // Each timer is removed by its place in the list.
         assert!(html.contains(r#"data-engine-body="action=remove&index=0""#));
@@ -609,7 +617,7 @@ mod tests {
     #[test]
     fn the_list_is_hidden_and_shown_by_a_button_that_says_which() {
         reset_state();
-        player_doc::add_alarm(5, "", "red");
+        player_doc::add_alarm(NOW, 5, "", "red");
         let html = render_alarm_list();
         assert!(html.contains(r#"aria-label="Hide timers" aria-expanded="true" data-engine-post="/api/game/turns" data-engine-body="action=toggle_visibility""#));
         toggle_alarms_visibility();
@@ -624,7 +632,7 @@ mod tests {
         reset_state();
         room::with_room_mut(|r| r.room_code = "ABCD".to_string());
         crdt::init_doc();
-        crdt::add_alarm(3, "shared", "blue");
+        crdt::add_alarm(NOW, 3, "shared", "blue");
         let html = render_alarm_list();
         assert!(html.contains(r#"data-engine-body="action=toggle_visibility""#));
         crdt::reset_doc();
@@ -634,7 +642,7 @@ mod tests {
     #[test]
     fn the_show_and_hide_button_is_a_pill_in_the_middle_of_the_block() {
         reset_state();
-        player_doc::add_alarm(5, "", "red");
+        player_doc::add_alarm(NOW, 5, "", "red");
         let html = render_alarm_list();
         let button = &html[html.find(r#"aria-label="Hide timers""#).unwrap()..];
         let classes = &button[button.find("class=\"").unwrap()..button.find("><svg").unwrap()];
@@ -654,8 +662,8 @@ mod tests {
 
     /// One of the player's own timers, run out.
     fn run_out(name: &str) -> String {
-        player_doc::add_alarm(1, name, "red");
-        player_doc::tick_alarms();
+        player_doc::add_alarm(NOW, 1, name, "red");
+        player_doc::tick_alarms(NOW);
         player_doc::get_alarms().last().unwrap().id.clone()
     }
 
@@ -725,7 +733,7 @@ mod tests {
     #[test]
     fn timers_still_counting_are_left_alone_and_keep_the_list_up() {
         reset_state();
-        player_doc::add_alarm(6, "Patrol", "green");
+        player_doc::add_alarm(NOW, 6, "Patrol", "green");
         run_out("Siege"); // the advance that runs Siege out takes Patrol to 5
         let html = render_alarm_list_at(T0);
         assert_eq!(html.matches("data-engine-after").count(), 1);
@@ -746,7 +754,7 @@ mod tests {
         run_out("First");
         render_alarm_list_at(T0);
         run_out("Second"); // First is ticked away; Second runs out now
-        player_doc::add_alarm_with_id("kept", 0, "Third", "blue");
+        player_doc::add_alarm_with_id("kept", 0, "Third", "blue", NOW);
         let html = render_alarm_list_at(T0 + 6_000.0);
         assert_eq!(html.matches("Complete!").count(), 2);
         assert_eq!(html.matches(&format!("{}\"15000\"", EXPIRE)).count(), 2);
@@ -758,7 +766,7 @@ mod tests {
     #[test]
     fn the_players_own_timers_are_deleted_once_gone_and_no_sooner() {
         reset_state();
-        player_doc::add_alarm(5, "Patrol", "green");
+        player_doc::add_alarm(NOW, 5, "Patrol", "green");
         run_out("Siege");
         render_alarm_list_at(T0);
 
@@ -780,7 +788,7 @@ mod tests {
         run_out("Siege");
         render_alarm_list_at(T0);
         assert_eq!(player_doc::get_alarm_done().len(), 1);
-        player_doc::tick_alarms(); // a run-out timer goes on the next advance
+        player_doc::tick_alarms(NOW); // a run-out timer goes on the next advance
         assert_eq!(render_alarm_list_at(T0 + 1_000.0), "");
         assert!(player_doc::get_alarm_done().is_empty());
         reset_state();
@@ -804,7 +812,7 @@ mod tests {
     fn a_run_out_timer_without_an_id_stays_until_the_next_advance() {
         reset_state();
         // A timer saved before timers had ids.
-        player_doc::add_alarm_with_id("", 0, "Old", "red");
+        player_doc::add_alarm_with_id("", 0, "Old", "red", 0.0);
         let html = render_alarm_list_at(T0 + 3_600_000.0);
         assert!(html.contains("<strong>Old</strong> — Complete!"));
         assert!(!html.contains("data-engine-after"));
@@ -818,8 +826,8 @@ mod tests {
         reset_state();
         room::with_room_mut(|r| r.room_code = "ABCD".to_string());
         crdt::init_doc();
-        crdt::add_alarm(1, "Shared", "blue");
-        crdt::tick_alarms();
+        crdt::add_alarm(NOW, 1, "Shared", "blue");
+        crdt::tick_alarms(NOW);
 
         let html = render_alarm_list_at(T0);
         assert!(html.contains("<strong>Shared</strong> — Complete!"));
@@ -834,7 +842,7 @@ mod tests {
         // shared state by a clock. The next advance removes it.
         expire(T0 + 60_000.0);
         assert_eq!(crdt::get_alarms().len(), 1);
-        crdt::tick_alarms();
+        crdt::tick_alarms(NOW);
         assert!(crdt::get_alarms().is_empty());
         assert_eq!(render_alarm_list_at(T0 + 61_000.0), "");
         assert!(player_doc::get_alarm_done().is_empty());
@@ -914,11 +922,11 @@ mod tests {
     fn alone_a_change_is_to_the_players_own_timers_and_nothing_is_queued() {
         reset_state();
         crdt::take_outbox();
-        add(5, "Patrol", "green");
-        advance();
+        add(NOW, 5, "Patrol", "green");
+        advance(NOW);
         assert_eq!(player_doc::get_alarms().len(), 1);
         assert_eq!(player_doc::get_alarms()[0].remaining, 4);
-        remove(None, Some(0));
+        remove(NOW, None, Some(0));
         assert!(player_doc::get_alarms().is_empty());
         assert!(crdt::take_outbox().is_empty());
         reset_state();
@@ -928,7 +936,7 @@ mod tests {
     fn in_a_room_a_new_timer_goes_to_the_room_and_is_queued_for_the_other_player() {
         reset_state();
         in_a_room();
-        add(5, "Siege", "blue");
+        add(NOW, 5, "Siege", "blue");
         let shared = crdt::get_alarms();
         assert_eq!(shared.len(), 1);
         assert_eq!((shared[0].remaining, shared[0].name.as_str(), shared[0].color_set.as_str()), (5, "Siege", "blue"));
@@ -948,20 +956,20 @@ mod tests {
     fn in_a_room_advancing_and_removing_change_the_room_and_are_queued() {
         reset_state();
         in_a_room();
-        add(3, "Siege", "blue");
-        add(7, "Patrol", "green");
+        add(NOW, 3, "Siege", "blue");
+        add(NOW, 7, "Patrol", "green");
         crdt::take_outbox();
 
-        advance();
+        advance(NOW);
         let shared = crdt::get_alarms();
         assert_eq!(shared.iter().map(|a| a.remaining).collect::<Vec<_>>(), [2, 6]);
         assert_eq!(crdt::take_outbox().len(), 1);
 
         // By id; a place in the list means nothing in a room.
-        remove(None, Some(0));
+        remove(NOW, None, Some(0));
         assert_eq!(crdt::get_alarms().len(), 2);
         assert!(crdt::take_outbox().is_empty());
-        remove(Some(&shared[0].id), None);
+        remove(NOW, Some(&shared[0].id), None);
         let left = crdt::get_alarms();
         assert_eq!(left.len(), 1);
         assert_eq!(left[0].name, "Patrol");
@@ -990,8 +998,8 @@ mod tests {
     fn hiding_the_list_or_a_timer_fading_sends_nothing() {
         reset_state();
         in_a_room();
-        crdt::add_alarm(1, "Shared", "blue");
-        crdt::tick_alarms();
+        crdt::add_alarm(NOW, 1, "Shared", "blue");
+        crdt::tick_alarms(NOW);
         crate::routes::game::handle_turns_post("action=toggle_visibility");
         crate::routes::game::handle_turns_post("action=expire");
         assert!(crdt::take_outbox().is_empty());
@@ -1002,14 +1010,14 @@ mod tests {
     fn add_alarm_validates_all_colors() {
         reset_state();
         // Valid colors stored as-is
-        player_doc::add_alarm(1, "", "red");
-        player_doc::add_alarm(1, "", "green");
-        player_doc::add_alarm(1, "", "blue");
-        player_doc::add_alarm(1, "", "yellow");
-        player_doc::add_alarm(1, "", "pink");
+        player_doc::add_alarm(NOW, 1, "", "red");
+        player_doc::add_alarm(NOW, 1, "", "green");
+        player_doc::add_alarm(NOW, 1, "", "blue");
+        player_doc::add_alarm(NOW, 1, "", "yellow");
+        player_doc::add_alarm(NOW, 1, "", "pink");
         // Invalid colors default to red
-        player_doc::add_alarm(1, "", "invalid");
-        player_doc::add_alarm(1, "", "");
+        player_doc::add_alarm(NOW, 1, "", "invalid");
+        player_doc::add_alarm(NOW, 1, "", "");
         let alarms = player_doc::get_alarms();
         assert_eq!(alarms[0].color_set, "red");
         assert_eq!(alarms[1].color_set, "green");
