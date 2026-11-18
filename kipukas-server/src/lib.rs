@@ -49,6 +49,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/card/panel", "card_panel").ok();
     router.insert("/api/qr/status", "qr_status").ok();
     router.insert("/api/qr/found", "qr_found").ok();
+    router.insert("/api/hand", "hand").ok();
 
     // Game state routes (PLAYER_DOC backed)
     router.insert("/api/game/damage", "game_damage").ok();
@@ -103,8 +104,10 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
         Ok(matched) => match (*matched.value, method) {
             // GET routes
             ("type_matchup", "GET") => routes::type_matchup::handle(query),
+            ("type_matchup", "POST") => routes::type_matchup::handle_post(body),
             ("cards", "GET") => routes::cards::handle(query),
             ("card_panel", "GET") => routes::cards::handle_panel(query),
+            ("hand", "GET") => routes::hand::handle(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
             ("qr_found", "GET") => routes::qr::handle_found(query),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
@@ -192,8 +195,18 @@ mod tests {
 
     #[test]
     fn returns_405_for_wrong_method() {
-        let html = handle_request("POST", "/api/type-matchup", "", "");
+        let html = handle_request("POST", "/api/cards", "", "");
         assert!(html.contains("405"));
+    }
+
+    #[test]
+    fn routes_type_matchup_pick() {
+        game::matchup::reset();
+        let html = handle_request("POST", "/api/type-matchup", "", "pick=atk&type=Entropic");
+        assert!(html.contains("Attack Die Modifier"));
+        let boxes = handle_request("GET", "/api/type-matchup", "?part=archetypes", "");
+        assert_eq!(boxes.matches(" checked").count(), 1);
+        game::matchup::reset();
     }
 
     #[test]

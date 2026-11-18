@@ -1,14 +1,19 @@
-/// Route handler for GET /api/type-matchup
-///
-/// Query params:
-///   atk[]  — up to 3 attacker archetypes (repeated param)
-///   def[]  — up to 3 defender archetypes (repeated param)
-///   motAtk — optional attacker motive
-///   motDef — optional defender motive
-///
-/// Returns an HTML fragment for HTMX to swap into the DOM.
+//! Route handlers for `/api/type-matchup`, the type matchup calculator.
+//!
+//! GET, as one of the calculator's three views (see `game::matchup`):
+//!   part=archetypes | motivations | result
+//!
+//! GET, for a result worked out from the query alone, with nothing kept:
+//!   atk[]  — up to 3 attacker archetypes (repeated param)
+//!   def[]  — up to 3 defender archetypes (repeated param)
+//!   motAtk — optional attacker motive
+//!   motDef — optional defender motive
+//!
+//! POST, from a box in the calculator: `pick=atk|def|motAtk|motDef&type=<name>`
+//! picks or unpicks that name. The views are drawn again afterwards.
 
-use crate::typing::{parse_archetype, parse_motive, type_matchup};
+use crate::game::matchup;
+use crate::routes::util::{get_param, parse_form_body};
 
 /// Simple query string parser: extracts all values for a given key.
 /// Handles `key=value&key=value2` and `key[]=value&key[]=value2` patterns.
@@ -40,32 +45,32 @@ pub fn handle(query: &str) -> String {
     // Strip leading '?' if present
     let q = query.strip_prefix('?').unwrap_or(query);
 
-    // Parse attackers
-    let atk_strs = query_values(q, "atk");
-    let attackers: Vec<_> = atk_strs.iter().filter_map(|s| parse_archetype(s)).collect();
-
-    // Parse defenders
-    let def_strs = query_values(q, "def");
-    let defenders: Vec<_> = def_strs.iter().filter_map(|s| parse_archetype(s)).collect();
-
-    // Parse motives
-    let atk_motive = query_value(q, "motAtk").and_then(parse_motive);
-    let def_motive = query_value(q, "motDef").and_then(parse_motive);
-
-    if attackers.is_empty() && defenders.is_empty() {
-        return r#"<span><strong>Attack Die Modifier:</strong></span>"#.to_string();
+    // One of the calculator's views, drawn from what is picked.
+    match query_value(q, "part") {
+        Some("archetypes") => return matchup::render_archetypes(),
+        Some("motivations") => return matchup::render_motivations(),
+        Some("result") => return matchup::render_result(),
+        _ => {}
     }
 
-    let result = type_matchup(&attackers, &defenders, atk_motive, def_motive);
-    let display = result.to_display_string();
-
-    // Return HTML fragment — preserve newlines as <br> for display
-    let html_display = display.replace('\n', "<br>");
-
-    format!(
-        r#"<span><strong>Attack Die Modifier:</strong> {}</span>"#,
-        html_display
+    // Otherwise a result for the archetypes and motives the query names.
+    matchup::result_html(
+        &query_values(q, "atk"),
+        &query_values(q, "def"),
+        query_value(q, "motAtk"),
+        query_value(q, "motDef"),
     )
+}
+
+/// Pick or unpick one archetype or motivation. Returns the result as it now
+/// is; the calculator's views are drawn again by the page.
+pub fn handle_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    matchup::pick(
+        get_param(&params, "pick").unwrap_or(""),
+        get_param(&params, "type").unwrap_or(""),
+    );
+    matchup::render_result()
 }
 
 #[cfg(test)]
@@ -105,6 +110,29 @@ mod tests {
         // Entropic attacks Cenozoic: TABLE[Cenozoic][Entropic] = -3
         let html = handle("?atk[]=Entropic&def[]=Cenozoic");
         assert!(html.contains("-3"));
+    }
+
+    #[test]
+    fn the_calculators_views_are_drawn_from_what_is_picked() {
+        matchup::reset();
+        assert!(handle("part=archetypes").contains(r#"data-engine-body="pick=atk&type=Brutal""#));
+        assert!(handle("?part=motivations").contains(r#"data-engine-body="pick=motDef&type=Duty""#));
+        assert_eq!(handle("part=result"), "<span><strong>Attack Die Modifier:</strong></span>");
+
+        // Cenozoic attacks Decrepit: -3.
+        handle_post("pick=atk&type=Cenozoic");
+        let html = handle_post("pick=def&type=Decrepit");
+        assert!(html.contains("-3"));
+        assert_eq!(handle("part=result"), html);
+        assert_eq!(handle("part=archetypes").matches(" checked").count(), 2);
+        matchup::reset();
+    }
+
+    #[test]
+    fn a_result_from_the_query_alone_picks_nothing() {
+        matchup::reset();
+        handle("atk=Cenozoic&def=Decrepit");
+        assert!(!handle("part=archetypes").contains(" checked"));
     }
 
     #[test]

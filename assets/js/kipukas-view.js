@@ -46,6 +46,19 @@
  * next changes; the page only waits that long and asks. Each drawing of the
  * view replaces what was waiting with what the new drawing asks for.
  *
+ * A view's route may ask for something only the page knows, written {name}:
+ *
+ *   <div data-engine-view="/api/hand?codes={hash}"></div>
+ *
+ * See PAGE_VALUES. The view is drawn again when that changes.
+ *
+ * What a view renders may hold other views (a hand holds each card's panel).
+ * An inner view is its own: the outer one's later drawings leave it alone.
+ * So is any element the engine marks data-engine-keep, for what the page has
+ * changed since and the engine cannot know, such as a picture that has faded
+ * in once loaded. Kept things are still removed when the outer view no
+ * longer renders them, so give what holds them an id if there can be several.
+ *
  * When the engine changes state for another reason (a lost round of fists
  * marks damage, New Game clears it), call kipukasViews.refresh(card).
  *
@@ -58,6 +71,24 @@
   const POST = 'data-engine-post';
   const BODY = 'data-engine-body';
   const AFTER = 'data-engine-after';
+  const KEEP = 'data-engine-keep';
+
+  /**
+   * What the page knows and the engine does not. `{hash}` in a view's route
+   * is replaced by the value each time the view is drawn.
+   */
+  const PAGE_VALUES = {
+    /** What follows the # in the page's address: on the hand page, its cards. */
+    hash: () => location.hash.slice(1),
+  };
+
+  /** A route with its {name} places filled in. */
+  function fill(route) {
+    return (route || '').replace(
+      /\{(\w+)\}/g,
+      (whole, name) => (PAGE_VALUES[name] ? encodeURIComponent(PAGE_VALUES[name]()) : whole),
+    );
+  }
 
   /** The shortest wait before a post the engine asked for is sent. */
   const SOONEST_MS = 50;
@@ -83,7 +114,7 @@
   /** The path of a route, without its query. */
   function pathOf(route) {
     try {
-      return new URL(route, location.origin).pathname;
+      return new URL(fill(route), location.origin).pathname;
     } catch (_) {
       return '';
     }
@@ -102,10 +133,20 @@
     });
   }
 
-  /** Make the view's contents match `html`, changing only what differs. */
+  /**
+   * Make the view's contents match `html`, changing only what differs. A view
+   * inside this one, and anything marked to be kept, is left as it is.
+   */
   function patch(view, html) {
     if (globalThis.Idiomorph) {
-      globalThis.Idiomorph.morph(view, html, { morphStyle: 'innerHTML' });
+      globalThis.Idiomorph.morph(view, html, {
+        morphStyle: 'innerHTML',
+        callbacks: {
+          beforeNodeMorphed: (node) =>
+            node === view || node.nodeType !== 1 ||
+            !(node.hasAttribute(KEEP) || node.hasAttribute(VIEW)),
+        },
+      });
     } else {
       view.innerHTML = html; // correct, just not gentle
     }
@@ -132,7 +173,7 @@
   async function render(view) {
     const route = view.getAttribute(VIEW);
     if (!route) return;
-    const html = await ask('GET', route, '');
+    const html = await ask('GET', fill(route), '');
     // The view may have been removed while the engine was answering.
     if (!view.isConnected) return;
     patch(view, html);
@@ -175,7 +216,7 @@
   /** The card a view shows, from its route (`?card=<slug>`), or null. */
   function cardOf(view) {
     try {
-      return new URL(view.getAttribute(VIEW), location.origin).searchParams.get('card');
+      return new URL(fill(view.getAttribute(VIEW)), location.origin).searchParams.get('card');
     } catch (_) {
       return null;
     }
@@ -258,6 +299,13 @@
       return ask('POST', route, body);
     },
   };
+
+  // The address's codes changed: draw again the views that are given them.
+  globalThis.addEventListener('hashchange', () => {
+    for (const view of allViews()) {
+      if (view.getAttribute(VIEW).includes('{hash}') && isDisplayed(view)) render(view);
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => mount(document));

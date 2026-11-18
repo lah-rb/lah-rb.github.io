@@ -12,7 +12,7 @@
 //! card shell (`card-shell.html`) and hands it over on standard input. This
 //! fills a copy of the shell for each card in the engine's catalog and writes
 //! it at the card's address, writes the page behind each card's short
-//! address, writes the data files the site's scripts read, and adds the cards
+//! address, writes the data the site's scripts read, and adds the cards
 //! to the sitemap and the index of redirects that Jekyll wrote. What is
 //! written is decided in `src/site.rs`; this file only reads and writes.
 //!
@@ -150,11 +150,12 @@ fn write(site_dir: &Path, cache_dir: &Path, kippa_file: Option<&Path>, shell: &s
 
     let pages = output.files.iter().filter(|(_, html)| !is_redirect(html)).count();
     Ok(format!(
-        "{} card pages, {} short addresses, {} previews and {} data files in {} ({} files written, {} previews made{})",
+        "{} card pages, {} short addresses, {} previews and {} data file{} in {} ({} files written, {} previews made{})",
         pages,
         output.files.len() - pages,
         pictures.len(),
         output.data.len(),
+        if output.data.len() == 1 { "" } else { "s" },
         site_dir.display(),
         to_write.len(),
         made,

@@ -43,7 +43,7 @@ Alpine.js and HTMX coexist throughout the codebase. The guiding principle is **D
 |-------|-----------|----------|
 | **Always in DOM** (reactive appearance) | Alpine.js | Hamburger menu, visibility toggles, CSS class swaps, animations, transition states |
 | **Comes and goes from DOM** (fetched on demand) | HTMX → Rust WASM | Modal content, paginated card lists, QR Scanner interface |
-| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, solo turn timer, affinity panel — see [Pattern 13](#pattern-13-engine-owned-views) |
+| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, solo turn timer, affinity panel, type matchup calculator, hand page — see [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups |
 
 A feature belongs to HTMX when its content doesn't always need to live in the DOM — modals, long scrollable lists, tool panels that are hidden most of the time. HTMX fetches that content from Rust and swaps it in on demand. A feature stays in Alpine when it's an always-present DOM element that just needs reactive class/style changes. Rust is the single source of truth for all game state — anytime a component needs to know game state, it consults Rust directly via HTMX or the Worker messaging API.
@@ -79,7 +79,7 @@ The engine writes those files. The same Rust code that renders a card in the bro
 | The card shell: the page every card is shown in (scripts, styles, toolbar, the frame around the art), with holes where the card goes | `card-shell.html`, rendered once by Jekyll |
 | What goes in the holes: head tags, slug, art, the detail panel | `kipukas-server/src/site.rs` |
 | Each card's preview picture for link shares | `kipukas-server/src/preview.rs` |
-| The data files the site's scripts read: the hand view's index of short codes, and the list of art fetched for offline play | `kipukas-server/src/site.rs` |
+| The data file the service worker reads: the list of art fetched for offline play | `kipukas-server/src/site.rs` |
 | Reading and writing the files, and keeping the preview pictures it has made | `kipukas-server/src/bin/card-pages.rs` |
 | Running it after every Jekyll build, and keeping the shell out of the site | `_plugins/card_pages.rb` |
 
@@ -227,6 +227,8 @@ The relay server handles room management (create/join/rejoin) and message forwar
 | `kipukas-server/build.rs` | Build script: reads `cards/` into the catalog each time the engine is compiled |
 | `kipukas-server/catalog/` | How a card file is read and checked, and how the catalog is written as Rust. Runs at build time only |
 | `kipukas-server/src/kippa.rs` | The catalog as Kippa reads it (`cards_catalog.json`). Build time only |
+| `kipukas-server/src/game/matchup.rs` | The type matchup calculator: what is picked, the boxes and the result |
+| `kipukas-server/src/routes/hand.rs` | The hand page: a pane per card named in the address |
 | `kipukas-server/src/clock.rs` | The time, for what the engine does by the clock (a finished timer fading, the day of an affinity declaration). Read at route handlers and passed down |
 | `assets/js/kipukas-api.js` | Page bridge — SW relay + dev fallback + state persistence + sync broadcast hook. Also owns the relay address, room storage (`kipukasRoomSession`), the load-time room resume, and `Alpine.store('room')` |
 | `assets/js/kipukas-worker.js` | Web Worker — loads WASM + ZXing, handles requests |
@@ -444,9 +446,9 @@ A page sends `relay` (pass this to the other player), `leave` (give up my place)
 
 **The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state (always-in-DOM visibility control), `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get`/`hx-post` for fetching content from Rust and posting user actions, Tailwind utilities for all styling, and auto-persistence via the Worker `PERSIST_STATE` message bridge. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
 
-**Reference implementation:** `_includes/multiplayer_fists_tool.html` (also see `multiplayer_turn_tool.html`, `local_fists_tool.html`).
+**Reference implementation:** `_includes/multiplayer_fists_tool.html` (also see `multiplayer_turn_tool.html`).
 
-> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the solo turn timer (`turn_tracker.html`) and the affinity panel (`affinity_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
+> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the solo turn timer (`turn_tracker.html`), the affinity panel (`affinity_tool.html`) and the type matchup calculator (`local_fists_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
 
 **Layer breakdown:**
 
@@ -625,18 +627,28 @@ The worker's handling of a request with no reply port is unchanged and still use
    ```
 
    The element is `hidden` so that it is not also something to tap. It works in contents put into a view by other code too (the room's timers, written by the multiplayer script).
-6. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
+6. **Fills in what only the page knows:** `{hash}` in a view's route becomes what follows the `#` in the page's address, each time the view is drawn, and the view is drawn again when that changes. The hand page is `data-engine-view="/api/hand?codes={hash}"`. Add to `PAGE_VALUES` in `kipukas-view.js` for another such value; the time is not one (the engine reads the clock).
+7. **Leaves alone what is not the view's to change:** when a view is drawn again, a view inside it and any element marked `data-engine-keep` stay exactly as they are (see "Views inside views" below).
+8. **Patches** the new markup into the page with Idiomorph, changing only what differs. Elements keep their identity, so focus stays put and `transition-colors` animates the change.
 
 When the engine changes state for another reason, call `kipukasViews.refresh(card)` (one card's views) or `kipukasViews.refresh()` (all of them). The multiplayer module does this for the cards a lost round marked; New Game does it for everything. Views that are not displayed are skipped; they are drawn when shown.
 
 **Reference implementations:**
 
-- A card's detail panel: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`. On a card page it is in the served HTML (written at build time by the same function, see "Card Pages Are Written by the Engine") and taken over as a view when the page loads. In the hand view it is set up per pane by `assets/js/hand-view.js`, which also means a hand opens offline for cards never viewed before.
+- A card's detail panel: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`. On a card page it is in the served HTML (written at build time by the same function, see "Card Pages Are Written by the Engine") and taken over as a view when the page loads. In the hand view each pane holds one (below).
 - The damage tracker inside it: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`.
 - The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
+- The type matchup calculator, three views of one route that are drawn together: `kipukas-server/src/game/matchup.rs`; template `_includes/local_fists_tool.html`. The engine holds what is picked, as a scratch pad that lasts until the page is left. A checkbox is a post; the page does not check it, the engine's next drawing does, and that drawing also disables the rest of a side that has its three. Alpine only folds the two sections.
+- The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
 
-**Views do not nest.** The panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`. Redrawing an outer view would otherwise empty the inner one. Compose in Rust; a tap on the tracker then redraws the panel it sits in.
+**Views inside views.** Usually compose in Rust: the panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`, and a tap on the tracker redraws the panel it sits in.
+
+A view may hold other views where each inner one should be drawn by itself: the hand holds a panel per card, and a tap on one card's damage draws that panel, not the whole hand. The rules:
+
+- **An inner view is its own.** The outer view decides that it exists; after that the outer view's drawings leave it alone, whatever they render inside it. Render its contents there anyway (as `render_pane` does), so it arrives filled.
+- **`data-engine-keep`** does the same for any other element the page has changed since it was drawn and the engine cannot know about. A pane's art fades in once it has loaded (`onload` removes `opacity-0`); kept, it is not sent back to transparent when the hand is drawn again.
+- **Kept things are still removed** when the outer view no longer renders them. Give what holds them an `id` if there can be several (`hand-pane-0-KVph`), so that the same thing in the same place is matched to itself and a different one is replaced, not morphed into.
 
 **Why it works:**
 

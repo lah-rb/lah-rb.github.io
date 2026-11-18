@@ -32,8 +32,6 @@ module.exports = {
     'site.webmanifest',
     // Tiny list of assets the SW warms into runtime caches after PWA install.
     'offline-manifest.json',
-    // Hand-view code→card index (small; needed whenever /hand/ loads).
-    'assets/data/**/*.json',
   ],
   globIgnores: [
     // Build artifacts that should NOT be precached
