@@ -61,6 +61,11 @@ pub fn get_param<'a>(params: &'a [(String, String)], key: &str) -> Option<&'a st
 ///
 /// Anything that comes from the other player (timer names in the room
 /// document, for example) must go through this before it is put into markup.
+/// A checkbox's or radio button's classes (`checkbox` in
+/// `_data/templates.yml`, which the site's other forms use).
+pub const BOX_CLASS: &str =
+    "text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100";
+
 pub fn escape_html(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
     for c in input.chars() {

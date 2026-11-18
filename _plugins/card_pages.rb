@@ -3,13 +3,10 @@
 # The cards are the game engine's, not Jekyll's.
 #
 # Jekyll does not read the card files (cards/). The engine does, when it is
-# compiled, and Jekyll asks it for the two things a build needs. Both go
-# through the engine's `card-pages` program (kipukas-server/src/bin).
+# compiled, and after Jekyll has written the site the engine's `card-pages`
+# program (kipukas-server/src/bin) adds what the cards need.
 #
-# Before rendering: how many cards the binder shows, for the binder's filter
-# menu. It is put where a data file would be: site.data.card_catalog.count.
-#
-# After writing: the card pages. Jekyll renders one page for all cards, the
+# Jekyll renders one page for all cards, the
 # card shell (card-shell.html): the site's chrome with holes where a card
 # goes. The rendered shell is handed to `card-pages`, which writes a page for
 # each card, the page behind each card's short address, each card's preview
@@ -47,12 +44,6 @@ module Kipukas
     @shell = nil
 
     class << self
-      # Before anything is rendered: ask the engine how many cards the binder
-      # shows.
-      def count(site)
-        site.data["card_catalog"] = { "count" => Integer(engine(site, ["count"])) }
-      end
-
       # After everything is rendered, before anything is written: keep the
       # shell's HTML and take the shell out of the pages to be written.
       def take_shell(site)
@@ -98,10 +89,6 @@ module Kipukas
       end
     end
   end
-end
-
-Jekyll::Hooks.register :site, :post_read do |site|
-  Kipukas::CardPages.count(site)
 end
 
 Jekyll::Hooks.register :site, :post_render do |site|

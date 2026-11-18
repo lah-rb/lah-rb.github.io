@@ -32,6 +32,16 @@
  * Nothing is toggled on the page ahead of the engine, so the page cannot
  * disagree with it. A submitted form is cleared.
  *
+ * A form can instead be sent as it is typed in, a moment after the typing
+ * pauses, and is then not cleared:
+ *
+ *   <form data-engine-post="/api/cards" data-engine-live="300">
+ *     <input name="search">
+ *   </form>
+ *
+ * A form need not be inside a view. One that is not has no view of its own
+ * to draw again, only those of the route it posts to.
+ *
  * Other views of the route that was posted to are drawn again too: a new
  * timer is posted to /api/game/turns from the form, and the list of timers,
  * a view of /api/game/turns, shows it.
@@ -79,6 +89,7 @@
   const AFTER = 'data-engine-after';
   const KEEP = 'data-engine-keep';
   const SEEN = 'data-engine-seen';
+  const LIVE = 'data-engine-live';
 
   /** How much of an element must be in view for it to count as seen. */
   const SEEN_SHARE = 0.3;
@@ -125,6 +136,9 @@
 
   /** Elements whose post, sent on being seen, is on its way. */
   const sending = new WeakSet();
+
+  /** For each form sent as it is typed in, the pause now being waited out. */
+  const pausing = new WeakMap();
 
   /** Whether an element is displayed: it, and everything it is in, has a box. */
   function isDisplayed(element) {
@@ -274,10 +288,11 @@
   }
 
   /**
-   * Ask the engine for a change from inside `view`, then draw again what may
-   * show it: the view itself, and every other displayed view of the route
-   * that was posted to. The engine handles requests in the order they are
-   * sent, so quick taps cannot overtake one another.
+   * Ask the engine for a change, then draw again what may show it: the view
+   * the change was asked from, if it was asked from one, and every other
+   * displayed view of the route that was posted to. The engine handles
+   * requests in the order they are sent, so quick taps cannot overtake one
+   * another.
    */
   async function send(view, route, body) {
     await ask('POST', route, body);
@@ -285,7 +300,15 @@
     const others = allViews().filter((other) =>
       other !== view && isDisplayed(other) && pathOf(other.getAttribute(VIEW)) === path
     );
-    await Promise.all([view, ...others].map(render));
+    await Promise.all((view ? [view, ...others] : others).map(render));
+  }
+
+  /** Send a form: its body, then its fields. */
+  function sendForm(form) {
+    clearTimeout(pausing.get(form));
+    const fields = new URLSearchParams(new FormData(form)).toString();
+    const body = [form.getAttribute(BODY), fields].filter(Boolean).join('&');
+    return send(form.closest('[' + VIEW + ']'), form.getAttribute(POST), body);
   }
 
   // A tap on a control inside a view.
@@ -299,18 +322,26 @@
     send(view, control.getAttribute(POST), control.getAttribute(BODY));
   });
 
-  // A form inside a view, submitted by its button or the Enter key: its body,
-  // then its fields.
+  // A form submitted by its button or the Enter key. One that is sent as it
+  // is typed in is sent at once, and keeps what is typed.
   document.addEventListener('submit', async (event) => {
     const form = event.target;
     if (!form.hasAttribute || !form.hasAttribute(POST)) return;
-    const view = form.closest('[' + VIEW + ']');
-    if (!view) return;
     event.preventDefault();
-    const fields = new URLSearchParams(new FormData(form)).toString();
-    const body = [form.getAttribute(BODY), fields].filter(Boolean).join('&');
-    await send(view, form.getAttribute(POST), body);
-    if (form.isConnected) form.reset();
+    await sendForm(form);
+    if (form.isConnected && !form.hasAttribute(LIVE)) form.reset();
+  });
+
+  // Typing in a form that is sent as it is typed in: wait for a pause, then
+  // send it.
+  document.addEventListener('input', (event) => {
+    const form = event.target.closest
+      ? event.target.closest('form[' + LIVE + '][' + POST + ']')
+      : null;
+    if (!form) return;
+    clearTimeout(pausing.get(form));
+    const pause = Number(form.getAttribute(LIVE)) || 0;
+    pausing.set(form, setTimeout(() => sendForm(form), pause));
   });
 
   // Views can arrive after load: the hand view injects card panels. And a
@@ -348,6 +379,14 @@
     /** Ask the engine for a change from outside a view. Resolves with its reply. */
     post(route, body) {
       return ask('POST', route, body);
+    },
+
+    /**
+     * Ask the engine for a change from outside a view, and draw again the
+     * views of the route it was posted to.
+     */
+    send(route, body) {
+      return send(null, route, body);
     },
   };
 

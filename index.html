@@ -38,32 +38,3 @@ bg-terra: "bg-hero-pattern "
 <div id="card-grid"
   class="grid gap-5 justify-items-center px-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
   data-engine-view="/api/cards?columns={columns}"></div>
-
-<script>
-  // Temporary. The filter menu and the search field still keep their state in
-  // Alpine; this tells the engine what they say whenever they change, and has
-  // the grid drawn again. It goes when they become the engine's too.
-  window.kipukasRefreshCards = function() {
-    if (typeof Alpine === 'undefined' || !window.kipukasViews) return;
-
-    var data = Alpine.$data(document.body);
-    var filter = data.filter || {};
-    var search = (data.searchQuery || '').trim();
-    var show;
-
-    if (search) {
-      // Search mode: search across all cards regardless of filters
-      show = 'search=' + encodeURIComponent(search);
-    } else if (filter.all) {
-      show = 'all=true';
-    } else {
-      // Filter mode: the active filter keys. None active shows nothing.
-      var active = Object.keys(filter).filter(function(key) {
-        return key !== 'all' && filter[key] === true;
-      });
-      show = 'filter=' + encodeURIComponent(active.join(','));
-    }
-
-    kipukasViews.post('/api/cards', show).then(function() { return kipukasViews.refresh(); });
-  };
-</script>

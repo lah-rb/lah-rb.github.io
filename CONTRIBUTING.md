@@ -66,7 +66,7 @@ How a card file is read is in its own small crate, `kipukas-server/catalog/`:
 - **A card file that is wrong stops the build**, with every problem listed by file (and line): a missing `permalink`, `title`, `layout` or `img_name`; a file not named after its address; a short code that is not 4 characters, or missing on a card the binder shows; two cards with one address or one short code; a number, flag or `thumbnail` that is not one; YAML that does not parse. Nothing is skipped quietly.
 - **Long text may be written the house way**: in quotes over several lines, with the later lines starting at the left edge. Strict YAML wants those lines indented, and the parser (`yaml-rust2`) holds to it, so the reader indents them itself before parsing. Indented or not, the value is the same.
 
-Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`). It is a record for people: nothing reads it, and a card's page carries no date. The one thing Jekyll needs from the cards, how many the binder shows, it asks the engine for at the start of every build (`card-pages count`, see `_plugins/card_pages.rb`).
+Jekyll does not read the card files (`cards/` is excluded in `_config.yml`). Their front matter keeps its Jekyll key names: `layout` is the card's type, `permalink` its address, `redirect_from` its short code. `minted` is the day the card was added (`YYYY-MM-DD`). It is a record for people: nothing reads it, and a card's page carries no date. Jekyll needs nothing from the cards: even the number of cards in the binder's filter menu is the engine's to say.
 
 ### Card Pages Are Written by the Engine
 
@@ -279,7 +279,7 @@ These are patterns that have been tested and work well. Understanding **why** th
 2. **HTMX → Alpine:** `x-effect` watching for DOM changes after HTMX swaps (sentinel pattern)
 3. **Cross-component:** Custom DOM events (e.g., `document.dispatchEvent(new CustomEvent('close-multiplayer'))` listened by `@close-multiplayer.window="showMultiplayer = false"`)
 
-**The bridge function:** `kipukasRefreshCards()` (in `index.html`) reads Alpine's reactive `filter` and `searchQuery` state and tells the engine what they say; the binder's grid, an engine-owned view, is then drawn again. It is temporary: it goes when the filter menu and the search field become the engine's too.
+**Alpine telling the engine:** where Alpine opens something whose state the engine holds, its handler says so with `kipukasViews.send(route, body)`, which posts to the engine and draws again the views of that route. The binder's search button is the example: `@click="showSearchBar = !showSearchBar; …; kipukasViews.send('/api/cards', showSearchBar ? 'searching=open' : 'searching=close')"`.
 
 **When to use Alpine:** Elements that always live in the DOM but need reactive appearance changes — show/hide toggles, CSS class switching, animations, transition states. Alpine never fetches data or reads game state.
 
@@ -618,6 +618,8 @@ The worker's handling of a request with no reply port is unchanged and still use
    ```
 
    A control with its own `data-engine-post` inside such a form must be `type="button"`, or its tap would also submit the form.
+
+   A form with `data-engine-live="<milliseconds>"` is sent as it is typed in, that long after the typing pauses, and keeps what is typed. A form need not be inside a view: the binder's search field is in the toolbar, and posting it draws the views of the route it posts to.
 4. **Draws related views again:** after a post, every other displayed view of the route that was posted to. The timer form posts to `/api/game/turns`; the list of timers is a view of `/api/game/turns?display=alarms`, so it shows the new timer. Give a view a route of its own when it should *not* be drawn again by its neighbour's taps: the timer form is at `/api/game/turns/form`, so a tap in the list does not clear what is being typed.
 5. **Sends what the engine asks to be sent later:** an element with `data-engine-after="<milliseconds>"` beside its `data-engine-post` is sent by itself after that long, as a tap would be, and the view is drawn again. Each drawing replaces what was waiting with what the new drawing asks for. This is how something happens by the clock without the page keeping time: the engine reads the clock (`kipukas-server/src/clock.rs`), decides what the picture is now, and says how long until it next changes.
 
@@ -641,7 +643,7 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 - The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
 - The type matchup calculator, three views of one route that are drawn together: `kipukas-server/src/game/matchup.rs`; template `_includes/local_fists_tool.html`. The engine holds what is picked, as a scratch pad that lasts until the page is left. A checkbox is a post; the page does not check it, the engine's next drawing does, and that drawing also disables the rest of a side that has its three. Alpine only folds the two sections.
-- The binder's grid, a list that grows as it is read: `kipukas-server/src/routes/cards.rs`; in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
+- The binder: its grid, its filter menu and its search, all of one route. `kipukas-server/src/routes/cards.rs` holds what the binder shows: the boxes ticked in the menu, whether a search is on and what is typed, and how many tiles are on the page so far. The menu's parts (`_includes/filter.html`) are views of `/api/cards?menu=…`, so ticking a box draws the menu and the grid again; Alpine only opens the menu and folds its groups. The search field (`_includes/toolbar.html`) is a form sent as it is typed in; an open search shows the cards matching what is typed and nothing while nothing is typed, and closing it gives back what the menu says. The grid is a list that grows as it is read: in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
 - The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
 
 **Views inside views.** Usually compose in Rust: the panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`, and a tap on the tracker redraws the panel it sits in.
@@ -766,15 +768,14 @@ The complete build runs in this order (executed by `deno task build`):
 3. build:css           → Tailwind compile + minify → assets/css/output.css
 4. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
 5. build:rules         → Build rules book subproject → game_rules/
-6. jekyll build        → Generate _site/ from all sources. _plugins/card_pages.rb
-                         asks the engine for the card count first, and as the last
-                         step has it write the card pages, their preview pictures
-                         and the cards' data files
+6. jekyll build        → Generate _site/ from all sources. As its last step,
+                         _plugins/card_pages.rb has the engine write the card
+                         pages, their preview pictures and the cards' data file
 7. build:sw            → Workbox injectManifest → sw.js with precache manifest
 8. build:minify        → Minify the site's JavaScript
 ```
 
-Step 6 runs `cargo run --bin card-pages` in `kipukas-server/` twice, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
+Step 6 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
 Individual build tasks can be run separately:
 

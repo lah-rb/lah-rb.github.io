@@ -70,12 +70,20 @@ background_color
     {% endif %}
 
     {% if include.search %}
-      <button class="toolbar-tile" aria-label="Search cards" x-ref="search" @click="showSearchBar = !showSearchBar; filter.all = !filter.all; if (!showSearchBar) { searchQuery = ''; }; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })">
+      <!-- Search. The engine holds whether a search is on and what is typed
+           (kipukas-server/src/routes/cards.rs): the button tells it the bar
+           was opened or closed, and the field is sent as it is typed in, a
+           moment after the typing pauses. The binder's grid, a view of the
+           same route, is then drawn again. Alpine shows and places the bar. -->
+      <button type="button" class="toolbar-tile" aria-label="Search cards" :aria-expanded="showSearchBar" x-ref="search"
+        @click="showSearchBar = !showSearchBar; $refs.searchForm.reset(); kipukasViews.send('/api/cards', showSearchBar ? 'searching=open' : 'searching=close')">
         <svg class="toolbar-tile-icon stroke-kip-drk-goldenrod hover:stroke-kip-red fill-none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"/>
         </svg>
       </button>
-      <input type="text" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" x-model="searchQuery" @input.debounce.300ms="if (window.kipukasRefreshCards) window.kipukasRefreshCards()" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
+      <form x-ref="searchForm" data-engine-post="/api/cards" data-engine-live="300" autocomplete="off" class="contents">
+        <input type="text" name="search" x-anchor.right-end.offset.10="$refs.search" x-trap="showSearchBar" x-transition x-show="showSearchBar" inputMode="text" aria-label="search the binder" id="search-input" size="3" class="w-36 h-9 bg-white border-2 px-2 py-2 rounded-md whitespace-nowrap border-kip-drk-sienna text-kip-drk-sienna focus:border-kip-red focus:ring-kip-red">
+      </form>
     {% endif %}
 
     {% if include.local_fists_tool %}

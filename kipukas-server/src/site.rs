@@ -410,12 +410,6 @@ pub fn merge_sitemap(existing: &str, cards: &[Card]) -> Result<String, String> {
 
 // ── Data files ─────────────────────────────────────────────────────
 
-/// How many cards the binder shows. Jekyll puts the number in the binder's
-/// filter menu (`_plugins/card_pages.rb` asks for it).
-pub fn shown_count(cards: &[Card]) -> usize {
-    cards.iter().filter(|card| !card.hidden).count()
-}
-
 /// A string as JSON.
 fn json_text(text: &str) -> String {
     Value::String(text.to_string()).to_string()
@@ -957,18 +951,10 @@ mod tests {
     // ── Data files ─────────────────────────────────────────────────
 
     #[test]
-    fn the_binder_shows_every_card_that_is_not_hidden() {
-        let hidden = CARDS.iter().filter(|c| c.hidden).count();
-        assert_eq!(shown_count(&CARDS), CARDS.len() - hidden);
-        // The 404 Glitch's two pages are the hidden ones.
-        assert_eq!(hidden, 2);
-    }
-
-    #[test]
     fn the_offline_list_has_every_shown_cards_art_and_the_qr_decoder() {
         let manifest: Value = serde_json::from_str(&offline_manifest(&CARDS)).unwrap();
         let images = manifest["images"].as_array().unwrap();
-        assert_eq!(images.len(), shown_count(&CARDS));
+        assert_eq!(images.len(), CARDS.iter().filter(|c| !c.hidden).count());
         assert!(images.contains(&json!("/assets/images/timebattle.jxl")));
         assert!(!images.contains(&json!("/assets/images/404.jxl")));
         assert_eq!(

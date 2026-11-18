@@ -14,6 +14,7 @@
 
 use std::cell::RefCell;
 
+use crate::routes::util::BOX_CLASS;
 use crate::typing::{parse_archetype, parse_motive, type_matchup};
 
 /// The route the calculator's views are drawn from and its controls post to.
@@ -53,10 +54,6 @@ pub const MOTIVATIONS: [&str; 9] = [
     "Passion",
     "Duty",
 ];
-
-/// A checkbox's or radio button's classes (`checkbox` in
-/// `_data/templates.yml`, which the site's other forms use).
-const BOX_CLASS: &str = "text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100";
 
 /// What is picked.
 #[derive(Debug, Default, Clone, PartialEq)]

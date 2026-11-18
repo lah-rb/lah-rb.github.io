@@ -1,14 +1,10 @@
-//! What the site's build needs from the engine's card catalog. Jekyll runs
-//! it twice in every build (`_plugins/card_pages.rb`):
+//! Adds the cards to a built site. Jekyll runs it at the end of every build
+//! (`_plugins/card_pages.rb`):
 //!
-//!   card-pages count
 //!   card-pages write --site <built site folder> --cache <cache folder>
 //!                    [--kippa <file>]  < card shell
 //!
-//! `count` prints how many cards the binder shows. Jekyll asks before it
-//! renders, for the binder's filter menu.
-//!
-//! `write` adds the cards to the site Jekyll has built. Jekyll renders one
+//! Jekyll renders one
 //! card shell (`card-shell.html`) and hands it over on standard input. This
 //! fills a copy of the shell for each card in the engine's catalog and writes
 //! it at the card's address, writes the page behind each card's short
@@ -168,8 +164,8 @@ fn is_redirect(html: &str) -> bool {
     html.contains("<title>Redirecting&hellip;</title>")
 }
 
-const USAGE: &str = "usage: card-pages count
-       card-pages write --site <built site folder> --cache <cache folder> [--kippa <file>]  < card shell";
+const USAGE: &str =
+    "usage: card-pages write --site <built site folder> --cache <cache folder> [--kippa <file>]  < card shell";
 
 /// The folders and file `write` was given: `--name value` pairs.
 fn write_arguments(args: &[String]) -> Option<(PathBuf, PathBuf, Option<PathBuf>)> {
@@ -190,7 +186,6 @@ fn write_arguments(args: &[String]) -> Option<(PathBuf, PathBuf, Option<PathBuf>
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args.split_first() {
-        Some((command, [])) if command == "count" => Ok(site::shown_count(&CARDS).to_string()),
         Some((command, rest)) if command == "write" => match write_arguments(rest) {
             Some((site_dir, cache_dir, kippa_file)) => {
                 let mut shell = String::new();

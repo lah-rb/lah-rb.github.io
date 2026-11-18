@@ -1,9 +1,16 @@
+<!-- The binder's filter menu. Its boxes are engine-owned views (Pattern 13,
+     assets/js/kipukas-view.js) of /api/cards, the route the grid is a view of:
+     the engine holds which boxes are ticked, renders them ticked or disabled
+     accordingly, and says how many cards there are
+     (kipukas-server/src/routes/cards.rs). A box is a post to the engine, after
+     which the menu and the grid are drawn again. Alpine opens the menu and
+     folds its groups: purely visual. A group is drawn when it is unfolded. -->
 <div x-data="{ showFilter: false, showVariation: false, showSoulType: false, showMotivation: false, showHabitat: false }" class="relative place-content-center">
     <div x-show="showFilter" id="filter-popover" role="region" aria-label="Card filters"
         x-anchor.right-end.offset.10="$refs.filter"
         x-transition.duration.350ms
         class="text-kip-drk-goldenrod bg-amber-50 mt-2 h-fit w-36 py-3 pl-4 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden transition-opacity duration-300">
-        <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :checked="filter.all" @click="filter.all = !filter.all; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="All" checked><label for="All">Show All - <strong>{{ site.data.card_catalog.count }}</strong></label></div>
+        <div data-engine-view="/api/cards?menu=all"></div>
         <button type="button" class="flex w-full items-center text-left" @click="showVariation = !showVariation" :aria-expanded="showVariation" aria-controls="filter-variations">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                 :class="{ 'rotate-90': showVariation }"
@@ -12,12 +19,7 @@
             </svg>
             <span>Variations</span>
         </button>
-        <div x-show="showVariation" id="filter-variations">
-            {% for type in site.data.types.Variations %}
-                <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
-            {% endfor %}
-            <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.card = !filter.card; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="Other"><label for="Other">Other</label></div>
-        </div>
+        <div x-show="showVariation" id="filter-variations" data-engine-view="/api/cards?menu=variations"></div>
         <button type="button" class="flex w-full items-center text-left" @click="showSoulType = !showSoulType" :aria-expanded="showSoulType" aria-controls="filter-soultypes">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                 :class="{ 'rotate-90': showSoulType }"
@@ -26,11 +28,7 @@
             </svg>
             <span>Soul Types</span>
         </button>
-        <div x-show="showSoulType" id="filter-soultypes">
-            {% for type in site.data.types.Archetypes %}
-                <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
-            {% endfor %}
-        </div>
+        <div x-show="showSoulType" id="filter-soultypes" data-engine-view="/api/cards?menu=soultypes"></div>
         <button type="button" class="flex w-full items-center text-left" @click="showMotivation = !showMotivation" :aria-expanded="showMotivation" aria-controls="filter-motivations">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                 :class="{ 'rotate-90': showMotivation }"
@@ -39,11 +37,7 @@
             </svg>
             <span>Motivations</span>
         </button>
-        <div x-show="showMotivation" id="filter-motivations">
-            {% for type in site.data.types.Motivations %}
-                <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
-            {% endfor %}
-        </div>
+        <div x-show="showMotivation" id="filter-motivations" data-engine-view="/api/cards?menu=motivations"></div>
         <button type="button" class="flex w-full items-center text-left" @click="showHabitat = !showHabitat" :aria-expanded="showHabitat" aria-controls="filter-habitats">
             <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
                 :class="{ 'rotate-90': showHabitat }"
@@ -52,11 +46,7 @@
             </svg>
             <span>Habitats</span>
         </button>
-        <div x-show="showHabitat" id="filter-habitats">
-            {% for type in site.data.types.Habitats %}
-                <div><input type="checkbox" class="{{ site.data.templates.checkbox }}" :disabled="filter.all" @click="filter.{{ type }} = !filter.{{ type }}; $nextTick(() => { if (window.kipukasRefreshCards) window.kipukasRefreshCards() })" id="{{ type }}"><label for="{{ type }}">{{ type }}</label></div>
-            {% endfor %}
-        </div>
+        <div x-show="showHabitat" id="filter-habitats" data-engine-view="/api/cards?menu=habitats"></div>
     </div>
     <button aria-label="show filter options" :aria-expanded="showFilter" aria-controls="filter-popover" @click="showFilter = !showFilter" x-ref="filter" class="toolbar-tile">
         <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24"
