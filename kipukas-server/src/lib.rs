@@ -57,6 +57,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
 
     // Register routes — the value is a &str tag we match on below
     router.insert("/api/type-matchup", "type_matchup").ok();
+    router.insert("/api/recipes", "recipes").ok();
     router.insert("/api/cards", "cards").ok();
     router.insert("/api/card/panel", "card_panel").ok();
     router.insert("/api/qr/status", "qr_status").ok();
@@ -94,6 +95,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             // GET routes
             ("type_matchup", "GET") => routes::type_matchup::handle(query),
             ("type_matchup", "POST") => routes::type_matchup::handle_post(body),
+            ("recipes", "GET") => routes::recipes::handle(query),
+            ("recipes", "POST") => routes::recipes::handle_post(body),
             ("cards", "GET") => routes::cards::handle(query),
             ("cards", "POST") => routes::cards::handle_post(body),
             ("card_panel", "GET") => routes::cards::handle_panel(query),

@@ -4,6 +4,7 @@ pub mod game;
 pub mod hand;
 pub mod player;
 pub mod qr;
+pub mod recipes;
 pub mod room;
 pub mod room_status;
 pub mod type_matchup;

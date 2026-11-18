@@ -15,6 +15,7 @@ pub mod device_sync;
 pub mod fists;
 pub mod matchup;
 pub mod player_doc;
+pub mod recipes;
 pub mod room;
 pub mod state;
 pub mod turns;

@@ -160,6 +160,20 @@
   }
 }
 
+/* Something that fades in each time it comes to be shown. An engine view
+   keeps such a thing in its markup all along and takes its `hidden`
+   attribute away to show it (the recipe lookup's pictures), which starts
+   this again. */
+@keyframes appear {
+  from { opacity: 0; }
+}
+@layer components {
+  .appear { animation: appear 250ms ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .appear { animation: none; }
+  }
+}
+
 /* Idle-ghost floating toolbar (binder + rules book): after a few idle seconds the
    tiles fade to translucent gray to de-clutter; a tap re-colors them (the markup
    swallows that first wake-tap). Targets the .toolbar-tile elements only — open
