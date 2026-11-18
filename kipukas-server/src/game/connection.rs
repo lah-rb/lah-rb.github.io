@@ -1180,8 +1180,13 @@ mod tests {
         (update, sv)
     }
 
+    /// The names of the room's timers, sorted. (Two timers made apart, each
+    /// the first in its own document, are listed in the order of their ids,
+    /// which are random.)
     fn timer_names() -> Vec<String> {
-        crdt::get_alarms().into_iter().map(|alarm| alarm.name).collect()
+        let mut names: Vec<String> = crdt::get_alarms().into_iter().map(|alarm| alarm.name).collect();
+        names.sort();
+        names
     }
 
     #[test]
@@ -1225,7 +1230,8 @@ mod tests {
         assert!(answer[1].contains(r#""type":"yrs_sv_reply""#), "{}", answer[1]);
         from_peer(socket, serde_json::json!({ "type": "yrs_update", "update": update }));
         assert_eq!(timer_names(), ["ours", "theirs"]);
-        assert_eq!(crdt::get_alarms()[0].remaining, 3, "our change made meanwhile is still ours");
+        let ours = crdt::get_alarms().into_iter().find(|alarm| alarm.name == "ours").unwrap();
+        assert_eq!(ours.remaining, 3, "our change made meanwhile is still ours");
         assert_eq!(face(), Face::Connected);
         fresh();
     }
