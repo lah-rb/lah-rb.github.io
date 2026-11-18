@@ -972,48 +972,14 @@ pub fn handle_yrs_apply_post(body: &str) -> String {
     }
 }
 
-/// POST /api/room/yrs/alarm/add — add an alarm via yrs CRDT.
-/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
-pub fn handle_yrs_alarm_add_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let turns_str = get_param(&params, "turns").unwrap_or("1");
-    let name = get_param(&params, "name").unwrap_or("");
-    let color_set = get_param(&params, "color_set").unwrap_or("red");
-    let turns_val: i32 = turns_str.parse().unwrap_or(1).max(1).min(99);
-
-    let update = crdt::add_alarm(turns_val, name, color_set);
-    // Keep PLAYER_DOC in sync so page navigation shows correct alarms
-    // (the #turn-alarms hx-trigger="load" reads from PLAYER_DOC).
-    crdt::export_to_local();
-    let html = turns::render_alarm_list();
-
-    format!(
-        r#"{{"update":"{}","html":{}}}"#,
-        update,
-        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
-    )
-}
-
-/// POST /api/room/yrs/alarm/tick — tick all alarms via yrs CRDT.
-/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
-pub fn handle_yrs_alarm_tick_post(_body: &str) -> String {
-    let update = crdt::tick_alarms();
-    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
-    crdt::export_to_local();
-    let html = turns::render_alarm_list();
-
-    format!(
-        r#"{{"update":"{}","html":{}}}"#,
-        update,
-        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
-    )
-}
-
-/// POST /api/room/yrs/alarm/toggle — toggle alarm visibility then re-render.
-/// Returns the multiplayer alarm list HTML (reads from CRDT Doc).
-pub fn handle_yrs_alarm_toggle_post(_body: &str) -> String {
-    turns::toggle_alarms_visibility();
-    turns::render_alarm_list()
+/// POST /api/room/outbox — take the room-document updates queued for the
+/// other player (see `crdt::queue_for_peer`). Returns a JSON array of base64
+/// updates, oldest first, and empties the queue.
+///
+/// The engine's worker calls this after every post and hands what it gets to
+/// the page, which holds the connection.
+pub fn handle_outbox_post(_body: &str) -> String {
+    serde_json::json!(crdt::take_outbox()).to_string()
 }
 
 /// GET /api/room/yrs/state — return the full CRDT Doc state as URL-safe base64.
@@ -1032,25 +998,6 @@ pub fn handle_yrs_restore_post(body: &str) -> String {
         Ok(()) => "ok".to_string(),
         Err(e) => format!(r#"{{"error":"{}"}}"#, e),
     }
-}
-
-/// POST /api/room/yrs/alarm/remove — remove an alarm by id via yrs CRDT.
-/// Body: id=<timer id>
-/// Returns JSON: { "update": "<base64>", "html": "<alarm list>" }
-pub fn handle_yrs_alarm_remove_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let id = get_param(&params, "id").unwrap_or("");
-
-    let update = crdt::remove_alarm(id);
-    // Keep PLAYER_DOC in sync so page navigation shows correct alarms.
-    crdt::export_to_local();
-    let html = turns::render_alarm_list();
-
-    format!(
-        r#"{{"update":"{}","html":{}}}"#,
-        update,
-        serde_json::to_string(&html).unwrap_or_else(|_| "\"\"".to_string())
-    )
 }
 
 // ── Result rendering ───────────────────────────────────────────────

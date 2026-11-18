@@ -104,10 +104,15 @@ pub fn handle_turns_get(query: &str) -> String {
 // ── POST /api/game/turns ───────────────────────────────────────────
 
 /// Handle POST /api/game/turns
+///
+/// In a room these act on the room's shared timers and the change is queued
+/// for the other player; otherwise on the player's own (`game::turns`).
+///
 /// Body params:
 ///   - action=add&turns={n}         → add new alarm
 ///   - action=tick                   → decrement all alarms
-///   - action=remove&index={n}       → remove alarm at index
+///   - action=remove&index={n}       → remove the player's own alarm at index
+///   - action=remove&id={id}         → remove the room's alarm of that id
 ///   - action=toggle_visibility      → toggle alarm panel visibility
 ///   - action=expire                 → drop timers that ran out and have faded
 ///     (the list asks for this by itself, see `turns::render_alarm_list_at`)
@@ -122,19 +127,16 @@ pub fn handle_turns_post(body: &str) -> String {
             let t: i32 = get_param(&params, "turns")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1);
-            let clamped = t.clamp(1, 99);
             let name = get_param(&params, "name").unwrap_or("");
             let color_set = get_param(&params, "color_set").unwrap_or("red");
-            player_doc::add_alarm(clamped, name, color_set);
+            turns::add(t, name, color_set);
         }
         "tick" => {
-            player_doc::tick_alarms();
+            turns::advance();
         }
         "remove" => {
-            let idx: usize = get_param(&params, "index")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            player_doc::remove_alarm(idx);
+            let place = get_param(&params, "index").and_then(|s| s.parse().ok());
+            turns::remove(get_param(&params, "id"), place);
         }
         "toggle_visibility" => {
             turns::toggle_alarms_visibility();

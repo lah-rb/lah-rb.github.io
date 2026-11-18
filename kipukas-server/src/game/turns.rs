@@ -16,11 +16,15 @@
 //!
 //! ## In a room
 //!
-//! The timers are shared and live in the room document. The same two
-//! functions render them, with controls that go through the multiplayer
-//! script (`kipukasMultiplayer`), which also sends each change to the other
-//! player. Showing and hiding the list is a preference of this player alone
-//! and is an engine post in both cases.
+//! The timers are shared and live in the room document. Nothing about the
+//! views differs: the same form and the same list, with the same posts.
+//! What differs is where a change goes ([`add`], [`advance`], [`remove`]):
+//! in a room it is made to the room document and queued for the other
+//! player (`crdt::queue_for_peer`), and the page sends it. A change the other
+//! player makes arrives through the room's own routes, after which the page
+//! draws these views again.
+//!
+//! Showing and hiding the list is a preference of this player alone.
 //!
 //! ## A timer that has run out
 //!
@@ -95,25 +99,17 @@ const COLORS: [(&str, &str); 5] = [
 /// them (`name`, `turns`, `color_set`), and the chosen color is whichever
 /// radio button is checked, so there is no state to keep beside it.
 ///
-/// Outside a room the form is sent to the engine by the view it is in. In a
-/// room (peer present or not) it hands its fields to the multiplayer script,
-/// which adds the timer to the room document and tells the other player.
-/// Either way the values come from this form's own fields: the page can hold
-/// two of these forms at once, one for each case.
+/// The form is the same in a room and out of one: the view it is in sends
+/// it to the engine, which knows which timers it is adding to ([`add`]). The
+/// page can hold two of these forms at once (the popover used alone and the
+/// room's dialog), so it has no ids and its values are its own fields.
 pub fn render_turn_panel() -> String {
-    let multiplayer = room::in_room();
     let mut html = String::with_capacity(2048);
 
     html.push_str(r#"<div class="p-3 text-kip-drk-sienna">"#);
-    if multiplayer {
-        html.push_str(
-            r#"<form class="grid grid-cols-1 gap-2" onsubmit="kipukasMultiplayer.addTurn(this.elements.turns.value, this.elements.name.value, this.elements.color_set.value); return false">"#,
-        );
-    } else {
-        html.push_str(
-            r#"<form class="grid grid-cols-1 gap-2" data-engine-post="/api/game/turns" data-engine-body="action=add">"#,
-        );
-    }
+    html.push_str(
+        r#"<form class="grid grid-cols-1 gap-2" data-engine-post="/api/game/turns" data-engine-body="action=add">"#,
+    );
 
     // Name (optional)
     html.push_str(&format!(
@@ -221,6 +217,43 @@ fn ending(alarm: &Alarm, done: &[(String, f64)], now: f64) -> Ending {
     }
 }
 
+/// Add a timer: to the room's timers when in a room, telling the other
+/// player, otherwise to the player's own.
+pub fn add(turns: i32, name: &str, color_set: &str) {
+    let turns = turns.clamp(1, 99);
+    if room::in_room() {
+        crdt::queue_for_peer(crdt::add_alarm(turns, name, color_set));
+        // Keep the player's own copy in step, so that the timers are still
+        // there if the room ends without a clean goodbye.
+        crdt::export_to_local();
+    } else {
+        player_doc::add_alarm(turns, name, color_set);
+    }
+}
+
+/// Advance every timer by one diel cycle; one that had already run out goes.
+pub fn advance() {
+    if room::in_room() {
+        crdt::queue_for_peer(crdt::tick_alarms());
+        crdt::export_to_local();
+    } else {
+        player_doc::tick_alarms();
+    }
+}
+
+/// Remove one timer. A room's timer is named by its id, which both players
+/// agree on; a player's own by its place in the list.
+pub fn remove(id: Option<&str>, place: Option<usize>) {
+    if room::in_room() {
+        if let Some(id) = id {
+            crdt::queue_for_peer(crdt::remove_alarm(id));
+            crdt::export_to_local();
+        }
+    } else if let Some(place) = place {
+        player_doc::remove_alarm(place);
+    }
+}
+
 /// Delete the player's own timers that have run out and faded. In a room
 /// nothing is deleted: see the top of this file.
 pub fn expire(now: f64) {
@@ -251,9 +284,9 @@ pub fn render_alarm_list() -> String {
 ///
 /// Automatically detects multiplayer mode via `room::in_room()`.
 /// When in a room (peer present or not), reads alarms from the yrs CRDT Doc
-/// (synced between peers) and renders multiplayer sync buttons. Otherwise
-/// reads from PLAYER_DOC, and its buttons are engine posts: the view the
-/// list is in sends them and draws the list again.
+/// (synced between peers). Otherwise reads from PLAYER_DOC. Its buttons are
+/// engine posts either way: the view the list is in sends them and draws the
+/// list again.
 ///
 /// Drawing the list is also when a timer is first seen to have run out, so
 /// this notes it ([`note_completions`]).
@@ -286,15 +319,9 @@ pub fn render_alarm_list_at(now: f64) -> String {
     ));
 
     // Advance all button at the top
-    if multiplayer {
-        html.push_str(
-            r#"<button class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none cursor-pointer font-bold text-sm" onclick="kipukasMultiplayer.tickTurns()">&#x23E9; Advance on Diel Roll</button>"#,
-        );
-    } else {
-        html.push_str(
-            r#"<button type="button" class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none cursor-pointer font-bold text-sm" data-engine-post="/api/game/turns" data-engine-body="action=tick">&#x23E9; Advance on Diel Roll</button>"#,
-        );
-    }
+    html.push_str(
+        r#"<button type="button" class="py-2 px-4 h-fit w-fit bg-amber-50 rounded-lg text-kip-drk-goldenrod mb-2 hover:bg-amber-100 select-none cursor-pointer font-bold text-sm" data-engine-post="/api/game/turns" data-engine-body="action=tick">&#x23E9; Advance on Diel Roll</button>"#,
+    );
 
     // Individual alarm cards
     for (i, alarm, ending) in drawn {
@@ -338,17 +365,15 @@ pub fn render_alarm_list_at(now: f64) -> String {
 
         // Remove button. Shared timers are removed by id (validated when the
         // room document is read), solo timers by position.
-        if multiplayer {
-            html.push_str(&format!(
-                r#"<button class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" onclick="kipukasMultiplayer.removeTurn('{}')" aria-label="Remove timer">&#x2715;</button>"#,
-                alarm.id
-            ));
+        let which = if multiplayer {
+            format!("id={}", alarm.id)
         } else {
-            html.push_str(&format!(
-                r#"<button type="button" class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" data-engine-post="/api/game/turns" data-engine-body="action=remove&index={}" aria-label="Remove timer">&#x2715;</button>"#,
-                i
-            ));
-        }
+            format!("index={}", i)
+        };
+        html.push_str(&format!(
+            r#"<button type="button" class="ml-auto text-xs opacity-60 hover:opacity-100 cursor-pointer" data-engine-post="/api/game/turns" data-engine-body="action=remove&{}" aria-label="Remove timer">&#x2715;</button>"#,
+            which
+        ));
 
         // A timer in its ending: when the picture is next due to change (it
         // starts to fade, or is gone), the view sends this by itself and
@@ -503,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn render_alarm_list_multiplayer_uses_sync_buttons() {
+    fn a_rooms_list_has_the_same_controls_and_removes_by_id() {
         reset_state();
         // Being in a room is what makes render_alarm_list use the shared doc
         room::with_room_mut(|r| {
@@ -513,14 +538,15 @@ mod tests {
         crdt::init_doc();
         crdt::add_alarm(3, "", "blue");
         let html = render_alarm_list();
-        assert!(html.contains("kipukasMultiplayer.tickTurns()"));
+        assert!(html.contains(r#"data-engine-post="/api/game/turns" data-engine-body="action=tick""#));
         // Shared timers are removed by id, not by position.
         let id = crdt::get_alarms()[0].id.clone();
-        assert!(html.contains(&format!("kipukasMultiplayer.removeTurn('{}')", id)));
-        // The shared timers are not changed through the solo route.
-        assert!(!html.contains("action=tick"));
-        assert!(!html.contains("action=remove"));
-        assert!(!html.contains("htmx.ajax"));
+        assert!(html.contains(&format!(r#"data-engine-body="action=remove&id={}""#, id)));
+        assert!(!html.contains("action=remove&index="));
+        // Nothing goes through a script any more.
+        for forbidden in ["kipukasMultiplayer", "onclick", "htmx"] {
+            assert!(!html.contains(forbidden), "{} in the room's list", forbidden);
+        }
         crdt::reset_doc();
         reset_state();
     }
@@ -547,11 +573,7 @@ mod tests {
         let html = render_alarm_list();
         assert!(html.contains("shared"));
         assert!(!html.contains("solo copy"));
-        assert!(html.contains("kipukasMultiplayer.tickTurns()"));
-        assert!(!html.contains("action=tick"));
-
-        let panel = render_turn_panel();
-        assert!(panel.contains("kipukasMultiplayer.addTurn"));
+        assert!(html.contains("action=remove&id="));
         crdt::reset_doc();
         reset_state();
     }
@@ -802,8 +824,8 @@ mod tests {
         let html = render_alarm_list_at(T0);
         assert!(html.contains("<strong>Shared</strong> — Complete!"));
         assert!(html.contains(&format!("{}\"15000\"", EXPIRE)));
-        // The room's own controls are untouched.
-        assert!(html.contains("kipukasMultiplayer.tickTurns()"));
+        // It is the room's timer: removed by its id.
+        assert!(html.contains("action=remove&id="));
 
         assert!(render_alarm_list_at(T0 + 15_200.0).contains(" opacity-0\">"));
         assert_eq!(render_alarm_list_at(T0 + 16_000.0), "");
@@ -863,22 +885,119 @@ mod tests {
     }
 
     #[test]
-    fn render_turn_panel_multiplayer_uses_sync() {
+    fn the_form_is_the_same_in_a_room_as_out_of_one() {
         reset_state();
-        // Being in a room is what makes render_turn_panel use the sync path
+        let alone = render_turn_panel();
         room::with_room_mut(|r| {
             r.room_code = "ABCD".to_string();
             r.connected = true;
         });
-        let html = render_turn_panel();
-        // The form hands its own fields to the multiplayer script.
-        assert!(html.contains(
-            "onsubmit=\"kipukasMultiplayer.addTurn(this.elements.turns.value, this.elements.name.value, this.elements.color_set.value); return false\""
-        ));
-        assert!(!html.contains("data-engine-post")); // not sent to the solo route
-        assert!(!html.contains("getElementById")); // not read from elsewhere in the page
-        assert!(!html.contains("htmx.ajax"));
+        assert_eq!(render_turn_panel(), alone);
         reset_state();
+    }
+
+    // ── Where a change goes ────────────────────────────────────────
+
+    fn in_a_room() {
+        room::with_room_mut(|r| r.room_code = "ABCD".to_string());
+        crdt::init_doc();
+        crdt::take_outbox();
+    }
+
+    fn leave_the_room() {
+        crdt::reset_doc();
+        crdt::take_outbox();
+        reset_state();
+    }
+
+    #[test]
+    fn alone_a_change_is_to_the_players_own_timers_and_nothing_is_queued() {
+        reset_state();
+        crdt::take_outbox();
+        add(5, "Patrol", "green");
+        advance();
+        assert_eq!(player_doc::get_alarms().len(), 1);
+        assert_eq!(player_doc::get_alarms()[0].remaining, 4);
+        remove(None, Some(0));
+        assert!(player_doc::get_alarms().is_empty());
+        assert!(crdt::take_outbox().is_empty());
+        reset_state();
+    }
+
+    #[test]
+    fn in_a_room_a_new_timer_goes_to_the_room_and_is_queued_for_the_other_player() {
+        reset_state();
+        in_a_room();
+        add(5, "Siege", "blue");
+        let shared = crdt::get_alarms();
+        assert_eq!(shared.len(), 1);
+        assert_eq!((shared[0].remaining, shared[0].name.as_str(), shared[0].color_set.as_str()), (5, "Siege", "blue"));
+        // One update is waiting, and waits only once.
+        let queued = crdt::take_outbox();
+        assert_eq!(queued.len(), 1);
+        assert!(!queued[0].is_empty());
+        assert!(crdt::take_outbox().is_empty());
+        // The player's own copy is kept in step, with the same id.
+        let own = player_doc::get_alarms();
+        assert_eq!(own.len(), 1);
+        assert_eq!(own[0].id, shared[0].id);
+        leave_the_room();
+    }
+
+    #[test]
+    fn in_a_room_advancing_and_removing_change_the_room_and_are_queued() {
+        reset_state();
+        in_a_room();
+        add(3, "Siege", "blue");
+        add(7, "Patrol", "green");
+        crdt::take_outbox();
+
+        advance();
+        let shared = crdt::get_alarms();
+        assert_eq!(shared.iter().map(|a| a.remaining).collect::<Vec<_>>(), [2, 6]);
+        assert_eq!(crdt::take_outbox().len(), 1);
+
+        // By id; a place in the list means nothing in a room.
+        remove(None, Some(0));
+        assert_eq!(crdt::get_alarms().len(), 2);
+        assert!(crdt::take_outbox().is_empty());
+        remove(Some(&shared[0].id), None);
+        let left = crdt::get_alarms();
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].name, "Patrol");
+        assert_eq!(crdt::take_outbox().len(), 1);
+        leave_the_room();
+    }
+
+    #[test]
+    fn the_route_acts_on_the_room_when_in_one() {
+        reset_state();
+        in_a_room();
+        let html = crate::routes::game::handle_turns_post("action=add&turns=4&name=Watch&color_set=pink");
+        assert!(html.contains("<strong>Watch</strong> — 4"));
+        let id = crdt::get_alarms()[0].id.clone();
+        crate::routes::game::handle_turns_post("action=tick");
+        assert_eq!(crdt::get_alarms()[0].remaining, 3);
+        crate::routes::game::handle_turns_post(&format!("action=remove&id={}", id));
+        assert!(crdt::get_alarms().is_empty());
+        // Three changes, three updates, handed over as a JSON list.
+        let outbox = crate::routes::room::handle_outbox_post("");
+        let updates: Vec<String> = serde_json::from_str(&outbox).unwrap();
+        assert_eq!(updates.len(), 3);
+        assert_eq!(crate::routes::room::handle_outbox_post(""), "[]");
+        leave_the_room();
+    }
+
+    #[test]
+    fn hiding_the_list_or_a_timer_fading_sends_nothing() {
+        reset_state();
+        in_a_room();
+        crdt::add_alarm(1, "Shared", "blue");
+        crdt::tick_alarms();
+        crate::routes::game::handle_turns_post("action=toggle_visibility");
+        crate::routes::game::handle_turns_post("action=expire");
+        assert_eq!(crate::routes::room::handle_outbox_post(""), "[]");
+        leave_the_room();
     }
 
     #[test]

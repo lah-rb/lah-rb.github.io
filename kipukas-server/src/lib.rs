@@ -93,10 +93,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/room/yrs/sv", "yrs_sv").ok();
     router.insert("/api/room/yrs/diff", "yrs_diff").ok();
     router.insert("/api/room/yrs/apply", "yrs_apply").ok();
-    router.insert("/api/room/yrs/alarm/add", "yrs_alarm_add").ok();
-    router.insert("/api/room/yrs/alarm/tick", "yrs_alarm_tick").ok();
-    router.insert("/api/room/yrs/alarm/remove", "yrs_alarm_remove").ok();
-    router.insert("/api/room/yrs/alarm/toggle", "yrs_alarm_toggle").ok();
+    router.insert("/api/room/outbox", "room_outbox").ok();
     router.insert("/api/room/yrs/state", "yrs_state").ok();
     router.insert("/api/room/yrs/restore", "yrs_restore").ok();
 
@@ -157,10 +154,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("yrs_sv", "GET") => routes::room::handle_yrs_sv_get(query),
             ("yrs_diff", "POST") => routes::room::handle_yrs_diff_post(body),
             ("yrs_apply", "POST") => routes::room::handle_yrs_apply_post(body),
-            ("yrs_alarm_add", "POST") => routes::room::handle_yrs_alarm_add_post(body),
-            ("yrs_alarm_tick", "POST") => routes::room::handle_yrs_alarm_tick_post(body),
-            ("yrs_alarm_remove", "POST") => routes::room::handle_yrs_alarm_remove_post(body),
-            ("yrs_alarm_toggle", "POST") => routes::room::handle_yrs_alarm_toggle_post(body),
+            ("room_outbox", "POST") => routes::room::handle_outbox_post(body),
             ("yrs_state", "GET") => routes::room::handle_yrs_state_get(query),
             ("yrs_restore", "POST") => routes::room::handle_yrs_restore_post(body),
 

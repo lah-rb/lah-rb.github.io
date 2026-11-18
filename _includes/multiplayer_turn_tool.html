@@ -1,5 +1,10 @@
-<!-- Multiplayer Turn Timer Tool — appears while in a room (WASM: /api/game/turns).
-     Reads $store.room (registered by kipukas-api.js). -->
+<!-- Multiplayer Turn Timer Tool — appears while in a room.
+     Reads $store.room (registered by kipukas-api.js).
+     The form is an engine-owned view (Pattern 13, assets/js/kipukas-view.js),
+     the same one the solo timer's popover holds: in a room the engine adds
+     the timer to the room's shared timers and has the change sent to the
+     other player (kipukas-server/src/game/turns.rs). The dialog's opening and
+     closing stays Alpine. The view is drawn each time the dialog opens. -->
 <div x-data="{ showTurnMenu: false }"
      class="relative place-content-center"
      x-init="
@@ -17,13 +22,7 @@
         role="dialog" aria-modal="true" aria-label="Shared turn timer"
         x-trap="showTurnMenu" @keydown.escape.window="showTurnMenu = false"
         class="fixed inset-0 flex items-center justify-center z-50"
-        x-transition.duration.350ms
-        x-effect="if (showTurnMenu) $nextTick(() => {
-            if (typeof htmx !== 'undefined') {
-                var tc = document.getElementById('turn-container');
-                if (tc) htmx.ajax('GET', tc.getAttribute('hx-get') || '/api/game/turns', {target:'#turn-container', swap:'innerHTML'});
-            }
-        })">
+        x-transition.duration.350ms>
 
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-300 opacity-75" @click="showTurnMenu = false"></div>
@@ -36,11 +35,7 @@
             </div>
 
             <!-- Turn timer section -->
-            <div id="turn-container"
-              hx-get="/api/game/turns"
-              hx-trigger="load"
-              hx-swap="innerHTML">
-            </div>
+            <div id="turn-container" data-engine-view="/api/game/turns/form"></div>
 
             <!-- Close button -->
             <div class="border-t border-slate-300 p-3">

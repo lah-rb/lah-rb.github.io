@@ -232,6 +232,35 @@ fn alarms_in(doc: &Doc) -> Vec<Alarm> {
         .collect()
 }
 
+// ── Updates for the other player ───────────────────────────────────
+//
+// A change this player makes to the room document has to reach the other
+// player. The engine cannot send anything: the page holds the connection.
+// So a change made through an engine route is queued here, and after every
+// post the engine's worker takes what is queued and hands it to the page,
+// which sends it (`ROOM_UPDATES` in kipukas-worker.js and
+// kipukas-multiplayer.js). An update that is lost on the way (the other
+// player is away) is made up by the exchange both players do when they are
+// next connected.
+
+thread_local! {
+    static OUTBOX: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Queue an update of the room document to be sent to the other player. An
+/// empty update (the change changed nothing) is not queued.
+pub fn queue_for_peer(update: String) {
+    if !update.is_empty() {
+        OUTBOX.with(|outbox| outbox.borrow_mut().push(update));
+    }
+}
+
+/// Take the updates queued for the other player, oldest first. They are
+/// taken once: what is returned is no longer queued.
+pub fn take_outbox() -> Vec<String> {
+    OUTBOX.with(|outbox| std::mem::take(&mut *outbox.borrow_mut()))
+}
+
 /// Run a mutation on the room doc and return the resulting update as base64.
 fn mutate_room_doc(f: impl FnOnce(&Doc)) -> String {
     CRDT_DOC.with(|cell| {

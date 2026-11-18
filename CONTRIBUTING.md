@@ -431,7 +431,7 @@ A page sends `relay` (pass this to the other player), `leave` (give up my place)
 | Key | Contents |
 |-----|----------|
 | `kipukas_room` | `{ v, code, name, creator, playerId, peerId, ts }` — forgotten after 12 hours without use |
-| `kipukas_room_doc` | The room document (base64), saved after every POST to `/api/room/*` via the worker's `PERSIST_STATE` message |
+| `kipukas_room_doc` | The room document (base64), saved after every POST to `/api/room/*` or `/api/game/*` via the worker's `PERSIST_STATE` message |
 | `kipukas_room_tab` | Id of the tab that holds the room connection |
 
 **Why localStorage (not sessionStorage):** sessionStorage is per tab. A card opened from the phone's camera app lands in a new tab, which then had no room. localStorage is shared by every tab of the browser, so the new tab resumes the same room as the same player.
@@ -446,9 +446,9 @@ A page sends `relay` (pass this to the other player), `leave` (give up my place)
 
 **The pattern:** Each interactive tool lives in a single `_includes/*.html` file that combines four layers: Alpine.js `x-data` for UI-only state (always-in-DOM visibility control), `@click`/`$watch`/`x-effect` for behavior, HTMX `hx-get`/`hx-post` for fetching content from Rust and posting user actions, Tailwind utilities for all styling, and auto-persistence via the Worker `PERSIST_STATE` message bridge. The component is fully self-contained — no external CSS, no separate JS file, no global state leakage.
 
-**Reference implementation:** `_includes/multiplayer_fists_tool.html` (also see `multiplayer_turn_tool.html`).
+**Reference implementation:** `_includes/multiplayer_fists_tool.html`.
 
-> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the solo turn timer (`turn_tracker.html`), the affinity panel (`affinity_tool.html`) and the type matchup calculator (`local_fists_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
+> **Being replaced.** A tool's content is better held as an engine-owned view (Pattern 13): the turn timer, alone and in a room (`turn_tracker.html`, `multiplayer_turn_tool.html`), the affinity panel (`affinity_tool.html`) and the type matchup calculator (`local_fists_tool.html`) were built this way and have been moved over. What stays from this pattern is the outer layer: an Alpine `x-data` flag that opens and closes the dialog. The `hx-get`, `hx-trigger="load"` and `x-effect` re-fetch described below are not needed for a view, which is drawn each time its dialog opens.
 
 **Layer breakdown:**
 
@@ -640,11 +640,20 @@ When the engine changes state for another reason, call `kipukasViews.refresh(car
 
 - A card's detail panel: `kipukas-server/src/game/card_panel.rs` → `render_card_panel()`. On a card page it is in the served HTML (written at build time by the same function, see "Card Pages Are Written by the Engine") and taken over as a view when the page loads. In the hand view each pane holds one (below).
 - The damage tracker inside it: `kipukas-server/src/game/damage.rs` → `render_damage_tracker()`.
-- The solo turn timer, two views that work together: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
+- The turn timer, two views that work together, alone and in a room: `kipukas-server/src/game/turns.rs` → `render_turn_panel()` (a form) and `render_alarm_list()`; template `_includes/turn_tracker.html`. A timer that has run out says "Complete!" for 15 seconds, fades, and is gone: the engine remembers when this device first saw it run out and draws it by how long ago that was (shown, then with `opacity-0` on the same element so the transition runs, then not at all), asking to be looked at again each time. A page change in between changes nothing. This applies to a room's timers as well, each player's page by its own clock; a room's run-out timer is only left undrawn, and stays in the room document until the next advance removes it.
 - The affinity panel, a view inside an Alpine dialog: `kipukas-server/src/routes/player.rs`; template `_includes/affinity_tool.html`.
 - The type matchup calculator, three views of one route that are drawn together: `kipukas-server/src/game/matchup.rs`; template `_includes/local_fists_tool.html`. The engine holds what is picked, as a scratch pad that lasts until the page is left. A checkbox is a post; the page does not check it, the engine's next drawing does, and that drawing also disables the rest of a side that has its three. Alpine only folds the two sections.
 - The binder: its grid, its filter menu and its search, all of one route. `kipukas-server/src/routes/cards.rs` holds what the binder shows: the boxes ticked in the menu, whether a search is on and what is typed, and how many tiles are on the page so far. The menu's parts (`_includes/filter.html`) are views of `/api/cards?menu=…`, so ticking a box draws the menu and the grid again; Alpine only opens the menu and folds its groups. The search field (`_includes/toolbar.html`) is a form sent as it is typed in; an open search shows the cards matching what is typed and nothing while nothing is typed, and closing it gives back what the menu says. The grid is a list that grows as it is read: in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
 - The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
+
+**Changes that must reach the other player.** In a room some state is shared (the room document, `game/crdt.rs`), and a change one player makes has to be sent to the other. The engine cannot send anything; the page holds the connection. So:
+
+1. The engine route makes the change to the room document and queues the resulting update: `crdt::queue_for_peer(update)`.
+2. After every post, the engine's worker takes what is queued (`POST /api/room/outbox`) and posts it to the page as a `ROOM_UPDATES` message.
+3. `kipukas-multiplayer.js` sends each update to the other player, in the message the players already exchange (`yrs_update`).
+4. When an update arrives from the other player, the multiplayer script applies it and has the views drawn again (`kipukasViews.redraw('/api/game/turns')`).
+
+A view's control is therefore the same in a room as out of one: the turn timer's form and buttons post to `/api/game/turns` either way, and `game/turns.rs` decides whether the change is to the player's own timers or the room's. An update that cannot be sent just now (the other player is away) is made up by the exchange of state the players do whenever they connect.
 
 **Views inside views.** Usually compose in Rust: the panel contains the damage tracker by rendering it inline, not by holding another `data-engine-view`, and a tap on the tracker redraws the panel it sits in.
 
@@ -674,7 +683,7 @@ A view may hold other views where each inner one should be drawn by itself: the 
 
 **When NOT to use it:**
 - Purely visual state the engine has no interest in (a menu or dialog being open): Alpine.
-- A control whose change must also be sent to the other player (the room's timers, fists): these still go through the multiplayer script.
+- Fists in a room: its controls still go through the multiplayer script. A control whose change must reach the other player can be a view's, though: see "Changes that must reach the other player" below.
 
 ---
 

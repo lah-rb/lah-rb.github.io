@@ -245,6 +245,22 @@ async function decodeQR(rgba, width, height) {
 
 let processingFrame = false;
 
+// ── Room updates for the other player ──────────────────────────────
+
+/**
+ * After a post: hand the page any room-document updates the engine queued
+ * for the other player (crdt::queue_for_peer in the engine). The page holds
+ * the connection and sends them (kipukas-multiplayer.js).
+ */
+function handOverRoomUpdates() {
+  try {
+    const updates = JSON.parse(handle_request('POST', '/api/room/outbox', '', ''));
+    if (updates.length) self.postMessage({ type: 'ROOM_UPDATES', updates });
+  } catch (err) {
+    console.error('[kipukas-worker] Could not take room updates:', err);
+  }
+}
+
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
@@ -313,6 +329,7 @@ self.onmessage = async (event) => {
     try {
       if (!initialized) await wasmReady;
       handle_request(method, pathname, search || '', body || '');
+      if (method === 'POST') handOverRoomUpdates();
       if (
         method === 'POST' &&
         (pathname.startsWith('/api/game/') ||
@@ -334,6 +351,7 @@ self.onmessage = async (event) => {
 
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
+    if (method === 'POST') handOverRoomUpdates();
 
     // Auto-persist: after any POST to /api/game/*, /api/room/*, or
     // /api/player/*, notify main thread so it can fetch PLAYER_DOC base64

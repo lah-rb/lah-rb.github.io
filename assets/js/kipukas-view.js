@@ -376,6 +376,19 @@
       return Promise.all(views.map(render));
     },
 
+    /**
+     * Draw again the displayed views of a route, whatever their query: for
+     * when the engine's state changed by some other way than a tap here (the
+     * other player changed the room's timers).
+     */
+    redraw(route) {
+      const path = pathOf(route);
+      const views = allViews().filter((view) =>
+        isDisplayed(view) && pathOf(view.getAttribute(VIEW)) === path
+      );
+      return Promise.all(views.map(render));
+    },
+
     /** Ask the engine for a change from outside a view. Resolves with its reply. */
     post(route, body) {
       return ask('POST', route, body);

@@ -417,11 +417,7 @@ function handleRelayedMessage(msg) {
           console.warn('[multiplayer] Could not apply peer update:', reply && reply.error);
           return;
         }
-        const alarms = document.getElementById('turn-alarms');
-        if (alarms && reply.alarms != null) {
-          alarms.innerHTML = reply.alarms;
-          if (typeof htmx !== 'undefined') htmx.process(alarms);
-        }
+        refreshAlarms();
         // Applying a finished round records that it was applied: send that back.
         if (reply.update) sendToPeer({ type: 'yrs_update', update: reply.update });
         refreshDamage(reply.damage);
@@ -547,16 +543,25 @@ function wasmRequest(method, path, search, body, callback) {
   );
 }
 
-/** Refresh the alarm display in #turn-alarms.
- *  Rust auto-detects multiplayer via is_peer_connected() and reads from
- *  CRDT Doc (multiplayer) or PLAYER_DOC (local) accordingly. */
+/**
+ * Draw the turn timers again. They are engine-owned views (kipukas-view.js);
+ * the engine shows the room's timers when in a room and the player's own
+ * otherwise, so this is called whenever that changes or the other player
+ * has changed the room's.
+ */
 function refreshAlarms() {
-  wasmRequest('GET', '/api/game/turns', '?display=alarms', '', (html) => {
-    const alarms = document.getElementById('turn-alarms');
-    if (alarms && html != null) {
-      alarms.innerHTML = html;
-      if (typeof htmx !== 'undefined') htmx.process(alarms);
-    }
+  if (globalThis.kipukasViews) globalThis.kipukasViews.redraw('/api/game/turns');
+}
+
+// A change this player makes to the room's shared state through the engine
+// (a turn timer added, advanced or removed) is queued by the engine for the
+// other player, and the engine's worker hands it over after the post. Send
+// it on. One that cannot be sent just now is made up by the exchange of
+// state when the players are next connected.
+if (globalThis.kipukasWorker) {
+  globalThis.kipukasWorker.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'ROOM_UPDATES') return;
+    for (const update of event.data.updates) sendToPeer({ type: 'yrs_update', update });
   });
 }
 
@@ -699,88 +704,6 @@ const kipukasMultiplayer = {
     // The engine records the answer in the room document (that is how the
     // opponent learns of it) and marks this player's damage if they lost.
     postToWasmWithCallback('POST', '/api/room/fists/outcome', 'won=' + won, applyFistsReply);
-  },
-
-  // ── Turn timer sync (yrs CRDT) ─────────────────────────────────────
-
-  /** Add a turn timer via yrs CRDT and sync update to peer. */
-  addTurn(turns, name, colorSet) {
-    const t = parseInt(turns, 10) || 1;
-    const clamped = Math.max(1, Math.min(99, t));
-    const n = (name || '').trim();
-    const c = colorSet || 'red';
-
-    // Mutate the yrs Doc — returns JSON { update, html }
-    postToWasmWithCallback(
-      'POST',
-      '/api/room/yrs/alarm/add',
-      'turns=' + clamped + '&name=' + encodeURIComponent(n) + '&color_set=' + c,
-      (response) => {
-        try {
-          const result = JSON.parse(response);
-          // Swap the alarm list HTML (use != null so empty string still clears DOM)
-          const alarms = document.getElementById('turn-alarms');
-          if (alarms && result.html != null) {
-            alarms.innerHTML = result.html;
-            if (typeof htmx !== 'undefined') htmx.process(alarms);
-          }
-          // Relay the yrs update to peer
-          if (result.update) {
-            sendToPeer({ type: 'yrs_update', update: result.update });
-          }
-        } catch (e) {
-          console.warn('[multiplayer] addTurn parse error:', e);
-        }
-      },
-    );
-    console.log('[multiplayer] Added turn via yrs CRDT: ' + clamped + ' cycles');
-  },
-
-  /** Advance all turn timers by one diel cycle via yrs CRDT. */
-  tickTurns() {
-    postToWasmWithCallback('POST', '/api/room/yrs/alarm/tick', '', (response) => {
-      try {
-        const result = JSON.parse(response);
-        const alarms = document.getElementById('turn-alarms');
-        // Use != null so empty string (all alarms removed) still clears DOM
-        if (alarms && result.html != null) {
-          alarms.innerHTML = result.html;
-          if (typeof htmx !== 'undefined') htmx.process(alarms);
-        }
-        if (result.update) {
-          sendToPeer({ type: 'yrs_update', update: result.update });
-        }
-      } catch (e) {
-        console.warn('[multiplayer] tickTurns parse error:', e);
-      }
-    });
-    console.log('[multiplayer] Ticked turns via yrs CRDT');
-  },
-
-  /** Remove a shared turn timer by its id via yrs CRDT. */
-  removeTurn(id) {
-    postToWasmWithCallback(
-      'POST',
-      '/api/room/yrs/alarm/remove',
-      'id=' + encodeURIComponent(id),
-      (response) => {
-        try {
-          const result = JSON.parse(response);
-          const alarms = document.getElementById('turn-alarms');
-          // Use != null so empty string (all alarms removed) still clears DOM
-          if (alarms && result.html != null) {
-            alarms.innerHTML = result.html;
-            if (typeof htmx !== 'undefined') htmx.process(alarms);
-          }
-          if (result.update) {
-            sendToPeer({ type: 'yrs_update', update: result.update });
-          }
-        } catch (e) {
-          console.warn('[multiplayer] removeTurn parse error:', e);
-        }
-      },
-    );
-    console.log('[multiplayer] Removed turn via yrs CRDT, id=' + id);
   },
 
   /** Check if currently connected to a peer. */
