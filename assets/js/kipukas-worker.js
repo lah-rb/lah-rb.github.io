@@ -249,18 +249,27 @@ let processingFrame = false;
 
 /**
  * After a post: hand the page what the engine has queued for it (page.rs in
- * the engine).
+ * the engine). The page does each as it is told:
  *
- * - Room-document updates for the other player. The page holds the
- *   connection and sends them (kipukas-multiplayer.js).
- * - Routes whose views are to be drawn again, because the post changed what
- *   they show (kipukas-view.js).
+ * - SAVE: storage keys to write or remove (kipukas-api.js). First, so that
+ *   what follows finds storage as the engine left it.
+ * - ROOM: the room the player is in, or null (kipukas-api.js).
+ * - ROOM_UPDATES: room-document updates for the other player. The page
+ *   holds the connection and sends them (kipukas-multiplayer.js).
+ * - REDRAW: routes whose views are to be drawn again, because the post
+ *   changed what they show (kipukas-view.js).
+ * - QUIET: another tab holds the room now (kipukas-multiplayer.js).
+ * - RELOAD: load the page again (kipukas-api.js).
  */
 function handOver() {
   try {
-    const { updates, redraw } = JSON.parse(handle_request('POST', '/api/handover', '', ''));
-    if (updates.length) self.postMessage({ type: 'ROOM_UPDATES', updates });
-    if (redraw.length) self.postMessage({ type: 'REDRAW', routes: redraw });
+    const handed = JSON.parse(handle_request('POST', '/api/handover', '', ''));
+    if (handed.save) self.postMessage({ type: 'SAVE', writes: handed.save });
+    if ('room' in handed) self.postMessage({ type: 'ROOM', room: handed.room });
+    if (handed.updates) self.postMessage({ type: 'ROOM_UPDATES', updates: handed.updates });
+    if (handed.redraw) self.postMessage({ type: 'REDRAW', routes: handed.redraw });
+    if (handed.quiet) self.postMessage({ type: 'QUIET' });
+    if (handed.reload) self.postMessage({ type: 'RELOAD' });
   } catch (err) {
     console.error('[kipukas-worker] Could not hand over to the page:', err);
   }
@@ -269,6 +278,25 @@ function handOver() {
 // ── Message handler ────────────────────────────────────────────────
 
 self.onmessage = async (event) => {
+  // ── The page's first message: everything stored under the engine's keys.
+  // The engine puts itself back as it was (store.rs). It is handled before
+  // any request, because requests are handled in the order they arrive.
+  if (event.data?.type === 'START') {
+    if (!initialized) await wasmReady;
+    const reply = handle_request('POST', '/api/start', '', JSON.stringify(event.data.stored));
+    if (reply !== 'ok') console.warn('[kipukas-worker] Not everything stored could be read:', reply);
+    handOver();
+    return;
+  }
+
+  // ── The page reports something of itself or of storage (store.rs) ──
+  if (event.data?.type === 'PAGE') {
+    if (!initialized) await wasmReady;
+    handle_request('POST', '/api/page', '', JSON.stringify(event.data.report));
+    handOver();
+    return;
+  }
+
   // ── CV mode toggle (from scanner UI button) ──
   if (event.data?.type === 'SET_CV_MODE') {
     const wasEnabled = cvEnabled;
@@ -327,24 +355,14 @@ self.onmessage = async (event) => {
   const { method, pathname, search, body } = event.data;
   const port = event.ports[0];
 
-  // Fire-and-forget: no MessagePort means caller doesn't need a response.
-  // Process the request, trigger PERSIST_STATE for localStorage sync, and return.
-  // Used by Alpine damage tracker buttons (kipukasWorker.postMessage with no port).
+  // No MessagePort: the caller does not need the reply.
   if (!port) {
     try {
       if (!initialized) await wasmReady;
       handle_request(method, pathname, search || '', body || '');
       if (method === 'POST') handOver();
-      if (
-        method === 'POST' &&
-        (pathname.startsWith('/api/game/') ||
-          pathname.startsWith('/api/room/') ||
-          pathname.startsWith('/api/player/'))
-      ) {
-        self.postMessage({ type: 'PERSIST_STATE' });
-      }
     } catch (err) {
-      console.error('[kipukas-worker] Fire-and-forget error:', err);
+      console.error('[kipukas-worker] Request error:', err);
     }
     return;
   }
@@ -356,22 +374,9 @@ self.onmessage = async (event) => {
 
     const html = handle_request(method, pathname, search || '', body || '');
     port.postMessage({ ok: true, html });
+    // A post may have changed the engine's state. What follows from that
+    // (what to store, what to draw again) is the engine's to say.
     if (method === 'POST') handOver();
-
-    // Auto-persist: after any POST to /api/game/*, /api/room/*, or
-    // /api/player/*, notify main thread so it can fetch PLAYER_DOC base64
-    // and save to localStorage.
-    // Room routes: multiplayer alarm mutations and room lifecycle routes
-    // call export_to_local()/seed_from_local() which modify PLAYER_DOC.
-    // Player routes: affinity declarations modify PLAYER_DOC directly.
-    if (
-      method === 'POST' &&
-      (pathname.startsWith('/api/game/') ||
-        pathname.startsWith('/api/room/') ||
-        pathname.startsWith('/api/player/'))
-    ) {
-      self.postMessage({ type: 'PERSIST_STATE' });
-    }
   } catch (err) {
     console.error('[kipukas-worker] WASM request error:', err);
     port.postMessage({

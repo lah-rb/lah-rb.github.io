@@ -43,154 +43,52 @@ globalThis.kipukasRelayUrl = function () {
 };
 
 // ============================================
-// ROOM SESSION — how a multiplayer room is remembered between page loads
+// THE ENGINE AND THE BROWSER'S STORAGE
 // ============================================
-// Every page load starts a fresh game engine and a fresh socket, so the room
-// has to be put back each time. It is kept in localStorage, which every tab
-// of this browser shares, so a card opened in a new tab (a QR code scanned
-// with the phone's camera app, for instance) is still in the room:
-//   kipukas_room      { v, code, name, creator, playerId, peerId, ts } — which
-//                     room this player is in, who they are in it, and who
-//                     the opponent is (once known). Forgotten after 12 hours
-//                     without use.
-//   kipukas_room_doc  the shared room document (base64): timers and fists
-//                     combat, saved after every change
-//   kipukas_room_tab  the id of the tab that holds the room connection
-// This file reads them on load (see "RESUME ROOM" below); kipukas-multiplayer.js
-// writes the session when a room is created, joined or left.
-const ROOM_KEY = 'kipukas_room';
-const ROOM_DOC_KEY = 'kipukas_room_doc';
-const ROOM_TAB_KEY = 'kipukas_room_tab';
-const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
+// Every page load starts a fresh game engine, in a worker of its own. What
+// must outlive a page is kept in localStorage, which the engine cannot reach
+// and this page can. The engine decides what is stored and when
+// (kipukas-server/src/store.rs); this file only fetches and carries:
+//
+//   - at load it hands the engine everything stored under the engine's keys
+//     (START, below), from which the engine puts itself back as it was;
+//   - it writes and removes the keys the engine names after a change (SAVE);
+//   - it tells the engine when another tab changes one of them, and when
+//     this page comes back into view (PAGE). What follows from that, such as
+//     loading the page again because its engine is out of date, is the
+//     engine's to ask for (RELOAD).
+const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', 'kipukas_room_tab'];
 
-/** Random hex string of `bytes` bytes. */
-function randomHex(bytes) {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+/** What is stored under one of the engine's keys, or null. */
+function stored(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (_) {
+    return null; // storage unavailable
+  }
 }
 
-// Identifies this tab (this page load) among the tabs sharing the room.
-const TAB_ID = randomHex(8);
-
-globalThis.kipukasRoomSession = {
-  /** The saved room, or null when this player is not in one. */
-  load() {
-    try {
-      const raw = localStorage.getItem(ROOM_KEY);
-      const session = raw ? JSON.parse(raw) : null;
-      if (!session || !session.code) return null;
-      if (!session.ts || Date.now() - session.ts > ROOM_TTL_MS) {
-        this.clear(); // left over from an earlier day
-        return null;
-      }
-      return session;
-    } catch (_) {
-      return null;
-    }
-  },
-  /** Save the room, and make this tab the one that holds its connection. */
-  save(session) {
-    try {
-      localStorage.setItem(ROOM_KEY, JSON.stringify({ ...session, v: 2, ts: Date.now() }));
-    } catch (_) { /* storage unavailable */ }
-    this.claim();
-  },
-  /** Forget the room and its shared document. */
-  clear() {
-    try {
-      localStorage.removeItem(ROOM_KEY);
-      localStorage.removeItem(ROOM_DOC_KEY);
-      localStorage.removeItem(ROOM_TAB_KEY);
-    } catch (_) { /* storage unavailable */ }
-  },
-  loadDoc() {
-    try {
-      return localStorage.getItem(ROOM_DOC_KEY) || '';
-    } catch (_) {
-      return '';
-    }
-  },
-  saveDoc(state) {
-    try {
-      localStorage.setItem(ROOM_DOC_KEY, state);
-    } catch (_) { /* quota or storage unavailable */ }
-  },
-  /** A fresh random id for this player in a room (24 hex characters). */
-  newPlayerId() {
-    return randomHex(12);
-  },
-  /**
-   * Make this tab the one that holds the room connection. Other tabs see the
-   * change (a `storage` event) and go quiet: the relay gives each player one
-   * slot, so two tabs of the same player must not both connect.
-   */
-  claim() {
-    try {
-      localStorage.setItem(ROOM_TAB_KEY, TAB_ID);
-    } catch (_) { /* storage unavailable */ }
-  },
-  /** Whether this tab holds the room connection (true if no tab has claimed it). */
-  isOwner() {
-    try {
-      const owner = localStorage.getItem(ROOM_TAB_KEY);
-      return !owner || owner === TAB_ID;
-    } catch (_) {
-      return true;
-    }
-  },
-};
-
-// ============================================
-// ONE TAB AT A TIME
-// ============================================
-// Each tab runs its own game engine, loaded from storage when the page
-// loaded. If another tab changes what is in storage (takes over the room,
-// marks damage, changes a timer), this tab's engine is out of date. Rather
-// than let it write stale state back, it reloads the next time it is shown.
-let tabStale = false;
-
-globalThis.addEventListener('storage', (event) => {
-  if (event.key === ROOM_TAB_KEY) {
-    // Read the current owner rather than trusting the event: two tabs loading
-    // at once both write the key, and the last write is the one that counts.
-    if (!globalThis.kipukasRoomSession.isOwner()) {
-      tabStale = true;
-      globalThis.dispatchEvent(new CustomEvent('kipukas-room-moved'));
-    }
-    return;
+/** Everything stored under the engine's keys. */
+function allStored() {
+  const all = {};
+  for (const key of ENGINE_KEYS) {
+    const value = stored(key);
+    if (value !== null) all[key] = value;
   }
-  if (event.key === 'kipukas_player_doc' || event.key === ROOM_KEY || event.key === ROOM_DOC_KEY) {
-    tabStale = true;
-  }
-});
+  return all;
+}
 
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && tabStale) location.reload();
-});
-
-// A page restored from the back/forward cache received no storage events
-// while it was frozen.
-globalThis.addEventListener('pageshow', (event) => {
-  if (event.persisted && (tabStale || !globalThis.kipukasRoomSession.isOwner())) {
-    location.reload();
-  }
-});
-
-// Sessions used to live in sessionStorage (one per tab). Tidy up the old keys.
-try {
-  sessionStorage.removeItem('kipukas_room');
-  sessionStorage.removeItem('kipukas_crdt_state');
-} catch (_) { /* storage unavailable */ }
-
-// Room state for the UI, as an Alpine store. Toolbar tools read it when they
-// initialise, so they are right from the first render instead of waiting for
-// an event. kipukas-multiplayer.js keeps it current.
+// Whether the player is in a room, as the engine last said. Toolbar tools
+// read it from an Alpine store when they initialise, so they are right from
+// the first render. Until the engine has started and said, a stored room is
+// taken to mean yes.
 //
-// This listener must be registered before Alpine starts, which is why this
+// The listener must be registered before Alpine starts, which is why this
 // script is loaded ahead of the Alpine bundle.
+let roomSaid = null;
+
 document.addEventListener('alpine:init', () => {
-  const inRoom = !!globalThis.kipukasRoomSession.load();
+  const inRoom = roomSaid === null ? stored('kipukas_room') !== null : roomSaid;
   globalThis.Alpine.store('room', {
     inRoom, // this player is in a room (created or joined), peer present or not
     // idle | connecting | open | waiting | expired | moved (to another tab)
@@ -205,6 +103,72 @@ const wasmWorker = new Worker('/assets/js/kipukas-worker.js', { type: 'module' }
 
 // Expose worker for qr-camera.js and other modules that need direct access
 globalThis.kipukasWorker = wasmWorker;
+
+// The engine's first message, ahead of any request: what is stored. The
+// worker handles messages in the order they are posted, so the engine is
+// back as it was (in its room, with the room's document) before anything is
+// drawn.
+wasmWorker.postMessage({ type: 'START', stored: allStored() });
+
+/** Report something of this page or of storage to the engine. */
+function report(what) {
+  wasmWorker.postMessage({ type: 'PAGE', report: what });
+}
+
+wasmWorker.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data) return;
+
+  if (data.type === 'SAVE') {
+    // Storage keys to write (a string) or remove (null).
+    for (const [key, value] of Object.entries(data.writes)) {
+      try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      } catch (_) { /* quota or storage unavailable */ }
+    }
+    // A device paired for syncing is sent the player's new state.
+    if ('kipukas_player_doc' in data.writes && globalThis.kipukasSync?.isConnected()) {
+      globalThis.kipukasSync.broadcastUpdate();
+    }
+  } else if (data.type === 'ROOM') {
+    // The room the player is in (null: none). The connection script reads
+    // it when it loads, which it does as soon as there is a room to return
+    // to: the engine is already back in it, and only the socket is missing.
+    globalThis.kipukasRoom = data.room;
+    roomSaid = data.room !== null;
+    const store = globalThis.Alpine?.store('room');
+    if (store) store.inRoom = roomSaid;
+    if (roomSaid) {
+      import('/assets/js/kipukas-multiplayer.js').catch((err) => {
+        console.warn('[kipukas-api] Failed to load the connection script:', err);
+      });
+    }
+  } else if (data.type === 'QUIET') {
+    globalThis.dispatchEvent(new CustomEvent('kipukas-room-moved'));
+  } else if (data.type === 'RELOAD') {
+    location.reload();
+  }
+});
+
+// Another tab wrote or removed one of the engine's keys. What it holds now
+// is read afresh: two tabs loading at once both write, and the last write is
+// the one that counts.
+globalThis.addEventListener('storage', (event) => {
+  if (ENGINE_KEYS.includes(event.key)) {
+    report({ event: 'storage', key: event.key, value: stored(event.key) });
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') report({ event: 'shown' });
+});
+
+// A page restored from the back/forward cache saw nothing of storage while
+// it was frozen: the engine is handed what is stored now.
+globalThis.addEventListener('pageshow', (event) => {
+  if (event.persisted) report({ event: 'restored', stored: allStored() });
+});
 
 // ============================================
 // JXL DECODE WORKER POOL — parallel, off the /api worker
@@ -330,138 +294,6 @@ document.addEventListener('htmx:beforeRequest', (evt) => {
 wasmWorker.onerror = (err) => {
   console.error('[kipukas-api] WASM Worker error:', err);
 };
-
-// ============================================
-// PERSIST_STATE listener — auto-save PLAYER_DOC after every game mutation
-// ============================================
-// The WASM worker sends { type: 'PERSIST_STATE' } after every POST to /api/game/*.
-// We fetch the full PLAYER_DOC as base64 from WASM and save to localStorage.
-wasmWorker.addEventListener('message', (event) => {
-  if (event.data?.type === 'PERSIST_STATE') {
-    const ch = new MessageChannel();
-    ch.port1.onmessage = (msg) => {
-      if (msg.data.html) {
-        localStorage.setItem('kipukas_player_doc', msg.data.html);
-        // Phase E: broadcast to sync peer if a sync session is active
-        if (globalThis.kipukasSync && kipukasSync.isConnected()) {
-          kipukasSync.broadcastUpdate();
-        }
-      }
-    };
-    wasmWorker.postMessage(
-      { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
-      [ch.port2],
-    );
-    persistRoomDoc();
-  }
-});
-
-/** Save the shared room document, if this player is in a room. */
-function persistRoomDoc() {
-  const session = globalThis.kipukasRoomSession.load();
-  if (!session) return;
-  // Another tab holds the room now; its document is the current one.
-  if (!globalThis.kipukasRoomSession.isOwner()) return;
-  const ch = new MessageChannel();
-  ch.port1.onmessage = (msg) => {
-    const state = msg.data.html;
-    // The room may have been left (or swapped) while this request was in
-    // flight; a stale document must not be saved against another room.
-    const current = globalThis.kipukasRoomSession.load();
-    if (!state || !current || current.code !== session.code) return;
-    globalThis.kipukasRoomSession.saveDoc(state);
-  };
-  wasmWorker.postMessage(
-    { method: 'GET', pathname: '/api/room/yrs/state', search: '', body: '' },
-    [ch.port2],
-  );
-}
-
-// ============================================
-// RESTORE PLAYER_DOC from localStorage on load
-// ============================================
-// Restore kipukas_player_doc (base64 yrs binary) if it exists.
-// Messages are queued by the worker and gated on `await wasmReady`,
-// so they are processed before any HTMX `hx-trigger="load"` requests.
-(function restorePersistedState() {
-  const playerDoc = localStorage.getItem('kipukas_player_doc');
-  if (!playerDoc) return;
-
-  console.log('[kipukas-api] Restoring PLAYER_DOC from localStorage');
-  const ch = new MessageChannel();
-  ch.port1.onmessage = (msg) => {
-    if (msg.data.html === 'ok') {
-      console.log('[kipukas-api] PLAYER_DOC restored from localStorage');
-    } else {
-      console.warn('[kipukas-api] PLAYER_DOC restore issue:', msg.data.html);
-    }
-  };
-  wasmWorker.postMessage(
-    { method: 'POST', pathname: '/api/player/restore', search: '', body: playerDoc },
-    [ch.port2],
-  );
-})();
-
-// ============================================
-// RESUME ROOM — put the engine back in the room before the first render
-// ============================================
-// Posted straight after the player doc restore and before HTMX issues any
-// `hx-trigger="load"` request (the worker handles requests in the order they
-// are posted). The engine is therefore in room mode, with the shared document
-// restored, by the time anything renders: timers and tools show shared state
-// from the start, and edits made while the peer is still reconnecting go to
-// the shared document rather than to a solo copy.
-(function resumeRoom() {
-  const session = globalThis.kipukasRoomSession.load();
-  if (!session) return;
-
-  // A session saved before player ids existed gets one now.
-  if (!session.playerId) {
-    session.playerId = globalThis.kipukasRoomSession.newPlayerId();
-  }
-  // Saving refreshes the session's age and makes this tab the one that holds
-  // the room: any other tab of this player goes quiet.
-  globalThis.kipukasRoomSession.save(session);
-
-  console.log('[kipukas-api] Resuming room', session.code);
-  const body = 'code=' + encodeURIComponent(session.code) +
-    '&name=' + encodeURIComponent(session.name || '') +
-    '&player=' + encodeURIComponent(session.playerId) +
-    '&peer=' + encodeURIComponent(session.peerId || '') +
-    '&state=' + globalThis.kipukasRoomSession.loadDoc();
-  const ch = new MessageChannel();
-  ch.port1.onmessage = (msg) => {
-    if (msg.data.html !== 'ok') {
-      console.warn('[kipukas-api] Room resume issue:', msg.data.html);
-    }
-  };
-  wasmWorker.postMessage(
-    { method: 'POST', pathname: '/api/room/resume', search: '', body },
-    [ch.port2],
-  );
-})();
-
-// ============================================
-// AUTO-LOAD multiplayer module if room session exists
-// ============================================
-// kipukas-multiplayer.js is normally lazy-loaded when the user clicks
-// the multiplayer button. But if there's a saved room session from a
-// previous page, we need to eagerly load it so autoReconnect() fires
-// and the WebSocket relay reconnects automatically on page navigation.
-(function autoLoadMultiplayer() {
-  if (!globalThis.kipukasRoomSession.load()) return;
-  if (globalThis.kipukasMultiplayerLoaded) return;
-
-  console.log('[kipukas-api] Saved room session found, auto-loading multiplayer module');
-  import('/assets/js/kipukas-multiplayer.js')
-    .then(function () {
-      globalThis.kipukasMultiplayerLoaded = true;
-      console.log('[kipukas-api] Multiplayer module auto-loaded for reconnect');
-    })
-    .catch(function (err) {
-      console.warn('[kipukas-api] Failed to auto-load multiplayer:', err);
-    });
-})();
 
 // ============================================
 // QR detection stack is loaded on demand

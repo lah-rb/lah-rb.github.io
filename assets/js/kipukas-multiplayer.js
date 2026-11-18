@@ -43,29 +43,18 @@ let helloTimer = null;
 // left exactly as they were.
 let pendingAction = null;
 
-// ── Session + UI state ─────────────────────────────────────────────
+// ── UI state ───────────────────────────────────────────────────────
 
-// Storage is owned by kipukas-api.js (globalThis.kipukasRoomSession), which
-// also restores the room in the engine on page load and saves the shared
-// document after every change.
-const roomSession = globalThis.kipukasRoomSession;
+// The engine keeps the room between page loads (kipukas-server/src/store.rs):
+// it is told when a room is created, joined or left, and of the opponent's
+// id, and has the page store what it needs. At load it says which room this
+// player is in (globalThis.kipukasRoom, set by kipukas-api.js).
 
-/** Save the current room session. */
-function saveSession() {
-  if (!roomCode) return;
-  roomSession.save({
-    code: roomCode,
-    name: roomName,
-    creator: isCreator,
-    playerId,
-    peerId,
-  });
-  setRoomStore({ inRoom: true });
-}
-
-/** Load the saved room session (null if none). */
-function loadSession() {
-  return roomSession.load();
+/** A fresh random id for this player in a room (24 hex characters). */
+function newPlayerId() {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Update the Alpine store the toolbar tools and status pill read. */
@@ -82,7 +71,7 @@ const link = createLink({
   url: relayAddress,
   // Keep retrying for as long as we are in a room. A create/join the user just
   // asked for is different: if the relay cannot be reached, say so and stop.
-  shouldRetry: () => pendingAction === null && !!loadSession(),
+  shouldRetry: () => pendingAction === null && !!roomCode,
   onMessage: handleSignalingMessage,
   onState: onLinkState,
   log: (...args) => console.log('[multiplayer]', ...args),
@@ -98,9 +87,8 @@ const link = createLink({
  */
 function relayAddress() {
   const url = new URL(globalThis.kipukasRelayUrl());
-  const session = loadSession();
   const want = pendingAction ||
-    (session ? { action: 'rejoin', code: session.code, name: session.name || '' } : {});
+    (roomCode ? { action: 'rejoin', code: roomCode, name: roomName } : {});
   for (const [key, value] of Object.entries(want)) url.searchParams.set(key, value);
   url.searchParams.set('player', playerId);
   return url.toString();
@@ -179,7 +167,6 @@ function handleSignalingMessage(msg) {
       roomCode = msg.code;
       roomName = msg.name || '';
       console.log('[multiplayer] Room created:', roomCode);
-      saveSession();
       link.settled();
       // Only a create the user asked for initialises the engine's room.
       if (pendingAction) {
@@ -197,7 +184,6 @@ function handleSignalingMessage(msg) {
       roomCode = msg.code;
       roomName = msg.name || roomName;
       console.log('[multiplayer] Joined room:', roomCode);
-      saveSession();
       link.settled();
       // Only a join the user asked for initialises the engine's room. A resume
       // (page load or reconnect) must not: /api/room/join starts a fresh shared
@@ -282,15 +268,13 @@ function handleSignalingMessage(msg) {
 function setPeerId(id) {
   if (typeof id !== 'string' || !id || id === peerId) return;
   peerId = id;
-  saveSession();
-  // The engine draws the fists dialog again: whose entries count as the
-  // opponent's has changed.
+  // The engine keeps it, and draws the fists dialog again: whose entries
+  // count as the opponent's has changed.
   postToWasm('POST', '/api/room/peer', 'id=' + encodeURIComponent(peerId));
 }
 
-/** Leave the room locally: forget the session and return the engine to solo mode. */
+/** Leave the room locally: the engine forgets it and goes back to playing alone. */
 function leaveRoom({ refreshStatus = true } = {}) {
-  roomSession.clear();
   peerPresent = false;
   pendingAction = null;
   roomCode = '';
@@ -488,9 +472,9 @@ function showError(message) {
 
 // ── Resume on page load ────────────────────────────────────────────
 
-/** Rejoin the relay room from a saved session (after page navigation). */
+/** Rejoin the relay room the engine says this player is in (after page navigation). */
 function resume() {
-  const session = loadSession();
+  const session = globalThis.kipukasRoom;
   if (!session) return;
 
   console.log('[multiplayer] Found saved session, rejoining room:', session.code);
@@ -500,9 +484,8 @@ function resume() {
   playerId = session.playerId || '';
   peerId = session.peerId || '';
 
-  // The engine was already put back in this room, with the shared document
-  // restored, by kipukas-api.js (POST /api/room/resume) before this module
-  // loaded. All that is left is the socket.
+  // The engine put itself back in this room, with the shared document
+  // restored, when the page loaded. All that is left is the socket.
   link.start();
 }
 
@@ -517,7 +500,7 @@ const kipukasMultiplayer = {
     const nameInput = document.getElementById('room-name-input');
     roomName = nameInput ? nameInput.value.trim() : '';
     isCreator = true;
-    playerId = roomSession.newPlayerId();
+    playerId = newPlayerId();
     peerId = '';
 
     connectFor({ action: 'create', name: roomName });
@@ -535,7 +518,7 @@ const kipukasMultiplayer = {
     }
     isCreator = false;
     roomName = name;
-    playerId = roomSession.newPlayerId();
+    playerId = newPlayerId();
     peerId = '';
 
     connectFor({ action: 'join', code, name });

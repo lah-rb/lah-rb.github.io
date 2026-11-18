@@ -155,16 +155,8 @@
                     const html = msg.data.html;
                     if (html.includes('successfully')) {
                       statusMsg = '✓ Player data restored! Reloading…'; statusOk = true;
-                      // Persist the restored PLAYER_DOC to localStorage
-                      const pch = new MessageChannel();
-                      pch.port1.onmessage = function(pmsg) {
-                        if (pmsg.data.html) localStorage.setItem('kipukas_player_doc', pmsg.data.html);
-                        setTimeout(function() { location.reload(); }, 800);
-                      };
-                      kipukasWorker.postMessage(
-                        { method: 'GET', pathname: '/api/player/state', search: '', body: '' },
-                        [pch.port2]
-                      );
+                      // The engine has the restored state stored (kipukas-api.js, SAVE).
+                      setTimeout(function() { location.reload(); }, 800);
                     } else {
                       statusMsg = html.replace(/<[^>]*>/g, ''); statusOk = false;
                     }

@@ -12,7 +12,10 @@
 
 // This device's id in the sync room (the relay keys each place in a room by
 // player id). A fresh one per page load: a sync session does not outlive it.
-const SYNC_PLAYER_ID = globalThis.kipukasRoomSession.newPlayerId();
+const SYNC_PLAYER_ID = Array.from(
+  crypto.getRandomValues(new Uint8Array(12)),
+  (b) => b.toString(16).padStart(2, '0'),
+).join('');
 
 /**
  * The relay address for one connection, saying what this device wants:
@@ -248,9 +251,8 @@ function handleRelayedMessage(msg) {
         'update=' + msg.update,
         (result) => {
           if (result === 'ok') {
+            // The engine has the merged state stored (kipukas-api.js, SAVE).
             console.log('[sync] PLAYER_DOC update applied');
-            // Persist the merged state to localStorage
-            persistState();
             globalThis.dispatchEvent(new CustomEvent('sync-updated'));
           } else {
             console.warn('[sync] Failed to apply update:', result);
@@ -276,25 +278,11 @@ function initiatePlayerSync() {
   });
 }
 
-// ── State persistence ──────────────────────────────────────────────
-
-function persistState() {
-  wasmRequest('GET', '/api/player/state', '', '', (b64) => {
-    if (b64) {
-      try {
-        localStorage.setItem('kipukas_player_doc', b64);
-        console.log('[sync] PLAYER_DOC persisted after sync');
-      } catch (e) {
-        console.warn('[sync] Failed to persist:', e);
-      }
-    }
-  });
-}
-
 // ── Live sync broadcast ────────────────────────────────────────────
 
 /** Broadcast PLAYER_DOC changes to the sync peer.
- *  Called by kipukas-api.js on PERSIST_STATE when a sync session is active.
+ *  Called by kipukas-api.js when the engine has the player's state stored
+ *  and a sync session is active.
  *  Sends our full diff (from empty SV) — yrs deduplicates already-seen changes. */
 function broadcastUpdate() {
   if (!authenticated || !peerPresent) return;

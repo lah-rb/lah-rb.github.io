@@ -17,6 +17,7 @@ use crate::game::player_doc;
 use crate::game::room::{self, CombatRole, FistsChoice, FistsSubmission};
 use crate::game::state::new_alarm_id;
 use crate::page;
+use crate::store;
 use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
 use crate::typing;
 
@@ -102,103 +103,64 @@ fn render_connected_status(r: &room::RoomState) -> String {
     h
 }
 
-// ── POST /api/room/create ──────────────────────────────────────────
+// ── The room's life in the engine ──────────────────────────────────
+//
+// What happens here when this player enters a room, returns to it, learns
+// who the opponent is, sees them come and go, and leaves. These are not
+// routes: the room's connection calls them as the relay and the opponent
+// report each of those things.
 
-pub fn handle_create_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let code = get_param(&params, "code").unwrap_or("");
-    let name = get_param(&params, "name").unwrap_or("");
-    let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
-    let player = get_param(&params, "player").unwrap_or("");
-
+/// This player created a room (`creator`) or joined one: start its shared
+/// state. `player` is this player's id in the room.
+///
+/// The player's own timers are copied into the room's document, so that they
+/// become shared. Both players do this, and a timer both of them hold (after
+/// an earlier session each keeps a copy) merges into one by its id.
+pub fn enter(code: &str, name: &str, player: &str, creator: bool) {
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
         r.room_name = name.to_string();
         r.connected = false;
+        r.creator = creator;
         r.player_id = player_id_or_new(player);
         r.peer_id.clear();
         r.fists.reset();
         r.choice = FistsChoice::default();
     });
-
-    // Initialize yrs CRDT Doc for this multiplayer session.
-    // On fresh room creation, seed with pre-existing local alarms so
-    // they become shared. On reconnect (skip_seed=true), the CRDT Doc
-    // will be restored from sessionStorage instead — seeding here would
-    // introduce stale alarms with new yrs client IDs that survive the
-    // restore merge, causing timers to reappear or duplicate.
     crdt::init_doc();
-    if !skip_seed {
-        crdt::seed_from_local();
-    }
+    crdt::seed_from_local();
+    // This tab now holds the room, and the next handover writes it down.
+    store::claim_room();
     // The turn tracker now lists the room's timers.
     page::redraw("/api/game/turns");
-
-    r#"<span class="text-emerald-600 text-sm">Room created. Waiting for peer...</span>"#
-        .to_string()
 }
 
-// ── POST /api/room/join ────────────────────────────────────────────
-
-pub fn handle_join_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let code = get_param(&params, "code").unwrap_or("");
-    let name = get_param(&params, "name").unwrap_or("");
-    let skip_seed = get_param(&params, "skip_seed").unwrap_or("false") == "true";
-    let player = get_param(&params, "player").unwrap_or("");
-
-    room::with_room_mut(|r| {
-        r.room_code = code.to_uppercase();
-        if !name.is_empty() {
-            r.room_name = name.to_string();
-        }
-        r.connected = false;
-        r.player_id = player_id_or_new(player);
-        r.peer_id.clear();
-        r.fists.reset();
-        r.choice = FistsChoice::default();
-    });
-
-    // Initialize yrs CRDT Doc for this multiplayer session.
-    // See handle_create_post for skip_seed rationale.
-    crdt::init_doc();
-    if !skip_seed {
-        crdt::seed_from_local();
-    }
-    // The turn tracker now lists the room's timers.
-    page::redraw("/api/game/turns");
-
-    room::with_room(|r| render_waiting_status(r))
-}
-
-// ── POST /api/room/resume ─────────────────────────────────────────
-
-/// Put this player back in a room after a page load.
+/// Put this player back in a room after a page load, from what was stored:
+/// the room, who they and the opponent are in it, and its document (url-safe
+/// base64, empty if none was stored).
 ///
-/// Body: `code=<code>&name=<name>&player=<this player's id>&peer=<opponent's
-/// id, if known>&state=<url-safe base64 room document>`
-///
-/// Unlike create/join this is not the start of a session: it never seeds the
-/// room document from local timers and never resets combat. It restores the
-/// room document exactly as it was persisted, so the first render on the new
-/// page already shows shared state — timers and the round in progress. The
-/// peer is marked absent until the relay reports `peer_joined`.
-pub fn handle_resume_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let code = get_param(&params, "code").unwrap_or("");
-    let name = get_param(&params, "name").unwrap_or("");
-    let player = get_param(&params, "player").unwrap_or("");
-    let peer = get_param(&params, "peer").unwrap_or("");
-    let state = get_param(&params, "state").unwrap_or("");
-
+/// Unlike `enter` this is not the start of a session: it never seeds the
+/// room document from the player's own timers and never resets combat. It
+/// restores the room document exactly as it was stored, so the first drawing
+/// on the new page already shows shared state: timers and the round in
+/// progress. The opponent is marked absent until the relay reports them.
+pub fn resume(
+    code: &str,
+    name: &str,
+    player: &str,
+    peer: &str,
+    creator: bool,
+    state: &str,
+) -> Result<(), String> {
     if code.is_empty() {
-        return r#"{"error":"missing room code"}"#.to_string();
+        return Err("missing room code".to_string());
     }
 
     room::with_room_mut(|r| {
         r.room_code = code.to_uppercase();
         r.room_name = name.to_string();
         r.connected = false;
+        r.creator = creator;
         r.player_id = player_id_or_new(player);
         r.peer_id = if fists::is_valid_player_id(peer) {
             peer.to_string()
@@ -215,14 +177,11 @@ pub fn handle_resume_post(body: &str) -> String {
     settle_fists();
     sync_fists_view();
 
-    match restored {
-        Ok(()) => "ok".to_string(),
-        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
-    }
+    restored
 }
 
-/// This player's id for the room. The page always supplies one; a random one
-/// is used if it is missing or malformed, so two players can never share an id.
+/// This player's id for the room. One is always supplied; a random one is
+/// used if it is missing or malformed, so two players can never share an id.
 fn player_id_or_new(player: &str) -> String {
     if fists::is_valid_player_id(player) {
         player.to_string()
@@ -231,14 +190,9 @@ fn player_id_or_new(player: &str) -> String {
     }
 }
 
-// ── POST /api/room/peer ───────────────────────────────────────────
-
-/// Record the opponent's id (from their hello). Only that player's entries
-/// then count as the opponent's submissions.
-/// Body: `id=<opponent's id>`.
-pub fn handle_peer_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let id = get_param(&params, "id").unwrap_or("");
+/// Record the opponent's id (from the relay, or from their hello). Only that
+/// player's entries then count as the opponent's submissions.
+pub fn set_peer(id: &str) {
     if fists::is_valid_player_id(id) {
         room::with_room_mut(|r| r.peer_id = id.to_string());
     }
@@ -246,55 +200,107 @@ pub fn handle_peer_post(body: &str) -> String {
     // Whose entries count as the opponent's has changed, and with it what
     // the fists dialog shows.
     page::redraw("/api/room/fists");
-    "ok".to_string()
 }
 
-// ── POST /api/room/connected ──────────────────────────────────────
-
-pub fn handle_connected_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let code = get_param(&params, "code").unwrap_or("");
-    let name = get_param(&params, "name").unwrap_or("");
-
-    room::with_room_mut(|r| {
-        r.connected = true;
-        if !code.is_empty() {
-            r.room_code = code.to_uppercase();
-        }
-        if !name.is_empty() {
-            r.room_name = name.to_string();
-        }
-    });
+/// The opponent is in the room and can be reached.
+pub fn peer_arrived() {
+    room::with_room_mut(|r| r.connected = true);
     page::redraw("/api/game/turns");
-
-    room::with_room(|r| render_connected_status(r))
 }
 
-// ── POST /api/room/disconnect ──────────────────────────────────────
+/// The opponent cannot be reached (a page change, a locked phone, or our own
+/// connection is down). The room is kept: they, or we, will be back.
+pub fn peer_gone() {
+    room::with_room_mut(|r| r.connected = false);
+}
 
-pub fn handle_disconnect_post(_body: &str) -> String {
-    // Export shared CRDT alarms back to local PLAYER_DOC before reset.
-    // The PERSIST_STATE message (triggered by the worker for /api/room/*
-    // POSTs) ensures this change is saved to localStorage, preventing
-    // stale timer data from ghosting back on the next page load.
+/// Leave the room: back to playing alone.
+pub fn leave() {
+    // The room's timers are copied back to the player's own before the room
+    // is forgotten, so they are still there when playing alone.
     crdt::export_to_local();
     room::reset_room();
     crdt::reset_doc();
     // The turn tracker goes back to listing the player's own timers.
     page::redraw("/api/game/turns");
-    render_disconnected_status()
 }
 
-// ── POST /api/room/peer_left ───────────────────────────────────────
+/// Apply an update of the room document from the opponent (base64). It may
+/// carry timers, combat, or both.
+///
+/// What follows from it is queued for the page (see `crate::page`): the
+/// views that show the room's state are drawn again, and so are the card
+/// panels if the update delivered a lost round, to show the damage.
+pub fn apply_peer_update(update: &str) -> Result<(), String> {
+    crdt::apply_update(update)?;
 
-/// Peer disconnected (e.g. navigated away). Keep room data so we can reconnect.
+    // Keep the player's own timers in step with what the opponent changed,
+    // the same as this player's own changes do. If the session ends without
+    // a clean leave, this player's own timers are still current.
+    crdt::export_to_local();
+
+    // The update may have delivered the outcome of a round. Applying it is
+    // recorded in the room document, and that is sent back.
+    crdt::queue_for_peer(crdt::capture_update(settle_fists));
+    sync_fists_view();
+
+    page::redraw("/api/game/turns");
+    page::redraw("/api/room/fists");
+    Ok(())
+}
+
+// ── Routes the page's connection script still posts to ─────────────
+//
+// kipukas-multiplayer.js holds the connection and reports what the relay
+// says through these. They go when the connection moves into the engine.
+
+/// POST /api/room/create — `code=<code>&name=<name>&player=<id>`.
+pub fn handle_create_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    enter(
+        get_param(&params, "code").unwrap_or(""),
+        get_param(&params, "name").unwrap_or(""),
+        get_param(&params, "player").unwrap_or(""),
+        true,
+    );
+    "ok".to_string()
+}
+
+/// POST /api/room/join — `code=<code>&name=<name>&player=<id>`.
+pub fn handle_join_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    enter(
+        get_param(&params, "code").unwrap_or(""),
+        get_param(&params, "name").unwrap_or(""),
+        get_param(&params, "player").unwrap_or(""),
+        false,
+    );
+    "ok".to_string()
+}
+
+/// POST /api/room/peer — `id=<opponent's id>`.
+pub fn handle_peer_post(body: &str) -> String {
+    let params = parse_form_body(body);
+    set_peer(get_param(&params, "id").unwrap_or(""));
+    "ok".to_string()
+}
+
+/// POST /api/room/connected
+pub fn handle_connected_post(_body: &str) -> String {
+    peer_arrived();
+    "ok".to_string()
+}
+
+/// POST /api/room/disconnect
+pub fn handle_disconnect_post(_body: &str) -> String {
+    leave();
+    "ok".to_string()
+}
+
+/// POST /api/room/peer_left
 pub fn handle_peer_left_post(_body: &str) -> String {
-    room::with_room_mut(|r| {
-        r.connected = false;
-        // Keep room_code and room_name so auto-reconnect works
-    });
-
-    room::with_room(|r| render_waiting_status(r))
+    peer_gone();
+    "ok".to_string()
 }
 
 // ── Fists combat ───────────────────────────────────────────────────
@@ -961,52 +967,14 @@ pub fn handle_yrs_diff_post(body: &str) -> String {
     }
 }
 
-/// POST /api/room/yrs/apply — apply a base64-encoded update from peer.
-///
-/// The update may carry timers, combat, or both. Returns `ok`, or
-/// `{ "error": "..." }`.
-///
-/// What follows from it is queued for the page (see `crate::page`): the
-/// views that show the room's state are drawn again, and so are the card
-/// panels if the update delivered a lost round, to show the damage.
+/// POST /api/room/yrs/apply — apply a base64-encoded update from the
+/// opponent (`update=<base64>`). Returns `ok`, or `{ "error": "..." }`.
 pub fn handle_yrs_apply_post(body: &str) -> String {
     let params = parse_form_body(body);
     let update = get_param(&params, "update").unwrap_or(body.trim());
-    match crdt::apply_update(update) {
-        Ok(()) => {
-            // Keep PLAYER_DOC in sync with what the peer changed, the same as
-            // this player's own changes do. If the session ends without a
-            // clean disconnect, this player's own timers are still current.
-            crdt::export_to_local();
-
-            // The update may have delivered the outcome of a round. Applying
-            // it is recorded in the room document, and that is sent back.
-            crdt::queue_for_peer(crdt::capture_update(settle_fists));
-            sync_fists_view();
-
-            page::redraw("/api/game/turns");
-            page::redraw("/api/room/fists");
-            "ok".to_string()
-        }
-        Err(e) => serde_json::json!({ "error": e }).to_string(),
-    }
-}
-
-/// GET /api/room/yrs/state — return the full CRDT Doc state as URL-safe base64.
-/// Used by JS to persist Doc to sessionStorage across page navigation.
-pub fn handle_yrs_state_get(_query: &str) -> String {
-    crdt::encode_full_state()
-}
-
-/// POST /api/room/yrs/restore — restore CRDT Doc from persisted state.
-/// Body: state=<url-safe-base64>
-/// Called on page load to recover Doc before sync handshake.
-pub fn handle_yrs_restore_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let state = get_param(&params, "state").unwrap_or(body.trim());
-    match crdt::restore_from_state(state) {
+    match apply_peer_update(update) {
         Ok(()) => "ok".to_string(),
-        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+        Err(e) => serde_json::json!({ "error": e }).to_string(),
     }
 }
 
@@ -1464,7 +1432,8 @@ mod tests {
         room::reset_room();
         crdt::reset_doc();
         crdt::take_outbox();
-        page::take_redraws();
+        page::reset();
+        store::reset();
         crate::game::player_doc::init_player_doc();
     }
 
@@ -1472,8 +1441,8 @@ mod tests {
     /// The opponent is not marked connected: none of the fists routes need
     /// them to be. Nothing is left queued for the page.
     fn enter_room() {
-        handle_create_post(&format!("code=ABCD&name=Test&player={}", ME));
-        handle_peer_post(&format!("id={}", THEM));
+        enter("ABCD", "Test", ME, true);
+        set_peer(THEM);
         handed_over();
     }
 
@@ -1496,8 +1465,7 @@ mod tests {
         let before = theirs.transact().state_vector();
         f(&theirs);
         let diff = theirs.transact().encode_diff_v1(&before);
-        let reply = handle_yrs_apply_post(&format!("update={}", URL_SAFE_NO_PAD.encode(diff)));
-        assert_eq!(reply, "ok");
+        assert_eq!(apply_peer_update(&URL_SAFE_NO_PAD.encode(diff)), Ok(()));
     }
 
     /// A tap in the fists dialog on Brox's page, and what the dialog then
@@ -1568,8 +1536,7 @@ mod tests {
         let state = crdt::encode_full_state();
         crdt::reset_doc();
 
-        let out = handle_resume_post(&format!("code=abcd&name=My%20Room&state={}", state));
-        assert_eq!(out, "ok");
+        assert_eq!(resume("abcd", "My Room", "", "", false, &state), Ok(()));
 
         assert!(room::in_room());
         assert!(!room::is_peer_connected());
@@ -1595,8 +1562,7 @@ mod tests {
     #[test]
     fn resume_without_a_code_is_refused() {
         reset();
-        let out = handle_resume_post("name=table");
-        assert!(out.contains("error"));
+        assert!(resume("", "table", "", "", false, "").is_err());
         assert!(!room::in_room());
         reset();
     }
@@ -1610,7 +1576,7 @@ mod tests {
         crdt::reset_doc(); // our own doc starts empty
 
         assert!(crate::game::player_doc::get_alarms().is_empty());
-        assert_eq!(handle_yrs_apply_post(&format!("update={}", update)), "ok");
+        assert_eq!(apply_peer_update(&update), Ok(()));
 
         let local = crate::game::player_doc::get_alarms();
         assert_eq!(local.len(), 1);
@@ -1637,8 +1603,7 @@ mod tests {
     fn a_peer_update_that_cannot_be_read_is_an_error_and_asks_for_nothing() {
         reset();
         enter_room();
-        let reply = handle_yrs_apply_post("update=not-an-update");
-        assert!(reply.contains("error"));
+        assert!(apply_peer_update("not-an-update").is_err());
         assert_eq!(handed_over(), (0, vec![]));
         reset();
     }
@@ -1655,7 +1620,7 @@ mod tests {
     #[test]
     fn create_and_status() {
         reset();
-        handle_create_post("code=ABCD&name=Test+Room");
+        enter("abcd", "Test Room", ME, true);
         let state = room::with_room(|r| (r.room_code.clone(), r.room_name.clone()));
         assert_eq!(state.0, "ABCD");
         assert_eq!(state.1, "Test Room");
@@ -1665,12 +1630,14 @@ mod tests {
     #[test]
     fn join_stores_room_but_not_connected() {
         reset();
-        let html = handle_join_post("code=WXYZ&name=Fun+Room");
-        // Join does not set connected=true; that happens when the relay reports the peer
+        enter("WXYZ", "Fun Room", ME, false);
+        // Entering does not mark the opponent present; the relay reports them.
+        let html = handle_status_get("");
         assert!(html.contains("Waiting for peer"));
         assert!(html.contains("WXYZ"));
         room::with_room(|r| {
             assert!(!r.connected);
+            assert!(!r.creator);
             assert_eq!(r.room_code, "WXYZ");
         });
         reset();
@@ -1679,23 +1646,26 @@ mod tests {
     #[test]
     fn connected_post_sets_connected() {
         reset();
-        handle_join_post("code=WXYZ&name=Fun+Room");
-        let html = handle_connected_post("code=WXYZ&name=Fun+Room");
-        assert!(html.contains("Connected"));
+        enter("WXYZ", "Fun Room", ME, false);
+        peer_arrived();
+        assert!(handle_status_get("").contains("Connected"));
         room::with_room(|r| assert!(r.connected));
+        peer_gone();
+        assert!(handle_status_get("").contains("Waiting for peer"));
+        assert!(room::in_room(), "the room is kept while the opponent is away");
         reset();
     }
 
     #[test]
     fn entering_and_leaving_a_room_draws_the_turn_tracker_again() {
         reset();
-        handle_create_post("code=ABCD&name=Test");
+        enter("ABCD", "Test", ME, true);
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
-        handle_connected_post("code=ABCD&name=Test");
+        peer_arrived();
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
-        handle_disconnect_post("");
+        leave();
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
-        handle_join_post("code=WXYZ&name=Other");
+        enter("WXYZ", "Other", ME, false);
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
         reset();
     }
@@ -1703,9 +1673,9 @@ mod tests {
     #[test]
     fn learning_who_the_opponent_is_draws_the_fists_dialog_again() {
         reset();
-        handle_create_post(&format!("code=ABCD&name=Test&player={}", ME));
+        enter("ABCD", "Test", ME, true);
         handed_over();
-        assert_eq!(handle_peer_post(&format!("id={}", THEM)), "ok");
+        set_peer(THEM);
         assert_eq!(page::take_redraws(), ["/api/room/fists"]);
         room::with_room(|r| assert_eq!(r.peer_id, THEM));
         reset();
@@ -1737,8 +1707,8 @@ mod tests {
     #[test]
     fn disconnect_resets() {
         reset();
-        handle_join_post("code=ABCD&name=Test");
-        handle_disconnect_post("");
+        enter("ABCD", "Test", ME, false);
+        leave();
         room::with_room(|r| {
             assert!(!r.connected);
             assert!(r.room_code.is_empty());
@@ -2003,10 +1973,7 @@ mod tests {
         reset();
         assert!(!room::in_room());
 
-        handle_resume_post(&format!(
-            "code=ABCD&name=Test&player={}&peer={}&state={}",
-            ME, THEM, state
-        ));
+        resume("ABCD", "Test", ME, THEM, true, &state).unwrap();
         let html = handle_fists_get("?card=liliel_healing_fairy");
         assert!(html.contains("Choice Locked In"));
         room::with_room(|r| {
@@ -2301,9 +2268,9 @@ mod tests {
         lock_in_brox("attacking");
         tap("action=reset");
         tap("action=choose&card=brox_the_defiant&role=attacking");
-        handle_disconnect_post("");
+        leave();
 
-        handle_join_post("code=WXYZ&name=Other&player=me2");
+        enter("WXYZ", "Other", "me2", false);
         room::with_room(|r| {
             assert_eq!(r.player_id, "me2");
             assert!(r.peer_id.is_empty());
@@ -2318,11 +2285,11 @@ mod tests {
     #[test]
     fn a_missing_or_malformed_player_id_gets_a_random_one() {
         reset();
-        handle_create_post("code=ABCD&name=Test");
+        enter("ABCD", "Test", "", true);
         let first = room::with_room(|r| r.player_id.clone());
         assert!(fists::is_valid_player_id(&first));
-        handle_disconnect_post("");
-        handle_create_post("code=ABCD&name=Test&player=bad%20id");
+        leave();
+        enter("ABCD", "Test", "bad id", true);
         let second = room::with_room(|r| r.player_id.clone());
         assert!(fists::is_valid_player_id(&second));
         assert_ne!(first, second);

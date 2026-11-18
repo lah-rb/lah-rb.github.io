@@ -153,6 +153,9 @@ pub struct RoomState {
     pub room_name: String,
     /// Whether a peer is currently connected through the relay
     pub connected: bool,
+    /// Whether this player created the room (and did not join it).
+    #[serde(default)]
+    pub creator: bool,
     /// This player's id in the room (chosen by the page when the room is
     /// created or joined). Keys this player's entries in the room document.
     #[serde(default)]

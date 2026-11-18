@@ -150,29 +150,6 @@ pub fn handle_turns_post(body: &str) -> String {
     turns::render_alarm_list()
 }
 
-// ── GET /api/player/state ──────────────────────────────────────────
-
-/// Handle GET /api/player/state
-/// Returns the full PLAYER_DOC as a base64 binary string for persistence.
-/// Called by kipukas-api.js on PERSIST_STATE to save to localStorage.
-pub fn handle_player_state_get(_query: &str) -> String {
-    player_doc::encode_full_state()
-}
-
-// ── POST /api/player/restore ───────────────────────────────────────
-
-/// Handle POST /api/player/restore
-/// Restores the PLAYER_DOC from a base64 binary string.
-/// Called by kipukas-api.js on page load to restore from localStorage.
-pub fn handle_player_restore_post(body: &str) -> String {
-    let params = parse_form_body(body);
-    let state_b64 = get_param(&params, "state").unwrap_or(body.trim());
-    match player_doc::restore_from_state(state_b64) {
-        Ok(()) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    }
-}
-
 // ── GET /api/player/export ─────────────────────────────────────────
 
 /// Handle GET /api/player/export
@@ -320,28 +297,33 @@ mod tests {
         reset_state();
     }
 
+    /// The player's state survives a page load: what the engine hands over
+    /// to be stored is what the next page starts it with.
     #[test]
     fn player_state_roundtrip() {
         reset_state();
+        crate::store::handle_start_post("{}");
         // Set some state
         crate::game::player_doc::add_alarm(5, "test", "green");
         crate::game::player_doc::ensure_card_state("test_card", 3);
         crate::game::player_doc::toggle_slot("test_card", 1);
 
-        // Export
-        let b64 = handle_player_state_get("");
+        // What the engine asks to be stored
+        let saves = crate::store::take_saves();
+        let b64 = saves[crate::store::PLAYER_DOC].clone().unwrap();
         assert!(!b64.is_empty());
 
-        // Reset and restore
+        // A new page: the engine starts empty and is handed what was stored
         crate::game::player_doc::init_player_doc();
-        let result = handle_player_restore_post(&b64);
-        assert_eq!(result, "ok");
+        let stored = serde_json::json!({ crate::store::PLAYER_DOC: b64 });
+        assert_eq!(crate::store::handle_start_post(&stored.to_string()), "ok");
 
         // Verify state was restored
         assert!(crate::game::player_doc::get_slot("test_card", 1));
         let alarms = crate::game::player_doc::get_alarms();
         assert_eq!(alarms.len(), 1);
         assert_eq!(alarms[0].name, "test");
+        crate::store::reset();
         reset_state();
     }
 }
