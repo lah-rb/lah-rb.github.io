@@ -483,7 +483,7 @@ Firefox does not keep a page that is left while its art is still loading, nor th
 
 A damage slot is a heart: whole and red while the keal means stands, broken and pale once it is marked. The heart's markup is the same either way. The stylesheet shows the whole heart or the broken one from the button's `aria-pressed` (`.damage-heart` in `assets/css/input.css`), so marking a slot changes one attribute on an element the patch keeps, and the change plays as a transition. Where a state can be shown by a rule on an attribute the engine already writes, prefer that to a second set of classes: there is less to render, and nothing for the two to disagree about.
 
-The outlines are the drawings in `assets/utility_images/` (`whole_heart.svg`, `broken_heart.svg`), read when the engine is compiled (`game/damage.rs`): redraw a heart there, rebuild, and it is the heart on every card. Only the outlines are taken. The line (2px at any size) and the colours are the stylesheet's.
+The outlines are the drawings in `assets/utility_images/` (`whole_heart.svg`, `broken_heart.svg`), read when the engine is compiled (`game/damage.rs`): redraw a heart there, rebuild, and it is the heart on every card. Only the outlines are taken. The line (1.5px at any size) and the colours are the stylesheet's.
 
 `assets/js/kipukas-view.js` does these things:
 

@@ -125,8 +125,9 @@
    broken heart's two halves and the whole heart over them; which shows
    follows the button's aria-pressed, so marking a slot is a change of one
    attribute and these transitions carry it. The outlines are the owner's
-   drawings; the line and the colours are set here. The line is 2px whatever
-   size the heart is drawn at, the weight of the site's borders. */
+   drawings; the line and the colours are set here. The line is 1.5px
+   whatever size the heart is drawn at: a little under the site's 2px
+   borders, which read as heavy on a shape this small. */
 @layer components {
   .damage-slot { @apply inline-flex shrink-0 items-center justify-center rounded-md; }
   .damage-slot:active .damage-heart { @apply scale-90; }
@@ -135,7 +136,7 @@
   .damage-heart { @apply h-8 w-8 overflow-visible transition-transform duration-150; }
   .damage-heart path {
     @apply stroke-kip-drk-sienna;
-    stroke-width: 2;
+    stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
