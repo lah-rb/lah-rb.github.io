@@ -585,7 +585,11 @@ fn privacy_modal() -> String {
 ///
 /// The page runs the camera while the element marked `data-qr-camera` is
 /// drawn, into the video in it, and reads frames through the canvas, as
-/// often as `data-qr-every` says ([`EVERY_MS`]). Those three, and the
+/// often as `data-qr-every` says ([`EVERY_MS`]). The video fills a square
+/// (`object-cover`), so a camera's picture that is not square is shown with
+/// its middle in view. A frame is that middle and no more: what the player
+/// sees in the scanner is what is read, and what the worker finds in a
+/// frame is drawn where it is in the picture. Those three, and the
 /// canvas the worker's findings are drawn on, are the page's to change, so
 /// each is marked to be kept as it is when the rest is drawn again. The
 /// button marked `data-qr-switch` is the page's too: which cameras the

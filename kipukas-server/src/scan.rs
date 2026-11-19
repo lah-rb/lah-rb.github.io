@@ -51,7 +51,8 @@ const DARKER_BY: i64 = 10;
 /// not square.
 const BARS: u8 = 114;
 
-/// The most pixels a frame may have. The scanner's frames are 640 square;
+/// The most pixels a frame may have. The scanner's frames are 640 square
+/// (the part of the camera's picture that it shows, qr-camera.js);
 /// the sums the threshold keeps would not hold many times that.
 const MOST_PIXELS: usize = 4096 * 4096;
 

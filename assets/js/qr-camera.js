@@ -9,7 +9,9 @@
  *   - run the camera for as long as the scanner's video is drawn, and stop it
  *     when it is not (browser getUserMedia API);
  *   - hand frames to the engine's worker, which finds and reads the codes in
- *     them and posts what a code says to the engine (kipukas-worker.js). How
+ *     them and posts what a code says to the engine (kipukas-worker.js). A
+ *     frame is the part of the camera's picture that the scanner shows, and
+ *     no more: what the player aims at is what is read. How
  *     often is the engine's to say (data-qr-every on the scanner); the next
  *     frame is taken only when the worker is done with the last;
  *   - change which camera is in use, of those the device has (the button the
@@ -178,16 +180,38 @@
   }
 
   /**
-   * Take a frame from the camera's picture and hand it to the worker. The
-   * worker says when it is done with it (QR_DONE, below), and the next is
-   * taken then, or when the engine's time between frames is up if that is
-   * later.
+   * The part of the camera's picture that the video shows, in the picture's
+   * own pixels: left, top, width, height. The engine draws the video to
+   * fill its place (object-fit: cover), so a picture of another shape than
+   * that place is shown with its middle in view and the rest cut off, by
+   * the same amount on either side. Null until both have a size.
+   */
+  function shownPart(video) {
+    const across = video.videoWidth;
+    const down = video.videoHeight;
+    const placeAcross = video.clientWidth;
+    const placeDown = video.clientHeight;
+    if (!across || !down || !placeAcross || !placeDown) return null;
+    // How much the picture is enlarged to fill the place.
+    const scale = Math.max(placeAcross / across, placeDown / down);
+    const width = placeAcross / scale;
+    const height = placeDown / scale;
+    return [(across - width) / 2, (down - height) / 2, width, height];
+  }
+
+  /**
+   * Take a frame and hand it to the worker: the part of the camera's
+   * picture that the scanner shows, drawn to the size of the canvas frames
+   * are read through. The worker says when it is done with it (QR_DONE,
+   * below), and the next is taken then, or when the engine's time between
+   * frames is up if that is later.
    */
   function takeFrame() {
     if (!scanning) return;
     const video = scannerVideo();
     const worker = globalThis.kipukasWorker;
-    if (!video || !worker || !frameCtx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    const part = video && shownPart(video);
+    if (!part || !worker || !frameCtx || video.readyState !== video.HAVE_ENOUGH_DATA) {
       // No picture yet.
       takeFrameIn(every());
       return;
@@ -195,7 +219,7 @@
 
     let imageData;
     try {
-      frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+      frameCtx.drawImage(video, ...part, 0, 0, frameCanvas.width, frameCanvas.height);
       imageData = frameCtx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
     } catch (_) {
       // The picture could not be drawn this time (a browser may refuse a
