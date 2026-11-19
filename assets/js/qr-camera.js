@@ -69,20 +69,22 @@
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-    if (!data || !data.detections || data.detections.length === 0) return;
+    if (!data || !data.boxes || data.boxes.length === 0) return;
 
-    const { detections, yoloMs, frameW, frameH, decoded } = data;
+    const { boxes, yoloMs, frameW, frameH, decoded } = data;
 
     // Scale from frame coordinates to overlay canvas coordinates
     const scaleX = overlay.width / frameW;
     const scaleY = overlay.height / frameH;
 
-    for (const det of detections) {
-      const x = det.x * scaleX;
-      const y = det.y * scaleY;
-      const w = det.w * scaleX;
-      const h = det.h * scaleY;
-      const conf = (det.confidence * 100).toFixed(0);
+    // Five numbers a box: left, top, width, height, and how sure the model
+    // is of it (kipukas-server/src/scan.rs).
+    for (let at = 0; at + 4 < boxes.length; at += 5) {
+      const x = boxes[at] * scaleX;
+      const y = boxes[at + 1] * scaleY;
+      const w = boxes[at + 2] * scaleX;
+      const h = boxes[at + 3] * scaleY;
+      const conf = (boxes[at + 4] * 100).toFixed(0);
 
       // Box color: bright green if decoded, amber if detection only
       ctx.strokeStyle = decoded ? '#22c55e' : '#f59e0b';

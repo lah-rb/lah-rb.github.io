@@ -43,7 +43,7 @@ The site used HTMX for this at first (the engine as a "server" answering `fetch(
 | **Purely visual state** (the engine has no interest in it) | Alpine.js | Hamburger menu, a dialog being open, a folded section, CSS class swaps, transitions |
 | **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, turn timer, fists in a room, affinity panel, type matchup calculator, binder, hand page, room dialog, status pill, device sync, QR scanner. See [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups, the multiplayer connection, what is stored |
-| **What only a page or a worker can do** | A small script that decides nothing | Writing localStorage, holding a socket and its timers, running the camera, reading QR codes from frames |
+| **What only a page or a worker can do** | A small script that decides nothing | Writing localStorage, holding a socket and its timers, running the camera, holding the model and the reader the QR scanner's frames are given to |
 
 Alpine opens and closes things and never fetches data or reads game state. Rust is the single source of truth: anything that needs game state is an engine-owned view of it. Where the engine needs something done that it cannot do itself (store a value, open a socket, load another page), it says so and a script carries it out as told; see ["The handover"](#the-handover-what-the-engine-asks-for) under Pattern 13.
 
@@ -219,7 +219,8 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `kipukas-server/src/routes/backup.rs` | The Player Data dialog: making a backup of the player's data and restoring from one |
 | `kipukas-server/src/routes/room_status.rs` | The room dialog and the status pill, drawn from the connection |
 | `kipukas-server/src/routes/device_sync.rs` | The Sync Devices dialog, drawn from the pairing |
-| `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, and where a scanned code leads |
+| `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, where a scanned code leads, and which files its reader and model are |
+| `kipukas-server/src/scan.rs` | What is done to a camera frame around the model and the reader: the model's input, its boxes, each box cut out, the threshold, and the order the reader is offered pictures in |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
 | `kipukas-server/src/game/crypto.rs` | What protects a backup: the HMAC-SHA256 signature inside it and the seal a backup file is (AES-256-GCM under a PBKDF2 key), and the file format |
 | `kipukas-server/src/game/backup.rs` | Backups: what the Player Data dialog shows, making a backup file, restoring from one |
@@ -242,7 +243,9 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `kipukas-server/src/routes/hand.rs` | The hand page: a pane per card named in the address |
 | `kipukas-server/src/clock.rs` | The time, for what the engine does by the clock (a finished timer fading, the day of an affinity declaration). Read at route handlers and passed down |
 | `assets/js/kipukas-api.js` | Starts the engine's worker and does for the engine what only a page can: hands it what is stored at load, writes what it names, reports storage changes and the page coming back into view, registers `Alpine.store('room')`. Also starts the JPEG XL decode pool |
-| `assets/js/kipukas-worker.js` | The engine's worker: loads the WASM module and answers requests with it; reads QR codes from camera frames (YOLO + ZXing) |
+| `assets/js/kipukas-worker.js` | The engine's worker: loads the WASM module and answers requests with it; passes the QR scanner's frames between the engine, the model and the reader |
+| `assets/js/yolo-inference.js` | Runs the model that finds QR codes (ONNX Runtime Web) on what the engine gives it |
+| `assets/js/zxing-decode.js` | Fetches and starts the QR reader (zxing-cpp as a WASM module) and reads a picture with it |
 | `assets/js/kipukas-wire.js` | The worker's side of the handover: holds the engine's sockets and timers, and passes the page its part. Also used by the relay's tests to hold an engine without a browser |
 | `assets/js/kipukas-view.js` | Engine-owned views: draws `data-engine-view` elements from the engine when they are shown, sends taps and forms to it, patches the result in place |
 | `_includes/room_status.html` | The status pill's view, on every page |
@@ -538,7 +541,7 @@ When a page script changes the engine's state from outside a view, it calls `kip
 - The room dialog and the status pill, two views of the room's connection that nothing on the page drives: `kipukas-server/src/routes/room_status.rs`; templates `_includes/multiplayer.html` and `_includes/room_status.html`. Create and join are forms, so Enter submits them. What the relay answers changes what they show, and the engine has them drawn again: it compares what the dialog would show now with what it last asked to be drawn, and what the pill should show with what it shows. Something being waited for (reconnecting, the opponent away) is put on the pill only once it has lasted 1.5 seconds, by a wait the engine asks its worker for, because every page change reconnects for a moment.
 - Player Data, a dialog that hands the player a file and takes one back: `kipukas-server/src/routes/backup.rs` and `src/game/backup.rs`; template `_includes/player_data_tool.html`. Making a backup, the engine signs and encrypts the player's state (`game/crypto.rs`) and queues the file for the page (`page::download`). Restoring, the import form's file field arrives as the file's text; the engine opens it, checks the signature, puts the state in place of the player's and has every view drawn again (`page::refresh`), so nothing is reloaded. A refused form keeps its file (`data-engine-stay`) and its passphrase (drawn back by the engine, which forgets it when the dialog closes).
 - Device sync, a dialog of three screens: `kipukas-server/src/routes/device_sync.rs`; template `_includes/device_sync_tool.html`. The engine holds which screen it is on and what was typed, so a refusal keeps the passphrase in its field.
-- The QR scanner, a view the page and the worker both serve: `kipukas-server/src/routes/qr.rs`; template `_includes/qr_scanner.html`. The engine holds whether it is open and its two switches. The camera is the page's: `qr-camera.js` runs it for as long as the element the engine marks `data-qr-camera` is drawn, into the video in it, which is marked `data-engine-keep` so that turning the screen light on does not disturb the picture. The worker reads codes from the frames and posts what a code says to the engine, which decides where it leads and has the page go there (`GO` in the handover), or says in the scanner why it leads nowhere.
+- The QR scanner, a view the page and the worker both serve: `kipukas-server/src/routes/qr.rs`; template `_includes/qr_scanner.html`. The engine holds whether it is open and its two switches. The camera is the page's: `qr-camera.js` runs it for as long as the element the engine marks `data-qr-camera` is drawn, into the video in it, which is marked `data-engine-keep` so that turning the screen light on does not disturb the picture. The frames go to the engine by way of its worker (see The QR scanner's frames, below), and what a code says is posted to the scanner, which decides where it leads and has the page go there (`GO` in the handover), or says in the scanner why it leads nowhere.
 
 #### The handover: what the engine asks for
 
@@ -733,7 +736,7 @@ The last step plays two of the site's engines against the local relay, each held
 | Message | Confirms |
 |---------|----------|
 | `[kipukas-worker] WASM server initialized` | The engine loaded in its worker |
-| `[kipukas-worker] ZXing-only mode` or `YOLO+ZXing ready` | The QR decoder is ready (logged when the scanner first opens) |
+| `[kipukas-worker] The model that finds codes is ready (webgpu, …ms)` | With computer vision on: the model is loaded, and on which backend. Until then, and with it off, frames are read whole |
 | `[qr-camera] Camera started, scanning at 2 fps` | Camera + scan loop running |
 | `[kipukas-worker] Could not read all that is stored:` | Something in localStorage could not be restored at load; what, follows |
 
@@ -777,6 +780,19 @@ deno task deploy
 - `migrations`: declares the `Room` Durable Object. The free plan offers the SQLite-backed kind, which is what is used.
 
 The relay and the site must be deployed together when the messages between them change (`PROTOCOL_VERSION` in `signaling-server/src/room.js`; what the engine expects of the relay is in `kipukas-server/src/game/connection.rs`). `deno task logs` shows the deployed relay's live log.
+
+### The QR scanner's frames
+
+Twice a second the page draws the camera's picture into a 640 by 640 canvas and hands the pixels to the engine's worker (`QR_FRAME`, `qr-camera.js`). From there:
+
+1. The worker gives the frame to the engine (`scan_frame`, `kipukas-server/src/scan.rs`).
+2. With computer vision on and the model loaded, the worker runs the model on the input the engine makes of the frame (`scan_model_input`) and hands the output back (`scan_found`). The engine reads the boxes out of it, and the worker posts them to the page to draw over the picture (`QR_BBOX`).
+3. The worker asks the engine for pictures (`scan_next`) and gives each to the reader until one is read. Without the model that is the whole frame; with it, each box cut out with a margin, the surest first. Each is offered thresholded first and then as it is.
+4. What a code says is posted to the scanner (`action=found`, `routes/qr.rs`).
+
+The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
+
+While the model is being fetched, and if it cannot be, frames are read whole.
 
 ### The QR reader
 
@@ -827,7 +843,7 @@ To put another model in use, name its file in `MODEL` (`kipukas-server/src/route
 - The times are an M1 Ultra's, the WASM ones on one thread as the worker runs it. A phone is slower in both.
 - The two trained on wider boxes learned from 56 of the 70 photos, and the first model from nearly all of them. On the 14 they did not see, the boxes cut into the code on 7 of 15 codes (the first model), none and none.
 - On the validation pictures (those 14 photos with their nine variants each, and 41 pictures from the public set) they score: YOLOv12n mAP50 0.995 and mAP50-95 0.828; YOLO26n 0.995 and 0.858.
-- `YOLO_rqrr/eval/site_eval.ts` makes the table's first five columns again for any models named to it.
+- The margins were tried with the scripts the scanner had then. `YOLO_rqrr/eval/site_eval.ts` measures any models named to it through the scanner as it is now: how the boxes sit, the photos read from them with the margin the engine uses, the photos read with no model, and the time a frame.
 
 **Training one.** The pictures, scripts and runs are in `YOLO_rqrr/`, which is not in the repository. From that folder, with `uv`:
 
@@ -838,14 +854,14 @@ uv run python train/widen_and_merge.py --grow 0.15
 # 2. Train (100 epochs on Apple silicon's GPU; about an hour and a half)
 uv run python train/train_wide.py --model yolo26n.pt --name yolo26n
 
-# 3. Export for the site, in the output format the site reads
+# 3. Export for the site, in the output format the engine reads
 uv run python train/export_wide.py --run yolo26n --out models/yolo26n-qr-wide.onnx
 cp models/yolo26n-qr-wide.onnx ../assets/js-wasm/
 ```
 
 - `widen_and_merge.py` keeps a card photo and its nine augmented variants on the same side of the train/validation split (14 of the 70 photos are held out), so the validation scores are of photos the model has not seen in any form. The earlier `augment.py` shuffled them apart.
 - `train_wide.py` uses the settings of the first training (`train.py`), so that two runs differ in the model and the boxes alone.
-- A YOLO26 model has an end-to-end head whose output is `[1, 300, 6]`. `export_wide.py` leaves it out (`end2end=False`), which gives `[1, 5, 8400]` (centre, size and confidence for each of 8,400 places), the output a YOLOv12 model gives and the one the site reads.
+- A YOLO26 model has an end-to-end head whose output is `[1, 300, 6]`. `export_wide.py` leaves it out (`end2end=False`), which gives `[1, 5, 8400]` (centre, size and confidence for each of 8,400 places), the output a YOLOv12 model gives and the one the engine reads (`boxes` in `scan.rs`).
 - None of these scripts writes over anything: each refuses a folder or file that exists.
 
 ### Formatting & Linting

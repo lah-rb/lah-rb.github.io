@@ -10,20 +10,25 @@
  * engine has queued and sees it done (kipukas-wire.js): the room's sockets
  * and waits here, storage and drawing passed on to the page.
  *
- * QR detection: YOLO26n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
- * for decode. YOLO finds QR bounding boxes in the camera frame, then ZXing
- * decodes the cropped region with tryHarder mode for maximum accuracy on
- * camouflaged QR codes with low-res front-facing cameras. Which files the
- * model and the reader are, the engine says (kipukas-server/src/routes/qr.rs).
+ * And it holds the two parts of the QR scanner that are modules of their
+ * own: the model that finds codes in a camera frame (yolo-inference.js) and
+ * the reader that reads them (zxing-decode.js). What is done to a frame
+ * around those two is the engine's (kipukas-server/src/scan.rs).
  *
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
 
-import init, { handle_request } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import init, {
+  handle_request,
+  scan_found,
+  scan_frame,
+  scan_height,
+  scan_model_input,
+  scan_next,
+  scan_width,
+} from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
 import { initSession, runDetection } from './yolo-inference.js';
-import { cropDetection, parseDetections } from './postprocess.js';
-import { decodeQR as zxingDecode, initZXing } from './zxing-decode.js';
-import { adaptiveThreshold } from './adaptive-threshold.js';
+import { decodeQR as readCode, initZXing } from './zxing-decode.js';
 import { createWire } from './kipukas-wire.js';
 
 // ── WASM server init ───────────────────────────────────────────────
@@ -38,219 +43,109 @@ wasmReady.then(() => {
   console.error('[kipukas-worker] WASM init failed:', err);
 });
 
-// ── YOLO + ZXing init (for QR detect + decode) ────────────────────
+// ── The QR scanner's frames ────────────────────────────────────────
+//
+// A camera frame arrives from qr-camera.js (QR_FRAME) and goes to the
+// engine, which has all of what is done to it but two things that are
+// modules of their own, held here: the model that finds codes
+// (yolo-inference.js) and the reader that reads them (zxing-decode.js).
+// The engine names the files of both (routes/qr.rs).
 
-// The margin left around a box the model finds when it is cut out for the
-// reader, as a share of the box. The model was trained on boxes that already
-// hold a margin about the code (see CONTRIBUTING.md, The model that finds
-// codes), so little is added.
-const MARGIN = 0.05;
-
-let qrReady = false;
-let qrInitializing = false;
-let qrMode = null; // 'yolo+zxing' or 'zxing-only'
-// Whether codes are found by computer vision (YOLO) before they are read:
-// the player's choice, which the engine keeps and tells this worker of.
+// Whether codes are found by computer vision (the model) before they are
+// read: the player's choice, which the engine keeps and tells this worker of.
 let cvEnabled = false;
-// The addresses of the QR reader's file and the model's, as the engine names
+// The addresses of the reader's file and the model's, as the engine names
 // them.
 let readerUrl = null;
 let modelUrl = null;
+// Where the model stands: 'none' before it is asked for, then 'loading',
+// and 'ready' or 'failed'.
+let finder = 'none';
 
-async function initQR() {
-  if (qrReady || qrInitializing || !readerUrl) return;
-  qrInitializing = true;
-
-  try {
-    const t0 = performance.now();
-
-    if (cvEnabled) {
-      // CV enabled — load YOLO (WebGPU → WASM fallback) + ZXing in parallel
-      const [yoloBackend] = await Promise.all([
-        initSession(modelUrl),
-        initZXing(readerUrl),
-      ]);
-
-      qrReady = true;
-      const elapsed = Math.round(performance.now() - t0);
-
-      if (yoloBackend) {
-        qrMode = 'yolo+zxing';
-        console.log(`[kipukas-worker] YOLO+ZXing ready (${yoloBackend}, ${elapsed}ms)`);
-      } else {
-        qrMode = 'zxing-only';
-        console.log(`[kipukas-worker] CV enabled but YOLO failed — ZXing-only (${elapsed}ms)`);
-      }
-    } else {
-      // CV disabled — ZXing only (lightweight, works everywhere)
-      await initZXing(readerUrl);
-      qrReady = true;
-      qrMode = 'zxing-only';
-      const elapsed = Math.round(performance.now() - t0);
-      console.log(`[kipukas-worker] ZXing-only mode (CV off, ${elapsed}ms)`);
-    }
-  } catch (err) {
-    console.error('[kipukas-worker] QR init failed:', err);
-  } finally {
-    qrInitializing = false;
-  }
+/** Fetch the model and make it ready, unless that has been asked for. */
+function loadFinder() {
+  if (finder !== 'none' || !modelUrl) return;
+  finder = 'loading';
+  const t0 = performance.now();
+  initSession(modelUrl).then((backend) => {
+    finder = backend ? 'ready' : 'failed';
+    const elapsed = Math.round(performance.now() - t0);
+    if (backend) {
+      console.log(
+        `[kipukas-worker] The model that finds codes is ready (${backend}, ${elapsed}ms)`,
+      );
+    } else console.error('[kipukas-worker] The model that finds codes could not be run');
+  }, (err) => {
+    finder = 'failed';
+    console.error('[kipukas-worker] The model that finds codes could not be loaded:', err);
+  });
 }
 
-// ── YOLO+ZXing QR decode pipeline ─────────────────────────────────
-
 /**
- * Two-stage QR decode: YOLO detects QR bounding boxes, ZXing decodes content.
- * Posts QR_BBOX messages back to main thread for visual overlay debugging.
- * A frame arrives from qr-camera.js as a QR_FRAME message.
+ * Look for a code in a camera frame, and give what it says, or null.
  *
- * @param {Uint8ClampedArray} rgba - RGBA pixel buffer
+ * The engine takes the frame and offers the reader pictures of it one after
+ * another until one is read (scan.rs). With computer vision on and the
+ * model ready, the model is run on the frame first, and the pictures are
+ * the boxes it found. Until the model is ready, and when it cannot be
+ * loaded, the frame is read whole, as it is with computer vision off.
+ *
+ * What the model found is posted to the page, which draws it over the
+ * camera's picture (QR_BBOX, qr-camera.js).
+ *
+ * @param {ArrayBuffer} pixels - the frame, four bytes a pixel
  * @param {number} width
  * @param {number} height
- * @returns {Promise<string|null>} Decoded text or null
+ * @returns {Promise<string|null>}
  */
-async function decodeQR(rgba, width, height) {
-  if (!qrReady) {
-    await initQR();
-    if (!qrReady) return null;
-  }
-
-  // ── ZXing-only mode (no WebGPU) — scan full frame directly ──
-  if (qrMode === 'zxing-only') {
-    // Always preprocess with adaptive threshold first — evens out poor
-    // lighting and surface shine that ZXing's binarizer struggles with
-    try {
-      const atFrame = adaptiveThreshold(rgba, width, height);
-      const result = zxingDecode(atFrame, width, height);
-      if (result && result.text) {
-        console.log(`[kipukas-worker] ZXing-only decoded (AT): ${result.text}`);
-        return result.text;
-      }
-    } catch (err) {
-      console.warn('[kipukas-worker] ZXing-only AT error:', err.message);
-    }
-    // Fallback: try raw frame in case threshold hurts this particular image
-    try {
-      const result = zxingDecode(rgba, width, height);
-      if (result && result.text) {
-        console.log(`[kipukas-worker] ZXing-only decoded (raw): ${result.text}`);
-        return result.text;
-      }
-    } catch (err) {
-      console.warn('[kipukas-worker] ZXing-only raw error:', err.message);
-    }
+async function lookForCode(pixels, width, height) {
+  if (!readerUrl) return null;
+  try {
+    await initZXing(readerUrl);
+  } catch (err) {
+    console.error('[kipukas-worker] The QR reader could not be loaded:', err);
     return null;
   }
+  if (!initialized) await wasmReady;
+  if (!scan_frame(new Uint8Array(pixels), width, height)) return null;
 
-  // ── YOLO+ZXing mode (WebGPU available) ──
-  const t0 = performance.now();
-
-  // Stage 1: YOLO detection
-  const output = await runDetection(rgba, width, height);
-  const detections = parseDetections(output, width, height);
-
-  const t1 = performance.now();
-
-  // Always post bbox data to main thread for visual overlay
-  // (even when no detections — clears old boxes)
-  self.postMessage({
-    type: 'QR_BBOX',
-    detections: detections.map((d) => ({
-      x: d.x,
-      y: d.y,
-      w: d.w,
-      h: d.h,
-      confidence: d.confidence,
-    })),
-    yoloMs: Math.round(t1 - t0),
-    frameW: width,
-    frameH: height,
-    decoded: false,
-  });
-
-  if (detections.length === 0) return null;
-
-  // Stage 2: ZXing decode on each detection (highest confidence first)
-  // Try adaptive-threshold preprocessed crop first, then raw crop as fallback
-  for (const det of detections) {
-    const crop = cropDetection(rgba, width, height, det, MARGIN);
-
-    // Attempt 1: Adaptive threshold preprocessed crop (handles glare/lighting)
-    try {
-      const atCrop = adaptiveThreshold(crop.rgba, crop.width, crop.height);
-      const result = zxingDecode(atCrop, crop.width, crop.height);
-
-      if (result && result.text) {
-        const t2 = performance.now();
-
-        console.log(
-          `[kipukas-worker] QR decoded (AT): ${result.text} ` +
-            `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
-            `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
-        );
-
-        // Update bbox overlay to show successful decode
-        self.postMessage({
-          type: 'QR_BBOX',
-          detections: detections.map((d) => ({
-            x: d.x,
-            y: d.y,
-            w: d.w,
-            h: d.h,
-            confidence: d.confidence,
-          })),
-          yoloMs: Math.round(t1 - t0),
-          frameW: width,
-          frameH: height,
-          decoded: true,
-        });
-
-        return result.text;
-      }
-    } catch (err) {
-      console.warn('[kipukas-worker] ZXing AT decode error:', err.message);
-    }
-
-    // Attempt 2: Raw crop fallback
-    try {
-      const result = zxingDecode(crop.rgba, crop.width, crop.height);
-
-      if (result && result.text) {
-        const t2 = performance.now();
-
-        console.log(
-          `[kipukas-worker] QR decoded (raw): ${result.text} ` +
-            `(YOLO: ${(t1 - t0).toFixed(0)}ms, ZXing: ${(t2 - t1).toFixed(0)}ms, ` +
-            `conf: ${det.confidence.toFixed(2)}, crop: ${crop.width}×${crop.height})`,
-        );
-
-        self.postMessage({
-          type: 'QR_BBOX',
-          detections: detections.map((d) => ({
-            x: d.x,
-            y: d.y,
-            w: d.w,
-            h: d.h,
-            confidence: d.confidence,
-          })),
-          yoloMs: Math.round(t1 - t0),
-          frameW: width,
-          frameH: height,
-          decoded: true,
-        });
-
-        return result.text;
-      }
-    } catch (err) {
-      console.warn('[kipukas-worker] ZXing raw decode error:', err.message);
+  let found = null;
+  if (cvEnabled) {
+    loadFinder();
+    if (finder === 'ready') {
+      const t0 = performance.now();
+      const output = await runDetection(scan_model_input());
+      const boxes = scan_found(output.data, output.places);
+      found = {
+        type: 'QR_BBOX',
+        boxes,
+        yoloMs: Math.round(performance.now() - t0),
+        frameW: width,
+        frameH: height,
+      };
+      // Posted even when there are none, which clears the boxes drawn before.
+      self.postMessage({ ...found, decoded: false });
     }
   }
 
-  // YOLO found QR-like regions but ZXing couldn't decode — normal for some frames
+  for (let picture = scan_next(); picture; picture = scan_next()) {
+    let result = null;
+    try {
+      result = readCode(picture, scan_width(), scan_height());
+    } catch (err) {
+      console.warn('[kipukas-worker] The QR reader failed on a picture:', err.message);
+    }
+    if (result && result.text) {
+      // The boxes again, drawn as read.
+      if (found) self.postMessage({ ...found, decoded: true });
+      return result.text;
+    }
+  }
   return null;
 }
 
-// ── Frame-drop guard (YOLO is async, unlike ZXing) ─────────────────
-
+// A frame is let go if the one before it is still being looked at: the
+// model takes its time.
 let processingFrame = false;
 
 // ── What the engine asks for ───────────────────────────────────────
@@ -271,25 +166,17 @@ let processingFrame = false;
 
 /**
  * The engine's scanner has opened, or the player has changed how codes are
- * found (`cv`: by computer vision first). Get the decoder ready for it,
- * while the camera starts. `reader` and `model` are the addresses of the
- * reader's file and the model's.
+ * found (`cv`: by computer vision first). `reader` and `model` are the
+ * addresses of the reader's file and the model's. What is wanted is fetched
+ * now, while the camera starts.
  */
 function wantQR({ cv, reader, model }) {
-  const wasEnabled = cvEnabled;
   cvEnabled = !!cv;
   if (reader) readerUrl = reader;
   if (model) modelUrl = model;
-  // Turned on with the decoder already set up without YOLO: set it up again.
-  if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
-    qrReady = false;
-    qrMode = null;
-  }
-  // Turned off: the YOLO session stays loaded but is not used.
-  if (!cvEnabled && qrMode === 'yolo+zxing') {
-    qrMode = 'zxing-only';
-  }
-  initQR();
+  // A reader that cannot be fetched now is asked for again with each frame.
+  if (readerUrl) initZXing(readerUrl).catch(() => {});
+  if (cvEnabled) loadFinder();
 }
 
 const wire = createWire({
@@ -331,14 +218,15 @@ self.onmessage = async (event) => {
 
   // ── QR frame decode (direct from qr-camera.js, no MessagePort) ──
   if (event.data?.type === 'QR_FRAME') {
-    // Drop frame if previous inference is still running
     if (processingFrame) return;
     processingFrame = true;
 
     const { pixels, width, height } = event.data;
     let decoded;
     try {
-      decoded = await decodeQR(new Uint8ClampedArray(pixels), width, height);
+      decoded = await lookForCode(pixels, width, height);
+    } catch (err) {
+      console.error('[kipukas-worker] A frame could not be looked at:', err);
     } finally {
       processingFrame = false;
     }

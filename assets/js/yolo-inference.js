@@ -1,37 +1,50 @@
 /**
- * yolo-inference.js — ONNX Runtime Web session management for YOLOv12n.
+ * yolo-inference.js — runs the model that finds QR codes in a camera frame,
+ * with ONNX Runtime Web.
  *
- * Handles model loading, backend selection (WebGPU → WASM fallback),
- * and image preprocessing for YOLO inference.
+ * The model is a YOLO model trained on the card photos. Which file it is,
+ * the engine says (MODEL in kipukas-server/src/routes/qr.rs). It runs on
+ * WebGPU where the browser has it, and on WASM where not.
  *
- * Usage (from Web Worker):
+ * Only the running is here. What goes into the model and what is made of
+ * what comes out are the engine's (kipukas-server/src/scan.rs).
+ *
+ * Usage (from the engine's worker):
  *   import { initSession, runDetection } from './yolo-inference.js';
- *   await initSession('/models/yolo12n-qr.onnx');
- *   const detections = await runDetection(rgbaPixels, 640, 480);
+ *   await initSession('/assets/js-wasm/yolo26n-qr-wide.onnx');
+ *   const { data, places } = await runDetection(input);
  */
 
+// ONNX Runtime Web, the one script the site takes from another origin.
+const RUNNER = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.all.min.mjs';
+
+// The side of the square picture the model takes (MODEL_SIDE in scan.rs).
+const SIDE = 640;
+
+let ort = null;
 let session = null;
 let backend = null;
-const INPUT_SIZE = 640; // YOLO input resolution
+// The address of the model the session was made from.
+let using = null;
 
 /**
- * Initialize the ONNX Runtime session.
+ * Fetch the runner and the model, and make the model ready to run.
  * Tries WebGPU first for GPU acceleration, falls back to WASM.
  *
- * @param {string} modelUrl - URL to the .onnx model file
- * @returns {Promise<string>} The backend that was selected ('webgpu' or 'wasm')
+ * @param {string} modelUrl - the address of the .onnx model file
+ * @returns {Promise<string|null>} the backend in use ('webgpu' or 'wasm'),
+ *   or null if the model could be run on neither
  */
 export async function initSession(modelUrl) {
-  if (session) return backend;
+  if (session && using === modelUrl) return backend;
+  session = null;
+  using = null;
 
-  // Import onnxruntime-web — in a worker context, use importScripts or dynamic import
-  const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.all.min.mjs');
+  if (!ort) ort = await import(RUNNER);
 
   // Try WebGPU first (3-8× faster on mobile GPU), fall back to WASM/CPU.
   // User opts in via the CV toggle, so both backends are acceptable.
-  const backends = ['webgpu', 'wasm'];
-
-  for (const b of backends) {
+  for (const b of ['webgpu', 'wasm']) {
     try {
       ort.env.wasm.numThreads = 1; // Single thread in worker
       session = await ort.InferenceSession.create(modelUrl, {
@@ -39,111 +52,35 @@ export async function initSession(modelUrl) {
         graphOptimizationLevel: 'all',
       });
       backend = b;
-      console.log(`[yolo-inference] Session created with ${b} backend`);
+      using = modelUrl;
       return backend;
     } catch (err) {
       console.warn(`[yolo-inference] ${b} backend failed:`, err.message);
       session = null;
     }
   }
-
-  console.error('[yolo-inference] No suitable backend available');
   return null;
 }
 
 /**
- * Run YOLO detection on an RGBA frame.
+ * Run the model on a frame.
  *
- * @param {ArrayBuffer|Uint8ClampedArray} rgba - RGBA pixel data
- * @param {number} srcWidth - Source image width
- * @param {number} srcHeight - Source image height
- * @returns {Promise<Float32Array>} Raw model output tensor
+ * @param {Float32Array} input - the frame as the model takes it: three
+ *   planes of SIDE by SIDE numbers (the engine's scan_model_input)
+ * @returns {Promise<{data: Float32Array, places: number}>} the model's
+ *   output, five rows of `places` numbers (for the engine's scan_found)
  */
-export async function runDetection(rgba, srcWidth, srcHeight) {
+export async function runDetection(input) {
   if (!session) throw new Error('[yolo-inference] Session not initialized');
-
-  const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.all.min.mjs');
-
-  // Preprocess: RGBA → RGB float32 [1, 3, 640, 640], normalized to [0, 1]
-  const pixels = rgba instanceof Uint8ClampedArray ? rgba : new Uint8ClampedArray(rgba);
-  const inputData = preprocessFrame(pixels, srcWidth, srcHeight);
-
-  // Create input tensor [1, 3, INPUT_SIZE, INPUT_SIZE]
-  const inputTensor = new ort.Tensor('float32', inputData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
-
-  // Run inference
-  const feeds = {};
-  const inputName = session.inputNames[0];
-  feeds[inputName] = inputTensor;
-
-  const results = await session.run(feeds);
-  const outputName = session.outputNames[0];
-
-  return {
-    data: results[outputName].data,
-    dims: results[outputName].dims,
-    scaleX: srcWidth / INPUT_SIZE,
-    scaleY: srcHeight / INPUT_SIZE,
-  };
+  const feeds = { [session.inputNames[0]]: new ort.Tensor('float32', input, [1, 3, SIDE, SIDE]) };
+  const output = (await session.run(feeds))[session.outputNames[0]];
+  return { data: output.data, places: output.dims[2] };
 }
 
 /**
- * Preprocess RGBA frame to YOLO input format.
- * Resizes to INPUT_SIZE×INPUT_SIZE, converts to RGB float32, normalizes to [0,1].
- *
- * @param {Uint8ClampedArray} rgba - Source RGBA pixels
- * @param {number} srcW - Source width
- * @param {number} srcH - Source height
- * @returns {Float32Array} [1, 3, INPUT_SIZE, INPUT_SIZE] tensor data
- */
-function preprocessFrame(rgba, srcW, srcH) {
-  const size = INPUT_SIZE;
-  const channelSize = size * size;
-  const data = new Float32Array(3 * channelSize);
-
-  // Letterbox resize: maintain aspect ratio, pad with grey (114/255)
-  const scale = Math.min(size / srcW, size / srcH);
-  const newW = Math.round(srcW * scale);
-  const newH = Math.round(srcH * scale);
-  const padX = Math.round((size - newW) / 2);
-  const padY = Math.round((size - newH) / 2);
-
-  // Fill with letterbox padding value (114/255 ≈ 0.447)
-  const padValue = 114 / 255;
-  data.fill(padValue);
-
-  // Nearest-neighbor resize and RGB extraction
-  for (let y = 0; y < newH; y++) {
-    const srcY = Math.min(Math.floor(y / scale), srcH - 1);
-    for (let x = 0; x < newW; x++) {
-      const srcX = Math.min(Math.floor(x / scale), srcW - 1);
-      const srcIdx = (srcY * srcW + srcX) * 4;
-      const dstX = x + padX;
-      const dstY = y + padY;
-      const dstIdx = dstY * size + dstX;
-
-      // CHW format: [R plane][G plane][B plane]
-      data[dstIdx] = rgba[srcIdx] / 255;                     // R
-      data[channelSize + dstIdx] = rgba[srcIdx + 1] / 255;   // G
-      data[2 * channelSize + dstIdx] = rgba[srcIdx + 2] / 255; // B
-    }
-  }
-
-  return data;
-}
-
-/**
- * Check if the session is ready.
+ * Whether the model is ready to run.
  * @returns {boolean}
  */
 export function isReady() {
   return session !== null;
-}
-
-/**
- * Get the current backend name.
- * @returns {string|null}
- */
-export function getBackend() {
-  return backend;
 }

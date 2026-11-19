@@ -19,6 +19,7 @@ pub mod image;
 pub mod link;
 pub mod page;
 pub mod routes;
+pub mod scan;
 pub mod store;
 pub mod typing;
 pub mod wire;
