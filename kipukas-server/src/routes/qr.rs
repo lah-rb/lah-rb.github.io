@@ -15,12 +15,19 @@
 //! is posted here too, and the engine decides where it leads: a card's
 //! page, another page of this site, or nowhere, with the reason shown in
 //! the scanner.
+//!
+//! For a player who has turned it on in the settings
+//! (`settings::SCANNER_STATUS`), the scanner writes over the camera's
+//! picture what its frames take. Only the worker can time them, so it
+//! reports each frame's times here, and the engine keeps the count and
+//! draws the line.
 
 use std::cell::RefCell;
 
 use crate::catalog::CARDS;
 use crate::page;
 use crate::routes::util::{escape_html, get_param, parse_form_body};
+use crate::settings;
 use crate::store;
 
 /// Storage key: `true` once the camera privacy notice has been accepted.
@@ -67,6 +74,46 @@ enum Finder {
     Failed,
 }
 
+/// What the worker spent on one frame, in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+struct Took {
+    /// The engine's part: the frame taken in and thresholded, the model's
+    /// input made and its output read, each picture cut out (`crate::scan`).
+    engine: f64,
+    /// The reader's, over every picture of the frame it was offered.
+    reader: f64,
+    /// The model's, if it was run on the frame.
+    model: Option<f64>,
+}
+
+/// What the frames have taken since the scanner opened, or since the way
+/// codes are found was last changed.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+struct Tally {
+    frames: u32,
+    /// The frames the model was run on.
+    with_model: u32,
+    /// The sum over those frames of each part.
+    engine: f64,
+    reader: f64,
+    model: f64,
+    /// The frame counted last.
+    last: Took,
+}
+
+impl Tally {
+    fn count(&mut self, took: Took) {
+        self.frames += 1;
+        self.engine += took.engine;
+        self.reader += took.reader;
+        if let Some(model) = took.model {
+            self.with_model += 1;
+            self.model += model;
+        }
+        self.last = took;
+    }
+}
+
 #[derive(Default)]
 struct Scanner {
     face: Face,
@@ -80,6 +127,9 @@ struct Scanner {
     finder: Finder,
     /// The worker could not load the QR reader, so no frame is read.
     no_reader: bool,
+    /// What the frames take, as the worker reports it while the status
+    /// line is wanted.
+    tally: Tally,
     /// What came of the last code read: where it leads, or why it is
     /// refused.
     read: Option<Result<String, &'static str>>,
@@ -198,6 +248,9 @@ pub fn handle_status(_query: &str) -> String {
 ///     stands with the model that finds codes
 ///   - `action=reader&state=<ready|failed>`: whether the worker could load
 ///     the QR reader
+///   - `action=frame&engine=<ms>&reader=<ms>[&model=<ms>]`: what the worker
+///     spent on a frame, by whose work it was; `model` only if the model
+///     was run on it. Sent while the status line is wanted
 ///   - `action=error&msg=<why>`: the page could not start the camera
 pub fn handle_status_post(body: &str) -> String {
     let params = parse_form_body(body);
@@ -219,6 +272,7 @@ pub fn handle_status_post(body: &str) -> String {
         "cv" => {
             let cv = with_scanner(|scanner| {
                 scanner.cv = !scanner.cv;
+                scanner.tally = Tally::default();
                 scanner.cv
             });
             store::put(CV, Some(cv.to_string()));
@@ -244,6 +298,20 @@ pub fn handle_status_post(body: &str) -> String {
             with_scanner(|scanner| scanner.no_reader = no_reader);
             said_by_the_worker();
         }
+        "frame" => {
+            // Times are the worker's own measurements; anything else is
+            // not counted.
+            let ms = |name: &str| {
+                get_param(&params, name).and_then(|ms| ms.parse::<f64>().ok()).filter(|ms| ms.is_finite() && *ms >= 0.0)
+            };
+            let (Some(engine), Some(reader)) = (ms("engine"), ms("reader")) else {
+                return String::new();
+            };
+            with_scanner(|scanner| scanner.tally.count(Took { engine, reader, model: ms("model") }));
+            if settings::is_on(&settings::SCANNER_STATUS) {
+                said_by_the_worker();
+            }
+        }
         "error" => {
             let why = get_param(&params, "msg").filter(|msg| !msg.is_empty()).unwrap_or("The camera could not be started");
             with_scanner(|scanner| {
@@ -264,6 +332,7 @@ fn open() {
         scanner.face = if scanner.privacy { Face::Scanning } else { Face::Privacy };
         scanner.light = false;
         scanner.read = None;
+        scanner.tally = Tally::default();
         scanner.cv
     });
     // The worker gets its decoder ready meanwhile, while the notice is read
@@ -299,6 +368,21 @@ fn found(url: &str) {
 /// asked for. A closed scanner has nothing to draw.
 fn said_by_the_worker() {
     if with_scanner(|scanner| scanner.face != Face::Closed) {
+        page::redraw("/api/qr/status");
+    }
+}
+
+/// The player has turned the scanner's status line on or off
+/// (`crate::settings`). The count starts again, and an open scanner tells
+/// its worker, which reports what the frames take only while that is
+/// wanted.
+pub fn status_setting_changed() {
+    let open = with_scanner(|scanner| {
+        scanner.tally = Tally::default();
+        (scanner.face != Face::Closed).then_some(scanner.cv)
+    });
+    if let Some(cv) = open {
+        page::qr(cv);
         page::redraw("/api/qr/status");
     }
 }
@@ -381,6 +465,16 @@ fn scanning_ui(scanner: &Scanner) -> String {
             Finder::Unsaid | Finder::Ready => {}
         }
     }
+    // What the frames take, for a player who has asked to see it. Its
+    // place is drawn from the start, and filled once a frame is counted.
+    let status = if settings::is_on(&settings::SCANNER_STATUS) {
+        format!(
+            r#"<p class="z-50 absolute top-14 left-3 right-3 rounded bg-black/60 px-1.5 py-0.5 text-xs text-center text-slate-100 empty:hidden">{}</p>"#,
+            status_line(&scanner.tally)
+        )
+    } else {
+        String::new()
+    };
     let read = match &scanner.read {
         None => String::new(),
         Some(Ok(_)) => r#"<div class="p-2 text-center"><span class="text-kip-drk-sienna font-semibold">QR Code Found!</span></div>"#
@@ -425,6 +519,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
 
     <!-- What the worker could not load (bottom-right) -->
     <div role="status" class="z-50 absolute bottom-3 right-3 max-w-[70%] flex flex-col items-end gap-1 text-xs text-right text-slate-100">{notes}</div>
+    {status}
 
     <canvas id="bbox-overlay" data-engine-keep
             class="z-[60] absolute inset-0 size-full scale-x-[-1] rounded-lg pointer-events-none"
@@ -441,7 +536,36 @@ fn scanning_ui(scanner: &Scanner) -> String {
         cv_label = cv_label,
         cv_icon = cv_icon,
         notes = notes,
+        status = status,
         read = read,
+    )
+}
+
+/// What the last frame took and, in brackets, the average since the count
+/// began: the engine's part, the reader's, and the model's if it was run on
+/// that frame. Nothing until a frame has been counted.
+fn status_line(tally: &Tally) -> String {
+    if tally.frames == 0 {
+        return String::new();
+    }
+    // To a tenth of a millisecond, without a tenth that is nought.
+    let tenths = |ms: f64| {
+        let said = format!("{:.1}", ms);
+        said.strip_suffix(".0").map(str::to_string).unwrap_or(said)
+    };
+    let frames = f64::from(tally.frames);
+    let model = match tally.last.model {
+        Some(model) => format!(", model {:.0} ({:.0})", model, tally.model / f64::from(tally.with_model.max(1))),
+        None => String::new(),
+    };
+    format!(
+        "frame {}: engine {} ms ({} a frame), reader {} ({}){}",
+        tally.frames,
+        tenths(tally.last.engine),
+        tenths(tally.engine / frames),
+        tenths(tally.last.reader),
+        tenths(tally.reader / frames),
+        model
     )
 }
 
@@ -463,8 +587,14 @@ mod tests {
 
     fn fresh() {
         reset();
+        settings::reset();
         store::reset();
         page::reset();
+    }
+
+    /// What the worker is asked for when its decoder is wanted.
+    fn asked_of_the_worker(cv: bool, status: bool) -> serde_json::Value {
+        serde_json::json!({ "cv": cv, "reader": READER, "model": MODEL, "status": status })
     }
 
     /// A tap on one of the scanner's controls, and the scanner as it is
@@ -549,7 +679,7 @@ mod tests {
         assert!(!html.contains("<video"));
         // The worker is told to get its decoder ready meanwhile.
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER, "model": MODEL }));
+        assert_eq!(handed["qr"], asked_of_the_worker(false, false));
 
         // Declining closes it, and nothing is remembered.
         assert_eq!(tap("action=close"), "");
@@ -640,12 +770,12 @@ mod tests {
         assert!(on.contains(r#"title="Disable CV detection (YOLO)""#));
         assert!(on.contains("stroke-emerald-400"));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER, "model": MODEL }));
+        assert_eq!(handed["qr"], asked_of_the_worker(true, false));
         assert_eq!(handed["save"][CV], "true");
 
         tap("action=cv");
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER, "model": MODEL }));
+        assert_eq!(handed["qr"], asked_of_the_worker(false, false));
         assert_eq!(handed["save"][CV], "false");
 
         // Stored, it is on when the scanner next opens.
@@ -653,7 +783,143 @@ mod tests {
         restore(true, true);
         assert!(tap("action=toggle").contains(r#"title="Disable CV detection (YOLO)""#));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER, "model": MODEL }));
+        assert_eq!(handed["qr"], asked_of_the_worker(true, false));
+        fresh();
+    }
+
+    // -- what the frames take --
+
+    /// The settings page's switch for the status line.
+    fn turn_the_status_line(on: bool) {
+        if settings::is_on(&settings::SCANNER_STATUS) != on {
+            settings::handle_post("toggle=kipukas-scanner-status");
+        }
+    }
+
+    const STATUS_PLACE: &str = "top-14 left-3 right-3";
+
+    #[test]
+    fn nothing_is_said_of_what_frames_take_unless_the_player_has_asked() {
+        scanning();
+        let before = handle_status("");
+        assert!(!before.contains(STATUS_PLACE));
+        // The worker is not asked to report, and if it does nothing is drawn for it.
+        tap("action=toggle");
+        tap("action=toggle");
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["qr"], asked_of_the_worker(false, false));
+        assert_eq!(tap("action=frame&engine=5.94&reader=0.4"), before);
+        assert!(page::take_redraws().is_empty());
+        fresh();
+    }
+
+    #[test]
+    fn with_the_status_line_on_the_worker_is_asked_to_report_and_the_scanner_shows_it() {
+        fresh();
+        restore(true, false);
+        turn_the_status_line(true);
+        page::reset();
+        let html = tap("action=toggle");
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["qr"], asked_of_the_worker(false, true));
+        // Its place is there from the start, empty until a frame is counted.
+        assert!(html.contains(&format!(r#"{} rounded bg-black/60 px-1.5 py-0.5 text-xs text-center text-slate-100 empty:hidden"></p>"#, STATUS_PLACE)));
+
+        let html = tap("action=frame&engine=5.94&reader=0.4");
+        assert!(html.contains(">frame 1: engine 5.9 ms (5.9 a frame), reader 0.4 (0.4)</p>"), "{}", html);
+        // The worker's report is not a tap: the scanner is drawn again for it.
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+
+        // The average is over every frame counted; a tenth that is nought is left out.
+        let html = tap("action=frame&engine=8.06&reader=0");
+        assert!(html.contains(">frame 2: engine 8.1 ms (7 a frame), reader 0 (0.2)</p>"), "{}", html);
+        fresh();
+    }
+
+    #[test]
+    fn the_models_time_is_shown_for_a_frame_it_was_run_on_and_averaged_over_those_frames() {
+        fresh();
+        restore(true, true);
+        turn_the_status_line(true);
+        tap("action=toggle");
+        let html = tap("action=frame&engine=6&reader=9&model=40.4");
+        assert!(html.contains(">frame 1: engine 6 ms (6 a frame), reader 9 (9), model 40 (40)</p>"), "{}", html);
+        // A frame read whole (the model not ready) says nothing of the model.
+        let html = tap("action=frame&engine=2&reader=3");
+        assert!(html.contains(">frame 2: engine 2 ms (4 a frame), reader 3 (6)</p>"), "{}", html);
+        // The model's average is over the frames it ran on, not all of them.
+        let html = tap("action=frame&engine=4&reader=0&model=30");
+        assert!(html.contains(">frame 3: engine 4 ms (4 a frame), reader 0 (4), model 30 (35)</p>"), "{}", html);
+        fresh();
+    }
+
+    #[test]
+    fn the_count_starts_again_when_the_scanner_opens_and_when_computer_vision_is_turned() {
+        fresh();
+        restore(true, false);
+        turn_the_status_line(true);
+        tap("action=toggle");
+        tap("action=frame&engine=10&reader=10");
+        assert!(tap("action=frame&engine=20&reader=20").contains(">frame 2: "));
+
+        let html = tap("action=cv");
+        assert!(!html.contains("frame 2"), "the count is of frames looked at one way");
+        assert!(tap("action=frame&engine=1&reader=1&model=50").contains(">frame 1: engine 1 ms (1 a frame), reader 1 (1), model 50 (50)</p>"));
+
+        tap("action=close");
+        let html = tap("action=toggle");
+        assert!(!html.contains("frame 1"));
+        assert!(tap("action=frame&engine=3&reader=3").contains(">frame 1: engine 3 ms (3 a frame), reader 3 (3)</p>"));
+        fresh();
+    }
+
+    #[test]
+    fn a_report_that_is_not_times_is_not_counted() {
+        fresh();
+        restore(true, false);
+        turn_the_status_line(true);
+        tap("action=toggle");
+        page::reset();
+        let before = handle_status("");
+        for body in [
+            "action=frame",
+            "action=frame&engine=5",
+            "action=frame&reader=5",
+            "action=frame&engine=abc&reader=5",
+            "action=frame&engine=-1&reader=5",
+            "action=frame&engine=NaN&reader=5",
+            "action=frame&engine=inf&reader=5",
+            "action=frame&engine=%3Cb%3E&reader=5",
+        ] {
+            assert_eq!(tap(body), before, "{}", body);
+        }
+        assert!(page::take_redraws().is_empty());
+        // A model time that is not one is left out, and the frame still counted.
+        assert!(tap("action=frame&engine=5&reader=5&model=fast").contains(">frame 1: engine 5 ms (5 a frame), reader 5 (5)</p>"));
+        fresh();
+    }
+
+    #[test]
+    fn turning_the_status_line_while_the_scanner_is_open_tells_the_worker_and_draws_the_scanner() {
+        scanning();
+        turn_the_status_line(true);
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["qr"], asked_of_the_worker(false, true));
+        assert!(handed["redraw"].as_array().is_some_and(|routes| routes.contains(&"/api/qr/status".into())), "{}", handed);
+        assert!(handle_status("").contains(STATUS_PLACE));
+
+        turn_the_status_line(false);
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["qr"], asked_of_the_worker(false, false));
+        assert!(!handle_status("").contains(STATUS_PLACE));
+
+        // A closed scanner has nobody to tell.
+        tap("action=close");
+        page::reset();
+        turn_the_status_line(true);
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert!(handed.get("qr").is_none(), "{}", handed);
+        assert!(!handed["redraw"].as_array().is_some_and(|routes| routes.contains(&"/api/qr/status".into())), "{}", handed);
         fresh();
     }
 

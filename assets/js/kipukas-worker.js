@@ -77,6 +77,10 @@ const FINDER_AGAIN_AFTER = 10000;
 const FINDER_TRIES = 3;
 // Whether the reader could be loaded, as the scanner was last told.
 let readerFailed = false;
+// Whether the scanner is to be told what each frame takes: a setting of the
+// player's, which the engine keeps and tells this worker of. Only this
+// worker can time a frame. What is made of the times is the scanner's.
+let statusWanted = false;
 
 /** Tell the scanner something of what this worker holds for it. */
 function tellScanner(what, state) {
@@ -133,6 +137,28 @@ function loadFinder(asked = false) {
   });
 }
 
+/** Do a piece of work, and add how long it took to `took[part]`. */
+function timed(took, part, work) {
+  const t0 = performance.now();
+  try {
+    return work();
+  } finally {
+    took[part] += performance.now() - t0;
+  }
+}
+
+/** Tell the scanner what a frame took (see lookForCode). */
+function tellScannerOfFrame(took) {
+  const model = took.model === null ? '' : `&model=${took.model}`;
+  handle_request(
+    'POST',
+    '/api/qr/status',
+    '',
+    `action=frame&engine=${took.engine}&reader=${took.reader}${model}`,
+  );
+  handOver();
+}
+
 /**
  * Look for a code in a camera frame, and give what it says, or null.
  *
@@ -146,12 +172,17 @@ function loadFinder(asked = false) {
  * What the model found is posted to the page, which draws it over the
  * camera's picture (QR_BBOX, qr-camera.js).
  *
+ * What the frame takes is written into `took`, in milliseconds, by whose
+ * work it is: the engine's, the reader's, and the model's if it is run
+ * (null if not). `looked` says the frame got as far as being looked at.
+ *
  * @param {ArrayBuffer} pixels - the frame, four bytes a pixel
  * @param {number} width
  * @param {number} height
+ * @param {{looked: boolean, engine: number, reader: number, model: number|null}} took
  * @returns {Promise<string|null>}
  */
-async function lookForCode(pixels, width, height) {
+async function lookForCode(pixels, width, height, took) {
   if (!readerUrl) return null;
   if (!initialized) await wasmReady;
   try {
@@ -167,15 +198,20 @@ async function lookForCode(pixels, width, height) {
   }
   if (readerFailed) tellScanner('reader', 'ready');
   readerFailed = false;
-  if (!scan_frame(new Uint8Array(pixels), width, height)) return null;
+  const engine = (work) => timed(took, 'engine', work);
+  if (!engine(() => scan_frame(new Uint8Array(pixels), width, height))) return null;
+  took.looked = true;
 
   let found = null;
   if (cvEnabled) {
     loadFinder();
     if (finder === 'ready') {
       const t0 = performance.now();
-      const output = await runDetection(scan_model_input());
-      const boxes = scan_found(output.data, output.places);
+      const input = engine(scan_model_input);
+      const t1 = performance.now();
+      const output = await runDetection(input);
+      took.model = performance.now() - t1;
+      const boxes = engine(() => scan_found(output.data, output.places));
       found = {
         type: 'QR_BBOX',
         boxes,
@@ -188,10 +224,10 @@ async function lookForCode(pixels, width, height) {
     }
   }
 
-  for (let picture = scan_next(); picture; picture = scan_next()) {
+  for (let picture = engine(scan_next); picture; picture = engine(scan_next)) {
     let result = null;
     try {
-      result = readCode(picture, scan_width(), scan_height());
+      result = timed(took, 'reader', () => readCode(picture, scan_width(), scan_height()));
     } catch (err) {
       console.warn('[kipukas-worker] The QR reader failed on a picture:', err.message);
     }
@@ -226,12 +262,14 @@ let processingFrame = false;
 
 /**
  * The engine's scanner has opened, or the player has changed how codes are
- * found (`cv`: by computer vision first). `reader` and `model` are the
- * addresses of the reader's file and the model's. What is wanted is fetched
- * now, while the camera starts.
+ * found (`cv`: by computer vision first) or whether the scanner shows what
+ * its frames take (`status`). `reader` and `model` are the addresses of the
+ * reader's file and the model's. What is wanted is fetched now, while the
+ * camera starts.
  */
-function wantQR({ cv, reader, model }) {
+function wantQR({ cv, reader, model, status }) {
   cvEnabled = !!cv;
+  statusWanted = !!status;
   if (reader) readerUrl = reader;
   if (model) modelUrl = model;
   // A reader that cannot be fetched now is asked for again with each frame.
@@ -284,14 +322,17 @@ self.onmessage = async (event) => {
     processingFrame = true;
 
     const { pixels, width, height } = event.data;
+    const took = { looked: false, engine: 0, reader: 0, model: null };
     let decoded;
     try {
-      decoded = await lookForCode(pixels, width, height);
+      decoded = await lookForCode(pixels, width, height, took);
     } catch (err) {
       console.error('[kipukas-worker] A frame could not be looked at:', err);
+      took.looked = false;
     } finally {
       processingFrame = false;
     }
+    if (statusWanted && took.looked) tellScannerOfFrame(took);
     if (decoded) {
       // What the code says is the engine's to judge: it sends the page on
       // to where the code leads, or says in the scanner why it does not

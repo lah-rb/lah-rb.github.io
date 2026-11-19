@@ -20,6 +20,7 @@ pub mod link;
 pub mod page;
 pub mod routes;
 pub mod scan;
+pub mod settings;
 pub mod store;
 pub mod typing;
 pub mod wire;
@@ -62,6 +63,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/cards", "cards").ok();
     router.insert("/api/card/panel", "card_panel").ok();
     router.insert("/api/qr/status", "qr_status").ok();
+    router.insert("/api/settings", "settings").ok();
     router.insert("/api/hand", "hand").ok();
 
     // Game state routes (PLAYER_DOC backed)
@@ -101,6 +103,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("hand", "GET") => routes::hand::handle(query),
             ("qr_status", "GET") => routes::qr::handle_status(query),
             ("qr_status", "POST") => routes::qr::handle_status_post(body),
+            ("settings", "GET") => settings::handle_get(query),
+            ("settings", "POST") => settings::handle_post(body),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
             ("game_turns_form", "GET") => routes::game::handle_turns_form_get(query),
@@ -190,7 +194,10 @@ mod tests {
 
         assert_eq!(handle_request("POST", "/api/qr/status", "", "action=toggle"), "");
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("Privacy Notice"));
-        assert_eq!(handed()["qr"], serde_json::json!({ "cv": false, "reader": routes::qr::READER, "model": routes::qr::MODEL }));
+        assert_eq!(
+            handed()["qr"],
+            serde_json::json!({ "cv": false, "reader": routes::qr::READER, "model": routes::qr::MODEL, "status": false })
+        );
 
         handle_request("POST", "/api/qr/status", "", "action=accept");
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("<video"));
@@ -275,6 +282,7 @@ mod tests {
         game::connection::reset();
         game::device_sync::reset();
         routes::qr::reset();
+        settings::reset();
         store::reset();
         page::reset();
     }

@@ -130,7 +130,8 @@ fn take_in_room() -> Option<bool> {
 ///   qr       for the worker: get the QR decoder ready; `cv` says whether
 ///            codes are found by computer vision first, `reader` and
 ///            `model` are the addresses of the reader's file and the
-///            model's
+///            model's, `status` whether it is to report what each frame
+///            takes
 ///   go       a path on this site for the page to go to
 ///   reload   true: load the page again
 ///   download a file for the player to keep: `{ name, text }`
@@ -164,7 +165,8 @@ pub fn handle_handover_post(_body: &str) -> String {
     }
     if let Some(cv) = QR.with(|qr| qr.take()) {
         let (reader, model) = (crate::routes::qr::READER, crate::routes::qr::MODEL);
-        handed.insert("qr".into(), serde_json::json!({ "cv": cv, "reader": reader, "model": model }));
+        let status = crate::settings::is_on(&crate::settings::SCANNER_STATUS);
+        handed.insert("qr".into(), serde_json::json!({ "cv": cv, "reader": reader, "model": model, "status": status }));
     }
     if let Some(path) = take_go() {
         handed.insert("go".into(), serde_json::json!(path));

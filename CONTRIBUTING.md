@@ -41,7 +41,7 @@ The site used HTMX for this at first (the engine as a "server" answering `fetch(
 | Layer | Technology | Examples |
 |-------|-----------|----------|
 | **Purely visual state** (the engine has no interest in it) | Alpine.js | Hamburger menu, a dialog being open, a folded section, CSS class swaps, transitions |
-| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, turn timer, fists in a room, affinity panel, type matchup calculator, binder, hand page, room dialog, status pill, device sync, QR scanner. See [Pattern 13](#pattern-13-engine-owned-views) |
+| **Showing game state** (always in the DOM, or inside a dialog) | Engine-owned view (Rust renders, page patches) | Damage tracker, turn timer, fists in a room, affinity panel, type matchup calculator, binder, hand page, room dialog, status pill, device sync, QR scanner, settings page. See [Pattern 13](#pattern-13-engine-owned-views) |
 | **Game state authority** | Rust WASM | All game logic, damage state, turn tracking, combat resolution, type matchups, the multiplayer connection, what is stored |
 | **What only a page or a worker can do** | A small script that decides nothing | Writing localStorage, holding a socket and its timers, running the camera, holding the model and the reader the QR scanner's frames are given to |
 
@@ -132,6 +132,8 @@ All data is tracked across three distinct stores. Rust is the single source of t
 | **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
 | **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player) |
 
+A choice about the device itself is in none of the three: the QR scanner's two choices and the settings page's switches are each kept under a key of their own (Pattern 10), so they are not synced to another device and are not in a backup.
+
 A feature defaults to `PLAYER_DOC` unless it explicitly requires cross-player visibility. Anything both players must agree on goes in `ROOM_DOC`: it is the only thing that is synced, persisted across page loads and repaired after a dropped connection. `RoomState.fists` is just a cache of the current round for the renderers. Single-player behavior is completely unaffected by multiplayer code.
 
 **The engine decides what is stored and when** (`kipukas-server/src/store.rs`). It runs in a Web Worker and cannot reach localStorage, so the page does the reading and writing and nothing else: at load it hands the engine everything stored under the engine's keys in one request, and after any change the engine names the keys to write or remove. See [Pattern 10](#pattern-10-what-is-stored-and-one-tab-at-a-time).
@@ -220,6 +222,7 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `kipukas-server/src/routes/room_status.rs` | The room dialog and the status pill, drawn from the connection |
 | `kipukas-server/src/routes/device_sync.rs` | The Sync Devices dialog, drawn from the pairing |
 | `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, where a scanned code leads, and which files its reader and model are |
+| `kipukas-server/src/settings.rs` | The settings page: the player's choices about this device, each a switch, and where they are stored |
 | `kipukas-server/src/scan.rs` | What is done to a camera frame around the model and the reader: the model's input, its boxes, each box cut out, the threshold, and the order the reader is offered pictures in |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
 | `kipukas-server/src/game/crypto.rs` | What protects a backup: the HMAC-SHA256 signature inside it and the seal a backup file is (AES-256-GCM under a PBKDF2 key), and the file format |
@@ -388,6 +391,7 @@ The engine sends `relay` (pass this to the other player), `leave` (give up my pl
 | `kipukas_room_doc` | The room document (base64) | When it changes; removed on leaving |
 | `kipukas_room_tab` | Id of the tab that holds the room connection | With `kipukas_room` |
 | `qr-privacy-accepted`, `kipukas-cv-enabled` | The QR scanner's two choices | When the player makes the choice. (The privacy policy page's Accept link writes the first as well) |
+| `kipukas-scanner-status` | A switch of the settings page (`settings.rs`): `true` while it is on. One key for each setting | When the switch is turned |
 | `kipukas_relay_url` | A relay address for local work | Never by the site: a developer sets it |
 
 How it works:
@@ -542,6 +546,7 @@ When a page script changes the engine's state from outside a view, it calls `kip
 - The room dialog and the status pill, two views of the room's connection that nothing on the page drives: `kipukas-server/src/routes/room_status.rs`; templates `_includes/multiplayer.html` and `_includes/room_status.html`. Create and join are forms, so Enter submits them. What the relay answers changes what they show, and the engine has them drawn again: it compares what the dialog would show now with what it last asked to be drawn, and what the pill should show with what it shows. Something being waited for (reconnecting, the opponent away) is put on the pill only once it has lasted 1.5 seconds, by a wait the engine asks its worker for, because every page change reconnects for a moment.
 - Player Data, a dialog that hands the player a file and takes one back: `kipukas-server/src/routes/backup.rs` and `src/game/backup.rs`; template `_includes/player_data_tool.html`. Making a backup, the engine signs and encrypts the player's state (`game/crypto.rs`) and queues the file for the page (`page::download`). Restoring, the import form's file field arrives as the file's text; the engine opens it, checks the signature, puts the state in place of the player's and has every view drawn again (`page::refresh`), so nothing is reloaded. A refused form keeps its file (`data-engine-stay`) and its passphrase (drawn back by the engine, which forgets it when the dialog closes).
 - Device sync, a dialog of three screens: `kipukas-server/src/routes/device_sync.rs`; template `_includes/device_sync_tool.html`. The engine holds which screen it is on and what was typed, so a refusal keeps the passphrase in its field.
+- The settings page, a list of switches on a page of its own: `kipukas-server/src/settings.rs`; template `sections/settings.html`, reached from the menu. A setting is a choice about this device, on or off, off until the player turns it on. The engine holds each, draws it with its switch (`role="switch"`, whose `aria-checked` is also what colours it and moves its knob) and has it stored under a key of its own when the switch is turned (`store::put`). What a setting changes is the business of the module it is about, which asks `settings::is_on`. To add one: a `Setting` in `settings.rs`, its key in `READ_AT_START` in `kipukas-api.js`, and the asking. The first is whether the QR scanner shows what its frames take (see The QR scanner's frames).
 - The QR scanner, a view the page and the worker both serve: `kipukas-server/src/routes/qr.rs`; template `_includes/qr_scanner.html`. The engine holds whether it is open and its two switches. The camera is the page's: `qr-camera.js` runs it for as long as the element the engine marks `data-qr-camera` is drawn, into the video in it, which is marked `data-engine-keep` so that turning the screen light on does not disturb the picture. The frames go to the engine by way of its worker (see The QR scanner's frames, below), and what a code says is posted to the scanner, which decides where it leads and has the page go there (`GO` in the handover), or says in the scanner why it leads nowhere.
 
 #### The handover: what the engine asks for
@@ -551,7 +556,7 @@ The engine only answers requests. It cannot write to storage, open a socket, wai
 | Part | For | Meaning |
 |---|---|---|
 | `wire` | the worker | Sockets to open, send on and close, and waits to start and forget (`wire.rs`). The worker reports what each does with `POST /api/wire` |
-| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` and `model` are the addresses of the reader's file and the model's |
+| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` and `model` are the addresses of the reader's file and the model's, `status` whether the worker is to report what each frame takes |
 | `save` → `SAVE` | the page | Storage keys to write (a string) or remove (null) |
 | `room` → `ROOM` | the page | Whether the player is in a room, for `$store.room.inRoom` |
 | `redraw` → `REDRAW` | the page | Routes whose views are to be drawn again |
@@ -798,6 +803,8 @@ Twice a second the page draws the camera's picture into a 640 by 640 canvas and 
 4. What a code says is posted to the scanner (`action=found`, `routes/qr.rs`).
 
 The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
+
+**What the frames take.** A player who turns Scanner status on in the settings (`settings::SCANNER_STATUS`) sees a line over the camera's picture: what the last frame took and, in brackets, the average since the scanner opened, for the engine's part (steps 1 to 3 above, less the reader), the reader's, and the model's when it was run. Only the worker can time a frame, so the handover tells it the line is wanted (`status` in `qr`), and it then posts each frame's times to the scanner (`action=frame`), which keeps the count and draws the line. With the setting off nothing is reported and nothing is drawn. The count starts again when the scanner opens and when computer vision is turned on or off.
 
 **Without a connection.** What the scanner needs is fetched when it is first needed and kept from then on:
 
