@@ -13,6 +13,10 @@
 //! player's, and has every view drawn again from it. Nothing is restored
 //! from a file that does not open or whose signature does not hold.
 //!
+//! The settings page's switches travel with it (`crate::settings`): they
+//! are sealed in the file beside the state, and restoring puts each as the
+//! backup has it. A backup made before they were carried changes none.
+//!
 //! The passphrase is held only while the dialog is open and something it
 //! asked was refused, so that the field keeps it (the engine draws the form
 //! again). It is forgotten when the backup is made or restored and when the
@@ -21,7 +25,7 @@
 use std::cell::RefCell;
 
 use crate::game::{crypto, player_doc};
-use crate::{clock, page};
+use crate::{clock, page, settings};
 
 /// The fewest characters a passphrase may have.
 pub const SHORTEST: usize = 4;
@@ -84,11 +88,19 @@ fn done(what: &str) {
     });
 }
 
-/// The player's state, signed: what a backup file seals.
+/// What a backup file seals: the player's state, signed, and the settings.
+/// The signature is of the state alone. The seal is over all of it, and
+/// does not open if any of it was changed.
 fn signed(passphrase: &str, now: f64) -> Result<String, String> {
     let state = player_doc::encode_full_state();
     let mac = crypto::sign_export(passphrase, &state)?;
-    Ok(serde_json::json!({ "player_doc": state, "mac": mac, "exported_at": clock::moment_of(now) }).to_string())
+    let sealed = serde_json::json!({
+        "player_doc": state,
+        "mac": mac,
+        "exported_at": clock::moment_of(now),
+        "settings": settings::for_backup(),
+    });
+    Ok(sealed.to_string())
 }
 
 /// Make a backup at `now` and hand it to the player as a file.
@@ -143,7 +155,9 @@ fn restore(passphrase: &str, file: &str) -> Result<(), String> {
             return Err("Verification failed — wrong passphrase or data has been tampered with".to_string());
         }
     }
-    player_doc::restore_from_state(state).map_err(|e| format!("The backup could not be restored: {}", e))
+    player_doc::restore_from_state(state).map_err(|e| format!("The backup could not be restored: {}", e))?;
+    settings::from_backup(&signed["settings"]);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -155,6 +169,9 @@ mod tests {
 
     fn fresh() {
         player_doc::init_player_doc();
+        settings::reset();
+        crate::store::reset();
+        crate::routes::qr::reset();
         page::reset();
         close();
     }
@@ -224,6 +241,46 @@ mod tests {
         assert!(player_doc::get_slot("brox_the_defiant", 2));
         assert_eq!(player_doc::get_alarms()[0].name, "siege");
         assert!(page::take_refresh(), "every view is drawn again");
+        fresh();
+    }
+
+    #[test]
+    fn a_backup_carries_the_settings_and_restoring_puts_them_as_it_has_them() {
+        fresh();
+        a_player();
+        settings::handle_post("toggle=kipukas-scanner-status");
+        export(NOW, "correct horse", "correct horse");
+        let (_, file) = page::take_download().unwrap();
+        let signed: serde_json::Value = serde_json::from_str(&crypto::open("correct horse", &file).unwrap()).unwrap();
+        assert_eq!(signed["settings"], serde_json::json!({ "qr-privacy-accepted": false, "kipukas-scanner-status": true }));
+
+        // Another device, where the player has chosen otherwise.
+        fresh();
+        settings::handle_post("toggle=qr-privacy-accepted");
+        page::handle_handover_post("");
+        import("correct horse", &file);
+        assert_eq!(dialog().notice, "✓ Player data restored");
+        assert!(settings::is_on(&settings::SCANNER_STATUS));
+        assert!(!settings::is_on(&settings::CAMERA_PRIVACY));
+        // They are stored with the player's state, and every view is drawn
+        // again, the settings page with them.
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["save"]["kipukas-scanner-status"], "true");
+        assert_eq!(handed["save"]["qr-privacy-accepted"], "false");
+        assert_eq!(handed["refresh"], true, "{}", handed);
+        fresh();
+    }
+
+    #[test]
+    fn a_file_that_is_not_restored_changes_no_setting() {
+        fresh();
+        settings::handle_post("toggle=kipukas-scanner-status");
+        export(NOW, "correct horse", "correct horse");
+        let (_, file) = page::take_download().unwrap();
+        fresh();
+        import("wrong horse", &file);
+        assert!(!dialog().good);
+        assert!(!settings::is_on(&settings::SCANNER_STATUS));
         fresh();
     }
 
@@ -305,6 +362,13 @@ mod tests {
         assert!(!player_doc::get_slot("brox_the_defiant", 1));
         let timers = player_doc::get_alarms();
         assert_eq!((timers[0].name.as_str(), timers[0].remaining), ("fixture", 7));
+        fresh();
+
+        // It carries no settings, so those of this device stay as they are.
+        settings::handle_post("toggle=kipukas-scanner-status");
+        import(ITS_PASSPHRASE, MADE_BY_THE_PAGE_SCRIPT);
+        assert!(dialog().good);
+        assert!(settings::is_on(&settings::SCANNER_STATUS));
         fresh();
     }
 }

@@ -13,6 +13,11 @@
 //! written when it is turned (`store::put`). Every setting is off until
 //! the player turns it on.
 //!
+//! A backup of the player's data carries the settings as well
+//! (`game::backup`), and restoring from one puts them as the backup has
+//! them: a player who moves to another device by a backup takes their
+//! choices along.
+//!
 //! What a setting changes is the business of the module it is about, which
 //! asks [`is_on`], and may turn it by a control of its own ([`set`]: the
 //! scanner's privacy notice does). To add one: a [`Setting`] here, listed
@@ -98,6 +103,27 @@ pub fn set(setting: &'static Setting, on: bool) {
     }
     if setting.key == CAMERA_PRIVACY.key {
         crate::routes::qr::privacy_setting_changed();
+    }
+}
+
+/// The settings as a backup carries them: each one's key, and whether it
+/// is on.
+pub fn for_backup() -> serde_json::Value {
+    let carried: serde_json::Map<String, serde_json::Value> =
+        ALL.iter().map(|setting| (setting.key.to_string(), is_on(setting).into())).collect();
+    carried.into()
+}
+
+/// Put the settings as a backup has them (`carried`, what [`for_backup`]
+/// made). A setting the backup says nothing of stays as it is: the backup
+/// was made before the setting was, or before backups carried settings.
+/// Anything in it that is not a setting, on or off, is passed over.
+pub fn from_backup(carried: &serde_json::Value) {
+    for setting in ALL {
+        match carried.get(setting.key).and_then(serde_json::Value::as_bool) {
+            Some(on) if on != is_on(setting) => set(setting, on),
+            _ => {}
+        }
     }
 }
 
@@ -244,6 +270,38 @@ mod tests {
         for value in ["false", "", "1", "TRUE"] {
             restore(&stored(&[("kipukas-scanner-status", value)]));
             assert!(!is_on(&SCANNER_STATUS), "{:?}", value);
+        }
+        fresh();
+    }
+
+    #[test]
+    fn a_backup_carries_every_setting_and_puts_back_those_it_names() {
+        fresh();
+        tap("toggle=kipukas-scanner-status");
+        let carried = for_backup();
+        assert_eq!(carried, serde_json::json!({ "qr-privacy-accepted": false, "kipukas-scanner-status": true }));
+
+        // On another device, with other choices made.
+        fresh();
+        tap("toggle=qr-privacy-accepted");
+        page::handle_handover_post("");
+        from_backup(&carried);
+        assert!(is_on(&SCANNER_STATUS) && !is_on(&CAMERA_PRIVACY));
+        // Both are stored as they now are.
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["save"]["kipukas-scanner-status"], "true");
+        assert_eq!(handed["save"]["qr-privacy-accepted"], "false");
+
+        // A setting it does not name stays as it is, and what is not a
+        // setting, on or off, is passed over.
+        for carried in [
+            serde_json::json!({}),
+            serde_json::Value::Null,
+            serde_json::json!("on"),
+            serde_json::json!({ "kipukas-scanner-status": "false", "qr-privacy-accepted": 1, "kipukas_player_doc": true }),
+        ] {
+            from_backup(&carried);
+            assert!(is_on(&SCANNER_STATUS) && !is_on(&CAMERA_PRIVACY), "{}", carried);
         }
         fresh();
     }
