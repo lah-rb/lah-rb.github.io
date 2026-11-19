@@ -792,7 +792,14 @@ Twice a second the page draws the camera's picture into a 640 by 640 canvas and 
 
 The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
 
-While the model is being fetched, and if it cannot be, frames are read whole.
+**Without a connection.** What the scanner needs is fetched when it is first needed and kept from then on:
+
+| What | Fetched | Kept by the service worker (`sw-src.js`) |
+|---|---|---|
+| The reader (`READER`) | When the scanner first opens, and when the site is installed as an app (`OFFLINE_EXTRA`) | With the site's other scripts (`kipukas-assets`) |
+| The model (`MODEL`) and its runner, ONNX Runtime Web from jsDelivr | When computer vision is first turned on: about 10 MB and 3.5 MB to download | By address, never asked for again (`kipukas-vision`) |
+
+So computer vision works without a connection once it has been used with one. Until the model and the runner have been fetched, frames are read whole, as they are with computer vision off, and the scanner says so: the worker tells it where the model stands (`action=finder`, `routes/qr.rs`). The worker asks for the model again when the scanner is opened or computer vision turned on, when the browser says the network is back, and when a frame arrives ten seconds or more after it last failed. A runner whose own files could not be fetched does not start a second time (ONNX Runtime answers "previous call to 'initWasm()' failed"), so the next try takes a fresh copy of it (`yolo-inference.js`). If the reader itself cannot be fetched no frame can be read, and the scanner says that instead.
 
 ### The QR reader
 
@@ -827,7 +834,7 @@ What such a build is (`zxing-reader/CMakeLists.txt`):
 
 With computer vision on (the scanner's chip button), a YOLO model finds the codes in a frame and the reader is given each box cut out of it. The model is `assets/js-wasm/yolo26n-qr-wide.onnx` (10.4 MB): YOLO26n, Ultralytics' model of January 2026, trained on the card photos. ONNX Runtime Web runs it (`assets/js/yolo-inference.js`), on WebGPU where the browser has it and on WASM where not. It took the place of a YOLOv12n trained in March 2026.
 
-To put another model in use, name its file in `MODEL` (`kipukas-server/src/routes/qr.rs`) and remove the old file.
+To put another model in use, name its file in `MODEL` (`kipukas-server/src/routes/qr.rs`) and remove the old file. Give it a name of its own: the service worker keeps a model by its address and does not ask for that address again.
 
 **Why wider boxes.** The first model drew its box where the boxes it learned from were drawn: on the outer edge of the code's finder patterns. That left the reader no margin, and a box that was a little off cut into the code. This model learned from the same boxes grown by 0.15 of their size on each side, which is about four modules of a card's code, the quiet zone a QR code is meant to have. When a box is cut out for the reader a margin of 0.05 is added to it (0.15 was added to the first model's).
 

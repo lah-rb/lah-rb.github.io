@@ -251,6 +251,41 @@ registerRoute(
   })
 );
 
+// The QR scanner's computer vision — CacheFirst. Its model (an .onnx file of
+// about 10 MB) and what runs it (ONNX Runtime Web, from jsDelivr) are fetched
+// only when a player turns computer vision on, and kept from then on so that
+// it works offline. Neither changes under its address: a model trained again
+// is another file (MODEL in kipukas-server/src/routes/qr.rs), and the
+// runner's address names its version. The page may ask for a second copy of
+// the runner under the same address with a query (yolo-inference.js), so the
+// query is left out of what is kept and looked up.
+registerRoute(
+  ({ url }) =>
+    (url.origin === self.location.origin && url.pathname.endsWith('.onnx')) ||
+    (url.origin === 'https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/onnxruntime-web@')),
+  new CacheFirst({
+    cacheName: 'kipukas-vision',
+    matchOptions: { ignoreSearch: true },
+    plugins: [
+      {
+        cacheWillUpdate: async ({ response }) =>
+          response && response.status === 200 ? response : null,
+        cacheKeyWillBeUsed: async ({ request }) => {
+          const url = new URL(request.url);
+          url.search = '';
+          return url.href;
+        },
+      },
+      new ExpirationPlugin({
+        // A model and the runner's three files, twice over: room for the
+        // new ones when either is replaced, after which the old ones go.
+        maxEntries: 8,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
 // Strategy 2: Static Assets (CSS, JS, WASM) — StaleWhileRevalidate
 registerRoute(
   /\.(?:css|js|wasm)$/,

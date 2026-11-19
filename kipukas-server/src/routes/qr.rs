@@ -6,12 +6,15 @@
 //! (the screen light, and finding codes by computer vision), and draws it.
 //! Every control in it posts back here.
 //!
-//! The camera and the decoding are not the engine's. The page runs the
-//! camera for as long as the scanner's video is drawn (qr-camera.js), and
-//! the engine's worker finds and reads codes in its frames
-//! (kipukas-worker.js). What a code says is posted here, and the engine
-//! decides where it leads: a card's page, another page of this site, or
-//! nowhere, with the reason shown in the scanner.
+//! The camera is not the engine's: the page runs it for as long as the
+//! scanner's video is drawn (qr-camera.js) and hands its frames to the
+//! engine's worker. Nor are the model that finds codes and the reader that
+//! reads them: the worker holds those two and passes the frames between
+//! them and the engine (kipukas-worker.js, `crate::scan`). It says here
+//! when either cannot be loaded, which the scanner shows. What a code says
+//! is posted here too, and the engine decides where it leads: a card's
+//! page, another page of this site, or nowhere, with the reason shown in
+//! the scanner.
 
 use std::cell::RefCell;
 
@@ -50,6 +53,20 @@ enum Face {
     Failed(String),
 }
 
+/// Where the worker stands with the model that finds codes, as it last
+/// said.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+enum Finder {
+    /// Nothing said yet: the model has not been asked for on this page.
+    #[default]
+    Unsaid,
+    /// Being fetched and made ready. Frames are read whole meanwhile.
+    Loading,
+    Ready,
+    /// It could not be fetched or could not be run. Frames are read whole.
+    Failed,
+}
+
 #[derive(Default)]
 struct Scanner {
     face: Face,
@@ -59,6 +76,10 @@ struct Scanner {
     light: bool,
     /// Codes are found by computer vision (YOLO) before they are read.
     cv: bool,
+    /// Where the worker stands with the model that does it.
+    finder: Finder,
+    /// The worker could not load the QR reader, so no frame is read.
+    no_reader: bool,
     /// What came of the last code read: where it leads, or why it is
     /// refused.
     read: Option<Result<String, &'static str>>,
@@ -173,6 +194,10 @@ pub fn handle_status(_query: &str) -> String {
 ///   - `action=light`: turn the screen light on or off
 ///   - `action=cv`: turn finding codes by computer vision on or off
 ///   - `action=found&url=<what the code says>`: the worker read a code
+///   - `action=finder&state=<loading|ready|failed>`: where the worker
+///     stands with the model that finds codes
+///   - `action=reader&state=<ready|failed>`: whether the worker could load
+///     the QR reader
 ///   - `action=error&msg=<why>`: the page could not start the camera
 pub fn handle_status_post(body: &str) -> String {
     let params = parse_form_body(body);
@@ -200,6 +225,25 @@ pub fn handle_status_post(body: &str) -> String {
             page::qr(cv);
         }
         "found" => found(get_param(&params, "url").unwrap_or("")),
+        "finder" => {
+            let finder = match get_param(&params, "state") {
+                Some("loading") => Finder::Loading,
+                Some("ready") => Finder::Ready,
+                Some("failed") => Finder::Failed,
+                _ => return String::new(),
+            };
+            with_scanner(|scanner| scanner.finder = finder);
+            said_by_the_worker();
+        }
+        "reader" => {
+            let no_reader = match get_param(&params, "state") {
+                Some("ready") => false,
+                Some("failed") => true,
+                _ => return String::new(),
+            };
+            with_scanner(|scanner| scanner.no_reader = no_reader);
+            said_by_the_worker();
+        }
         "error" => {
             let why = get_param(&params, "msg").filter(|msg| !msg.is_empty()).unwrap_or("The camera could not be started");
             with_scanner(|scanner| {
@@ -247,9 +291,16 @@ fn found(url: &str) {
         page::go(path);
     }
     with_scanner(|scanner| scanner.read = Some(read));
-    // The report came from the worker, not from a tap in the scanner, so
-    // nothing draws the scanner again unless it is asked for.
-    page::redraw("/api/qr/status");
+    said_by_the_worker();
+}
+
+/// The worker has reported something the scanner shows. The report is not a
+/// tap in the scanner, so nothing draws the scanner again unless it is
+/// asked for. A closed scanner has nothing to draw.
+fn said_by_the_worker() {
+    if with_scanner(|scanner| scanner.face != Face::Closed) {
+        page::redraw("/api/qr/status");
+    }
 }
 
 // ── HTML fragment builders ─────────────────────────────────────────
@@ -315,6 +366,21 @@ fn scanning_ui(scanner: &Scanner) -> String {
     } else {
         ("Enable CV detection (YOLO)", SVG_CV_OFF)
     };
+    // What the worker has said it could not load. Without the reader no
+    // frame is read. Without the model (asked for only with computer vision
+    // on) frames are read whole.
+    let note = |look: &str, said: &str| format!(r#"<p class="rounded bg-black/60 px-1.5 py-0.5 {}">{}</p>"#, look, said);
+    let mut notes = String::new();
+    if scanner.no_reader {
+        notes += &note("text-red-300", "The QR reader could not be loaded. Codes cannot be read until it is.");
+    }
+    if scanner.cv {
+        match scanner.finder {
+            Finder::Loading => notes += &note("", "Loading computer vision. Reading without it meanwhile."),
+            Finder::Failed => notes += &note("text-red-300", "Computer vision could not be loaded. Reading without it."),
+            Finder::Unsaid | Finder::Ready => {}
+        }
+    }
     let read = match &scanner.read {
         None => String::new(),
         Some(Ok(_)) => r#"<div class="p-2 text-center"><span class="text-kip-drk-sienna font-semibold">QR Code Found!</span></div>"#
@@ -357,6 +423,9 @@ fn scanning_ui(scanner: &Scanner) -> String {
       {cv_icon}
     </button>
 
+    <!-- What the worker could not load (bottom-right) -->
+    <div role="status" class="z-50 absolute bottom-3 right-3 max-w-[70%] flex flex-col items-end gap-1 text-xs text-right text-slate-100">{notes}</div>
+
     <canvas id="bbox-overlay" data-engine-keep
             class="z-[60] absolute inset-0 size-full scale-x-[-1] rounded-lg pointer-events-none"
             width="640" height="640"></canvas>
@@ -371,6 +440,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
         light_icon = light_icon,
         cv_label = cv_label,
         cv_icon = cv_icon,
+        notes = notes,
         read = read,
     )
 }
@@ -584,6 +654,65 @@ mod tests {
         assert!(tap("action=toggle").contains(r#"title="Disable CV detection (YOLO)""#));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
         assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER, "model": MODEL }));
+        fresh();
+    }
+
+    // -- what the worker could not load --
+
+    #[test]
+    fn while_the_model_is_loading_or_could_not_be_the_scanner_says_it_reads_without_it() {
+        scanning();
+        tap("action=cv");
+        page::reset();
+        assert!(!handle_status("").contains("computer vision"), "nothing is said before the worker says");
+
+        let html = tap("action=finder&state=loading");
+        assert!(html.contains("Loading computer vision. Reading without it meanwhile."));
+        // The worker's report is not a tap: the scanner is drawn again for it.
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+
+        let html = tap("action=finder&state=failed");
+        assert!(html.contains("Computer vision could not be loaded. Reading without it."));
+        assert!(!html.contains("Loading computer vision"));
+        assert!(html.contains("<video"), "the scanner goes on");
+
+        let html = tap("action=finder&state=ready");
+        assert!(!html.contains("omputer vision could not") && !html.contains("Loading computer vision"));
+        fresh();
+    }
+
+    #[test]
+    fn what_is_said_of_the_model_is_shown_only_with_computer_vision_on() {
+        scanning();
+        tap("action=cv");
+        tap("action=finder&state=failed");
+        assert!(!tap("action=cv").contains("Computer vision could not be loaded"));
+        // On again, it is still what the worker last said, until it says otherwise.
+        assert!(tap("action=cv").contains("Computer vision could not be loaded"));
+        // A state that is not one is not taken.
+        assert!(tap("action=finder&state=broken").contains("Computer vision could not be loaded"));
+        assert!(tap("action=finder").contains("Computer vision could not be loaded"));
+        fresh();
+    }
+
+    #[test]
+    fn a_reader_that_could_not_be_loaded_is_said_until_it_is() {
+        scanning();
+        page::reset();
+        let html = tap("action=reader&state=failed");
+        assert!(html.contains("The QR reader could not be loaded."));
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+        assert!(tap("action=reader&state=nonsense").contains("The QR reader could not be loaded."));
+        assert!(!tap("action=reader&state=ready").contains("The QR reader could not be loaded."));
+        fresh();
+    }
+
+    #[test]
+    fn a_report_from_the_worker_with_the_scanner_closed_draws_nothing() {
+        fresh();
+        assert_eq!(tap("action=finder&state=failed"), "");
+        assert_eq!(tap("action=reader&state=failed"), "");
+        assert!(page::take_redraws().is_empty());
         fresh();
     }
 

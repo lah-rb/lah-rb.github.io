@@ -59,25 +59,68 @@ let cvEnabled = false;
 let readerUrl = null;
 let modelUrl = null;
 // Where the model stands: 'none' before it is asked for, then 'loading',
-// and 'ready' or 'failed'.
+// and 'ready' or 'failed'. The scanner is told (routes/qr.rs), and says to
+// the player what it means for them.
 let finder = 'none';
+// When the model last failed to load, and how often it was fetched and
+// then could not be run.
+let finderFailedAt = 0;
+let finderCouldNotRun = 0;
+// A model that could not be loaded is asked for again when a frame arrives
+// this long after (milliseconds), when the browser says the network is
+// back, and when the scanner opens or computer vision is turned on. One
+// that was fetched and could not be run this many times is left until the
+// scanner asks again: more tries would only take more memory.
+const FINDER_AGAIN_AFTER = 10000;
+const FINDER_TRIES = 3;
+// Whether the reader could be loaded, as the scanner was last told.
+let readerFailed = false;
 
-/** Fetch the model and make it ready, unless that has been asked for. */
-function loadFinder() {
-  if (finder !== 'none' || !modelUrl) return;
-  finder = 'loading';
+/** Tell the scanner something of what this worker holds for it. */
+function tellScanner(what, state) {
+  if (!initialized) return;
+  handle_request('POST', '/api/qr/status', '', `action=${what}&state=${state}`);
+  handOver();
+}
+
+function finderIs(state) {
+  finder = state;
+  tellScanner('finder', state);
+}
+
+/**
+ * Fetch the model and make it ready, unless it is, or is being. `asked`:
+ * the scanner has asked for it, or the network is back, so a model that
+ * failed is tried again whenever that was.
+ */
+function loadFinder(asked = false) {
+  if (!modelUrl || finder === 'loading' || finder === 'ready') return;
+  if (asked) finderCouldNotRun = 0;
+  if (finder === 'failed' && !asked) {
+    if (finderCouldNotRun >= FINDER_TRIES) return;
+    if (performance.now() - finderFailedAt < FINDER_AGAIN_AFTER) return;
+  }
+  finderIs('loading');
   const t0 = performance.now();
+  const failed = () => {
+    finderFailedAt = performance.now();
+    finderIs('failed');
+  };
   initSession(modelUrl).then((backend) => {
-    finder = backend ? 'ready' : 'failed';
+    if (!backend) {
+      finderCouldNotRun += 1;
+      console.error('[kipukas-worker] The model that finds codes could not be run');
+      failed();
+      return;
+    }
     const elapsed = Math.round(performance.now() - t0);
-    if (backend) {
-      console.log(
-        `[kipukas-worker] The model that finds codes is ready (${backend}, ${elapsed}ms)`,
-      );
-    } else console.error('[kipukas-worker] The model that finds codes could not be run');
+    console.log(
+      `[kipukas-worker] The model that finds codes is ready (${backend}, ${elapsed}ms)`,
+    );
+    finderIs('ready');
   }, (err) => {
-    finder = 'failed';
     console.error('[kipukas-worker] The model that finds codes could not be loaded:', err);
+    failed();
   });
 }
 
@@ -88,7 +131,8 @@ function loadFinder() {
  * another until one is read (scan.rs). With computer vision on and the
  * model ready, the model is run on the frame first, and the pictures are
  * the boxes it found. Until the model is ready, and when it cannot be
- * loaded, the frame is read whole, as it is with computer vision off.
+ * loaded (no connection, and never fetched before), the frame is read
+ * whole, as it is with computer vision off.
  *
  * What the model found is posted to the page, which draws it over the
  * camera's picture (QR_BBOX, qr-camera.js).
@@ -100,13 +144,20 @@ function loadFinder() {
  */
 async function lookForCode(pixels, width, height) {
   if (!readerUrl) return null;
+  if (!initialized) await wasmReady;
   try {
     await initZXing(readerUrl);
   } catch (err) {
-    console.error('[kipukas-worker] The QR reader could not be loaded:', err);
+    // Said once, not at every frame it goes on for.
+    if (!readerFailed) {
+      console.error('[kipukas-worker] The QR reader could not be loaded:', err);
+      tellScanner('reader', 'failed');
+    }
+    readerFailed = true;
     return null;
   }
-  if (!initialized) await wasmReady;
+  if (readerFailed) tellScanner('reader', 'ready');
+  readerFailed = false;
   if (!scan_frame(new Uint8Array(pixels), width, height)) return null;
 
   let found = null;
@@ -176,7 +227,7 @@ function wantQR({ cv, reader, model }) {
   if (model) modelUrl = model;
   // A reader that cannot be fetched now is asked for again with each frame.
   if (readerUrl) initZXing(readerUrl).catch(() => {});
-  if (cvEnabled) loadFinder();
+  if (cvEnabled) loadFinder(true);
 }
 
 const wire = createWire({
@@ -189,9 +240,11 @@ const wire = createWire({
 
 const handOver = wire.handOver;
 
-// The browser says the network is back: a good moment to check a connection.
+// The browser says the network is back: a good moment to check a connection,
+// and to fetch a model that could not be.
 self.addEventListener('online', () => {
   if (initialized) wire.reportPage({ event: 'online' });
+  if (cvEnabled) loadFinder(true);
 });
 
 // ── Message handler ────────────────────────────────────────────────
