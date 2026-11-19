@@ -31,6 +31,12 @@ pub const CV: &str = "kipukas-cv-enabled";
 /// (`assets/js/zxing-decode.js`). A newer build is another file, named here.
 pub const READER: &str = "/assets/js-wasm/zxing-3.2.0-rc1.wasm";
 
+/// The model that finds codes in a frame when computer vision is on: YOLO26n
+/// trained on the card photos (CONTRIBUTING.md, The model that finds codes),
+/// which the worker fetches and runs (`assets/js/yolo-inference.js`). A model
+/// trained again is another file, named here.
+pub const MODEL: &str = "/assets/js-wasm/yolo26n-qr-wide.onnx";
+
 /// Where the scanner stands.
 #[derive(Debug, Clone, PartialEq, Default)]
 enum Face {
@@ -473,7 +479,7 @@ mod tests {
         assert!(!html.contains("<video"));
         // The worker is told to get its decoder ready meanwhile.
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER }));
+        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER, "model": MODEL }));
 
         // Declining closes it, and nothing is remembered.
         assert_eq!(tap("action=close"), "");
@@ -564,12 +570,12 @@ mod tests {
         assert!(on.contains(r#"title="Disable CV detection (YOLO)""#));
         assert!(on.contains("stroke-emerald-400"));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER }));
+        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER, "model": MODEL }));
         assert_eq!(handed["save"][CV], "true");
 
         tap("action=cv");
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER }));
+        assert_eq!(handed["qr"], serde_json::json!({ "cv": false, "reader": READER, "model": MODEL }));
         assert_eq!(handed["save"][CV], "false");
 
         // Stored, it is on when the scanner next opens.
@@ -577,7 +583,7 @@ mod tests {
         restore(true, true);
         assert!(tap("action=toggle").contains(r#"title="Disable CV detection (YOLO)""#));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
-        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER }));
+        assert_eq!(handed["qr"], serde_json::json!({ "cv": true, "reader": READER, "model": MODEL }));
         fresh();
     }
 

@@ -10,11 +10,11 @@
  * engine has queued and sees it done (kipukas-wire.js): the room's sockets
  * and waits here, storage and drawing passed on to the page.
  *
- * QR detection: YOLO v12n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
+ * QR detection: YOLO26n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
  * for decode. YOLO finds QR bounding boxes in the camera frame, then ZXing
  * decodes the cropped region with tryHarder mode for maximum accuracy on
- * camouflaged QR codes with low-res front-facing cameras. Which file the
- * reader is, the engine says (kipukas-server/src/routes/qr.rs).
+ * camouflaged QR codes with low-res front-facing cameras. Which files the
+ * model and the reader are, the engine says (kipukas-server/src/routes/qr.rs).
  *
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
@@ -40,7 +40,11 @@ wasmReady.then(() => {
 
 // ── YOLO + ZXing init (for QR detect + decode) ────────────────────
 
-const MODEL_URL = '/assets/js-wasm/yolo12n-qr.onnx';
+// The margin left around a box the model finds when it is cut out for the
+// reader, as a share of the box. The model was trained on boxes that already
+// hold a margin about the code (see CONTRIBUTING.md, The model that finds
+// codes), so little is added.
+const MARGIN = 0.05;
 
 let qrReady = false;
 let qrInitializing = false;
@@ -48,8 +52,10 @@ let qrMode = null; // 'yolo+zxing' or 'zxing-only'
 // Whether codes are found by computer vision (YOLO) before they are read:
 // the player's choice, which the engine keeps and tells this worker of.
 let cvEnabled = false;
-// The address of the QR reader's file, as the engine names it.
+// The addresses of the QR reader's file and the model's, as the engine names
+// them.
 let readerUrl = null;
+let modelUrl = null;
 
 async function initQR() {
   if (qrReady || qrInitializing || !readerUrl) return;
@@ -61,7 +67,7 @@ async function initQR() {
     if (cvEnabled) {
       // CV enabled — load YOLO (WebGPU → WASM fallback) + ZXing in parallel
       const [yoloBackend] = await Promise.all([
-        initSession(MODEL_URL),
+        initSession(modelUrl),
         initZXing(readerUrl),
       ]);
 
@@ -166,7 +172,7 @@ async function decodeQR(rgba, width, height) {
   // Stage 2: ZXing decode on each detection (highest confidence first)
   // Try adaptive-threshold preprocessed crop first, then raw crop as fallback
   for (const det of detections) {
-    const crop = cropDetection(rgba, width, height, det, 0.15);
+    const crop = cropDetection(rgba, width, height, det, MARGIN);
 
     // Attempt 1: Adaptive threshold preprocessed crop (handles glare/lighting)
     try {
@@ -266,12 +272,14 @@ let processingFrame = false;
 /**
  * The engine's scanner has opened, or the player has changed how codes are
  * found (`cv`: by computer vision first). Get the decoder ready for it,
- * while the camera starts. `reader` is the address of the reader's file.
+ * while the camera starts. `reader` and `model` are the addresses of the
+ * reader's file and the model's.
  */
-function wantQR({ cv, reader }) {
+function wantQR({ cv, reader, model }) {
   const wasEnabled = cvEnabled;
   cvEnabled = !!cv;
   if (reader) readerUrl = reader;
+  if (model) modelUrl = model;
   // Turned on with the decoder already set up without YOLO: set it up again.
   if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
     qrReady = false;

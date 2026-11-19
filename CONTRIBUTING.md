@@ -547,7 +547,7 @@ The engine only answers requests. It cannot write to storage, open a socket, wai
 | Part | For | Meaning |
 |---|---|---|
 | `wire` | the worker | Sockets to open, send on and close, and waits to start and forget (`wire.rs`). The worker reports what each does with `POST /api/wire` |
-| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` is the address of the reader's file |
+| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` and `model` are the addresses of the reader's file and the model's |
 | `save` → `SAVE` | the page | Storage keys to write (a string) or remove (null) |
 | `room` → `ROOM` | the page | Whether the player is in a room, for `$store.room.inRoom` |
 | `redraw` → `REDRAW` | the page | Routes whose views are to be drawn again |
@@ -627,6 +627,8 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
 | [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
 | [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 3.2.0-rc1 | Apache-2.0 | Reads QR codes. A WASM module of its own, built by `zxing-reader/build.sh` (see The QR reader) |
+| [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) | 1.21.0 | MIT | Runs the model that finds QR codes, on WebGPU or WASM. Fetched from jsDelivr when computer vision is first turned on; the only script the site takes from another origin |
+| [YOLO26n](https://docs.ultralytics.com/models/yolo26/), trained on the card photos | Ultralytics 8.4.19 | AGPL-3.0 (Ultralytics' licence for its models and what is trained from them) | Finds QR codes in a camera frame when computer vision is on (see The model that finds codes) |
 
 ### Server & Runtime
 
@@ -804,6 +806,47 @@ What such a build is (`zxing-reader/CMakeLists.txt`):
 - The pictures are those the model below was trained on, each given whole to the reader after the scanner's threshold. Chrome and Firefox read the same ones.
 - Held to a phone's camera in poor light, the two with denoise read clearly better than the others and much like each other. 3.2.0-rc1 was kept for its smaller file (356 KB against 453 KB).
 - The 2.2.1 build reads as if denoise is off in it: codes speckled white are read by the newer builds with denoise, and by neither 2.2.1 nor the newer builds without.
+
+### The model that finds codes
+
+With computer vision on (the scanner's chip button), a YOLO model finds the codes in a frame and the reader is given each box cut out of it. The model is `assets/js-wasm/yolo26n-qr-wide.onnx` (10.4 MB): YOLO26n, Ultralytics' model of January 2026, trained on the card photos. ONNX Runtime Web runs it (`assets/js/yolo-inference.js`), on WebGPU where the browser has it and on WASM where not. It took the place of a YOLOv12n trained in March 2026.
+
+To put another model in use, name its file in `MODEL` (`kipukas-server/src/routes/qr.rs`) and remove the old file.
+
+**Why wider boxes.** The first model drew its box where the boxes it learned from were drawn: on the outer edge of the code's finder patterns. That left the reader no margin, and a box that was a little off cut into the code. This model learned from the same boxes grown by 0.15 of their size on each side, which is about four modules of a card's code, the quiet zone a QR code is meant to have. When a box is cut out for the reader a margin of 0.05 is added to it (0.15 was added to the first model's).
+
+**What was measured** (18 November 2026). The 70 card photos, each put through the scanner's own steps in Chrome: squeezed to a 640 square, the model, each box cut out, thresholded and read. A box is counted as cutting into the code when it falls inside the box drawn by hand at the code's edge on any side. YOLOv12n was trained again on the wider boxes as well, to tell what the boxes changed from what the model did.
+
+| Model | Codes found | Boxes that cut into the code | Margin on the box's tightest side, median | Photos read with a margin of 0 / 0.05 / 0.15 | A frame on WebGPU | A frame on WASM |
+|---|---|---|---|---|---|---|
+| YOLOv12n, boxes at the code's edge (the first model) | 73 of 73 | 31 | 0% of the code | 28 / 33 / 37 | 21 ms | 226 ms |
+| YOLOv12n, wider boxes | 73 of 73 | 5 | 13% | 36 / 39 / 38 | 21 ms | 224 ms |
+| YOLO26n, wider boxes (the model in use) | 73 of 73 | 1 | 16% | 39 / 38 / 39 | 18 ms | 159 ms |
+
+- The reads are by a build of zxing-cpp 3.1.1 with denoise. With no model at all, given the whole frame, it reads 38 of the 70: on these photos a model spares the reader work and does not read more.
+- The times are an M1 Ultra's, the WASM ones on one thread as the worker runs it. A phone is slower in both.
+- The two trained on wider boxes learned from 56 of the 70 photos, and the first model from nearly all of them. On the 14 they did not see, the boxes cut into the code on 7 of 15 codes (the first model), none and none.
+- On the validation pictures (those 14 photos with their nine variants each, and 41 pictures from the public set) they score: YOLOv12n mAP50 0.995 and mAP50-95 0.828; YOLO26n 0.995 and 0.858.
+- `YOLO_rqrr/eval/site_eval.ts` makes the table's first five columns again for any models named to it.
+
+**Training one.** The pictures, scripts and runs are in `YOLO_rqrr/`, which is not in the repository. From that folder, with `uv`:
+
+```bash
+# 1. The training set again, with wider boxes (reads the originals, writes data-wide/)
+uv run python train/widen_and_merge.py --grow 0.15
+
+# 2. Train (100 epochs on Apple silicon's GPU; about an hour and a half)
+uv run python train/train_wide.py --model yolo26n.pt --name yolo26n
+
+# 3. Export for the site, in the output format the site reads
+uv run python train/export_wide.py --run yolo26n --out models/yolo26n-qr-wide.onnx
+cp models/yolo26n-qr-wide.onnx ../assets/js-wasm/
+```
+
+- `widen_and_merge.py` keeps a card photo and its nine augmented variants on the same side of the train/validation split (14 of the 70 photos are held out), so the validation scores are of photos the model has not seen in any form. The earlier `augment.py` shuffled them apart.
+- `train_wide.py` uses the settings of the first training (`train.py`), so that two runs differ in the model and the boxes alone.
+- A YOLO26 model has an end-to-end head whose output is `[1, 300, 6]`. `export_wide.py` leaves it out (`end2end=False`), which gives `[1, 5, 8400]` (centre, size and confidence for each of 8,400 places), the output a YOLOv12 model gives and the one the site reads.
+- None of these scripts writes over anything: each refuses a folder or file that exists.
 
 ### Formatting & Linting
 
