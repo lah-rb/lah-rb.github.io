@@ -71,12 +71,9 @@ pub const REDIRECTS_PATH: &str = "redirects.json";
 pub const OFFLINE_MANIFEST_PATH: &str = "offline-manifest.json";
 
 /// What the service worker fetches for offline play besides the card art:
-/// the QR decoder, which is left out of the precache because only the
+/// the QR reader, which is left out of the precache because only the
 /// scanner needs it.
-const OFFLINE_EXTRA: [&str; 2] = [
-    "/assets/js-wasm/zxing_reader.js",
-    "/assets/js-wasm/zxing_reader.wasm",
-];
+const OFFLINE_EXTRA: [&str; 1] = [crate::routes::qr::READER];
 
 const HOLE_OPEN: &str = "[[card.";
 const HOLE_CLOSE: &str = "]]";
@@ -957,10 +954,7 @@ mod tests {
         assert_eq!(images.len(), CARDS.iter().filter(|c| !c.hidden).count());
         assert!(images.contains(&json!("/assets/images/timebattle.jxl")));
         assert!(!images.contains(&json!("/assets/images/404.jxl")));
-        assert_eq!(
-            manifest["extra"],
-            json!(["/assets/js-wasm/zxing_reader.js", "/assets/js-wasm/zxing_reader.wasm"])
-        );
+        assert_eq!(manifest["extra"], json!(["/assets/js-wasm/zxing-3.2.0-rc1.wasm"]));
         assert!(offline_manifest(&CARDS).starts_with(r#"{"images":["#));
     }
 

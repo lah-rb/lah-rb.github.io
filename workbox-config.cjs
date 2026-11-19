@@ -64,11 +64,9 @@ module.exports = {
     // Archived experiment — must never be precached (also excluded from _site)
     'YOLO_rqrr/**',
     'runs/**',
-    // Keep first-visit precache lean. The QR decoder is only needed when the
+    // Keep first-visit precache lean. The QR reader is only needed when the
     // scanner opens (cached on demand via the SWR route; warmed on PWA install).
-    'assets/js-wasm/zxing_reader.js',
-    'assets/js-wasm/zxing_reader.wasm',
-    'assets/js-wasm/rqrr-decode-pkg/**',
+    'assets/js-wasm/zxing-*.wasm',
     // Workbox dev builds are never loaded (only *.prod.js runs).
     'assets/js/workbox/**/*.dev.js',
   ],

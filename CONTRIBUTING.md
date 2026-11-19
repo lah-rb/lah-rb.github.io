@@ -547,7 +547,7 @@ The engine only answers requests. It cannot write to storage, open a socket, wai
 | Part | For | Meaning |
 |---|---|---|
 | `wire` | the worker | Sockets to open, send on and close, and waits to start and forget (`wire.rs`). The worker reports what each does with `POST /api/wire` |
-| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first |
+| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` is the address of the reader's file |
 | `save` → `SAVE` | the page | Storage keys to write (a string) or remove (null) |
 | `room` → `ROOM` | the page | Whether the player is in a room, for `$store.room.inRoom` |
 | `redraw` → `REDRAW` | the page | Routes whose views are to be drawn again |
@@ -626,6 +626,7 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports. At build time, names the cached preview pictures |
 | [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
 | [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
+| [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 3.2.0-rc1 | Apache-2.0 | Reads QR codes. A WASM module of its own, built by `zxing-reader/build.sh` (see The QR reader) |
 
 ### Server & Runtime
 
@@ -775,6 +776,35 @@ deno task deploy
 
 The relay and the site must be deployed together when the messages between them change (`PROTOCOL_VERSION` in `signaling-server/src/room.js`; what the engine expects of the relay is in `kipukas-server/src/game/connection.rs`). `deno task logs` shows the deployed relay's live log.
 
+### The QR reader
+
+The scanner reads codes with [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp), compiled to WebAssembly: `assets/js-wasm/zxing-3.2.0-rc1.wasm` (356 KB), built from that release by `zxing-reader/build.sh`. It took the place of a build of zxing-cpp 2.2.1 made by hand in 2024, which was 1,020 KB with every barcode format in it and had a 106 KB loader script beside it.
+
+**Building one.** `sh zxing-reader/build.sh v3.2.0-rc1` fetches that release of zxing-cpp, compiles it with `zxing-reader/reader.cpp` in front, and writes `assets/js-wasm/zxing-3.2.0-rc1.wasm`. It needs git and Docker: the compiler is Emscripten, run from its official container image at a fixed version (`EMSDK_IMAGE` in the script), so nothing is installed on the machine. A release is held to the commit recorded for it in the script, and a new one is added there.
+
+To put another build in use, name its file in `READER` (`kipukas-server/src/routes/qr.rs`) and remove the old file. The engine hands the name to its worker, which fetches and starts the file (`assets/js/zxing-decode.js`), and to the list of what is fetched for offline play (`OFFLINE_EXTRA` in `site.rs`). The service worker leaves `zxing-*.wasm` out of what every visitor fetches (`workbox-config.cjs`).
+
+What such a build is (`zxing-reader/CMakeLists.txt`):
+
+- zxing-cpp's reader of QR codes and nothing else: no other format, no writer, no decoding of image files.
+- One `.wasm` file that stands alone. C++ exceptions are WebAssembly's own, so there is no loader script: `zxing-decode.js` fetches the file, starts it, and calls its three functions (`qr_picture`, `qr_read`, `qr_text`).
+- It needs a browser with WebAssembly exception handling (Chrome 95, Firefox 100, Safari 15.2) and bulk memory. It uses neither threads nor SIMD.
+- `tryDenoise` is compiled in (it is behind zxing-cpp's experimental API flag) and asked for at each read (`DENOISE` in `zxing-decode.js`). With it the reader looks a second time at each picture after closing small gaps in its dark parts.
+
+**Why this build** (tried in November 2026, with 2.2.1 and a build of 3.1.1 beside it, each newer one with denoise and without):
+
+| Build | Pictures read, of 220 | Of the 70 card photos among them | A frame on a phone |
+|---|---|---|---|
+| 2.2.1 | 145 | 35 | about 17 ms |
+| 3.1.1 | 148 | 35 | 12 ms |
+| 3.2.0-rc1 | 145 | 33 | 10.5 ms |
+| 3.1.1 with denoise | 152 | 38 | 25 ms |
+| 3.2.0-rc1 with denoise | 149 | 36 | 25 ms |
+
+- The pictures are those the model below was trained on, each given whole to the reader after the scanner's threshold. Chrome and Firefox read the same ones.
+- Held to a phone's camera in poor light, the two with denoise read clearly better than the others and much like each other. 3.2.0-rc1 was kept for its smaller file (356 KB against 453 KB).
+- The 2.2.1 build reads as if denoise is off in it: codes speckled white are read by the newer builds with denoise, and by neither 2.2.1 nor the newer builds without.
+
 ### Formatting & Linting
 
 ```bash
@@ -857,7 +887,7 @@ Persist combat results in yrs document so players can review past rounds across 
 ### Long-Term
 
 #### 4. Replace ZXing with Rust QR Decoder
-Eliminate the ~2MB third-party ZXing WASM dependency by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. **NOTE:** It was also attempted to improve rqrr detection, but the results were overall worse that ZXing with greater complication and dimishing returns on space saved. Many strategies were attempted, but only adaptive_threshold had any effect. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
+Eliminate the third-party ZXing WASM dependency (356 KB since it is built from zxing-cpp 3.2.0 for QR codes alone; about 1.1 MB before) by compiling a Rust QR decoder into `kipukas-server`. **Caveat:** This has been explored. `rxing` (Rust port of ZXing) produces a ~6MB WASM binary — too large. `rqrr` is small but struggles with Kipukas' anti-cheat camouflaged QR codes, which require robust error correction and perspective distortion handling. This feature is blocked until either `rxing` becomes smaller/more WASM-friendly or `rqrr` improves its decoding of difficult QR patterns. **NOTE:** It was also attempted to improve rqrr detection, but the results were overall worse that ZXing with greater complication and dimishing returns on space saved. Many strategies were attempted, but only adaptive_threshold had any effect. When feature discussions come up ask to check on state of the libs (robustness to detection is the primary concern).
 
 #### 5. Infinite Scroll with Content-Visibility
 Replace the batch-by-batch loading on the index page with a true rolling infinite scrolling system including position tracking and DOM replacements. Card count need to be around 150 to consider the feature. The engine already holds how many tiles the binder shows (`routes/cards.rs`), which is where position tracking would go.

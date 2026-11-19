@@ -13,7 +13,8 @@
  * QR detection: YOLO v12n (ONNX Runtime Web) for localization + ZXing (C++/WASM)
  * for decode. YOLO finds QR bounding boxes in the camera frame, then ZXing
  * decodes the cropped region with tryHarder mode for maximum accuracy on
- * camouflaged QR codes with low-res front-facing cameras.
+ * camouflaged QR codes with low-res front-facing cameras. Which file the
+ * reader is, the engine says (kipukas-server/src/routes/qr.rs).
  *
  * This worker runs as { type: 'module' } so it can use ES imports.
  */
@@ -47,9 +48,11 @@ let qrMode = null; // 'yolo+zxing' or 'zxing-only'
 // Whether codes are found by computer vision (YOLO) before they are read:
 // the player's choice, which the engine keeps and tells this worker of.
 let cvEnabled = false;
+// The address of the QR reader's file, as the engine names it.
+let readerUrl = null;
 
 async function initQR() {
-  if (qrReady || qrInitializing) return;
+  if (qrReady || qrInitializing || !readerUrl) return;
   qrInitializing = true;
 
   try {
@@ -59,7 +62,7 @@ async function initQR() {
       // CV enabled — load YOLO (WebGPU → WASM fallback) + ZXing in parallel
       const [yoloBackend] = await Promise.all([
         initSession(MODEL_URL),
-        initZXing(),
+        initZXing(readerUrl),
       ]);
 
       qrReady = true;
@@ -74,7 +77,7 @@ async function initQR() {
       }
     } else {
       // CV disabled — ZXing only (lightweight, works everywhere)
-      await initZXing();
+      await initZXing(readerUrl);
       qrReady = true;
       qrMode = 'zxing-only';
       const elapsed = Math.round(performance.now() - t0);
@@ -263,11 +266,12 @@ let processingFrame = false;
 /**
  * The engine's scanner has opened, or the player has changed how codes are
  * found (`cv`: by computer vision first). Get the decoder ready for it,
- * while the camera starts.
+ * while the camera starts. `reader` is the address of the reader's file.
  */
-function wantQR({ cv }) {
+function wantQR({ cv, reader }) {
   const wasEnabled = cvEnabled;
   cvEnabled = !!cv;
+  if (reader) readerUrl = reader;
   // Turned on with the decoder already set up without YOLO: set it up again.
   if (cvEnabled && !wasEnabled && qrReady && qrMode === 'zxing-only') {
     qrReady = false;

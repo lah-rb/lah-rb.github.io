@@ -189,7 +189,7 @@ mod tests {
 
         assert_eq!(handle_request("POST", "/api/qr/status", "", "action=toggle"), "");
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("Privacy Notice"));
-        assert_eq!(handed()["qr"], serde_json::json!({ "cv": false }));
+        assert_eq!(handed()["qr"], serde_json::json!({ "cv": false, "reader": routes::qr::READER }));
 
         handle_request("POST", "/api/qr/status", "", "action=accept");
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("<video"));

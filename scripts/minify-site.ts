@@ -12,7 +12,7 @@
  *   - Files already minified (*.min.js)
  *   - Vendored Workbox libraries (workbox/)
  *   - Vendored game_rules libraries (game_rules/js/vendor/)
- *   - Emscripten / wasm-pack generated code (js-wasm/zxing_reader.js, kipukas-server-pkg/)
+ *   - wasm-pack generated code (js-wasm/kipukas-server-pkg/)
  *
  * Output: overwrites each file in-place inside _site/ and prints a size report.
  */
@@ -30,7 +30,6 @@ const SKIP_PATTERNS = [
   /\/workbox\//, // Vendored Workbox libraries
   /\/vendor\//, // Vendored game_rules libraries
   /\/kipukas-server-pkg\//, // wasm-pack generated glue code
-  /\/zxing_reader\.js$/, // Emscripten-generated (106 KB, already optimized)
 ];
 
 /** Recursively collect all .js files under a directory. */
