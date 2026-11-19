@@ -565,7 +565,7 @@ fn privacy_modal() -> String {
     <p class="mb-4 text-kip-drk-sienna">
       By allowing camera access to our QR code scanner, you agree to our
       <a href="/privacy_policy" class="text-kip-red hover:text-emerald-600 underline">privacy policy</a>.
-      Breath easy, we don&rsquo;t collect any data.
+      Breathe easy, we don&rsquo;t collect any data.
     </p>
     <button type="button" {post} data-engine-body="action=accept"
             class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
