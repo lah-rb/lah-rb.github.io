@@ -11,10 +11,11 @@
 //! The camera is not the engine's: the page runs it for as long as the
 //! scanner's video is drawn (qr-camera.js) and hands its frames to the
 //! engine's worker. Which camera, of those the device has, is the page's
-//! too. It says here which it is running ([`Camera`]), and the engine keeps
-//! that: so that the picture is mirrored only for a camera that faces the
-//! player, and so that the scanner next opens on the same camera. Nor are
-//! the model that finds codes and the reader that
+//! too. It says here which it is running ([`Camera`]), so that the picture
+//! is mirrored only for a camera that faces the player. The engine keeps
+//! the one the player chose, for the page to ask the browser for when the
+//! scanner next opens. Nor are the model that finds codes and the reader
+//! that
 //! reads them: the worker holds those two and passes the frames between
 //! them and the engine (kipukas-worker.js, `crate::scan`). It says here
 //! when either cannot be loaded, which the scanner shows. What a code says
@@ -46,7 +47,7 @@ use crate::store;
 pub const CV: &str = "kipukas-cv-enabled";
 /// Storage key: `true` while the screen light is on.
 pub const LIGHT: &str = "kipukas-scanner-light";
-/// Storage key: the camera the scanner last ran (JSON, [`Camera`]).
+/// Storage key: the camera the player chose (JSON, [`Camera`]).
 pub const CAMERA: &str = "kipukas-scanner-camera";
 
 /// The QR reader: zxing-cpp compiled to one WebAssembly file by
@@ -144,6 +145,18 @@ impl Camera {
         }
     }
 
+    /// The way to ask the browser for a camera like this one, where it
+    /// cannot be asked for by its id: `environment` for one that faces
+    /// away, by the browser's word or by its name, else the browser's
+    /// word, which may be none.
+    fn asks_for(&self) -> &str {
+        if self.faces_away() {
+            "environment"
+        } else {
+            &self.facing
+        }
+    }
+
     /// Whether its picture is shown mirrored, as a mirror would show the
     /// player the card they hold up to it. One that faces away is shown
     /// as it sees, or a card moved to the left would move to the right.
@@ -215,13 +228,18 @@ impl Tally {
 struct Scanner {
     face: Face,
     /// The screen is lit white, to light a card held to a front camera.
-    /// Kept as it was left, as is the camera.
+    /// Kept as it was left.
     light: bool,
-    /// The camera the page last said it was running: on this page, or on
-    /// an earlier one.
-    camera: Camera,
-    /// The size of that camera's picture, once the page has said, in
-    /// pixels across and down.
+    /// The camera the player chose, which the page is to ask the browser
+    /// for: the one they last changed to or, before any change, the first
+    /// that ran. Nothing is known of it before any has run.
+    wanted: Camera,
+    /// The camera the page says is running, once it has said. It may be
+    /// another than the one wanted: that one is gone, or the browser chose
+    /// among those that face the same way.
+    running: Option<Camera>,
+    /// The size of the running camera's picture, once the page has said,
+    /// in pixels across and down.
     picture: Option<(u32, u32)>,
     /// Codes are found by computer vision (YOLO) before they are read.
     cv: bool,
@@ -249,13 +267,13 @@ fn with_scanner<R>(f: impl FnOnce(&mut Scanner) -> R) -> R {
 /// everything the page handed over (`store::handle_start_post`).
 pub fn restore(stored: &BTreeMap<String, String>) {
     let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
-    let camera = stored
+    let wanted = stored
         .get(CAMERA)
         .and_then(|raw| serde_json::from_str::<Camera>(raw).ok())
         .map(|camera| Camera::described(&camera.id, &camera.label, &camera.facing))
         .unwrap_or_default();
     with_scanner(|scanner| {
-        *scanner = Scanner { cv: chosen(CV), light: chosen(LIGHT), camera, ..Scanner::default() };
+        *scanner = Scanner { cv: chosen(CV), light: chosen(LIGHT), wanted, ..Scanner::default() };
     });
 }
 
@@ -362,9 +380,9 @@ pub fn handle_status(_query: &str) -> String {
 ///     the model was run on it; `at`, when it began on the frame by its
 ///     own clock. Sent while the status line is wanted
 ///   - `action=camera&id=<id>&label=<name>&facing=<user|environment>
-///     &width=<pixels>&height=<pixels>`: the camera the page is running,
-///     in the browser's words, and the size of its picture. Any may be
-///     missing
+///     &width=<pixels>&height=<pixels>[&chosen=true]`: the camera the page
+///     is running, in the browser's words, and the size of its picture.
+///     Any may be missing. `chosen`: the player has just changed to it
 ///   - `action=error&msg=<why>`: the page could not start the camera
 pub fn handle_status_post(body: &str) -> String {
     let params = parse_form_body(body);
@@ -442,13 +460,23 @@ pub fn handle_status_post(body: &str) -> String {
             let camera = Camera::described(said("id"), said("label"), said("facing"));
             let side = |name: &str| said(name).parse::<u32>().ok().filter(|pixels| (1..=LARGEST_SIDE).contains(pixels));
             let picture = side("width").zip(side("height"));
-            let another = with_scanner(|scanner| {
+            let chosen = get_param(&params, "chosen") == Some("true");
+            let kept = with_scanner(|scanner| {
                 scanner.picture = picture;
-                let another = scanner.camera != camera;
-                scanner.camera = camera.clone();
-                another
+                scanner.running = Some(camera.clone());
+                // What is kept is the player's choice: the camera they
+                // changed to, or the first to run when none had been
+                // chosen. A camera the browser started in place of the one
+                // wanted does not take its place, so the one wanted is
+                // asked for again the next time.
+                let choice = chosen || scanner.wanted == Camera::default();
+                let kept = choice && scanner.wanted != camera;
+                if kept {
+                    scanner.wanted = camera.clone();
+                }
+                kept
             });
-            if another {
+            if kept {
                 store::put(CAMERA, serde_json::to_string(&camera).ok());
             }
         }
@@ -475,6 +503,7 @@ fn open() {
     let accepted = settings::is_on(&settings::CAMERA_PRIVACY);
     let cv = with_scanner(|scanner| {
         scanner.face = if accepted { Face::Scanning } else { Face::Privacy };
+        scanner.running = None;
         scanner.picture = None;
         scanner.read = None;
         scanner.tally = Tally::default();
@@ -488,6 +517,7 @@ fn open() {
 fn close() {
     with_scanner(|scanner| {
         scanner.face = Face::Closed;
+        scanner.running = None;
         scanner.picture = None;
         scanner.read = None;
     });
@@ -595,12 +625,15 @@ fn privacy_modal() -> String {
 /// button marked `data-qr-switch` is the page's too: which cameras the
 /// device has is a matter of the device, not of the scanner.
 ///
-/// The camera the page last said it was running is written on the same
-/// element (`data-camera-id`, `-label` and `-facing`), for the page to ask
-/// the browser for again when it starts the camera. `data-mirrored` is
-/// there while the picture is to be shown mirrored, which the video and
-/// the canvas over it follow by their classes: kept elements are not
-/// drawn again, so what changes is written on what holds them.
+/// The camera the player chose is written on the same element, for the
+/// page to ask the browser for when it starts the camera: `data-camera-id`,
+/// its id, and `data-camera-facing`, the way it faces. The page asks by
+/// the id where the browser shows it still has that camera, and by the way
+/// it faces alone where not. `data-mirrored` is there while the picture is
+/// to be shown mirrored: by the camera that is running once the page has
+/// said which, and until then by the one wanted. The video and the canvas
+/// over it follow that by their classes: kept elements are not drawn
+/// again, so what changes is written on what holds them.
 fn scanning_ui(scanner: &Scanner) -> String {
     // Lights the card for a front camera. A tap anywhere on it turns it off.
     let light = if scanner.light {
@@ -655,7 +688,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
         r##"<div>
   {light}
   <!-- Video container - higher z-index to stay above the screen light -->
-  <div data-qr-camera data-qr-every="{every}" data-camera-id="{camera_id}" data-camera-label="{camera_label}" data-camera-facing="{camera_facing}"{mirrored} class="group/camera z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
+  <div data-qr-camera data-qr-every="{every}" data-camera-id="{camera_id}" data-camera-facing="{camera_facing}"{mirrored} class="group/camera z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
     <canvas id="canvas" data-engine-keep class="-z-10 object-cover size-full hidden"
             width="640" height="640"></canvas>
 
@@ -698,10 +731,9 @@ fn scanning_ui(scanner: &Scanner) -> String {
 </div>"##,
         light = light,
         every = EVERY_MS,
-        camera_id = escape_html(&scanner.camera.id),
-        camera_label = escape_html(&scanner.camera.label),
-        camera_facing = scanner.camera.facing,
-        mirrored = if scanner.camera.mirrored() { " data-mirrored" } else { "" },
+        camera_id = escape_html(&scanner.wanted.id),
+        camera_facing = scanner.wanted.asks_for(),
+        mirrored = if scanner.running.as_ref().unwrap_or(&scanner.wanted).mirrored() { " data-mirrored" } else { "" },
         post = POST,
         eye_off = SVG_EYE_OFF,
         camera_switch = SVG_CAMERA_SWITCH,
@@ -1020,17 +1052,37 @@ mod tests {
 
     // -- the camera --
 
-    const MIRRORED: &str = r#"data-camera-facing="user" data-mirrored class="group/camera "#;
+    /// How the scanner stands towards the camera: the id and the facing
+    /// it has the page ask for, and whether the picture is mirrored.
+    fn camera_asked_for(html: &str) -> (String, String, bool) {
+        let value = |name: &str| {
+            let from = html.find(&format!(r#"{}=""#, name)).expect(name) + name.len() + 2;
+            html[from..from + html[from..].find('"').unwrap()].to_string()
+        };
+        (value("data-camera-id"), value("data-camera-facing"), html.contains(" data-mirrored class="))
+    }
+
+    fn asked(id: &str, facing: &str, mirrored: bool) -> (String, String, bool) {
+        (id.to_string(), facing.to_string(), mirrored)
+    }
+
+    /// A page loads with the privacy notice accepted and this stored as the camera.
+    fn restored_with_camera(camera: &str) {
+        let stored: BTreeMap<String, String> =
+            [(settings::CAMERA_PRIVACY.key, "true"), (CAMERA, camera)].into_iter().map(|(key, value)| (key.to_string(), value.to_string())).collect();
+        settings::restore(&stored);
+        restore(&stored);
+    }
 
     #[test]
-    fn until_a_camera_is_known_the_picture_is_mirrored_and_no_camera_is_named() {
+    fn until_a_camera_is_known_the_picture_is_mirrored_and_no_camera_is_asked_for() {
         scanning();
         let html = handle_status("");
-        assert!(html.contains(r#"data-camera-id="" data-camera-label="" data-camera-facing="" data-mirrored class="group/camera "#), "{}", html);
+        assert_eq!(camera_asked_for(&html), asked("", "", true));
         // The video and the canvas over it follow what holds them, since
         // they are kept as they are when the scanner is drawn again.
-        assert!(html.contains(r#"<video id="video" data-engine-keep
-           class="z-50 object-cover size-full group-data-mirrored/camera:scale-x-[-1] "#));
+        assert!(html.contains(r#" data-mirrored class="group/camera "#));
+        assert!(html.contains("object-cover size-full group-data-mirrored/camera:scale-x-[-1] "));
         assert!(html.contains("absolute inset-0 size-full group-data-mirrored/camera:scale-x-[-1] "));
         fresh();
     }
@@ -1038,55 +1090,82 @@ mod tests {
     #[test]
     fn the_picture_is_mirrored_for_a_camera_that_faces_the_player_and_not_for_one_that_faces_away() {
         scanning();
-        let html = tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=480&height=640");
-        assert!(html.contains(r#"data-camera-id="front-1" data-camera-label="Front Camera" "#), "{}", html);
-        assert!(html.contains(MIRRORED), "{}", html);
-
-        let html = tap("action=camera&id=back-1&label=Back%20Camera&facing=environment");
-        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="group/camera "#), "{}", html);
-        assert!(!html.contains(" data-mirrored class="));
+        assert!(camera_asked_for(&tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=480&height=640")).2);
+        assert!(!camera_asked_for(&tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&chosen=true")).2);
 
         // What the browser says of the way it faces counts before its name.
-        assert!(tap("action=camera&label=Rear%20view%20mirror&facing=user").contains(MIRRORED));
-        // Where it says nothing, the name may.
+        assert!(camera_asked_for(&tap("action=camera&label=Rear%20view%20mirror&facing=user&chosen=true")).2);
+        // Where it says nothing, the name may, and such a camera is asked
+        // for as one that faces away.
         for label in ["camera2%200%2C%20facing%20back", "Rear%20Camera", "BACK%20ULTRA%20WIDE"] {
-            let html = tap(&format!("action=camera&id=x&label={}", label));
-            assert!(!html.contains(" data-mirrored class="), "{}", label);
+            let html = tap(&format!("action=camera&id=x&label={}&chosen=true", label));
+            assert_eq!(camera_asked_for(&html), asked("x", "environment", false), "{}", label);
         }
         // A camera nothing is known of is taken to face the player.
         for body in ["action=camera", "action=camera&id=usb-7&label=USB%20Video%20Device", "action=camera&label=FaceTime%20HD&facing=left"] {
-            let html = tap(body);
-            assert!(html.contains(r#"data-camera-facing="" data-mirrored "#), "{}: {}", body, html);
+            let html = tap(&format!("{}&chosen=true", body));
+            let (_, facing, mirrored) = camera_asked_for(&html);
+            assert_eq!((facing.as_str(), mirrored), ("", true), "{}", body);
         }
         fresh();
     }
 
     #[test]
-    fn the_camera_is_remembered_for_the_page_to_ask_for_when_the_scanner_next_opens() {
+    fn the_first_camera_to_run_and_any_the_player_changes_to_is_kept_and_asked_for_again() {
         scanning();
-        tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&width=1280&height=720");
+        // Nothing was chosen: the camera that runs first is kept.
+        let html = tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=480&height=640");
+        assert_eq!(camera_asked_for(&html), asked("front-1", "user", true));
         let saved = store::take_saves().get(CAMERA).cloned().flatten().expect("the camera is stored");
         assert_eq!(
             serde_json::from_str::<serde_json::Value>(&saved).unwrap(),
-            serde_json::json!({ "id": "back-1", "label": "Back Camera", "facing": "environment" })
+            serde_json::json!({ "id": "front-1", "label": "Front Camera", "facing": "user" })
         );
-        // The same camera said again (its picture changed size) is not written again.
-        tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&width=720&height=1280");
+        // Said again (its picture changed size), it is not written again.
+        tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=640&height=480");
         assert!(store::take_saves().get(CAMERA).is_none());
 
-        // Closed and opened, and on the next page, the scanner names it
-        // and shows its picture as it sees.
+        // The player changes camera.
+        let html = tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&width=1280&height=720&chosen=true");
+        assert_eq!(camera_asked_for(&html), asked("back-1", "environment", false));
+        let saved = store::take_saves().get(CAMERA).cloned().flatten().expect("the choice is stored");
+        assert!(saved.contains("back-1"));
+
+        // Closed and opened, and on the next page, it is the one asked
+        // for, and the picture is drawn as it sees before any camera has
+        // answered.
         tap("action=close");
-        let html = tap("action=toggle");
-        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="#));
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-1", "environment", false));
         fresh();
-        let stored: BTreeMap<String, String> =
-            [(settings::CAMERA_PRIVACY.key, "true".to_string()), (CAMERA, saved)].into_iter().map(|(key, value)| (key.to_string(), value)).collect();
-        settings::restore(&stored);
-        restore(&stored);
-        let html = tap("action=toggle");
-        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="#));
-        assert!(!html.contains(" data-mirrored class="));
+        restored_with_camera(&saved);
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-1", "environment", false));
+        fresh();
+    }
+
+    #[test]
+    fn a_camera_the_browser_started_in_place_of_the_one_wanted_does_not_take_its_place() {
+        fresh();
+        restored_with_camera(r#"{"id":"back-9","label":"Back Ultra Wide Camera","facing":"environment"}"#);
+        tap("action=toggle");
+        // Another that faces the same way: the browser's ids are new, or
+        // it chose among its rear cameras itself.
+        let html = tap("action=camera&id=back-2&label=Back%20Camera&facing=environment");
+        assert_eq!(camera_asked_for(&html), asked("back-9", "environment", false));
+        assert!(store::take_saves().get(CAMERA).is_none(), "the choice stands");
+
+        // The front camera, though a rear one was asked for: the picture
+        // is mirrored as that camera needs, and the rear one is asked for
+        // again the next time.
+        let html = tap("action=camera&id=front-1&label=Front%20Camera&facing=user");
+        assert_eq!(camera_asked_for(&html), asked("back-9", "environment", true));
+        assert!(store::take_saves().get(CAMERA).is_none());
+        tap("action=close");
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-9", "environment", false));
+
+        // Until the player changes camera themselves.
+        let html = tap("action=camera&id=front-1&label=Front%20Camera&facing=user&chosen=true");
+        assert_eq!(camera_asked_for(&html), asked("front-1", "user", true));
+        assert!(store::take_saves().get(CAMERA).cloned().flatten().is_some_and(|saved| saved.contains("front-1")));
         fresh();
     }
 
@@ -1094,27 +1173,24 @@ mod tests {
     fn what_the_page_says_of_a_camera_is_the_browsers_words_and_is_not_trusted() {
         scanning();
         let html = tap("action=camera&id=%22%3E%3Cscript%3E&label=%3Cb%3EBack%3C%2Fb%3E%22%20onload%3D%22x&facing=%22%3E");
-        assert!(html.contains(r#"data-camera-id="&quot;&gt;&lt;script&gt;" data-camera-label="&lt;b&gt;Back&lt;/b&gt;&quot; onload=&quot;x" data-camera-facing="""#), "{}", html);
+        assert!(html.contains(r#"data-camera-id="&quot;&gt;&lt;script&gt;" data-camera-facing="environment" class="#), "{}", html);
+        assert!(!html.contains("<b>Back"));
         // A long name is cut, and what is stored that is not a camera is none.
         let long = "n".repeat(5000);
-        tap(&format!("action=camera&id={}&label={}", long, long));
+        tap(&format!("action=camera&id={}&label={}&chosen=true", long, long));
         let saved = store::take_saves().get(CAMERA).cloned().flatten().unwrap();
         assert!(saved.len() < 500, "{}", saved.len());
         for kept in ["", "not json", "[1,2]", r#"{"id":7}"#, r#"{"facing":"sideways","label":"a\u0000b"}"#] {
             fresh();
-            let stored: BTreeMap<String, String> =
-                [(settings::CAMERA_PRIVACY.key, "true"), (CAMERA, kept)].into_iter().map(|(key, value)| (key.to_string(), value.to_string())).collect();
-            settings::restore(&stored);
-            restore(&stored);
-            let html = tap("action=toggle");
-            assert!(html.contains(r#"data-camera-id="" "#) && html.contains(r#"data-camera-facing="" data-mirrored"#), "{:?}: {}", kept, html);
+            restored_with_camera(kept);
+            assert_eq!(camera_asked_for(&tap("action=toggle")), asked("", "", true), "{:?}", kept);
         }
         // A camera said with no scanner on its picture is not taken.
         fresh();
-        tap("action=camera&id=back-1&facing=environment");
+        tap("action=camera&id=back-1&facing=environment&chosen=true");
         assert!(store::take_saves().get(CAMERA).is_none());
         tap("action=toggle");
-        tap("action=camera&id=back-1&facing=environment");
+        tap("action=camera&id=back-1&facing=environment&chosen=true");
         assert!(store::take_saves().get(CAMERA).is_none(), "nor behind the privacy notice");
         fresh();
     }

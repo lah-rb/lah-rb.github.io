@@ -46,8 +46,8 @@ const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', '
 //     the camera privacy notice has been accepted, and whether the QR
 //     scanner shows what its frames take;
 //   - what the QR scanner keeps as it was left: whether codes are found by
-//     computer vision, whether the screen light is on, and which camera it
-//     last ran (kipukas-server/src/routes/qr.rs).
+//     computer vision, whether the screen light is on, and which camera
+//     the player chose (kipukas-server/src/routes/qr.rs).
 const READ_AT_START = [
   'kipukas_relay_url',
   'qr-privacy-accepted',
