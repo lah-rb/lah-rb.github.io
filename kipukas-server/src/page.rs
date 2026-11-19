@@ -128,10 +128,10 @@ fn take_in_room() -> Option<bool> {
 ///   room     whether the player is in a room: sent when they enter or
 ///            leave one, and once at the start
 ///   qr       for the worker: get the QR decoder ready; `cv` says whether
-///            codes are found by computer vision first, `reader` and
-///            `model` are the addresses of the reader's file and the
-///            model's, `status` whether it is to report what each frame
-///            takes
+///            codes are found by computer vision first, `reader`,
+///            `model` and `runner` are the addresses of the reader's file,
+///            the model's and that of what runs the model, `status`
+///            whether it is to report what each frame takes
 ///   go       a path on this site for the page to go to
 ///   reload   true: load the page again
 ///   download a file for the player to keep: `{ name, text }`
@@ -164,9 +164,12 @@ pub fn handle_handover_post(_body: &str) -> String {
         handed.insert("room".into(), serde_json::json!(in_room));
     }
     if let Some(cv) = QR.with(|qr| qr.take()) {
-        let (reader, model) = (crate::routes::qr::READER, crate::routes::qr::MODEL);
+        use crate::routes::qr::{MODEL, READER, RUNNER};
         let status = crate::settings::is_on(&crate::settings::SCANNER_STATUS);
-        handed.insert("qr".into(), serde_json::json!({ "cv": cv, "reader": reader, "model": model, "status": status }));
+        handed.insert(
+            "qr".into(),
+            serde_json::json!({ "cv": cv, "reader": READER, "model": MODEL, "runner": RUNNER, "status": status }),
+        );
     }
     if let Some(path) = take_go() {
         handed.insert("go".into(), serde_json::json!(path));

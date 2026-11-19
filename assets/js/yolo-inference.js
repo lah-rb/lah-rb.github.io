@@ -3,8 +3,10 @@
  * with ONNX Runtime Web.
  *
  * The model is a YOLO model trained on the card photos. Which file it is,
- * the engine says (MODEL in kipukas-server/src/routes/qr.rs). It runs on
- * WebGPU where the browser has it, and on WASM where not.
+ * and which file the runner is, the engine says (MODEL and RUNNER in
+ * kipukas-server/src/routes/qr.rs). The runner is ONNX Runtime Web as it is
+ * released, served by the site (scripts/fetch-onnxruntime.ts). The model
+ * runs on WebGPU where the browser has it, and on WASM where not.
  *
  * Only the running is here. What goes into the model and what is made of
  * what comes out are the engine's (kipukas-server/src/scan.rs).
@@ -16,12 +18,17 @@
  *
  * Usage (from the engine's worker):
  *   import { initSession, runDetection } from './yolo-inference.js';
- *   await initSession('/assets/js-wasm/yolo26n-qr-wide.onnx');
+ *   await initSession(model, runner); // the addresses the engine names
  *   const { data, places } = await runDetection(input);
  */
 
-// ONNX Runtime Web, the one script the site takes from another origin.
-const RUNNER = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.all.min.mjs';
+// The two files the runner loads from beside itself when it first makes a
+// model ready, by the names its release gives them (FILES in
+// scripts/fetch-onnxruntime.ts).
+const PARTS = {
+  mjs: 'ort-wasm-simd-threaded.jsep.mjs',
+  wasm: 'ort-wasm-simd-threaded.jsep.wasm',
+};
 
 // The side of the square picture the model takes (MODEL_SIDE in scan.rs).
 const SIDE = 640;
@@ -45,10 +52,11 @@ let using = null;
  * neither kept from before). It can be called again.
  *
  * @param {string} modelUrl - the address of the .onnx model file
+ * @param {string} runnerUrl - the address of the runner's script
  * @returns {Promise<string|null>} the backend in use ('webgpu' or 'wasm'),
  *   or null if the model was fetched and could be run on neither
  */
-export async function initSession(modelUrl) {
+export async function initSession(modelUrl, runnerUrl) {
   if (session && using === modelUrl) return backend;
   session = null;
   using = null;
@@ -59,13 +67,24 @@ export async function initSession(modelUrl) {
   if (!response.ok) throw new Error(`${modelUrl}: ${response.status}`);
   const model = new Uint8Array(await response.arrayBuffer());
 
-  // A copy of the runner. One that could not start (it fetches files of its
-  // own) stays that way, so the try after one takes another copy: the same
-  // file under an address the browser has not been given before.
+  // A copy of the runner. One that could not start stays that way, and so
+  // in some browsers does a script that could not be fetched (Firefox does
+  // not ask again for an address an import of it failed on). So the try
+  // after a failure takes another copy: the same files under addresses the
+  // browser has not been given before. That goes for the runner's script
+  // and for the script it imports from beside itself. Its third file is
+  // fetched as data, which is asked for again as it is.
   if (!ort) {
     const copy = copies;
     copies += 1;
-    ort = await import(copy === 0 ? RUNNER : `${RUNNER}?copy=${copy}`);
+    const address = (file, again) => {
+      const url = new URL(file, new URL(runnerUrl, self.location.href));
+      if (again && copy > 0) url.searchParams.set('copy', copy);
+      return url.href;
+    };
+    const taken = await import(address(runnerUrl, true));
+    taken.env.wasm.wasmPaths = { mjs: address(PARTS.mjs, true), wasm: address(PARTS.wasm, false) };
+    ort = taken;
   }
   const runner = ort;
 

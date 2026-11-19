@@ -221,7 +221,7 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `kipukas-server/src/routes/backup.rs` | The Player Data dialog: making a backup of the player's data and restoring from one |
 | `kipukas-server/src/routes/room_status.rs` | The room dialog and the status pill, drawn from the connection |
 | `kipukas-server/src/routes/device_sync.rs` | The Sync Devices dialog, drawn from the pairing |
-| `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, where a scanned code leads, and which files its reader and model are |
+| `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, where a scanned code leads, and which files its reader, its model and the model's runner are |
 | `kipukas-server/src/settings.rs` | The settings page: the player's choices about this device, each a switch, and where they are stored |
 | `kipukas-server/src/scan.rs` | What is done to a camera frame around the model and the reader: the model's input, its boxes, each box cut out, the threshold, and the order the reader is offered pictures in |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
@@ -261,6 +261,7 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `signaling-server/test/` | Tests for the rules and for the whole relay running locally |
 | `signaling-server/wrangler.jsonc` | Relay deployment config: address, allowed sites, room lifetime |
 | `scripts/bundle-alpine.ts` | Bundles Alpine.js + plugins via esbuild |
+| `scripts/fetch-onnxruntime.ts` | Puts ONNX Runtime Web among the site's files: its release from npm, held to a recorded hash |
 | `.tmuxinator.yml` | Multi-pane dev environment config |
 
 ---
@@ -556,7 +557,7 @@ The engine only answers requests. It cannot write to storage, open a socket, wai
 | Part | For | Meaning |
 |---|---|---|
 | `wire` | the worker | Sockets to open, send on and close, and waits to start and forget (`wire.rs`). The worker reports what each does with `POST /api/wire` |
-| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader` and `model` are the addresses of the reader's file and the model's, `status` whether the worker is to report what each frame takes |
+| `qr` | the worker | Get the QR decoder ready; `cv` says whether codes are found by computer vision first, `reader`, `model` and `runner` are the addresses of the reader's file, the model's and that of what runs the model, `status` whether the worker is to report what each frame takes |
 | `save` → `SAVE` | the page | Storage keys to write (a string) or remove (null) |
 | `room` → `ROOM` | the page | Whether the player is in a room, for `$store.room.inRoom` |
 | `redraw` → `REDRAW` | the page | Routes whose views are to be drawn again |
@@ -636,7 +637,7 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
 | [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
 | [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 3.2.0-rc1 | Apache-2.0 | Reads QR codes. A WASM module of its own, built by `zxing-reader/build.sh` (see The QR reader) |
-| [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) | 1.21.0 | MIT | Runs the model that finds QR codes, on WebGPU or WASM. Fetched from jsDelivr when computer vision is first turned on; the only script the site takes from another origin |
+| [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) | 1.21.0 | MIT | Runs the model that finds QR codes, on WebGPU or WASM. The release's own files, served by the site (`scripts/fetch-onnxruntime.ts`) and fetched when computer vision is first turned on |
 | [YOLO26n](https://docs.ultralytics.com/models/yolo26/), trained on the card photos | Ultralytics 8.4.19 | AGPL-3.0 (Ultralytics' licence for its models and what is trained from them) | Finds QR codes in a camera frame when computer vision is on (see The model that finds codes) |
 
 ### Server & Runtime
@@ -700,15 +701,18 @@ The complete build runs in this order (executed by `deno task build`):
                          Twice: with SIMD (build:wasm:simd) and without (build:wasm:plain)
 2. build:css           → Tailwind compile + minify → assets/css/output.css
 3. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
-4. build:rules         → Build rules book subproject → game_rules/
-5. jekyll build        → Generate _site/ from all sources. As its last step,
+4. build:onnxruntime   → ONNX Runtime Web's release → assets/js-wasm/onnxruntime-web-<version>/
+5. build:rules         → Build rules book subproject → game_rules/
+6. jekyll build        → Generate _site/ from all sources. As its last step,
                          _plugins/card_pages.rb has the engine write the card
                          pages, their preview pictures and the cards' data file
-6. build:sw            → Workbox injectManifest → sw.js with precache manifest
-7. build:minify        → Minify the site's JavaScript
+7. build:sw            → Workbox injectManifest → sw.js with precache manifest
+8. build:minify        → Minify the site's JavaScript
 ```
 
-Step 5 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
+Step 4 takes three files out of the `onnxruntime-web` package as npm released it: the runner's script, and the script and the WebAssembly module it loads from beside itself (24 MB together, about 6 MB as they travel). The package is fetched from the npm registry the first time and kept in `.cache/`, and is held to the hash recorded in `scripts/fetch-onnxruntime.ts` every time, so what the site serves is what was released. Neither the folder nor the package is committed. The folder's name carries the version, the engine names the folder to its worker (`RUNNER` in `routes/qr.rs`), and the script stops the build if the two disagree. To move to another release, follow the note at the top of the script.
+
+Step 6 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
 **The engine is built twice.** Once with WebAssembly's SIMD instructions (`.cargo/config.toml`), which make decoding a card's art about 1.9 times as fast, and once without (`build:wasm:plain`, which leaves `kipukas_server_plain_bg.wasm` beside the first). A browser without SIMD cannot load the first at all: it stops with "WebAssembly.Module doesn't parse". That is Safari before 16.4, so every iPhone that stops at iOS 15. `assets/js/engine-build.js` asks the browser whether it knows SIMD and names the build to fetch, for the engine's worker and for the workers that decode art. The two builds are of the same source and share one script (`kipukas_server.js`): the build task stops if theirs would differ. The service worker fetches the first for every visitor and leaves the second to the browsers that ask for it, for which it asks the network first each time, so that the build is the one that goes with the script (`sw-src.js`).
 
@@ -721,6 +725,7 @@ deno task build:wasm       # Rebuild WASM only (includes card catalog): both bui
 deno task build:wasm:simd  # Only the build with SIMD, the one most browsers load
 deno task build:css        # Rebuild Tailwind CSS only
 deno task build:alpine     # Rebuild Alpine.js bundle only
+deno task build:onnxruntime  # ONNX Runtime Web's files again, from the kept package
 deno task build:sw         # Rebuild service worker only (after jekyll build)
 ```
 
@@ -802,7 +807,7 @@ Twice a second the page draws the camera's picture into a 640 by 640 canvas and 
 3. The worker asks the engine for pictures (`scan_next`) and gives each to the reader until one is read. Without the model that is the whole frame; with it, each box cut out with a margin, the surest first. Each is offered thresholded first and then as it is.
 4. What a code says is posted to the scanner (`action=found`, `routes/qr.rs`).
 
-The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
+The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). The site serves both itself, as it does every script: nothing the scanner uses comes from another origin. Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
 
 **What the frames take.** A player who turns Scanner status on in the settings (`settings::SCANNER_STATUS`) sees a line over the camera's picture: what the last frame took and, in brackets, the average since the scanner opened, for the engine's part (steps 1 to 3 above, less the reader), the reader's, and the model's when it was run. Only the worker can time a frame, so the handover tells it the line is wanted (`status` in `qr`), and it then posts each frame's times to the scanner (`action=frame`), which keeps the count and draws the line. With the setting off nothing is reported and nothing is drawn. The count starts again when the scanner opens and when computer vision is turned on or off.
 
@@ -811,9 +816,9 @@ The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp ar
 | What | Fetched | Kept by the service worker (`sw-src.js`) |
 |---|---|---|
 | The reader (`READER`) | When the scanner first opens, and when the site is installed as an app (`OFFLINE_EXTRA`) | With the site's other scripts (`kipukas-assets`) |
-| The model (`MODEL`) and its runner, ONNX Runtime Web from jsDelivr | When computer vision is first turned on: about 10 MB and 3.5 MB to download | By address, never asked for again (`kipukas-vision`) |
+| The model (`MODEL`) and its runner (`RUNNER`), ONNX Runtime Web | When computer vision is first turned on: about 8.5 MB and 6 MB to download | By address, never asked for again (`kipukas-vision`) |
 
-So computer vision works without a connection once it has been used with one. Until the model and the runner have been fetched, frames are read whole, as they are with computer vision off, and the scanner says so: the worker tells it where the model stands (`action=finder`, `routes/qr.rs`). The worker asks for the model again when the scanner is opened or computer vision turned on, when the browser says the network is back, and when a frame arrives ten seconds or more after it last failed. A runner whose own files could not be fetched does not start a second time (ONNX Runtime answers "previous call to 'initWasm()' failed"), so the next try takes a fresh copy of it (`yolo-inference.js`). If the reader itself cannot be fetched no frame can be read, and the scanner says that instead.
+So computer vision works without a connection once it has been used with one. Until the model and the runner have been fetched, frames are read whole, as they are with computer vision off, and the scanner says so: the worker tells it where the model stands (`action=finder`, `routes/qr.rs`). The worker asks for the model again when the scanner is opened or computer vision turned on, when the browser says the network is back, and when a frame arrives ten seconds or more after it last failed. A runner whose own files could not be fetched does not start a second time (ONNX Runtime answers "previous call to 'initWasm()' failed"), and Firefox does not ask again for a script an import of it failed on. So the next try takes a fresh copy of the runner: its script, and the script that one imports, under addresses the browser has not been given before (`yolo-inference.js`). The service worker keeps and looks up the files without the query that makes an address new. If the reader itself cannot be fetched no frame can be read, and the scanner says that instead.
 
 ### The QR reader
 

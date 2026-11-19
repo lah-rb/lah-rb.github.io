@@ -274,17 +274,20 @@ registerRoute(
 );
 
 // The QR scanner's computer vision — CacheFirst. Its model (an .onnx file of
-// about 10 MB) and what runs it (ONNX Runtime Web, from jsDelivr) are fetched
-// only when a player turns computer vision on, and kept from then on so that
-// it works offline. Neither changes under its address: a model trained again
-// is another file (MODEL in kipukas-server/src/routes/qr.rs), and the
-// runner's address names its version. The page may ask for a second copy of
-// the runner under the same address with a query (yolo-inference.js), so the
-// query is left out of what is kept and looked up.
+// about 10 MB) and what runs it (ONNX Runtime Web, three files of about
+// 24 MB, in a folder of their own) are fetched only when a player turns
+// computer vision on, and kept from then on so that it works offline.
+// Neither changes under its address: a model trained again is another file,
+// and the runner's folder carries its version (MODEL and RUNNER in
+// kipukas-server/src/routes/qr.rs). The worker may ask for a second copy of
+// the runner's scripts under the same addresses with a query
+// (yolo-inference.js), so the query is left out of what is kept and looked
+// up.
 registerRoute(
   ({ url }) =>
-    (url.origin === self.location.origin && url.pathname.endsWith('.onnx')) ||
-    (url.origin === 'https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/onnxruntime-web@')),
+    url.origin === self.location.origin &&
+    (url.pathname.endsWith('.onnx') ||
+      url.pathname.startsWith('/assets/js-wasm/onnxruntime-web-')),
   new CacheFirst({
     cacheName: 'kipukas-vision',
     matchOptions: { ignoreSearch: true },
@@ -359,6 +362,28 @@ registerRoute(
     ],
   })
 );
+
+// ============================================
+// CLEANUP: the copies kept of the model's runner while it came from jsDelivr.
+// The site serves the runner itself now, so those (some 25 MB) are never
+// asked for again.
+// ============================================
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    // Asked for first, so that a visitor who never used computer vision is
+    // not given an empty cache by the looking.
+    caches.has('kipukas-vision').then(async (kept) => {
+      if (!kept) return;
+      const cache = await caches.open('kipukas-vision');
+      for (const request of await cache.keys()) {
+        if (new URL(request.url).origin !== self.location.origin) {
+          console.log('[SW] Deleting what was kept from another origin:', request.url);
+          await cache.delete(request);
+        }
+      }
+    })
+  );
+});
 
 // ============================================
 // CLEANUP: remove old versioned runtime caches from the previous setup

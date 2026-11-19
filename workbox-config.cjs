@@ -67,6 +67,9 @@ module.exports = {
     // Keep first-visit precache lean. The QR reader is only needed when the
     // scanner opens (cached on demand via the SWR route; warmed on PWA install).
     'assets/js-wasm/zxing-*.wasm',
+    // What runs the scanner's model (ONNX Runtime Web, about 24 MB): fetched
+    // when computer vision is turned on, by a route of its own in sw-src.js.
+    'assets/js-wasm/onnxruntime-web-*/**',
     // The engine's build without SIMD: fetched by the browsers that need it
     // (assets/js/engine-build.js), by a route of its own in sw-src.js.
     'assets/js-wasm/kipukas-server-pkg/kipukas_server_plain_bg.wasm',

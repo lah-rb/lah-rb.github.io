@@ -69,6 +69,7 @@ exclude:
   - YOLO_rqrr/
   - runs/
   - .archive/
+  - .cache/
   - CONTRIBUTING.md
   - PWA_SETUP.md
   - workbox-config.cjs

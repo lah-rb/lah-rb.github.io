@@ -196,7 +196,13 @@ mod tests {
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("Privacy Notice"));
         assert_eq!(
             handed()["qr"],
-            serde_json::json!({ "cv": false, "reader": routes::qr::READER, "model": routes::qr::MODEL, "status": false })
+            serde_json::json!({
+                "cv": false,
+                "reader": routes::qr::READER,
+                "model": routes::qr::MODEL,
+                "runner": routes::qr::RUNNER,
+                "status": false
+            })
         );
 
         handle_request("POST", "/api/qr/status", "", "action=accept");

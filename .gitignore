@@ -22,6 +22,11 @@ sw.js
 assets/css/output.css
 assets/js-wasm/kipukas-server-pkg/
 assets/js/alpine.bundle.min.js
+assets/js-wasm/onnxruntime-web-*/
+
+# The ONNX Runtime Web release those files are taken from, kept so that it is
+# fetched once (scripts/fetch-onnxruntime.ts)
+.cache/
 
 # Archived experiment — kept locally for reference; the compressed copy is in
 # .archive/yolo-rqrr-experiment.tar.gz (committed).

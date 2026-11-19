@@ -56,10 +56,11 @@ wasmReady.then(() => {
 // Whether codes are found by computer vision (the model) before they are
 // read: the player's choice, which the engine keeps and tells this worker of.
 let cvEnabled = false;
-// The addresses of the reader's file and the model's, as the engine names
-// them.
+// The addresses of the reader's file, the model's and that of what runs
+// the model, as the engine names them.
 let readerUrl = null;
 let modelUrl = null;
+let runnerUrl = null;
 // Where the model stands: 'none' before it is asked for, then 'loading',
 // and 'ready' or 'failed'. The scanner is told (routes/qr.rs), and says to
 // the player what it means for them.
@@ -100,7 +101,7 @@ function finderIs(state) {
  * failed is tried again whenever that was.
  */
 function loadFinder(asked = false) {
-  if (!modelUrl || finder === 'loading' || finder === 'ready') return;
+  if (!modelUrl || !runnerUrl || finder === 'loading' || finder === 'ready') return;
   if (asked) finderCouldNotRun = 0;
   if (finder === 'failed' && !asked) {
     if (finderCouldNotRun >= FINDER_TRIES) return;
@@ -119,7 +120,7 @@ function loadFinder(asked = false) {
     finderFailedAt = performance.now();
     finderIs('failed');
   };
-  initSession(modelUrl).then((backend) => {
+  initSession(modelUrl, runnerUrl).then((backend) => {
     if (!backend) {
       finderCouldNotRun += 1;
       console.error('[kipukas-worker] The model that finds codes could not be run');
@@ -263,15 +264,16 @@ let processingFrame = false;
 /**
  * The engine's scanner has opened, or the player has changed how codes are
  * found (`cv`: by computer vision first) or whether the scanner shows what
- * its frames take (`status`). `reader` and `model` are the addresses of the
- * reader's file and the model's. What is wanted is fetched now, while the
- * camera starts.
+ * its frames take (`status`). `reader`, `model` and `runner` are the
+ * addresses of the reader's file, the model's and that of what runs the
+ * model. What is wanted is fetched now, while the camera starts.
  */
-function wantQR({ cv, reader, model, status }) {
+function wantQR({ cv, reader, model, runner, status }) {
   cvEnabled = !!cv;
   statusWanted = !!status;
   if (reader) readerUrl = reader;
   if (model) modelUrl = model;
+  if (runner) runnerUrl = runner;
   // A reader that cannot be fetched now is asked for again with each frame.
   if (readerUrl) initZXing(readerUrl).catch(() => {});
   if (cvEnabled) loadFinder(true);

@@ -47,6 +47,13 @@ pub const READER: &str = "/assets/js-wasm/zxing-3.2.0-rc1.wasm";
 /// trained again is another file, named here.
 pub const MODEL: &str = "/assets/js-wasm/yolo26n-qr-wide.onnx";
 
+/// What runs the model: ONNX Runtime Web, served by the site from a folder
+/// that carries its version (`scripts/fetch-onnxruntime.ts` puts it there
+/// at build time, and stops the build if this names another folder). The
+/// worker imports it when the model is first wanted
+/// (`assets/js/yolo-inference.js`).
+pub const RUNNER: &str = "/assets/js-wasm/onnxruntime-web-1.21.0/ort.all.min.mjs";
+
 /// Where the scanner stands.
 #[derive(Debug, Clone, PartialEq, Default)]
 enum Face {
@@ -594,7 +601,7 @@ mod tests {
 
     /// What the worker is asked for when its decoder is wanted.
     fn asked_of_the_worker(cv: bool, status: bool) -> serde_json::Value {
-        serde_json::json!({ "cv": cv, "reader": READER, "model": MODEL, "status": status })
+        serde_json::json!({ "cv": cv, "reader": READER, "model": MODEL, "runner": RUNNER, "status": status })
     }
 
     /// A tap on one of the scanner's controls, and the scanner as it is
