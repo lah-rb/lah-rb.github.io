@@ -246,6 +246,7 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `assets/js/kipukas-worker.js` | The engine's worker: loads the WASM module and answers requests with it; passes the QR scanner's frames between the engine, the model and the reader |
 | `assets/js/yolo-inference.js` | Runs the model that finds QR codes (ONNX Runtime Web) on what the engine gives it |
 | `assets/js/zxing-decode.js` | Fetches and starts the QR reader (zxing-cpp as a WASM module) and reads a picture with it |
+| `assets/js/engine-build.js` | Names the build of the engine the browser can run: with SIMD, or without for a browser that lacks it |
 | `assets/js/kipukas-wire.js` | The worker's side of the handover: holds the engine's sockets and timers, and passes the page its part. Also used by the relay's tests to hold an engine without a browser |
 | `assets/js/kipukas-view.js` | Engine-owned views: draws `data-engine-view` elements from the engine when they are shown, sends taps and forms to it, patches the result in place |
 | `_includes/room_status.html` | The status pill's view, on every page |
@@ -690,7 +691,8 @@ The complete build runs in this order (executed by `deno task build`):
 
 ```
 1. build:wasm          → wasm-pack compile kipukas-server/wasm → assets/js-wasm/kipukas-server-pkg/
-                         (the engine's build script reads the card files first)
+                         (the engine's build script reads the card files first).
+                         Twice: with SIMD (build:wasm:simd) and without (build:wasm:plain)
 2. build:css           → Tailwind compile + minify → assets/css/output.css
 3. build:alpine        → esbuild bundle Alpine + plugins → assets/js/alpine.bundle.min.js
 4. build:rules         → Build rules book subproject → game_rules/
@@ -703,10 +705,15 @@ The complete build runs in this order (executed by `deno task build`):
 
 Step 5 runs `cargo run --bin card-pages` in `kipukas-server/`, a native build of the engine. The first run compiles it; later runs start in a fraction of a second. The first run with an empty preview cache also makes every card's preview picture (about 8 seconds). The same happens on every rebuild of `jekyll serve` and `jekyll build --watch`, because Jekyll removes files it did not write itself at the start of each build.
 
+**The engine is built twice.** Once with WebAssembly's SIMD instructions (`.cargo/config.toml`), which make decoding a card's art about 1.9 times as fast, and once without (`build:wasm:plain`, which leaves `kipukas_server_plain_bg.wasm` beside the first). A browser without SIMD cannot load the first at all: it stops with "WebAssembly.Module doesn't parse". That is Safari before 16.4, so every iPhone that stops at iOS 15. `assets/js/engine-build.js` asks the browser whether it knows SIMD and names the build to fetch, for the engine's worker and for the workers that decode art. The two builds are of the same source and share one script (`kipukas_server.js`): the build task stops if theirs would differ. The service worker fetches the first for every visitor and leaves the second to the browsers that ask for it, for which it asks the network first each time, so that the build is the one that goes with the script (`sw-src.js`).
+
+The second build and the QR reader hold nothing beyond what Safari 15.2 has of WebAssembly (checked with a validator held to those features). ONNX Runtime Web needs SIMD, so in such a browser computer vision cannot be loaded and the scanner reads without it.
+
 Individual build tasks can be run separately:
 
 ```bash
-deno task build:wasm       # Rebuild WASM only (includes card catalog)
+deno task build:wasm       # Rebuild WASM only (includes card catalog): both builds
+deno task build:wasm:simd  # Only the build with SIMD, the one most browsers load
 deno task build:css        # Rebuild Tailwind CSS only
 deno task build:alpine     # Rebuild Alpine.js bundle only
 deno task build:sw         # Rebuild service worker only (after jekyll build)

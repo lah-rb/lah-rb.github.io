@@ -3,7 +3,8 @@
  *
  * One of a small pool spawned by kipukas-api.js so grid thumbnails decode in
  * parallel and off the /api worker. It loads the same kipukas-server pkg (one
- * binary) but uses only the `decode_jxl` export.
+ * binary, in the build this browser can run) but uses only the `decode_jxl`
+ * export.
  *
  * Message in:  { bytes: ArrayBuffer, maxDim: number } + [responsePort]
  *   - bytes:  the whole .jxl file
@@ -14,8 +15,9 @@
  */
 
 import init, { decode_jxl } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import { engineBuild } from './engine-build.js';
 
-const wasmReady = init();
+const wasmReady = init(engineBuild());
 
 self.onmessage = async (event) => {
   const { bytes, maxDim } = event.data;

@@ -251,6 +251,28 @@ registerRoute(
   })
 );
 
+// The engine's build without SIMD (assets/js/engine-build.js) — NetworkFirst.
+// It is left out of the precache, which every visitor fetches, so nothing
+// tells one deploy's copy of it from the next. It has to be the build that
+// goes with the precached script beside it, so it is asked for afresh
+// whenever there is a connection, and the copy kept is for when there is
+// none.
+registerRoute(
+  ({ url }) =>
+    url.origin === self.location.origin &&
+    url.pathname.endsWith('/kipukas_server_plain_bg.wasm'),
+  new NetworkFirst({
+    cacheName: 'kipukas-engine-plain',
+    networkTimeoutSeconds: 15,
+    plugins: [
+      {
+        cacheWillUpdate: async ({ response }) =>
+          response && response.status === 200 ? response : null,
+      },
+    ],
+  })
+);
+
 // The QR scanner's computer vision — CacheFirst. Its model (an .onnx file of
 // about 10 MB) and what runs it (ONNX Runtime Web, from jsDelivr) are fetched
 // only when a player turns computer vision on, and kept from then on so that

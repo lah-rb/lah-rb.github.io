@@ -27,13 +27,15 @@ import init, {
   scan_next,
   scan_width,
 } from '../js-wasm/kipukas-server-pkg/kipukas_server.js';
+import { engineBuild, hasSimd } from './engine-build.js';
 import { initSession, runDetection } from './yolo-inference.js';
 import { decodeQR as readCode, initZXing } from './zxing-decode.js';
 import { createWire } from './kipukas-wire.js';
 
 // ── WASM server init ───────────────────────────────────────────────
 
-const wasmReady = init();
+// The build of the engine this browser can run (engine-build.js).
+const wasmReady = init(engineBuild());
 let initialized = false;
 
 wasmReady.then(() => {
@@ -99,6 +101,13 @@ function loadFinder(asked = false) {
   if (finder === 'failed' && !asked) {
     if (finderCouldNotRun >= FINDER_TRIES) return;
     if (performance.now() - finderFailedAt < FINDER_AGAIN_AFTER) return;
+  }
+  // What runs the model needs SIMD, on either of its backends. A browser
+  // without it is spared the fetching of some 14 MB it could not use.
+  if (!hasSimd()) {
+    finderCouldNotRun = FINDER_TRIES;
+    if (finder !== 'failed') finderIs('failed');
+    return;
   }
   finderIs('loading');
   const t0 = performance.now();

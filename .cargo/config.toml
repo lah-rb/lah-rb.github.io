@@ -1,6 +1,11 @@
 # Enable fixed-width WASM SIMD for the in-browser Rust module (JXL decode in
-# kipukas-server). Scoped to the wasm32 target so native `cargo test` (host
-# target) is unaffected. Raises the browser floor to
-# SIMD-capable engines (~Chrome 91 / Firefox 89 / Safari 16.4).
+# kipukas-server, about 1.9x faster with it). Scoped to the wasm32 target so
+# native `cargo test` (host target) is unaffected.
+#
+# A browser without SIMD (Safari before 16.4, so every iPhone that stops at
+# iOS 15) cannot load a module built this way. `deno task build:wasm` therefore
+# builds the engine a second time with these flags overridden (build:wasm:plain
+# in deno.json), and the page picks the build the browser can run
+# (assets/js/engine-build.js).
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "target-feature=+simd128"]
