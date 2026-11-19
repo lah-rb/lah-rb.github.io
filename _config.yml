@@ -53,6 +53,9 @@ exclude:
   - cards/
   - kipukas-server/
   - signaling-server/
+  # The QR reader's source and build (zxing-reader/build.sh). What it builds
+  # is published from assets/js-wasm/.
+  - zxing-reader/
   - node_modules/
   - deno.json
   - deno.lock

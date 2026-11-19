@@ -30,3 +30,6 @@ runs/
 # Misc generated intermediaries
 scripts/_alpine-entry.ts
 new_extensions.txt
+
+# The QR reader's build: fetched source and build output (zxing-reader/build.sh)
+zxing-reader/.work/
