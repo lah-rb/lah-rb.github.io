@@ -18,6 +18,9 @@
 //! page, another page of this site, or nowhere, with the reason shown in
 //! the scanner.
 //!
+//! How often a frame is looked at is the scanner's to say ([`EVERY_MS`]),
+//! and the page's to keep to.
+//!
 //! For a player who has turned it on in the settings
 //! (`settings::SCANNER_STATUS`), the scanner writes over the camera's
 //! picture what its frames take. Only the worker can time them, so it
@@ -53,6 +56,14 @@ pub const MODEL: &str = "/assets/js-wasm/yolo26n-qr-wide.onnx";
 /// worker imports it when the model is first wanted
 /// (`assets/js/yolo-inference.js`).
 pub const RUNNER: &str = "/assets/js-wasm/onnxruntime-web-1.21.0/ort.all.min.mjs";
+
+/// The least time from the taking of one frame to the taking of the next,
+/// in milliseconds: ten looks a second at most. The page takes the next
+/// frame only when the worker is done with the last (qr-camera.js). So
+/// where a frame needs longer than this, as it may with the model on a slow
+/// device, frames follow one another as fast as they are done, and none is
+/// taken only to be let go.
+pub const EVERY_MS: u32 = 100;
 
 /// Where the scanner stands.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -106,10 +117,17 @@ struct Tally {
     model: f64,
     /// The frame counted last.
     last: Took,
+    /// When the worker began on the first frame it gave a time for and on
+    /// the last, by its own clock in milliseconds, and how many it gave a
+    /// time for.
+    began: Option<(f64, f64)>,
+    timed: u32,
 }
 
 impl Tally {
-    fn count(&mut self, took: Took) {
+    /// Count a frame: what it took and, if the worker said, when it began
+    /// on it.
+    fn count(&mut self, took: Took, at: Option<f64>) {
         self.frames += 1;
         self.engine += took.engine;
         self.reader += took.reader;
@@ -118,6 +136,16 @@ impl Tally {
             self.model += model;
         }
         self.last = took;
+        if let Some(at) = at {
+            self.began = Some((self.began.map_or(at, |(first, _)| first), at));
+            self.timed += 1;
+        }
+    }
+
+    /// How many frames a second are looked at, once two have been timed.
+    fn a_second(&self) -> Option<f64> {
+        let (first, last) = self.began?;
+        (self.timed >= 2 && last > first).then(|| f64::from(self.timed - 1) * 1000.0 / (last - first))
     }
 }
 
@@ -255,9 +283,10 @@ pub fn handle_status(_query: &str) -> String {
 ///     stands with the model that finds codes
 ///   - `action=reader&state=<ready|failed>`: whether the worker could load
 ///     the QR reader
-///   - `action=frame&engine=<ms>&reader=<ms>[&model=<ms>]`: what the worker
-///     spent on a frame, by whose work it was; `model` only if the model
-///     was run on it. Sent while the status line is wanted
+///   - `action=frame&engine=<ms>&reader=<ms>[&model=<ms>][&at=<ms>]`: what
+///     the worker spent on a frame, by whose work it was; `model` only if
+///     the model was run on it; `at`, when it began on the frame by its
+///     own clock. Sent while the status line is wanted
 ///   - `action=error&msg=<why>`: the page could not start the camera
 pub fn handle_status_post(body: &str) -> String {
     let params = parse_form_body(body);
@@ -316,7 +345,7 @@ pub fn handle_status_post(body: &str) -> String {
             let (Some(engine), Some(reader)) = (ms("engine"), ms("reader")) else {
                 return String::new();
             };
-            with_scanner(|scanner| scanner.tally.count(Took { engine, reader, model: ms("model") }));
+            with_scanner(|scanner| scanner.tally.count(Took { engine, reader, model: ms("model") }, ms("at")));
             if settings::is_on(&settings::SCANNER_STATUS) {
                 said_by_the_worker();
             }
@@ -449,10 +478,10 @@ fn privacy_modal() -> String {
 /// The camera's picture and the scanner's controls.
 ///
 /// The page runs the camera while the element marked `data-qr-camera` is
-/// drawn, into the video in it, and reads frames through the canvas. Those
-/// three, and the canvas the worker's findings are drawn on, are the page's
-/// to change, so each is marked to be kept as it is when the rest is drawn
-/// again. The button marked `data-qr-switch` is the page's too: which
+/// drawn, into the video in it, and reads frames through the canvas, as
+/// often as `data-qr-every` says ([`EVERY_MS`]). Those three, and the
+/// canvas the worker's findings are drawn on, are the page's to change, so
+/// each is marked to be kept as it is when the rest is drawn again. The button marked `data-qr-switch` is the page's too: which
 /// camera is in use is a matter of the device, not of the scanner.
 fn scanning_ui(scanner: &Scanner) -> String {
     // Lights the card for a front camera. A tap anywhere on it turns it off.
@@ -507,7 +536,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
         r##"<div>
   {light}
   <!-- Video container - higher z-index to stay above the screen light -->
-  <div data-qr-camera class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
+  <div data-qr-camera data-qr-every="{every}" class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
     <canvas id="canvas" data-engine-keep class="-z-10 object-cover size-full scale-x-[-1] hidden"
             width="640" height="640"></canvas>
 
@@ -549,6 +578,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
   </div>
 </div>"##,
         light = light,
+        every = EVERY_MS,
         post = POST,
         eye_off = SVG_EYE_OFF,
         camera_switch = SVG_CAMERA_SWITCH,
@@ -564,15 +594,20 @@ fn scanning_ui(scanner: &Scanner) -> String {
 
 /// What the last frame took and, in brackets, the average since the count
 /// began: the engine's part, the reader's, and the model's if it was run on
-/// that frame. Nothing until a frame has been counted.
+/// that frame. Above it, once two frames have been timed, how many a second
+/// are looked at. Nothing until a frame has been counted.
 fn status_line(tally: &Tally) -> String {
     if tally.frames == 0 {
         return String::new();
     }
-    // To a tenth of a millisecond, without a tenth that is nought.
-    let tenths = |ms: f64| {
-        let said = format!("{:.1}", ms);
+    // To a tenth, without a tenth that is nought.
+    let tenths = |of: f64| {
+        let said = format!("{:.1}", of);
         said.strip_suffix(".0").map(str::to_string).unwrap_or(said)
+    };
+    let pace = match tally.a_second() {
+        Some(a_second) => format!("{} frames a second<br>", tenths(a_second)),
+        None => String::new(),
     };
     let frames = f64::from(tally.frames);
     let model = match tally.last.model {
@@ -580,7 +615,8 @@ fn status_line(tally: &Tally) -> String {
         None => String::new(),
     };
     format!(
-        "frame {}: engine {} ms ({} a frame), reader {} ({}){}",
+        "{}frame {}: engine {} ms ({} a frame), reader {} ({}){}",
+        pace,
         tally.frames,
         tenths(tally.last.engine),
         tenths(tally.engine / frames),
@@ -952,6 +988,42 @@ mod tests {
         let html = tap("action=toggle");
         assert!(!html.contains("frame 1"));
         assert!(tap("action=frame&engine=3&reader=3").contains(">frame 1: engine 3 ms (3 a frame), reader 3 (3)</p>"));
+        fresh();
+    }
+
+    #[test]
+    fn how_many_frames_a_second_are_looked_at_is_said_once_two_have_been_timed() {
+        fresh();
+        restored(true, false);
+        turn_the_status_line(true);
+        tap("action=toggle");
+        // The worker says when it began on each frame, by its own clock.
+        let html = tap("action=frame&engine=5&reader=5&at=1000.5");
+        assert!(html.contains(">frame 1: engine 5 ms"), "one frame is no pace: {}", html);
+        let html = tap("action=frame&engine=5&reader=5&at=1100.5");
+        assert!(html.contains(">10 frames a second<br>frame 2: engine 5 ms (5 a frame), reader 5 (5)</p>"), "{}", html);
+        // Over all of them: four frames in 400 ms, though the last two came slower.
+        tap("action=frame&engine=5&reader=5&at=1250.5");
+        let html = tap("action=frame&engine=5&reader=5&at=1400.5");
+        assert!(html.contains(">7.5 frames a second<br>frame 4: "), "{}", html);
+
+        // A frame with no time is counted, and the pace is of those that had one.
+        let html = tap("action=frame&engine=5&reader=5");
+        assert!(html.contains(">7.5 frames a second<br>frame 5: "), "{}", html);
+        let html = tap("action=frame&engine=5&reader=5&at=soon");
+        assert!(html.contains(">7.5 frames a second<br>frame 6: "), "{}", html);
+
+        // The pace starts again with the count.
+        tap("action=cv");
+        let html = tap("action=frame&engine=5&reader=5&at=9000");
+        assert!(html.contains(">frame 1: "), "{}", html);
+        fresh();
+    }
+
+    #[test]
+    fn the_page_is_told_how_often_to_take_a_frame() {
+        scanning();
+        assert!(handle_status("").contains(r#"<div data-qr-camera data-qr-every="100" "#));
         fresh();
     }
 

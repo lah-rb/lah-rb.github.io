@@ -9,7 +9,9 @@
  *   - run the camera for as long as the scanner's video is drawn, and stop it
  *     when it is not (browser getUserMedia API);
  *   - hand frames to the engine's worker, which finds and reads the codes in
- *     them and posts what a code says to the engine (kipukas-worker.js);
+ *     them and posts what a code says to the engine (kipukas-worker.js). How
+ *     often is the engine's to say (data-qr-every on the scanner); the next
+ *     frame is taken only when the worker is done with the last;
  *   - change which camera is in use, a matter of the device and not of the
  *     scanner (the button the engine marks data-qr-switch);
  *   - draw the worker's findings over the picture (the YOLO bounding boxes).
@@ -27,8 +29,19 @@
   // The camera could not be started for the scanner now drawn. It is not
   // asked for again until the scanner has gone and come back.
   let failed = false;
-  let scanInterval = null;
   let stream = null;
+  // The canvas frames are read through, and its context.
+  let frameCanvas = null;
+  let frameCtx = null;
+  // The wait until the next frame is taken, and when the last one was.
+  let frameTimer = null;
+  let frameTakenAt = 0;
+  // How often a frame is taken if the engine has not said (milliseconds).
+  const EVERY_UNSAID = 500;
+  // A worker that has not said it is done with a frame after this long is
+  // handed another (milliseconds). It lets go any that arrive while it is
+  // busy, so this only matters if a frame's answer was lost.
+  const UNANSWERED = 2000;
   let videoDevices = [];
   let currentDeviceIndex = 0;
   let currentFacingMode = 'user';
@@ -140,39 +153,73 @@
     ctx.fillText(`YOLO: ${yoloMs}ms`, 8, overlay.height - 8);
   }
 
+  /**
+   * The least time from the taking of one frame to the taking of the next,
+   * in milliseconds, as the engine says on the scanner it has drawn.
+   */
+  function every() {
+    const scanner = document.querySelector('[data-qr-camera]');
+    const said = Number(scanner && scanner.getAttribute('data-qr-every'));
+    return said > 0 ? said : EVERY_UNSAID;
+  }
+
+  /** Take the next frame after `wait` milliseconds, in place of any wait running. */
+  function takeFrameIn(wait) {
+    clearTimeout(frameTimer);
+    frameTimer = setTimeout(takeFrame, wait);
+  }
+
+  /**
+   * Take a frame from the camera's picture and hand it to the worker. The
+   * worker says when it is done with it (QR_DONE, below), and the next is
+   * taken then, or when the engine's time between frames is up if that is
+   * later.
+   */
+  function takeFrame() {
+    if (!scanning) return;
+    const video = scannerVideo();
+    const worker = globalThis.kipukasWorker;
+    if (!video || !worker || !frameCtx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      // No picture yet.
+      takeFrameIn(every());
+      return;
+    }
+
+    let imageData;
+    try {
+      frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+      imageData = frameCtx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
+    } catch (_) {
+      // The picture could not be drawn this time (a browser may refuse a
+      // video between two of its frames). The next try is not lost with it.
+      takeFrameIn(every());
+      return;
+    }
+    frameTakenAt = performance.now();
+    // The pixels are handed over, not copied.
+    worker.postMessage(
+      {
+        type: 'QR_FRAME',
+        pixels: imageData.data.buffer,
+        width: frameCanvas.width,
+        height: frameCanvas.height,
+      },
+      [imageData.data.buffer],
+    );
+    takeFrameIn(UNANSWERED);
+  }
+
   /** Show the camera's picture in the scanner's video and start reading frames. */
   function show(video, mediaStream) {
-    const canvas = video.closest('[data-qr-camera]').querySelector('#canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+    frameCanvas = video.closest('[data-qr-camera]').querySelector('#canvas');
+    frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true, alpha: false });
     video.srcObject = mediaStream;
     video.setAttribute('playsinline', 'true');
     // A picture that is replaced before it starts (the camera was switched)
     // gives up its turn to the next: nothing to report.
     const playing = video.play();
     if (playing) playing.catch(() => {});
-
-    clearInterval(scanInterval);
-    scanInterval = setInterval(() => {
-      if (!scanning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      // Send raw RGBA pixels to the worker for YOLO+ZXing decode.
-      // Transfer the buffer for zero-copy performance.
-      const worker = globalThis.kipukasWorker;
-      if (worker) {
-        worker.postMessage(
-          {
-            type: 'QR_FRAME',
-            pixels: imageData.data.buffer,
-            width: canvas.width,
-            height: canvas.height,
-          },
-          [imageData.data.buffer], // Transfer ownership (zero-copy)
-        );
-      }
-    }, 500); // 2 fps — sufficient for QR scanning, gentle on resources
+    takeFrameIn(0);
   }
 
   /** Start the camera and begin reading frames from it. */
@@ -204,7 +251,7 @@
 
       // Re-enumerate devices now that we have permission to get real device IDs
       enumerateDevices();
-      console.log('[qr-camera] Camera started, scanning at 2 fps');
+      console.log(`[qr-camera] Camera started, a frame every ${every()} ms at most`);
     } catch (err) {
       console.error('[qr-camera] Camera access error:', err);
       failed = true;
@@ -223,11 +270,8 @@
   /** Stop the camera and stop reading frames. */
   function stop() {
     scanning = false;
-
-    if (scanInterval) {
-      clearInterval(scanInterval);
-      scanInterval = null;
-    }
+    clearTimeout(frameTimer);
+    frameTimer = null;
 
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
@@ -307,7 +351,8 @@
     if (event.target.closest && event.target.closest('[data-qr-switch]')) switchCamera();
   });
 
-  // What the worker found in the last frame, drawn over the picture.
+  // What the worker says of the frames: that it is done with one, and what
+  // it found in it, which is drawn over the picture.
   function setupWorkerListener() {
     const worker = globalThis.kipukasWorker;
     if (!worker) {
@@ -318,7 +363,14 @@
     }
 
     worker.addEventListener('message', (event) => {
-      if (event.data?.type !== 'QR_BBOX' || !scanning) return;
+      if (!scanning) return;
+      if (event.data?.type === 'QR_DONE') {
+        // The worker is done with the last frame: the next is taken as
+        // soon as the engine's time between frames allows.
+        takeFrameIn(Math.max(0, every() - (performance.now() - frameTakenAt)));
+        return;
+      }
+      if (event.data?.type !== 'QR_BBOX') return;
       drawBboxOverlay(event.data);
 
       // Auto-fade boxes after 1.5s if no new data arrives

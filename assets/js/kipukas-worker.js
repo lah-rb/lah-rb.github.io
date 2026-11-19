@@ -148,14 +148,14 @@ function timed(took, part, work) {
   }
 }
 
-/** Tell the scanner what a frame took (see lookForCode). */
+/** Tell the scanner what a frame took, and when it was begun (see lookForCode). */
 function tellScannerOfFrame(took) {
   const model = took.model === null ? '' : `&model=${took.model}`;
   handle_request(
     'POST',
     '/api/qr/status',
     '',
-    `action=frame&engine=${took.engine}&reader=${took.reader}${model}`,
+    `action=frame&engine=${took.engine}&reader=${took.reader}${model}&at=${took.at}`,
   );
   handOver();
 }
@@ -176,11 +176,12 @@ function tellScannerOfFrame(took) {
  * What the frame takes is written into `took`, in milliseconds, by whose
  * work it is: the engine's, the reader's, and the model's if it is run
  * (null if not). `looked` says the frame got as far as being looked at.
+ * `at` is when the frame arrived, by this worker's clock.
  *
  * @param {ArrayBuffer} pixels - the frame, four bytes a pixel
  * @param {number} width
  * @param {number} height
- * @param {{looked: boolean, engine: number, reader: number, model: number|null}} took
+ * @param {{looked: boolean, at: number, engine: number, reader: number, model: number|null}} took
  * @returns {Promise<string|null>}
  */
 async function lookForCode(pixels, width, height, took) {
@@ -241,8 +242,9 @@ async function lookForCode(pixels, width, height, took) {
   return null;
 }
 
-// A frame is let go if the one before it is still being looked at: the
-// model takes its time.
+// A frame is let go if the one before it is still being looked at. The page
+// takes the next only when told this one is done with (QR_DONE), so that
+// happens only if it gave up waiting to be told.
 let processingFrame = false;
 
 // ── What the engine asks for ───────────────────────────────────────
@@ -324,7 +326,7 @@ self.onmessage = async (event) => {
     processingFrame = true;
 
     const { pixels, width, height } = event.data;
-    const took = { looked: false, engine: 0, reader: 0, model: null };
+    const took = { looked: false, at: performance.now(), engine: 0, reader: 0, model: null };
     let decoded;
     try {
       decoded = await lookForCode(pixels, width, height, took);
@@ -334,6 +336,8 @@ self.onmessage = async (event) => {
     } finally {
       processingFrame = false;
     }
+    // The page takes its next frame when it hears this (qr-camera.js).
+    self.postMessage({ type: 'QR_DONE' });
     if (statusWanted && took.looked) tellScannerOfFrame(took);
     if (decoded) {
       // What the code says is the engine's to judge: it sends the page on

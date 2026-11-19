@@ -754,7 +754,7 @@ The last step plays two of the site's engines against the local relay, each held
 |---------|----------|
 | `[kipukas-worker] WASM server initialized` | The engine loaded in its worker |
 | `[kipukas-worker] The model that finds codes is ready (webgpu, …ms)` | With computer vision on: the model is loaded, and on which backend. Until then, and with it off, frames are read whole |
-| `[qr-camera] Camera started, scanning at 2 fps` | Camera + scan loop running |
+| `[qr-camera] Camera started, a frame every 100 ms at most` | Camera + scan loop running |
 | `[kipukas-worker] Could not read all that is stored:` | Something in localStorage could not be restored at load; what, follows |
 
 The connection logs nothing. Where it stands is on the page: the room dialog and the status pill.
@@ -800,7 +800,7 @@ The relay and the site must be deployed together when the messages between them 
 
 ### The QR scanner's frames
 
-Twice a second the page draws the camera's picture into a 640 by 640 canvas and hands the pixels to the engine's worker (`QR_FRAME`, `qr-camera.js`). From there:
+The page draws the camera's picture into a 640 by 640 canvas and hands the pixels to the engine's worker (`QR_FRAME`, `qr-camera.js`). How often is the scanner's to say: `EVERY_MS` in `routes/qr.rs`, 100 ms, drawn on the scanner as `data-qr-every`. That is the least time from the taking of one frame to the taking of the next. The page takes the next only when the worker says it is done with the last (`QR_DONE`), so where a frame needs longer, as it may with the model on a slow device, frames follow one another as fast as they are done and none is taken only to be let go. (Until November 2026 a frame was taken every 500 ms whatever the last had needed, a pace left from the first reader, jsQR on the page's own thread.) From there:
 
 1. The worker gives the frame to the engine (`scan_frame`, `kipukas-server/src/scan.rs`).
 2. With computer vision on and the model loaded, the worker runs the model on the input the engine makes of the frame (`scan_model_input`) and hands the output back (`scan_found`). The engine reads the boxes out of it, and the worker posts them to the page to draw over the picture (`QR_BBOX`).
@@ -809,7 +809,7 @@ Twice a second the page draws the camera's picture into a 640 by 640 canvas and 
 
 The model and the reader are not the engine's: ONNX Runtime Web and zxing-cpp are modules of their own, and the worker holds them (`yolo-inference.js`, `zxing-decode.js`). The site serves both itself, as it does every script: nothing the scanner uses comes from another origin. Everything else is in `scan.rs`: the frame scaled into the model's square, the model's output made into boxes (those it is at least 0.25 sure of, and of two that overlap much only the surer), the margin a box is cut out with, the threshold (black where a pixel is darker than the 43 by 43 pixels about it by more than 10), and the order of the pictures. These were scripts before (`adaptive-threshold.js`, `postprocess.js`, and part of `yolo-inference.js`). The engine's versions give the same bytes, boxes and reads as those did on the 220 pictures of the dataset, in Chrome and Firefox, and the threshold takes about half the time.
 
-**What the frames take.** A player who turns Scanner status on in the settings (`settings::SCANNER_STATUS`) sees a line over the camera's picture: what the last frame took and, in brackets, the average since the scanner opened, for the engine's part (steps 1 to 3 above, less the reader), the reader's, and the model's when it was run. Only the worker can time a frame, so the handover tells it the line is wanted (`status` in `qr`), and it then posts each frame's times to the scanner (`action=frame`), which keeps the count and draws the line. With the setting off nothing is reported and nothing is drawn. The count starts again when the scanner opens and when computer vision is turned on or off.
+**What the frames take.** A player who turns Scanner status on in the settings (`settings::SCANNER_STATUS`) sees a line over the camera's picture: what the last frame took and, in brackets, the average since the scanner opened, for the engine's part (steps 1 to 3 above, less the reader), the reader's, and the model's when it was run. Above it is how many frames a second are being looked at, from when the worker began on the first frame of the count and on the last. Only the worker can time a frame, so the handover tells it the line is wanted (`status` in `qr`), and it then posts each frame's times to the scanner (`action=frame`), which keeps the count and draws the line. With the setting off nothing is reported and nothing is drawn. The count starts again when the scanner opens and when computer vision is turned on or off.
 
 **Without a connection.** What the scanner needs is fetched when it is first needed and kept from then on:
 
