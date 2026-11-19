@@ -45,12 +45,16 @@ const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', '
 //   - the settings page's switches (kipukas-server/src/settings.rs): that
 //     the camera privacy notice has been accepted, and whether the QR
 //     scanner shows what its frames take;
-//   - the QR scanner's own choice of finding codes by computer vision.
+//   - what the QR scanner keeps as it was left: whether codes are found by
+//     computer vision, whether the screen light is on, and which camera it
+//     last ran (kipukas-server/src/routes/qr.rs).
 const READ_AT_START = [
   'kipukas_relay_url',
   'qr-privacy-accepted',
   'kipukas-scanner-status',
   'kipukas-cv-enabled',
+  'kipukas-scanner-light',
+  'kipukas-scanner-camera',
 ];
 
 /** What is stored under one of the engine's keys, or null. */

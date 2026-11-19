@@ -10,7 +10,11 @@
 //!
 //! The camera is not the engine's: the page runs it for as long as the
 //! scanner's video is drawn (qr-camera.js) and hands its frames to the
-//! engine's worker. Nor are the model that finds codes and the reader that
+//! engine's worker. Which camera, of those the device has, is the page's
+//! too. It says here which it is running ([`Camera`]), and the engine keeps
+//! that: so that the picture is mirrored only for a camera that faces the
+//! player, and so that the scanner next opens on the same camera. Nor are
+//! the model that finds codes and the reader that
 //! reads them: the worker holds those two and passes the frames between
 //! them and the engine (kipukas-worker.js, `crate::scan`). It says here
 //! when either cannot be loaded, which the scanner shows. What a code says
@@ -30,6 +34,8 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::catalog::CARDS;
 use crate::page;
 use crate::routes::util::{escape_html, get_param, parse_form_body};
@@ -38,6 +44,10 @@ use crate::store;
 
 /// Storage key: `true` while finding codes by computer vision is turned on.
 pub const CV: &str = "kipukas-cv-enabled";
+/// Storage key: `true` while the screen light is on.
+pub const LIGHT: &str = "kipukas-scanner-light";
+/// Storage key: the camera the scanner last ran (JSON, [`Camera`]).
+pub const CAMERA: &str = "kipukas-scanner-camera";
 
 /// The QR reader: zxing-cpp compiled to one WebAssembly file by
 /// `zxing-reader/build.sh`, which the worker fetches and starts
@@ -90,6 +100,58 @@ enum Finder {
     Ready,
     /// It could not be fetched or could not be run. Frames are read whole.
     Failed,
+}
+
+/// A camera of the device, as the page describes the one it is running.
+/// Each part is the browser's word and may be missing.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+struct Camera {
+    /// The browser's id for it on this site. Most browsers keep it from
+    /// one visit to the next.
+    #[serde(default)]
+    id: String,
+    /// The browser's name for it.
+    #[serde(default)]
+    label: String,
+    /// Which way it faces: `user` (towards the player) or `environment`
+    /// (away). Empty if the browser does not say.
+    #[serde(default)]
+    facing: String,
+}
+
+/// The most characters kept of a camera's id or name.
+const LONGEST: usize = 200;
+
+impl Camera {
+    /// A camera as described, with nothing kept that is not a description.
+    fn described(id: &str, label: &str, facing: &str) -> Camera {
+        let kept = |text: &str| text.chars().filter(|c| !c.is_control()).take(LONGEST).collect::<String>();
+        let facing = if matches!(facing, "user" | "environment") { facing } else { "" };
+        Camera { id: kept(id), label: kept(label), facing: facing.to_string() }
+    }
+
+    /// Whether it faces away from the player: a rear camera. The browser
+    /// says so of most. Of one it says nothing of, its name may ("camera2
+    /// 0, facing back").
+    fn faces_away(&self) -> bool {
+        match self.facing.as_str() {
+            "environment" => true,
+            "user" => false,
+            _ => {
+                let label = self.label.to_lowercase();
+                ["back", "rear", "environment"].iter().any(|word| label.contains(word))
+            }
+        }
+    }
+
+    /// Whether its picture is shown mirrored, as a mirror would show the
+    /// player the card they hold up to it. One that faces away is shown
+    /// as it sees, or a card moved to the left would move to the right.
+    /// A camera nothing is known of is taken to face the player: the
+    /// scanner asks for one that does until another is chosen.
+    fn mirrored(&self) -> bool {
+        !self.faces_away()
+    }
 }
 
 /// What the worker spent on one frame, in milliseconds.
@@ -153,7 +215,14 @@ impl Tally {
 struct Scanner {
     face: Face,
     /// The screen is lit white, to light a card held to a front camera.
+    /// Kept as it was left, as is the camera.
     light: bool,
+    /// The camera the page last said it was running: on this page, or on
+    /// an earlier one.
+    camera: Camera,
+    /// The size of that camera's picture, once the page has said, in
+    /// pixels across and down.
+    picture: Option<(u32, u32)>,
     /// Codes are found by computer vision (YOLO) before they are read.
     cv: bool,
     /// Where the worker stands with the model that does it.
@@ -180,8 +249,13 @@ fn with_scanner<R>(f: impl FnOnce(&mut Scanner) -> R) -> R {
 /// everything the page handed over (`store::handle_start_post`).
 pub fn restore(stored: &BTreeMap<String, String>) {
     let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
+    let camera = stored
+        .get(CAMERA)
+        .and_then(|raw| serde_json::from_str::<Camera>(raw).ok())
+        .map(|camera| Camera::described(&camera.id, &camera.label, &camera.facing))
+        .unwrap_or_default();
     with_scanner(|scanner| {
-        *scanner = Scanner { cv: chosen(CV), ..Scanner::default() };
+        *scanner = Scanner { cv: chosen(CV), light: chosen(LIGHT), camera, ..Scanner::default() };
     });
 }
 
@@ -287,6 +361,10 @@ pub fn handle_status(_query: &str) -> String {
 ///     the worker spent on a frame, by whose work it was; `model` only if
 ///     the model was run on it; `at`, when it began on the frame by its
 ///     own clock. Sent while the status line is wanted
+///   - `action=camera&id=<id>&label=<name>&facing=<user|environment>
+///     &width=<pixels>&height=<pixels>`: the camera the page is running,
+///     in the browser's words, and the size of its picture. Any may be
+///     missing
 ///   - `action=error&msg=<why>`: the page could not start the camera
 pub fn handle_status_post(body: &str) -> String {
     let params = parse_form_body(body);
@@ -306,7 +384,13 @@ pub fn handle_status_post(body: &str) -> String {
             page::redraw("/api/settings");
         }
         "close" => close(),
-        "light" => with_scanner(|scanner| scanner.light = !scanner.light),
+        "light" => {
+            let light = with_scanner(|scanner| {
+                scanner.light = !scanner.light;
+                scanner.light
+            });
+            store::put(LIGHT, Some(light.to_string()));
+        }
         "cv" => {
             let cv = with_scanner(|scanner| {
                 scanner.cv = !scanner.cv;
@@ -350,6 +434,24 @@ pub fn handle_status_post(body: &str) -> String {
                 said_by_the_worker();
             }
         }
+        "camera" => {
+            if !with_scanner(|scanner| scanner.face == Face::Scanning) {
+                return String::new();
+            }
+            let said = |name: &str| get_param(&params, name).unwrap_or("");
+            let camera = Camera::described(said("id"), said("label"), said("facing"));
+            let side = |name: &str| said(name).parse::<u32>().ok().filter(|pixels| (1..=LARGEST_SIDE).contains(pixels));
+            let picture = side("width").zip(side("height"));
+            let another = with_scanner(|scanner| {
+                scanner.picture = picture;
+                let another = scanner.camera != camera;
+                scanner.camera = camera.clone();
+                another
+            });
+            if another {
+                store::put(CAMERA, serde_json::to_string(&camera).ok());
+            }
+        }
         "error" => {
             let why = get_param(&params, "msg").filter(|msg| !msg.is_empty()).unwrap_or("The camera could not be started");
             with_scanner(|scanner| {
@@ -363,13 +465,17 @@ pub fn handle_status_post(body: &str) -> String {
     String::new()
 }
 
+/// The largest side of a camera's picture that is taken for one, in pixels.
+const LARGEST_SIDE: u32 = 20_000;
+
 /// Open the scanner: on the camera if the privacy notice has been accepted,
-/// on the notice if not.
+/// on the notice if not. The screen light and the camera are as they were
+/// left.
 fn open() {
     let accepted = settings::is_on(&settings::CAMERA_PRIVACY);
     let cv = with_scanner(|scanner| {
         scanner.face = if accepted { Face::Scanning } else { Face::Privacy };
-        scanner.light = false;
+        scanner.picture = None;
         scanner.read = None;
         scanner.tally = Tally::default();
         scanner.cv
@@ -382,7 +488,7 @@ fn open() {
 fn close() {
     with_scanner(|scanner| {
         scanner.face = Face::Closed;
-        scanner.light = false;
+        scanner.picture = None;
         scanner.read = None;
     });
 }
@@ -481,8 +587,16 @@ fn privacy_modal() -> String {
 /// drawn, into the video in it, and reads frames through the canvas, as
 /// often as `data-qr-every` says ([`EVERY_MS`]). Those three, and the
 /// canvas the worker's findings are drawn on, are the page's to change, so
-/// each is marked to be kept as it is when the rest is drawn again. The button marked `data-qr-switch` is the page's too: which
-/// camera is in use is a matter of the device, not of the scanner.
+/// each is marked to be kept as it is when the rest is drawn again. The
+/// button marked `data-qr-switch` is the page's too: which cameras the
+/// device has is a matter of the device, not of the scanner.
+///
+/// The camera the page last said it was running is written on the same
+/// element (`data-camera-id`, `-label` and `-facing`), for the page to ask
+/// the browser for again when it starts the camera. `data-mirrored` is
+/// there while the picture is to be shown mirrored, which the video and
+/// the canvas over it follow by their classes: kept elements are not
+/// drawn again, so what changes is written on what holds them.
 fn scanning_ui(scanner: &Scanner) -> String {
     // Lights the card for a front camera. A tap anywhere on it turns it off.
     let light = if scanner.light {
@@ -516,11 +630,12 @@ fn scanning_ui(scanner: &Scanner) -> String {
         }
     }
     // What the frames take, for a player who has asked to see it. Its
-    // place is drawn from the start, and filled once a frame is counted.
+    // place is drawn from the start, and filled once there is something
+    // to say.
     let status = if settings::is_on(&settings::SCANNER_STATUS) {
         format!(
             r#"<p class="z-50 absolute top-14 left-3 right-3 rounded bg-black/60 px-1.5 py-0.5 text-xs text-center text-slate-100 empty:hidden">{}</p>"#,
-            status_line(&scanner.tally)
+            status_line(&scanner.tally, scanner.picture)
         )
     } else {
         String::new()
@@ -536,8 +651,8 @@ fn scanning_ui(scanner: &Scanner) -> String {
         r##"<div>
   {light}
   <!-- Video container - higher z-index to stay above the screen light -->
-  <div data-qr-camera data-qr-every="{every}" class="z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
-    <canvas id="canvas" data-engine-keep class="-z-10 object-cover size-full scale-x-[-1] hidden"
+  <div data-qr-camera data-qr-every="{every}" data-camera-id="{camera_id}" data-camera-label="{camera_label}" data-camera-facing="{camera_facing}"{mirrored} class="group/camera z-50 aspect-square fixed w-80 md:w-1/2 lg:w-1/3 -translate-x-1/2 lg:-translate-y-1/2 bottom-8 left-1/2 rounded-lg transition delay-150">
+    <canvas id="canvas" data-engine-keep class="-z-10 object-cover size-full hidden"
             width="640" height="640"></canvas>
 
     <!-- Close button (left) -->
@@ -559,7 +674,7 @@ fn scanning_ui(scanner: &Scanner) -> String {
     </button>
 
     <video id="video" data-engine-keep
-           class="z-50 object-cover size-full scale-x-[-1] rounded-lg transition delay-150"
+           class="z-50 object-cover size-full group-data-mirrored/camera:scale-x-[-1] rounded-lg"
            autoplay playsinline></video>
     <!-- CV toggle button (bottom-left): opt-in to YOLO neural network detection -->
     <button type="button" aria-label="{cv_label}" title="{cv_label}" class="z-50 absolute bottom-3 left-3 size-fit transition delay-150"
@@ -572,13 +687,17 @@ fn scanning_ui(scanner: &Scanner) -> String {
     {status}
 
     <canvas id="bbox-overlay" data-engine-keep
-            class="z-[60] absolute inset-0 size-full scale-x-[-1] rounded-lg pointer-events-none"
+            class="z-[60] absolute inset-0 size-full group-data-mirrored/camera:scale-x-[-1] rounded-lg pointer-events-none"
             width="640" height="640"></canvas>
     <div id="qr-result" role="status">{read}</div>
   </div>
 </div>"##,
         light = light,
         every = EVERY_MS,
+        camera_id = escape_html(&scanner.camera.id),
+        camera_label = escape_html(&scanner.camera.label),
+        camera_facing = scanner.camera.facing,
+        mirrored = if scanner.camera.mirrored() { " data-mirrored" } else { "" },
         post = POST,
         eye_off = SVG_EYE_OFF,
         camera_switch = SVG_CAMERA_SWITCH,
@@ -592,38 +711,42 @@ fn scanning_ui(scanner: &Scanner) -> String {
     )
 }
 
-/// What the last frame took and, in brackets, the average since the count
-/// began: the engine's part, the reader's, and the model's if it was run on
-/// that frame. Above it, once two frames have been timed, how many a second
-/// are looked at. Nothing until a frame has been counted.
-fn status_line(tally: &Tally) -> String {
-    if tally.frames == 0 {
-        return String::new();
-    }
+/// Two lines. Below, what the last frame took and, in brackets, the average
+/// since the count began: the engine's part, the reader's, and the model's
+/// if it was run on that frame; nothing until a frame has been counted.
+/// Above, the size of the camera's picture once the page has said it
+/// (`picture`), and how many frames a second are looked at once two have
+/// been timed.
+fn status_line(tally: &Tally, picture: Option<(u32, u32)>) -> String {
     // To a tenth, without a tenth that is nought.
     let tenths = |of: f64| {
         let said = format!("{:.1}", of);
         said.strip_suffix(".0").map(str::to_string).unwrap_or(said)
     };
-    let pace = match tally.a_second() {
-        Some(a_second) => format!("{} frames a second<br>", tenths(a_second)),
-        None => String::new(),
+    let above = [
+        picture.map(|(across, down)| format!("camera {}x{}", across, down)),
+        tally.a_second().map(|a_second| format!("{} frames a second", tenths(a_second))),
+    ];
+    let above = above.into_iter().flatten().collect::<Vec<_>>().join(", ");
+    let below = if tally.frames == 0 {
+        String::new()
+    } else {
+        let frames = f64::from(tally.frames);
+        let model = match tally.last.model {
+            Some(model) => format!(", model {:.0} ({:.0})", model, tally.model / f64::from(tally.with_model.max(1))),
+            None => String::new(),
+        };
+        format!(
+            "frame {}: engine {} ms ({} a frame), reader {} ({}){}",
+            tally.frames,
+            tenths(tally.last.engine),
+            tenths(tally.engine / frames),
+            tenths(tally.last.reader),
+            tenths(tally.reader / frames),
+            model
+        )
     };
-    let frames = f64::from(tally.frames);
-    let model = match tally.last.model {
-        Some(model) => format!(", model {:.0} ({:.0})", model, tally.model / f64::from(tally.with_model.max(1))),
-        None => String::new(),
-    };
-    format!(
-        "{}frame {}: engine {} ms ({} a frame), reader {} ({}){}",
-        pace,
-        tally.frames,
-        tenths(tally.last.engine),
-        tenths(tally.engine / frames),
-        tenths(tally.last.reader),
-        tenths(tally.reader / frames),
-        model
-    )
+    [above, below].into_iter().filter(|line| !line.is_empty()).collect::<Vec<_>>().join("<br>")
 }
 
 /// `msg` may be the browser's words (why the camera did not start).
@@ -862,7 +985,7 @@ mod tests {
     }
 
     #[test]
-    fn the_screen_light_is_a_switch_and_goes_out_when_the_scanner_closes() {
+    fn the_screen_light_is_a_switch_that_is_remembered() {
         scanning();
         let off = handle_status("");
         assert!(off.contains(r#"aria-label="Turn the screen light on""#));
@@ -872,11 +995,147 @@ mod tests {
         assert!(on.contains("fixed inset-0 z-40 bg-white w-screen h-screen"));
         assert_eq!(on.matches(r#"data-engine-body="action=light""#).count(), 2, "the light itself turns it off too");
         assert!(on.contains(r#"aria-label="Turn the screen light off""#));
+        assert_eq!(store::take_saves().get(LIGHT), Some(&Some("true".to_string())));
 
         assert!(!tap("action=light").contains("bg-white w-screen"));
+        assert_eq!(store::take_saves().get(LIGHT), Some(&Some("false".to_string())));
+
+        // Left on, it is on when the scanner next opens: on this page,
+        // where nothing is lit while the scanner is closed, and on the next.
         tap("action=light");
+        assert_eq!(tap("action=close"), "");
+        assert!(tap("action=toggle").contains("bg-white w-screen"));
+        fresh();
+        let stored: BTreeMap<String, String> =
+            [(settings::CAMERA_PRIVACY.key, "true"), (LIGHT, "true")].into_iter().map(|(key, value)| (key.to_string(), value.to_string())).collect();
+        settings::restore(&stored);
+        restore(&stored);
+        assert!(tap("action=toggle").contains("bg-white w-screen"));
+        fresh();
+    }
+
+    // -- the camera --
+
+    const MIRRORED: &str = r#"data-camera-facing="user" data-mirrored class="group/camera "#;
+
+    #[test]
+    fn until_a_camera_is_known_the_picture_is_mirrored_and_no_camera_is_named() {
+        scanning();
+        let html = handle_status("");
+        assert!(html.contains(r#"data-camera-id="" data-camera-label="" data-camera-facing="" data-mirrored class="group/camera "#), "{}", html);
+        // The video and the canvas over it follow what holds them, since
+        // they are kept as they are when the scanner is drawn again.
+        assert!(html.contains(r#"<video id="video" data-engine-keep
+           class="z-50 object-cover size-full group-data-mirrored/camera:scale-x-[-1] "#));
+        assert!(html.contains("absolute inset-0 size-full group-data-mirrored/camera:scale-x-[-1] "));
+        fresh();
+    }
+
+    #[test]
+    fn the_picture_is_mirrored_for_a_camera_that_faces_the_player_and_not_for_one_that_faces_away() {
+        scanning();
+        let html = tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=480&height=640");
+        assert!(html.contains(r#"data-camera-id="front-1" data-camera-label="Front Camera" "#), "{}", html);
+        assert!(html.contains(MIRRORED), "{}", html);
+
+        let html = tap("action=camera&id=back-1&label=Back%20Camera&facing=environment");
+        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="group/camera "#), "{}", html);
+        assert!(!html.contains(" data-mirrored class="));
+
+        // What the browser says of the way it faces counts before its name.
+        assert!(tap("action=camera&label=Rear%20view%20mirror&facing=user").contains(MIRRORED));
+        // Where it says nothing, the name may.
+        for label in ["camera2%200%2C%20facing%20back", "Rear%20Camera", "BACK%20ULTRA%20WIDE"] {
+            let html = tap(&format!("action=camera&id=x&label={}", label));
+            assert!(!html.contains(" data-mirrored class="), "{}", label);
+        }
+        // A camera nothing is known of is taken to face the player.
+        for body in ["action=camera", "action=camera&id=usb-7&label=USB%20Video%20Device", "action=camera&label=FaceTime%20HD&facing=left"] {
+            let html = tap(body);
+            assert!(html.contains(r#"data-camera-facing="" data-mirrored "#), "{}: {}", body, html);
+        }
+        fresh();
+    }
+
+    #[test]
+    fn the_camera_is_remembered_for_the_page_to_ask_for_when_the_scanner_next_opens() {
+        scanning();
+        tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&width=1280&height=720");
+        let saved = store::take_saves().get(CAMERA).cloned().flatten().expect("the camera is stored");
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&saved).unwrap(),
+            serde_json::json!({ "id": "back-1", "label": "Back Camera", "facing": "environment" })
+        );
+        // The same camera said again (its picture changed size) is not written again.
+        tap("action=camera&id=back-1&label=Back%20Camera&facing=environment&width=720&height=1280");
+        assert!(store::take_saves().get(CAMERA).is_none());
+
+        // Closed and opened, and on the next page, the scanner names it
+        // and shows its picture as it sees.
         tap("action=close");
-        assert!(!tap("action=toggle").contains("bg-white w-screen"));
+        let html = tap("action=toggle");
+        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="#));
+        fresh();
+        let stored: BTreeMap<String, String> =
+            [(settings::CAMERA_PRIVACY.key, "true".to_string()), (CAMERA, saved)].into_iter().map(|(key, value)| (key.to_string(), value)).collect();
+        settings::restore(&stored);
+        restore(&stored);
+        let html = tap("action=toggle");
+        assert!(html.contains(r#"data-camera-id="back-1" data-camera-label="Back Camera" data-camera-facing="environment" class="#));
+        assert!(!html.contains(" data-mirrored class="));
+        fresh();
+    }
+
+    #[test]
+    fn what_the_page_says_of_a_camera_is_the_browsers_words_and_is_not_trusted() {
+        scanning();
+        let html = tap("action=camera&id=%22%3E%3Cscript%3E&label=%3Cb%3EBack%3C%2Fb%3E%22%20onload%3D%22x&facing=%22%3E");
+        assert!(html.contains(r#"data-camera-id="&quot;&gt;&lt;script&gt;" data-camera-label="&lt;b&gt;Back&lt;/b&gt;&quot; onload=&quot;x" data-camera-facing="""#), "{}", html);
+        // A long name is cut, and what is stored that is not a camera is none.
+        let long = "n".repeat(5000);
+        tap(&format!("action=camera&id={}&label={}", long, long));
+        let saved = store::take_saves().get(CAMERA).cloned().flatten().unwrap();
+        assert!(saved.len() < 500, "{}", saved.len());
+        for kept in ["", "not json", "[1,2]", r#"{"id":7}"#, r#"{"facing":"sideways","label":"a\u0000b"}"#] {
+            fresh();
+            let stored: BTreeMap<String, String> =
+                [(settings::CAMERA_PRIVACY.key, "true"), (CAMERA, kept)].into_iter().map(|(key, value)| (key.to_string(), value.to_string())).collect();
+            settings::restore(&stored);
+            restore(&stored);
+            let html = tap("action=toggle");
+            assert!(html.contains(r#"data-camera-id="" "#) && html.contains(r#"data-camera-facing="" data-mirrored"#), "{:?}: {}", kept, html);
+        }
+        // A camera said with no scanner on its picture is not taken.
+        fresh();
+        tap("action=camera&id=back-1&facing=environment");
+        assert!(store::take_saves().get(CAMERA).is_none());
+        tap("action=toggle");
+        tap("action=camera&id=back-1&facing=environment");
+        assert!(store::take_saves().get(CAMERA).is_none(), "nor behind the privacy notice");
+        fresh();
+    }
+
+    #[test]
+    fn the_status_line_says_the_size_of_the_cameras_picture_once_the_page_has() {
+        fresh();
+        restored(true, false);
+        turn_the_status_line(true);
+        tap("action=toggle");
+        let html = tap("action=camera&id=front-1&facing=user&width=480&height=640");
+        assert!(html.contains(">camera 480x640</p>"), "{}", html);
+        let html = tap("action=frame&engine=5&reader=5&at=100");
+        assert!(html.contains(">camera 480x640<br>frame 1: engine 5 ms (5 a frame), reader 5 (5)</p>"), "{}", html);
+        let html = tap("action=frame&engine=5&reader=5&at=300");
+        assert!(html.contains(">camera 480x640, 5 frames a second<br>frame 2: "), "{}", html);
+        // The device is turned on its side.
+        assert!(tap("action=camera&id=front-1&facing=user&width=640&height=480").contains(">camera 640x480, 5 frames a second<br>"));
+        // A size that is not one is not said, and it is asked anew when the scanner opens.
+        for body in ["action=camera&width=0&height=480", "action=camera&width=640", "action=camera&width=wide&height=480", "action=camera&width=640&height=99999"] {
+            assert!(!tap(body).contains(">camera "), "{}", body);
+        }
+        tap("action=camera&width=640&height=480");
+        tap("action=close");
+        assert!(!tap("action=toggle").contains(">camera "));
         fresh();
     }
 

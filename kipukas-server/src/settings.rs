@@ -65,7 +65,7 @@ pub const SCANNER_STATUS: Setting = Setting {
     says: "Show over the camera's picture how long the QR scanner spends on each frame, in milliseconds: \
            the game engine's part, the QR reader's and, with computer vision on, the model's. \
            The average since the scanner opened follows each in brackets. \
-           Above that is how many frames a second it looks at.",
+           Above that are the size of the camera's picture and how many frames a second the scanner looks at.",
 };
 
 /// Every setting, in the order the page lists them.

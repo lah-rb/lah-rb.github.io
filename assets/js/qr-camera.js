@@ -12,8 +12,11 @@
  *     them and posts what a code says to the engine (kipukas-worker.js). How
  *     often is the engine's to say (data-qr-every on the scanner); the next
  *     frame is taken only when the worker is done with the last;
- *   - change which camera is in use, a matter of the device and not of the
- *     scanner (the button the engine marks data-qr-switch);
+ *   - change which camera is in use, of those the device has (the button the
+ *     engine marks data-qr-switch), and tell the engine which is running and
+ *     the size of its picture. The engine keeps that: it writes the camera on
+ *     the scanner for this file to ask the browser for the next time, and
+ *     shows the picture mirrored or not by which way the camera faces;
  *   - draw the worker's findings over the picture (the YOLO bounding boxes).
  *
  * It is loaded when the scanner's toolbar button is first pressed.
@@ -43,8 +46,13 @@
   // busy, so this only matters if a frame's answer was lost.
   const UNANSWERED = 2000;
   let videoDevices = [];
-  let currentDeviceIndex = 0;
-  let currentFacingMode = 'user';
+  // The camera that is running, as the browser describes it: its id, its
+  // name, which way it faces, and the size its picture was said to be.
+  let running = null;
+  // Where in the browser's list of cameras the last change of camera went,
+  // for a browser that does not say which of them is running. Until there
+  // has been a change, that is taken to be the first.
+  let changedTo = 0;
 
   // Cleared a moment after the worker last reported what it found.
   let bboxFadeTimer = null;
@@ -219,39 +227,132 @@
     // gives up its turn to the next: nothing to report.
     const playing = video.play();
     if (playing) playing.catch(() => {});
+    // The size of the picture, when the video has it and when it changes.
+    video.onloadedmetadata = tellCamera;
+    video.onresize = tellCamera;
     takeFrameIn(0);
   }
 
-  /** Start the camera and begin reading frames from it. */
-  async function start() {
+  /**
+   * The camera the engine remembers the scanner last ran, as it has written
+   * it on the scanner: the one to ask the browser for. All empty before any
+   * camera has run.
+   */
+  function remembered() {
+    const scanner = document.querySelector('[data-qr-camera]');
+    const said = (name) => (scanner && scanner.getAttribute(name)) || '';
+    return {
+      id: said('data-camera-id'),
+      label: said('data-camera-label'),
+      facing: said('data-camera-facing'),
+    };
+  }
+
+  /** What the browser says of the camera behind a stream. */
+  function described(mediaStream) {
+    const track = mediaStream.getVideoTracks()[0];
+    const settings = track && track.getSettings ? track.getSettings() : {};
+    return {
+      id: settings.deviceId || '',
+      label: (track && track.label) || '',
+      facing: settings.facingMode || '',
+      width: settings.width || 0,
+      height: settings.height || 0,
+    };
+  }
+
+  /**
+   * Tell the engine which camera is running and the size of its picture: the
+   * video's own once it has one (a phone turned on its side changes it).
+   * Resolves when the engine has drawn the scanner for it.
+   */
+  function tellCamera() {
+    if (!running) return Promise.resolve();
+    const video = scannerVideo();
+    const showing = video && video.srcObject === stream && video.videoWidth > 0;
+    const said = new URLSearchParams({
+      action: 'camera',
+      id: running.id,
+      label: running.label,
+      facing: running.facing,
+      width: showing ? video.videoWidth : running.width,
+      height: showing ? video.videoHeight : running.height,
+    });
+    return globalThis.kipukasViews.send('/api/qr/status', said.toString());
+  }
+
+  /**
+   * Start a camera and begin reading frames from it: `chosen` if the player
+   * has just changed camera, else the one the engine remembers, else one
+   * that faces the player.
+   */
+  async function start(chosen) {
     if (scanning || starting) return;
     starting = true;
 
     try {
-      await enumerateDevices();
+      let want = chosen || remembered();
+      // Whether the camera that starts may still be exchanged for the one
+      // wanted (see below). Once.
+      let exchange = !chosen;
+      let mediaStream;
+      let got;
+      for (;;) {
+        await enumerateDevices();
+        // The browser's id for the camera wanted: the one remembered or,
+        // where the browser has given the camera a new id since, that of
+        // the camera with its name.
+        const known = videoDevices.find((device) => want.id && device.deviceId === want.id) ||
+          videoDevices.find((device) => want.label && device.label === want.label);
+        const id = (known && known.deviceId) || want.id;
+        // Asked for as preferences, so that a camera that is gone, or an
+        // id the browser no longer knows, still starts one.
+        const video = { focusMode: 'continuous' };
+        if (id) video.deviceId = { ideal: id };
+        if (want.facing) video.facingMode = { ideal: want.facing };
+        else if (!id) video.facingMode = 'user';
 
-      // Build constraints - use deviceId only if we have a valid non-empty ID
-      const deviceId = videoDevices[currentDeviceIndex]?.deviceId;
-      const hasValidDeviceId = deviceId && deviceId.trim() !== '';
-      const video = hasValidDeviceId
-        ? { deviceId: { ideal: deviceId }, focusMode: 'continuous' }
-        : { facingMode: currentFacingMode, focusMode: 'continuous' };
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        got = described(mediaStream);
+        // The browser names its cameras once one has been allowed.
+        await enumerateDevices();
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        // A browser that gives its cameras new ids on each visit, and
+        // names none until one runs, could only be asked for a camera
+        // facing the same way. If that started another than the one
+        // remembered by name, start that one in its place.
+        const meant = exchange && want.label && got.label !== want.label &&
+          videoDevices.find((device) =>
+            device.label === want.label && device.deviceId && device.deviceId !== got.id
+          );
+        if (!meant) break;
+        mediaStream.getTracks().forEach((track) => track.stop());
+        want = { id: meant.deviceId, label: meant.label, facing: want.facing };
+        exchange = false;
+      }
 
       // The scanner may have been closed while the camera was being asked for.
-      const target = scannerVideo();
-      if (!target) {
+      if (!scannerVideo()) {
         mediaStream.getTracks().forEach((track) => track.stop());
         return;
       }
       stream = mediaStream;
+      running = got;
+      // Told before the picture is shown, so that it is shown the right
+      // way round from its first frame.
+      await tellCamera();
+      const target = scannerVideo();
+      if (!target) {
+        stop();
+        return;
+      }
       scanning = true;
       show(target, mediaStream);
-
-      // Re-enumerate devices now that we have permission to get real device IDs
-      enumerateDevices();
-      console.log(`[qr-camera] Camera started, a frame every ${every()} ms at most`);
+      console.log(
+        `[qr-camera] Camera started (${
+          got.label || 'unnamed'
+        }), a frame every ${every()} ms at most`,
+      );
     } catch (err) {
       console.error('[qr-camera] Camera access error:', err);
       failed = true;
@@ -277,34 +378,39 @@
       stream.getTracks().forEach((track) => track.stop());
       stream = null;
     }
+    running = null;
 
     clearBboxOverlay();
     console.log('[qr-camera] Camera stopped');
   }
 
   /**
-   * Switch to the next available camera.
-   * Cycles through enumerated video devices.
+   * Change to the next of the device's cameras, in the browser's order, and
+   * round to the first again. Where the browser names no cameras to choose
+   * between, ask for one that faces the other way.
    */
   function switchCamera() {
     if (starting) return;
-    if (videoDevices.length <= 1) {
-      // Toggle between front/back facing mode as fallback
-      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-      console.log(`[qr-camera] Switching to ${currentFacingMode} camera`);
+    const named = videoDevices.filter((device) => device.deviceId);
+    let next;
+    if (named.length > 1) {
+      // The one after the camera that is running: known by its id, or its
+      // name, or failing both by where the last change went.
+      const now = running || {};
+      let at = named.findIndex((device) => now.id && device.deviceId === now.id);
+      if (at < 0) at = named.findIndex((device) => now.label && device.label === now.label);
+      if (at < 0) at = changedTo;
+      changedTo = (at + 1) % named.length;
+      const device = named[changedTo];
+      next = { id: device.deviceId, label: device.label, facing: '' };
     } else {
-      // Move to next device in list
-      currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-      console.log(
-        `[qr-camera] Switching to device ${currentDeviceIndex}: ${
-          videoDevices[currentDeviceIndex].label || 'Unknown'
-        }`,
-      );
+      const away = (running || remembered()).facing === 'environment';
+      next = { id: '', label: '', facing: away ? 'user' : 'environment' };
     }
+    console.log(`[qr-camera] Switching camera: ${next.label || next.facing}`);
 
-    // Stop the current stream and start again with the new camera
     stop();
-    start();
+    start(next);
   }
 
   /** Clear the bounding box overlay canvas. */
