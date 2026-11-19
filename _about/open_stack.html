@@ -176,9 +176,28 @@ bg-terra: "bg-hero-pattern "
               <td class="py-1 pr-2">Apache-2.0</td>
               <td class="py-1">QR code scanning / decoding</td>
             </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://onnxruntime.ai/docs/tutorials/web/" class="underline">ONNX Runtime Web</a></td>
+              <td class="py-1 pr-2">1.21.0</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Runs the model that finds QR codes, for the scanner's computer vision (WebGPU or WASM)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/lah-rb/kipukas-qr-model" class="underline">Kipukas QR model</a> (<a href="https://docs.ultralytics.com/models/yolo26/" class="underline">Ultralytics YOLO26n</a>)</td>
+              <td class="py-1 pr-2">8.4.19</td>
+              <td class="py-1 pr-2">AGPL-3.0</td>
+              <td class="py-1">Finds QR codes in a camera frame when the scanner's computer vision is on</td>
+            </tr>
           </tbody>
         </table>
       </div>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 text-xs md:text-sm text-left leading-normal">
+        The model that finds QR codes is trained with
+        <a href="https://github.com/ultralytics/ultralytics" class="underline">Ultralytics YOLO</a>
+        and is offered under the AGPL-3.0, as that software is. The model, the scripts that
+        train it and the scanner code that runs it are published at
+        <a href="https://github.com/lah-rb/kipukas-qr-model" class="underline">github.com/lah-rb/kipukas-qr-model</a>.
+      </p>
 
       <!-- ─── Server & Runtime ─── -->
       <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Server &amp; Runtime</h2>

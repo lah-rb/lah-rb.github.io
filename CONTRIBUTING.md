@@ -638,7 +638,7 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
 | [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 3.2.0-rc1 | Apache-2.0 | Reads QR codes. A WASM module of its own, built by `zxing-reader/build.sh` (see The QR reader) |
 | [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) | 1.21.0 | MIT | Runs the model that finds QR codes, on WebGPU or WASM. The release's own files, served by the site (`scripts/fetch-onnxruntime.ts`) and fetched when computer vision is first turned on |
-| [YOLO26n](https://docs.ultralytics.com/models/yolo26/), trained on the card photos | Ultralytics 8.4.19 | AGPL-3.0 (Ultralytics' licence for its models and what is trained from them) | Finds QR codes in a camera frame when computer vision is on (see The model that finds codes) |
+| [YOLO26n](https://docs.ultralytics.com/models/yolo26/), trained on the card photos | Ultralytics 8.4.19 | AGPL-3.0 (Ultralytics' licence for its models and what is trained from them) | Finds QR codes in a camera frame when computer vision is on (see The model that finds codes). Published with its training scripts at [lah-rb/kipukas-qr-model](https://github.com/lah-rb/kipukas-qr-model) |
 
 ### Server & Runtime
 
@@ -870,6 +870,8 @@ To put another model in use, name its file in `MODEL` (`kipukas-server/src/route
 - The two trained on wider boxes learned from 56 of the 70 photos, and the first model from nearly all of them. On the 14 they did not see, the boxes cut into the code on 7 of 15 codes (the first model), none and none.
 - On the validation pictures (those 14 photos with their nine variants each, and 41 pictures from the public set) they score: YOLOv12n mAP50 0.995 and mAP50-95 0.828; YOLO26n 0.995 and 0.858.
 - The margins were tried with the scripts the scanner had then. `YOLO_rqrr/eval/site_eval.ts` measures any models named to it through the scanner as it is now: how the boxes sit, the photos read from them with the margin the engine uses, the photos read with no model, and the time a frame.
+
+**Where its source is published.** The model is trained with Ultralytics YOLO, which is under the AGPL-3.0, and the site serves it to its visitors. So the model, the scripts that train it and a copy of the scanner's files that touch it are public at [lah-rb/kipukas-qr-model](https://github.com/lah-rb/kipukas-qr-model), under the AGPL-3.0, and the site's Open Stack page (`_about/open_stack.html`) says so beside the model's licence. The card photos are not published. When a model is trained again, or the scanner's files change in a way that matters to it, publish there as well: the model and weights in its `models/`, the scripts in its `train/`, and the files its `scanner/README.md` lists.
 
 **Training one.** The pictures, scripts and runs are in `YOLO_rqrr/`, which is not in the repository. From that folder, with `uv`:
 
