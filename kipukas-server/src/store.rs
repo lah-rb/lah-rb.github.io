@@ -55,10 +55,10 @@ pub const KEYS: [&str; 4] = [PLAYER_DOC, ROOM, ROOM_DOC, ROOM_TAB];
 /// page hands it over at load with the rest; the engine never writes it.
 pub const RELAY_URL: &str = "kipukas_relay_url";
 
-// The QR scanner's two choices (`routes::qr::PRIVACY` and `CV`) and the
-// settings (`crate::settings`) are handed over at load as well. The engine
-// writes each when the player makes the choice ([`put`]), and another tab
-// changing one is no reason to load this one again.
+// The settings (`crate::settings`) and the QR scanner's own choices
+// (`routes::qr`) are handed over at load as well. The engine writes each
+// when the player makes the choice ([`put`]), and another tab changing one
+// is no reason to load this one again.
 
 /// A room not returned to for this long is forgotten.
 const ROOM_TTL_MS: f64 = 12.0 * 60.0 * 60.0 * 1000.0;
@@ -144,7 +144,7 @@ fn new_tab_id() -> String {
 /// POST /api/start — put the engine back as it was, from what is stored.
 ///
 /// Body: a JSON object of the stored value of each of [`KEYS`] that has one,
-/// of [`RELAY_URL`], of the QR scanner's two choices and of the settings.
+/// of [`RELAY_URL`], of the settings and of the QR scanner's choices.
 ///
 /// Returns `ok`, or what could not be read (for the worker to log; the engine
 /// carries on from nothing for that part).
@@ -203,10 +203,9 @@ pub fn handle_start_post(body: &str) -> String {
         None => STORE.with(|store| store.borrow_mut().owner = None),
     }
 
-    // The QR scanner's choices, and the settings.
-    let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
-    crate::routes::qr::restore(chosen(crate::routes::qr::PRIVACY), chosen(crate::routes::qr::CV));
+    // The settings, and the QR scanner's choices.
     crate::settings::restore(&stored);
+    crate::routes::qr::restore(&stored);
 
     // The engine is back in its room, with the room's document. All that is
     // missing is the connection.

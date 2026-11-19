@@ -4,7 +4,9 @@
 //! The engine holds where the scanner stands (closed, asking for the camera
 //! privacy notice to be accepted, scanning, failed) and its two switches
 //! (the screen light, and finding codes by computer vision), and draws it.
-//! Every control in it posts back here.
+//! Every control in it posts back here. Whether the notice has been
+//! accepted is a setting (`settings::CAMERA_PRIVACY`), which the notice's
+//! Accept turns on and the settings page can turn off again.
 //!
 //! The camera is not the engine's: the page runs it for as long as the
 //! scanner's video is drawn (qr-camera.js) and hands its frames to the
@@ -23,6 +25,7 @@
 //! draws the line.
 
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 
 use crate::catalog::CARDS;
 use crate::page;
@@ -30,9 +33,6 @@ use crate::routes::util::{escape_html, get_param, parse_form_body};
 use crate::settings;
 use crate::store;
 
-/// Storage key: `true` once the camera privacy notice has been accepted.
-/// The privacy policy page's own Accept link writes it too.
-pub const PRIVACY: &str = "qr-privacy-accepted";
 /// Storage key: `true` while finding codes by computer vision is turned on.
 pub const CV: &str = "kipukas-cv-enabled";
 
@@ -124,8 +124,6 @@ impl Tally {
 #[derive(Default)]
 struct Scanner {
     face: Face,
-    /// The camera privacy notice has been accepted.
-    privacy: bool,
     /// The screen is lit white, to light a card held to a front camera.
     light: bool,
     /// Codes are found by computer vision (YOLO) before they are read.
@@ -150,17 +148,19 @@ fn with_scanner<R>(f: impl FnOnce(&mut Scanner) -> R) -> R {
     SCANNER.with(|scanner| f(&mut scanner.borrow_mut()))
 }
 
-/// At load: what is stored of the player's two choices.
-pub fn restore(privacy: bool, cv: bool) {
+/// At load: the scanner's choices as they are stored. `stored` is
+/// everything the page handed over (`store::handle_start_post`).
+pub fn restore(stored: &BTreeMap<String, String>) {
+    let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
     with_scanner(|scanner| {
-        *scanner = Scanner { privacy, cv, ..Scanner::default() };
+        *scanner = Scanner { cv: chosen(CV), ..Scanner::default() };
     });
 }
 
 /// Forget everything, as before any page has loaded.
 #[cfg(test)]
 pub fn reset() {
-    restore(false, false);
+    restore(&BTreeMap::new());
 }
 
 // ── SVG icon constants ─────────────────────────────────────────────
@@ -270,9 +270,11 @@ pub fn handle_status_post(body: &str) -> String {
             }
         }
         "accept" => {
-            with_scanner(|scanner| scanner.privacy = true);
-            store::put(PRIVACY, Some("true".to_string()));
-            open();
+            // The scanner, open on the notice, goes on to the camera
+            // (`privacy_setting_changed`). The settings page shows the
+            // same choice, and may be the page the scanner is open on.
+            settings::set(&settings::CAMERA_PRIVACY, true);
+            page::redraw("/api/settings");
         }
         "close" => close(),
         "light" => with_scanner(|scanner| scanner.light = !scanner.light),
@@ -335,8 +337,9 @@ pub fn handle_status_post(body: &str) -> String {
 /// Open the scanner: on the camera if the privacy notice has been accepted,
 /// on the notice if not.
 fn open() {
+    let accepted = settings::is_on(&settings::CAMERA_PRIVACY);
     let cv = with_scanner(|scanner| {
-        scanner.face = if scanner.privacy { Face::Scanning } else { Face::Privacy };
+        scanner.face = if accepted { Face::Scanning } else { Face::Privacy };
         scanner.light = false;
         scanner.read = None;
         scanner.tally = Tally::default();
@@ -375,6 +378,17 @@ fn found(url: &str) {
 /// asked for. A closed scanner has nothing to draw.
 fn said_by_the_worker() {
     if with_scanner(|scanner| scanner.face != Face::Closed) {
+        page::redraw("/api/qr/status");
+    }
+}
+
+/// The camera privacy notice has been accepted, or that has been taken back
+/// (`settings::CAMERA_PRIVACY`), in the scanner or on the settings page. An
+/// open scanner follows: on to the camera, or back to its notice, where the
+/// page stops the camera because its picture is no longer drawn.
+pub fn privacy_setting_changed() {
+    if with_scanner(|scanner| scanner.face != Face::Closed) {
+        open();
         page::redraw("/api/qr/status");
     }
 }
@@ -623,9 +637,20 @@ mod tests {
         (page::take_go(), html)
     }
 
+    /// A page loads with these two of the scanner's choices stored: the
+    /// privacy notice accepted, and computer vision on.
+    fn restored(privacy: bool, cv: bool) {
+        let stored: BTreeMap<String, String> = [(settings::CAMERA_PRIVACY.key, privacy), (CV, cv)]
+            .into_iter()
+            .map(|(key, on)| (key.to_string(), on.to_string()))
+            .collect();
+        settings::restore(&stored);
+        restore(&stored);
+    }
+
     fn scanning() {
         fresh();
-        restore(true, false);
+        restored(true, false);
         tap("action=toggle");
         page::reset();
     }
@@ -701,15 +726,65 @@ mod tests {
         let html = tap("action=accept");
         assert!(html.contains("<video"));
         assert!(html.contains("data-qr-camera"));
-        assert_eq!(store::take_saves().get(PRIVACY), Some(&Some("true".to_string())));
+        assert!(settings::is_on(&settings::CAMERA_PRIVACY));
+        assert_eq!(store::take_saves().get(settings::CAMERA_PRIVACY.key), Some(&Some("true".to_string())));
 
         // From now on the button opens the camera straight away, on this
         // page and, once stored, on the next.
         tap("action=toggle");
         assert!(tap("action=toggle").contains("<video"));
         fresh();
-        restore(true, false);
+        restored(true, false);
         assert!(tap("action=toggle").contains("<video"));
+        fresh();
+    }
+
+    #[test]
+    fn accepting_is_the_settings_pages_switch_turned_on() {
+        fresh();
+        tap("action=toggle");
+        page::reset();
+        tap("action=accept");
+        assert!(settings::handle_get("").contains(r#"aria-checked="true" aria-label="Camera privacy notice""#));
+        // The settings page may be the page the scanner is open on.
+        assert!(page::take_redraws().contains(&"/api/settings"));
+
+        // Accepted there instead, the scanner opens on the camera.
+        fresh();
+        settings::handle_post("toggle=qr-privacy-accepted");
+        assert!(tap("action=toggle").contains("<video"));
+        fresh();
+    }
+
+    #[test]
+    fn taking_the_acceptance_back_puts_the_scanner_on_its_notice_again() {
+        // With the scanner open, on the settings page: the camera's
+        // picture goes, so the page stops the camera.
+        scanning();
+        settings::handle_post("toggle=qr-privacy-accepted");
+        assert!(!settings::is_on(&settings::CAMERA_PRIVACY));
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+        let html = handle_status("");
+        assert!(html.contains("Privacy Notice"));
+        assert!(!html.contains("<video"));
+        assert_eq!(store::take_saves().get(settings::CAMERA_PRIVACY.key), Some(&Some("false".to_string())));
+        // Accepting again goes on to the camera.
+        assert!(tap("action=accept").contains("<video"));
+
+        // With the scanner closed nothing is drawn, and it next opens on
+        // the notice.
+        tap("action=close");
+        page::reset();
+        settings::handle_post("toggle=qr-privacy-accepted");
+        assert!(page::take_redraws().is_empty());
+        assert_eq!(handle_status(""), "");
+        assert!(tap("action=toggle").contains("Privacy Notice"));
+
+        // So does a scanner whose camera could not be started.
+        scanning();
+        tap("action=error&msg=Camera%20denied");
+        settings::handle_post("toggle=qr-privacy-accepted");
+        assert!(handle_status("").contains("Privacy Notice"));
         fresh();
     }
 
@@ -787,7 +862,7 @@ mod tests {
 
         // Stored, it is on when the scanner next opens.
         fresh();
-        restore(true, true);
+        restored(true, true);
         assert!(tap("action=toggle").contains(r#"title="Disable CV detection (YOLO)""#));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
         assert_eq!(handed["qr"], asked_of_the_worker(true, false));
@@ -823,7 +898,7 @@ mod tests {
     #[test]
     fn with_the_status_line_on_the_worker_is_asked_to_report_and_the_scanner_shows_it() {
         fresh();
-        restore(true, false);
+        restored(true, false);
         turn_the_status_line(true);
         page::reset();
         let html = tap("action=toggle");
@@ -846,7 +921,7 @@ mod tests {
     #[test]
     fn the_models_time_is_shown_for_a_frame_it_was_run_on_and_averaged_over_those_frames() {
         fresh();
-        restore(true, true);
+        restored(true, true);
         turn_the_status_line(true);
         tap("action=toggle");
         let html = tap("action=frame&engine=6&reader=9&model=40.4");
@@ -863,7 +938,7 @@ mod tests {
     #[test]
     fn the_count_starts_again_when_the_scanner_opens_and_when_computer_vision_is_turned() {
         fresh();
-        restore(true, false);
+        restored(true, false);
         turn_the_status_line(true);
         tap("action=toggle");
         tap("action=frame&engine=10&reader=10");
@@ -883,7 +958,7 @@ mod tests {
     #[test]
     fn a_report_that_is_not_times_is_not_counted() {
         fresh();
-        restore(true, false);
+        restored(true, false);
         turn_the_status_line(true);
         tap("action=toggle");
         page::reset();

@@ -42,14 +42,15 @@ const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', '
 //     written by nobody but a developer. Run the relay locally (`deno task
 //     dev` in signaling-server/) and point at it with:
 //       localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
-//   - the QR scanner's two choices: that the camera privacy notice has been
-//     accepted, and whether codes are found by computer vision;
-//   - the settings page's switches (kipukas-server/src/settings.rs).
+//   - the settings page's switches (kipukas-server/src/settings.rs): that
+//     the camera privacy notice has been accepted, and whether the QR
+//     scanner shows what its frames take;
+//   - the QR scanner's own choice of finding codes by computer vision.
 const READ_AT_START = [
   'kipukas_relay_url',
   'qr-privacy-accepted',
-  'kipukas-cv-enabled',
   'kipukas-scanner-status',
+  'kipukas-cv-enabled',
 ];
 
 /** What is stored under one of the engine's keys, or null. */

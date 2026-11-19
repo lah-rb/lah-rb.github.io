@@ -207,7 +207,7 @@ mod tests {
 
         handle_request("POST", "/api/qr/status", "", "action=accept");
         assert!(handle_request("GET", "/api/qr/status", "", "").contains("<video"));
-        assert_eq!(handed()["save"][routes::qr::PRIVACY], "true");
+        assert_eq!(handed()["save"][settings::CAMERA_PRIVACY.key], "true");
 
         handle_request("POST", "/api/qr/status", "", "action=found&url=kpks.us%2Fbrox_the_defiant");
         assert_eq!(handed()["go"], "/brox_the_defiant/");

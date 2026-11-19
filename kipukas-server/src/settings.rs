@@ -8,14 +8,16 @@
 //!
 //! Each is kept in the browser's storage under a key of its own, `true`
 //! while it is on, apart from the engine's documents: it is a choice about
-//! this device, so it is not synced to another device and is not in a
-//! backup. The page hands the keys over at load with the rest (`store`),
-//! and the engine has one written when its switch is turned
-//! (`store::put`). Every setting is off until the player turns it on.
+//! this device, so it is not synced to another device. The page hands the
+//! keys over at load with the rest (`store`), and the engine has one
+//! written when it is turned (`store::put`). Every setting is off until
+//! the player turns it on.
 //!
 //! What a setting changes is the business of the module it is about, which
-//! asks [`is_on`]. To add one: a [`Setting`] here, listed in [`ALL`]; its
-//! key in `READ_AT_START` in kipukas-api.js; and the asking.
+//! asks [`is_on`], and may turn it by a control of its own ([`set`]: the
+//! scanner's privacy notice does). To add one: a [`Setting`] here, listed
+//! in [`ALL`]; its key in `READ_AT_START` in kipukas-api.js; and the
+//! asking.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -30,9 +32,25 @@ pub struct Setting {
     pub key: &'static str,
     /// What the settings page calls it.
     title: &'static str,
-    /// What it does, in the page's words to the player.
+    /// What it does, in the page's words to the player. Markup: it may
+    /// hold a link.
     says: &'static str,
 }
+
+/// The player has accepted the privacy policy for the QR scanner's camera:
+/// in the scanner's own notice, which is shown until they have, or here.
+/// Turned off, the scanner shows its notice again before it uses the camera
+/// (`routes::qr`). The privacy policy page's Accept link writes the key
+/// too.
+pub const CAMERA_PRIVACY: Setting = Setting {
+    key: "qr-privacy-accepted",
+    title: "Camera privacy notice",
+    says: "On once you have accepted our \
+           <a href=\"/privacy_policy\" class=\"text-kip-red hover:text-emerald-600 underline\">privacy policy</a> \
+           for the QR scanner's camera, here or in the scanner's own notice. \
+           Turn it off to take that back: the scanner will show its notice again before it next uses the camera. \
+           The browser's own camera permission is set in the browser.",
+};
 
 /// The QR scanner writes over the camera's picture what its frames take
 /// (`routes::qr`).
@@ -45,7 +63,7 @@ pub const SCANNER_STATUS: Setting = Setting {
 };
 
 /// Every setting, in the order the page lists them.
-const ALL: [&Setting; 1] = [&SCANNER_STATUS];
+const ALL: [&Setting; 2] = [&CAMERA_PRIVACY, &SCANNER_STATUS];
 
 thread_local! {
     /// The keys of the settings that are on.
@@ -64,8 +82,9 @@ pub fn is_on(setting: &Setting) -> bool {
     ON.with(|held| held.borrow().contains(&setting.key))
 }
 
-/// Turn `setting` on or off, and have that stored.
-fn set(setting: &'static Setting, on: bool) {
+/// Turn `setting` on or off, and have that stored. What the setting is
+/// about is told.
+pub fn set(setting: &'static Setting, on: bool) {
     ON.with(|held| {
         let mut held = held.borrow_mut();
         held.retain(|key| *key != setting.key);
@@ -77,18 +96,15 @@ fn set(setting: &'static Setting, on: bool) {
     if setting.key == SCANNER_STATUS.key {
         crate::routes::qr::status_setting_changed();
     }
+    if setting.key == CAMERA_PRIVACY.key {
+        crate::routes::qr::privacy_setting_changed();
+    }
 }
 
 /// Every setting off, as before any page has loaded.
 #[cfg(test)]
 pub fn reset() {
     ON.with(|held| held.borrow_mut().clear());
-}
-
-/// Turn a setting on, for a test of what it changes.
-#[cfg(test)]
-pub fn turn_on(setting: &'static Setting) {
-    set(setting, true);
 }
 
 // ── Route handlers ─────────────────────────────────────────────────
@@ -175,6 +191,28 @@ mod tests {
         assert!(html.contains("Scanner status"));
         assert!(html.contains(r#"role="switch" aria-checked="false""#));
         assert!(!html.contains(r#"aria-checked="true""#));
+        fresh();
+    }
+
+    #[test]
+    fn the_camera_privacy_notice_is_a_setting_with_a_link_to_the_policy() {
+        fresh();
+        let html = handle_get("");
+        let (privacy, status) = (html.find("Camera privacy notice").unwrap(), html.find("Scanner status").unwrap());
+        assert!(privacy < status, "it is listed first");
+        assert!(html.contains(r#"<a href="/privacy_policy""#));
+        assert!(html.contains(r#"data-engine-post="/api/settings" data-engine-body="toggle=qr-privacy-accepted""#));
+
+        // The key is the one the scanner's notice has always written, so a
+        // player who accepted it there finds the switch on.
+        restore(&stored(&[("qr-privacy-accepted", "true")]));
+        assert!(is_on(&CAMERA_PRIVACY));
+        assert!(handle_get("").contains(r#"aria-checked="true" aria-label="Camera privacy notice""#));
+
+        let html = tap("toggle=qr-privacy-accepted");
+        assert!(html.contains(r#"aria-checked="false" aria-label="Camera privacy notice""#));
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["save"]["qr-privacy-accepted"], "false");
         fresh();
     }
 
