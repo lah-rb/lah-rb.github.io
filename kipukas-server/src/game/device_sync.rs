@@ -1,48 +1,157 @@
-//! Pairing two of a player's devices, to merge the player's own state
-//! (damage, timers, affinity, loyalty) between them.
+//! Moving a game from one of the player's devices to another.
 //!
-//! The two devices meet in a room on the same relay the game's rooms use:
-//! one creates it and shows its code, the other joins with the code. Before
-//! anything is exchanged each proves to the other that it was given the same
-//! passphrase (a keyed hash of the room code, `game::crypto`). Then each
-//! sends what the other lacks, the same exchange of state vectors and
-//! updates that keeps a room's document in step, here on the player's
-//! document. While the pairing lasts, a change on either device is sent to
-//! the other as it is made.
+//! One device (the sender) has the game: damage, timers, the affinity
+//! declared. The other (the receiver) is to carry it on. The game goes one
+//! way and takes the place of whatever game the receiver had. The player's
+//! record (each card's loyalty) is the other kind of thing: each device adds
+//! what it knows to what the other holds, and both end with the same.
+//! `player_doc::take_over` is where that is done; this module gets the
+//! sender's state to it and the receiver's additions back.
 //!
-//! The dialog is an engine-owned view (`routes::player`, `/api/player/sync`)
-//! of what is held here. The socket is a [`Link`] of its own, which does
-//! not retry: a pairing that drops is started again by hand.
+//! ## How the two meet
+//!
+//! The sender draws a secret and makes a room on the relay the game's rooms
+//! use. It then shows an invitation, the room's code and the secret, as a QR
+//! code and as text. The receiver is handed it one of three ways: the
+//! address in the QR code opens this site's Player Data page with the
+//! invitation after the `#` (`routes::device_sync`, which reads it from the
+//! page's address); the site's own scanner reads the code (`routes::qr`); or
+//! the player types it. Nothing moves until the player on the receiver has
+//! said so: an address opened by mistake, or sent by someone else, changes
+//! nothing by being opened.
+//!
+//! The secret never goes to the relay. Everything the two say to each other
+//! is sealed with a key made from it (`crypto::Pairing`), and the room's
+//! name, which the relay asks of whoever joins, is made from it too. So the
+//! relay reads nothing of the player's, and a device that was not shown the
+//! invitation can neither join nor be understood.
 //!
 //! ## What travels
 //!
 //! To the relay, as for a game room: `action` (`create` or `join`), `code`,
-//! an empty `name`, and `player`, an id made for this page load.
+//! `name` (the room name made from the secret), and `player`, an id made
+//! for this page load.
 //!
-//! Between the devices, as the relay's `data`: `sync_auth` (with `mac`),
-//! then `player_sv`, `player_sv_reply` (with `sv`) and `player_update`
-//! (with `update`).
+//! Between the devices, as the relay's `data`: `{"type":"sealed","box":…}`,
+//! where the box opens to one of
+//!
+//! ```text
+//! receiver → sender   {"say":"want"}                  the player here said yes
+//! sender → receiver   {"say":"game","state":…}        the sender's whole state
+//! receiver → sender   {"say":"record","update":…}     what the receiver added to it
+//! sender → receiver   {"say":"done"}                  taken in; both hold the same
+//! either              {"say":"failed"}                could not be read
+//! ```
+//!
+//! Then each gives up its place in the room, which ends it: an invitation
+//! works once. One nobody has used ends after [`INVITE_LASTS_MS`]. The
+//! socket is a [`Link`] of its own, which does not retry: a move that drops
+//! is started again by hand.
 
 use std::cell::RefCell;
 
-use crate::game::{connection, crypto, player_doc};
+use crate::clock;
+use crate::game::crypto::{self, Pairing, Side, PAIRING_ALPHABET, PAIRING_SECRET_LENGTH};
+use crate::game::{connection, player_doc};
 use crate::link::{Link, Owner, State, Timer, Told};
 use crate::page;
 use crate::wire::{self, Channel, SocketEvent};
 
-/// The shortest passphrase taken.
-const SHORTEST_PASSPHRASE: usize = 4;
+/// How long an invitation waits for the other device.
+pub const INVITE_LASTS_MS: u32 = 10 * 60 * 1000;
 
-/// What the dialog is showing.
+/// The wait that ends an invitation nobody has used.
+const EXPIRE: &str = "expire";
+
+/// Where the site is, for the address an invitation's QR code carries.
+const SITE: &str = "https://www.kipukas.cards";
+
+// ── An invitation ──────────────────────────────────────────────────
+
+/// What the sender shows the receiver: the room's code and the secret.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Invite {
+    pub code: String,
+    pub secret: String,
+}
+
+impl Invite {
+    /// Read an invitation from what a device was handed: what follows the
+    /// `#` of an address (`sync=ABCD-…`), the whole address, or the code as
+    /// it was typed, with or without its dashes and in either case.
+    pub fn read(handed: &str) -> Option<Invite> {
+        let text = handed.rsplit("sync=").next().unwrap_or(handed).trim();
+        let written: String = text.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == ' ').collect();
+        let plain: String =
+            written.chars().filter(char::is_ascii_alphanumeric).map(|c| c.to_ascii_uppercase()).collect();
+        if plain.len() != 4 + PAIRING_SECRET_LENGTH {
+            return None;
+        }
+        let (code, secret) = plain.split_at(4);
+        secret.bytes().all(|c| PAIRING_ALPHABET.contains(&c)).then(|| Invite { code: code.into(), secret: secret.into() })
+    }
+
+    /// As an address carries it: `ABCD-EFGHJKLMNPQRSTUVWXYZ`.
+    pub fn compact(&self) -> String {
+        format!("{}-{}", self.code, self.secret)
+    }
+
+    /// As it is shown to be typed, in groups: `ABCD-EFGHJ-KLMNP-QRSTU-VWXYZ`.
+    pub fn spelled(&self) -> String {
+        let groups: Vec<&str> =
+            self.secret.as_bytes().chunks(5).map(|group| std::str::from_utf8(group).unwrap_or("")).collect();
+        format!("{}-{}", self.code, groups.join("-"))
+    }
+
+    /// The address the QR code carries: this site's Player Data page, with
+    /// the invitation after the `#`, which a browser sends to no server.
+    pub fn address(&self) -> String {
+        format!("{}/player_data#sync={}", SITE, self.compact())
+    }
+}
+
+// ── What is held ───────────────────────────────────────────────────
+
+/// How far a move has come.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Screen {
-    /// The passphrase, and the choice of creating a room or joining one.
+pub enum Stage {
+    /// Nothing asked. (An invitation may be waiting for the player's answer.)
     #[default]
-    Menu,
-    /// The other device's room code is asked for.
-    Join,
-    /// In a room (or on the way to one), with its code once it is known.
-    Paired,
+    Idle,
+    /// The sender is asked whether to go on.
+    Asked,
+    /// The sender is making its room, then showing the invitation.
+    Inviting,
+    /// The receiver is on its way to the sender's room.
+    Joining,
+    /// The two are in the room and the game is on its way.
+    Moving,
+    /// The game has moved.
+    Done,
+}
+
+/// What the page shows of a move.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Dialog {
+    pub stage: Stage,
+    /// Which of the two this device is, once it is either.
+    pub side: Option<Side>,
+    /// The invitation the sender shows, once the relay has given the room
+    /// its code.
+    pub invite: Option<Invite>,
+    /// An invitation this device was handed and the player has yet to answer.
+    pub offered: Option<Invite>,
+    /// A code that was typed and could not be read, to stay in its field.
+    pub typed: String,
+    pub error: String,
+    /// The sender: the other device is in the room.
+    pub peer_here: bool,
+    /// The receiver: what came of taking the game over.
+    pub taken: Option<player_doc::Taken>,
+    /// The sender: how many days of play the other device added to the record.
+    pub days_brought: u32,
+    /// The receiver: the sender has said it took in what was sent back.
+    pub confirmed: bool,
 }
 
 /// What this device asked the relay for.
@@ -50,23 +159,6 @@ pub enum Screen {
 enum Want {
     Create,
     Join { code: String },
-}
-
-/// What the dialog shows.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Dialog {
-    pub screen: Screen,
-    /// What was typed, so that it is still in its field after a refusal or
-    /// a change of screen.
-    pub passphrase: String,
-    /// The room's code, once the relay has given or accepted it.
-    pub code: String,
-    pub status: String,
-    pub error: String,
-    /// The two devices are exchanging state.
-    pub syncing: bool,
-    /// They have exchanged it.
-    pub done: bool,
 }
 
 #[derive(Default)]
@@ -77,9 +169,14 @@ struct Sync {
     want: Option<Want>,
     /// This device's id in the room: one per page load.
     player: String,
-    peer_present: bool,
-    /// The other device has proved it has the passphrase.
-    authenticated: bool,
+    /// The sender's secret, until the room has its code and the invitation
+    /// is whole.
+    secret: String,
+    pairing: Option<Pairing>,
+    /// Invitations the player has answered on this page. The page's address
+    /// goes on carrying the one it was opened with, which is not offered
+    /// again.
+    answered: Vec<String>,
     /// The dialog as it was when the page was last asked to draw it.
     drawn: Option<Dialog>,
 }
@@ -99,6 +196,14 @@ fn new_link() -> Link {
 
 fn with_sync<R>(f: impl FnOnce(&mut Sync) -> R) -> R {
     SYNC.with(|sync| f(&mut sync.borrow_mut()))
+}
+
+fn stage() -> Stage {
+    with_sync(|sync| sync.dialog.stage)
+}
+
+fn side() -> Option<Side> {
+    with_sync(|sync| sync.dialog.side)
 }
 
 // ── The link ───────────────────────────────────────────────────────
@@ -135,9 +240,10 @@ fn settle() {
 }
 
 fn relay_address() -> String {
-    let (want, player) = SYNC.with(|sync| {
+    let (want, player, name) = SYNC.with(|sync| {
         let sync = sync.borrow();
-        (sync.want.clone(), sync.player.clone())
+        let name = sync.pairing.as_ref().map(|pairing| pairing.room_name.clone()).unwrap_or_default();
+        (sync.want.clone(), sync.player.clone(), name)
     });
     let mut wants: Vec<(&str, String)> = Vec::new();
     match want {
@@ -148,17 +254,22 @@ fn relay_address() -> String {
         }
         None => {}
     }
-    wants.push(("name", String::new()));
+    wants.push(("name", name));
     wants.push(("player", player));
     connection::relay_address_with(&wants)
 }
 
-fn send_to_peer(data: &str) {
-    link(|link| link.send(&format!(r#"{{"type":"relay","data":{}}}"#, data)));
-}
-
-fn quoted(text: &str) -> String {
-    serde_json::Value::from(text).to_string()
+/// Seal `message` and send it to the other device.
+fn say(message: serde_json::Value) {
+    let sealed = SYNC.with(|sync| {
+        let sync = sync.borrow();
+        let (pairing, side) = (sync.pairing.as_ref()?, sync.dialog.side?);
+        pairing.seal(side, &message.to_string(), crypto::random_bytes().ok()?).ok()
+    });
+    if let Some(sealed) = sealed {
+        let data = serde_json::json!({ "type": "relay", "data": { "type": "sealed", "box": sealed } });
+        link(|link| link.send(&data.to_string()));
+    }
 }
 
 // ── What the worker reports ────────────────────────────────────────
@@ -180,104 +291,155 @@ pub fn link_timer(timer: Timer) {
     show();
 }
 
+/// A wait of this module's own is over.
+pub fn wait_over(wait: &str) {
+    if wait == EXPIRE && stage() == Stage::Inviting {
+        fail("That code was not used within ten minutes and has ended. Start again to make another.");
+    }
+    show();
+}
+
 // ── What the player asks for ───────────────────────────────────────
 
-/// Keep the passphrase if it will do. Says why not otherwise.
-fn take_passphrase(passphrase: &str) -> bool {
+/// The sender: the player wants to move this device's game to another.
+/// They are asked first.
+pub fn ask() {
     with_sync(|sync| {
-        sync.dialog.passphrase = passphrase.to_string();
-        if passphrase.chars().count() < SHORTEST_PASSPHRASE {
-            sync.dialog.error = "Passphrase must be at least 4 characters".to_string();
-            false
-        } else {
-            sync.dialog.error.clear();
-            true
+        if sync.dialog.stage == Stage::Idle {
+            sync.dialog = Dialog { stage: Stage::Asked, ..Dialog::default() };
         }
-    })
-}
-
-/// Create a room for the other device to join.
-pub fn create(passphrase: &str) {
-    if take_passphrase(passphrase) {
-        connect_for(Want::Create, "Creating sync room…");
-    }
-    show();
-}
-
-/// Go on to ask for the other device's room code.
-pub fn ask_for_code(passphrase: &str) {
-    if take_passphrase(passphrase) {
-        with_sync(|sync| sync.dialog.screen = Screen::Join);
-    }
-    show();
-}
-
-/// Join the room the other device created.
-pub fn join(code: &str) {
-    let code = code.trim().to_uppercase();
-    if code.chars().count() != 4 {
-        with_sync(|sync| sync.dialog.error = "Enter a 4-character room code".to_string());
-    } else {
-        connect_for(Want::Join { code }, "Joining sync room…");
-    }
-    show();
-}
-
-/// Back to the first screen, keeping the passphrase.
-pub fn back() {
-    with_sync(|sync| {
-        sync.dialog.screen = Screen::Menu;
-        sync.dialog.error.clear();
     });
     show();
 }
 
-/// The dialog was closed, or the pairing called off: end it and forget
-/// everything typed.
+/// The sender: the player said yes. Make the room and the invitation.
+pub fn invite() {
+    if stage() != Stage::Asked {
+        return;
+    }
+    match crypto::new_pairing_secret() {
+        Ok(secret) => {
+            with_sync(|sync| {
+                sync.pairing = Some(Pairing::new(&secret));
+                sync.secret = secret;
+                sync.dialog = Dialog { stage: Stage::Inviting, side: Some(Side::Sender), ..Dialog::default() };
+            });
+            connect_for(Want::Create);
+            wire::set(Channel::Sync, EXPIRE, INVITE_LASTS_MS);
+        }
+        Err(problem) => fail(&format!("A code could not be made: {}", problem)),
+    }
+    show();
+}
+
+/// The receiver was handed an invitation: typed, or read by the scanner.
+/// The player is asked before anything is done with it.
+pub fn offer(handed: &str) {
+    with_sync(|sync| {
+        if sync.dialog.stage != Stage::Idle {
+            return;
+        }
+        match Invite::read(handed) {
+            Some(invite) => sync.dialog = Dialog { offered: Some(invite), ..Dialog::default() },
+            None => {
+                sync.dialog = Dialog {
+                    typed: handed.to_string(),
+                    error: "That is not a sync code. It is four characters, then twenty more.".to_string(),
+                    ..Dialog::default()
+                }
+            }
+        }
+    });
+    show();
+}
+
+/// The receiver: the player said yes to an invitation. Go to the sender's
+/// room.
+pub fn receive(handed: &str) {
+    if stage() != Stage::Idle {
+        return;
+    }
+    let Some(invite) = Invite::read(handed) else {
+        return offer(handed);
+    };
+    with_sync(|sync| {
+        sync.answered.push(invite.compact());
+        sync.pairing = Some(Pairing::new(&invite.secret));
+        sync.dialog = Dialog { stage: Stage::Joining, side: Some(Side::Receiver), ..Dialog::default() };
+    });
+    connect_for(Want::Join { code: invite.code });
+    show();
+}
+
+/// The receiver: the player said no to an invitation.
+pub fn decline(handed: &str) {
+    with_sync(|sync| {
+        if let Some(invite) = Invite::read(handed) {
+            sync.answered.push(invite.compact());
+        }
+        if sync.dialog.stage == Stage::Idle {
+            sync.dialog = Dialog::default();
+        }
+    });
+    show();
+}
+
+/// Call a move off, or put away what came of one: back to how the page
+/// opens.
 pub fn close() {
-    disconnect();
+    leave();
     with_sync(|sync| sync.dialog = Dialog::default());
     show();
 }
 
-fn connect_for(want: Want, status: &str) {
+fn connect_for(want: Want) {
     link(|link| link.stop());
     with_sync(|sync| {
         if sync.player.is_empty() {
             sync.player = format!("{:016x}{:08x}", fastrand::u64(..), fastrand::u32(..));
         }
         sync.want = Some(want);
-        sync.peer_present = false;
-        sync.authenticated = false;
-        sync.dialog.screen = Screen::Paired;
-        sync.dialog.code.clear();
-        sync.dialog.status = status.to_string();
-        sync.dialog.error.clear();
-        sync.dialog.syncing = false;
-        sync.dialog.done = false;
     });
     link(|link| link.start());
 }
 
-/// End the pairing here.
-fn disconnect() {
+/// Give up this device's place in the room, which ends the room once both
+/// have, and let go of the socket.
+fn leave() {
+    wire::clear(Channel::Sync, EXPIRE);
     with_sync(|sync| {
         sync.want = None;
-        sync.peer_present = false;
-        sync.authenticated = false;
+        sync.pairing = None;
+        sync.secret.clear();
     });
-    link(|link| link.stop());
+    link(|link| {
+        link.send(r#"{"type":"leave"}"#);
+        link.stop();
+    });
 }
 
-/// Back to the first screen to say what went wrong.
+/// The receiver has taken the game over.
+fn has_the_game() -> bool {
+    with_sync(|sync| sync.dialog.taken.is_some())
+}
+
+/// The other device, or the way to it, is lost while a move is on. Before
+/// the game has arrived the move is off, and `error` says so. After, the
+/// receiver has the game: the move is done, though the sender never said it
+/// took in what was sent back.
+fn lost(error: &str) {
+    if has_the_game() {
+        with_sync(|sync| sync.dialog.stage = Stage::Done);
+        leave();
+    } else {
+        fail(error);
+    }
+}
+
+/// Back to how the page opens, saying what went wrong.
 fn fail(error: &str) {
-    disconnect();
-    with_sync(|sync| {
-        sync.dialog.screen = Screen::Menu;
-        sync.dialog.status.clear();
-        sync.dialog.error = error.to_string();
-        sync.dialog.syncing = false;
-    });
+    leave();
+    with_sync(|sync| sync.dialog = Dialog { error: error.to_string(), ..Dialog::default() });
 }
 
 // ── What the link tells ────────────────────────────────────────────
@@ -288,21 +450,12 @@ fn link_state_changed(next: State, prev: State) {
     }
     // The relay was never reached, or never answered.
     if with_sync(|sync| sync.want.take()).is_some() {
-        fail("Could not connect to signaling server");
+        fail("The relay could not be reached. Check the connection and try again.");
         return;
     }
-    // The socket of a pairing closed.
-    if prev == State::Open {
-        with_sync(|sync| {
-            sync.peer_present = false;
-            sync.authenticated = false;
-            if sync.dialog.syncing {
-                sync.dialog.status = "Disconnected during sync".to_string();
-                sync.dialog.syncing = false;
-            } else if sync.dialog.screen == Screen::Paired && !sync.dialog.done {
-                sync.dialog.status = "Connection lost. Close and start again.".to_string();
-            }
-        });
+    // The socket of a move closed under it.
+    if prev == State::Open && matches!(stage(), Stage::Inviting | Stage::Joining | Stage::Moving) {
+        lost("The connection was lost before the game had moved. Nothing was changed. Start again.");
     }
 }
 
@@ -311,124 +464,141 @@ fn relay_said(message: &serde_json::Value) {
     match text("type") {
         "room_created" => with_sync(|sync| {
             sync.want = None;
-            sync.dialog.code = text("code").to_string();
-            sync.dialog.status = "Room created! Share this code with your other device:".to_string();
+            sync.dialog.invite = Some(Invite { code: text("code").to_string(), secret: std::mem::take(&mut sync.secret) });
         }),
-        "room_joined" => with_sync(|sync| {
-            sync.want = None;
-            sync.dialog.code = text("code").to_string();
-            sync.dialog.status = "Joined room. Waiting for authentication…".to_string();
-        }),
-        "peer_joined" => {
-            with_sync(|sync| {
-                sync.peer_present = true;
-                sync.dialog.status = "Peer device connected. Authenticating…".to_string();
-            });
-            // Prove to the other device that this one has the passphrase.
-            let (passphrase, code) =
-                SYNC.with(|sync| (sync.borrow().dialog.passphrase.clone(), sync.borrow().dialog.code.clone()));
-            if let Ok(mac) = crypto::sign_export(&passphrase, &code) {
-                send_to_peer(&format!(r#"{{"type":"sync_auth","mac":{}}}"#, quoted(&mac)));
+        "room_joined" => {
+            with_sync(|sync| sync.want = None);
+            // The room is still on the relay, but the device that made it
+            // is no longer in it.
+            if text("peer") != "present" {
+                fail("The other device is no longer showing that code. Start again there.");
             }
         }
+        // Both devices are in the room. The receiver, whose player has said
+        // yes, asks for the game.
+        "peer_joined" => match side() {
+            Some(Side::Receiver) if stage() == Stage::Joining => {
+                with_sync(|sync| sync.dialog.stage = Stage::Moving);
+                say(serde_json::json!({ "say": "want" }));
+            }
+            Some(Side::Sender) => with_sync(|sync| sync.dialog.peer_here = true),
+            _ => {}
+        },
         "relay" => peer_said(&message["data"]),
-        "peer_away" | "peer_left" => with_sync(|sync| {
-            sync.peer_present = false;
-            sync.authenticated = false;
-            if !sync.dialog.done {
-                sync.dialog.status = "Peer device disconnected.".to_string();
-                sync.dialog.syncing = false;
+        "peer_away" | "peer_left" => match (side(), stage()) {
+            // It may come back: the invitation stands until it ends.
+            (Some(Side::Sender), Stage::Inviting) => with_sync(|sync| sync.dialog.peer_here = false),
+            (_, Stage::Joining | Stage::Moving) => {
+                lost("The other device went away before the game had moved. Start again.");
             }
+            _ => {}
+        },
+        "error" => fail(match text("code") {
+            "not_found" => "That code has ended or has been used. Start again on the other device.",
+            "name_mismatch" => "That is not the code the other device is showing. Check it and try again.",
+            "full" => "That code is in use by another device. Start again on the other device.",
+            _ if !text("message").is_empty() => text("message"),
+            _ => "The relay refused the connection.",
         }),
-        "error" => {
-            let said = text("message");
-            fail(if said.is_empty() { "Connection error" } else { said });
-        }
         _ => {}
     }
 }
 
 /// A message from the other device.
 fn peer_said(data: &serde_json::Value) {
-    let text = |name: &str| data[name].as_str().unwrap_or("");
-    let kind = text("type");
-
-    // Nothing of the player's state is exchanged with a device that has not
-    // proved it has the passphrase.
-    if kind != "sync_auth" && !SYNC.with(|sync| sync.borrow().authenticated) {
+    if data["type"] != "sealed" {
         return;
     }
+    let opened = SYNC.with(|sync| {
+        let sync = sync.borrow();
+        let (pairing, side) = (sync.pairing.as_ref()?, sync.dialog.side?);
+        pairing.open(side.other(), data["box"].as_str()?)
+    });
+    // What does not open was not sealed by a device that was shown the
+    // invitation, or was altered on its way.
+    let Some(said) = opened.and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok()) else {
+        if matches!(stage(), Stage::Inviting | Stage::Joining | Stage::Moving) {
+            lost("What the other device sent could not be read. Nothing was changed. Start again.");
+        }
+        return;
+    };
+    let text = |name: &str| said[name].as_str().unwrap_or("");
 
-    match kind {
-        // The other device's proof.
-        "sync_auth" => {
-            let (passphrase, code) =
-                SYNC.with(|sync| (sync.borrow().dialog.passphrase.clone(), sync.borrow().dialog.code.clone()));
-            if crypto::verify_export(&passphrase, &code, text("mac")) == Ok(true) {
-                with_sync(|sync| {
-                    sync.authenticated = true;
-                    sync.dialog.status = "Authenticated! Syncing player data…".to_string();
-                    sync.dialog.syncing = true;
-                });
-                send_state_vector("player_sv");
-            } else {
-                fail("Wrong passphrase on the other device");
-            }
+    match (side(), stage(), text("say")) {
+        // The player on the other device said yes: send the game.
+        (Some(Side::Sender), Stage::Inviting, "want") => {
+            wire::clear(Channel::Sync, EXPIRE);
+            with_sync(|sync| sync.dialog.stage = Stage::Moving);
+            say(serde_json::json!({ "say": "game", "state": player_doc::encode_full_state() }));
         }
-        // Their state vector: send what they lack, then our own state
-        // vector so that they can send what we lack.
-        "player_sv" => {
-            send_what_they_lack(text("sv"));
-            send_state_vector("player_sv_reply");
-        }
-        // Their state vector, in answer to ours.
-        "player_sv_reply" => send_what_they_lack(text("sv")),
-        // What we lacked.
-        "player_update" => {
-            if player_doc::apply_update(text("update")).is_ok() {
-                with_sync(|sync| {
-                    sync.dialog.status = "✓ Sync complete! Player data merged.".to_string();
-                    sync.dialog.syncing = false;
-                    sync.dialog.done = true;
-                });
-                // Whatever on the page shows the player's state shows the
-                // merged state.
-                for route in ["/api/card/panel", "/api/game/turns", "/api/player/affinity"] {
-                    page::redraw(route);
+        // The game. It takes the place of the one here, this device's record
+        // is added to the one it brings, and what was added goes back.
+        (Some(Side::Receiver), Stage::Moving, "game") if !has_the_game() => {
+            match player_doc::take_over(text("state"), clock::now_ms(), "device") {
+                Ok(taken) => {
+                    let update = player_doc::encode_diff(&taken.their_state_vector).unwrap_or_default();
+                    say(serde_json::json!({ "say": "record", "update": update }));
+                    // The move is done here. It is shown as done once the
+                    // sender has said it took that in, or is lost.
+                    with_sync(|sync| sync.dialog.taken = Some(taken));
+                    // Everything on the page that shows the player's state
+                    // shows the game taken over.
+                    page::refresh();
+                }
+                Err(_) => {
+                    say(serde_json::json!({ "say": "failed" }));
+                    fail("The game the other device sent could not be read. Nothing here was changed.");
                 }
             }
+        }
+        // What the other device added to the record.
+        (Some(Side::Sender), Stage::Moving, "record") => {
+            let before = player_doc::days_played();
+            if player_doc::apply_update(text("update")).is_err() {
+                say(serde_json::json!({ "say": "failed" }));
+                fail("The other device has the game, but what it sent back could not be read.");
+                return;
+            }
+            say(serde_json::json!({ "say": "done" }));
+            with_sync(|sync| {
+                sync.dialog.stage = Stage::Done;
+                sync.dialog.days_brought = player_doc::days_played().saturating_sub(before);
+            });
+            leave();
+            page::refresh();
+        }
+        (Some(Side::Receiver), Stage::Moving, "done") if has_the_game() => {
+            with_sync(|sync| {
+                sync.dialog.stage = Stage::Done;
+                sync.dialog.confirmed = true;
+            });
+            leave();
+        }
+        (_, Stage::Moving, "failed") => {
+            lost("The other device could not read what was sent. Start again.");
         }
         _ => {}
     }
 }
 
-fn send_state_vector(kind: &str) {
-    send_to_peer(&format!(r#"{{"type":{},"sv":{}}}"#, quoted(kind), quoted(&player_doc::encode_state_vector())));
-}
-
-fn send_what_they_lack(their_state_vector: &str) {
-    if let Ok(diff) = player_doc::encode_diff(their_state_vector) {
-        if !diff.is_empty() {
-            send_to_peer(&format!(r#"{{"type":"player_update","update":{}}}"#, quoted(&diff)));
-        }
-    }
-}
-
-/// The player's state changed on this device. While a pairing lasts, the
-/// other device is offered it: our state vector goes out, and the exchange
-/// that follows brings both up to date.
-pub fn player_changed() {
-    let paired = SYNC.with(|sync| sync.borrow().authenticated && sync.borrow().peer_present);
-    if paired {
-        send_state_vector("player_sv");
-    }
-}
-
 // ── What the page shows ────────────────────────────────────────────
 
-/// What the dialog shows now.
+/// What the page shows now. `address` is what follows the `#` of the page's
+/// address: an invitation there that the player has not answered is offered.
+pub fn dialog_for(address: &str) -> Dialog {
+    SYNC.with(|sync| {
+        let sync = sync.borrow();
+        let mut dialog = sync.dialog.clone();
+        if dialog == Dialog::default() && address.contains("sync=") {
+            dialog.offered = Invite::read(address).filter(|invite| !sync.answered.contains(&invite.compact()));
+        }
+        dialog
+    })
+}
+
+/// What is held now, whatever the page's address.
 pub fn dialog() -> Dialog {
-    SYNC.with(|sync| sync.borrow().dialog.clone())
+    dialog_for("")
 }
 
 /// Have the page draw the dialog again if what it shows has changed.
@@ -457,6 +627,9 @@ mod tests {
     use crate::game::{crdt, room};
     use crate::store;
 
+    const SECRET: &str = "EFGHJKLMNPQRSTUVWXYZ";
+    const HANDED: &str = "ABCD-EFGHJKLMNPQRSTUVWXYZ";
+
     fn fresh() {
         player_doc::init_player_doc();
         room::reset_room();
@@ -468,103 +641,545 @@ mod tests {
         reset();
     }
 
-    /// The socket the engine last asked for (its id and address), and what
-    /// has been sent on the sync channel since this was last called.
-    fn asked() -> (Option<(u32, String)>, Vec<String>) {
+    /// The socket the engine last asked for (its id and address), what has
+    /// been sent on the sync channel, and everything else asked of the
+    /// worker, since this was last called.
+    fn asked() -> (Option<(u32, String)>, Vec<String>, Vec<serde_json::Value>) {
         let mut opened = None;
         let mut sent = Vec::new();
+        let mut other = Vec::new();
         for op in wire::take() {
             if let Some(name) = op["open"].as_str() {
                 let id = name.strip_prefix("sync:").expect("a socket of the sync channel").parse().unwrap();
                 opened = Some((id, op["url"].as_str().unwrap().to_string()));
-            }
-            if op["send"].as_str().is_some_and(|name| name.starts_with("sync:")) {
+            } else if op["send"].as_str().is_some_and(|name| name.starts_with("sync:")) {
                 sent.push(op["text"].as_str().unwrap().to_string());
+            } else {
+                other.push(op);
             }
         }
-        (opened, sent)
+        (opened, sent, other)
     }
 
     fn relay(socket: u32, message: serde_json::Value) {
         socket_event(socket, SocketEvent::Message(message.to_string()));
     }
 
-    fn from_peer(socket: u32, data: serde_json::Value) {
-        relay(socket, serde_json::json!({ "type": "relay", "data": data }));
+    /// What the other device, which is `from`, says, sealed as it would be.
+    fn from_peer(socket: u32, from: Side, said: serde_json::Value) {
+        let sealed = Pairing::new(SECRET).seal(from, &said.to_string(), crypto::random_bytes().unwrap()).unwrap();
+        relay(socket, serde_json::json!({ "type": "relay", "data": { "type": "sealed", "box": sealed } }));
     }
 
-    /// The `data` of each message sent to the other device.
-    fn data(sent: &[String]) -> Vec<serde_json::Value> {
-        sent.iter().map(|text| serde_json::from_str::<serde_json::Value>(text).unwrap()["data"].clone()).collect()
+    /// What this device, which is `from`, sent the other: each message opened.
+    fn said(sent: &[String], from: Side) -> Vec<serde_json::Value> {
+        sent.iter()
+            .filter_map(|text| {
+                let message: serde_json::Value = serde_json::from_str(text).unwrap();
+                let sealed = message["data"]["box"].as_str()?;
+                assert_eq!(message["data"]["type"], "sealed");
+                let opened = Pairing::new(SECRET).open(from, sealed).expect("sealed by this device");
+                Some(serde_json::from_str(&opened).unwrap())
+            })
+            .collect()
     }
 
-    /// Create a pairing room and have the relay answer. Returns the socket.
-    fn in_a_room() -> u32 {
-        create("correct horse");
+    /// The sender, showing its invitation. The secret is put in place of
+    /// the one it drew, so that the test can read what it seals. Returns the
+    /// socket.
+    fn inviting() -> u32 {
+        ask();
+        invite();
+        with_sync(|sync| {
+            sync.secret = SECRET.to_string();
+            sync.pairing = Some(Pairing::new(SECRET));
+        });
         let (socket, _) = asked().0.unwrap();
         socket_event(socket, SocketEvent::Open);
-        relay(socket, serde_json::json!({ "type": "room_created", "code": "ABCD", "v": 2 }));
+        relay(socket, serde_json::json!({ "type": "room_created", "code": "ABCD", "v": 2, "peer": "none" }));
         asked();
         socket
     }
 
-    /// As `in_a_room`, with the other device there and proved.
-    fn paired() -> u32 {
-        let socket = in_a_room();
+    /// The receiver, in the sender's room, having asked for the game.
+    /// Returns the socket.
+    fn receiving() -> u32 {
+        receive(HANDED);
+        let (socket, _) = asked().0.unwrap();
+        socket_event(socket, SocketEvent::Open);
+        relay(socket, serde_json::json!({ "type": "room_joined", "code": "ABCD", "v": 2, "peer": "present" }));
         relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
-        let mac = crypto::sign_export("correct horse", "ABCD").unwrap();
-        from_peer(socket, serde_json::json!({ "type": "sync_auth", "mac": mac }));
-        asked();
         socket
     }
 
-    #[test]
-    fn a_short_passphrase_is_refused_and_stays_in_its_field() {
-        fresh();
-        create("abc");
-        let shown = dialog();
-        assert_eq!(shown.screen, Screen::Menu);
-        assert_eq!(shown.error, "Passphrase must be at least 4 characters");
-        assert_eq!(shown.passphrase, "abc");
-        assert!(asked().0.is_none(), "nothing was connected");
+    /// The state of a device with a game in progress and a record.
+    fn a_game_elsewhere() -> String {
+        player_doc::init_player_doc();
+        player_doc::ensure_card_state("brox_the_defiant", 3);
+        player_doc::toggle_slot("brox_the_defiant", 2);
+        player_doc::add_alarm(NOW, 5, "siege", "red");
+        player_doc::increment_loyalty("brox_the_defiant", "2026-11-18").unwrap();
+        let state = player_doc::encode_full_state();
+        player_doc::init_player_doc();
+        state
+    }
 
-        ask_for_code("abc");
-        assert_eq!(dialog().screen, Screen::Menu);
+    // ── An invitation ──
+
+    #[test]
+    fn an_invitation_is_read_however_it_is_handed_over() {
+        let invite = Invite { code: "ABCD".to_string(), secret: SECRET.to_string() };
+        assert_eq!(invite.compact(), HANDED);
+        assert_eq!(invite.spelled(), "ABCD-EFGHJ-KLMNP-QRSTU-VWXYZ");
+        assert_eq!(invite.address(), "https://www.kipukas.cards/player_data#sync=ABCD-EFGHJKLMNPQRSTUVWXYZ");
+        for handed in [
+            HANDED.to_string(),
+            invite.spelled(),
+            invite.address(),
+            format!("sync={}", HANDED),
+            " abcd efghj klmnp qrstu vwxyz ".to_string(),
+            "abcdefghjklmnpqrstuvwxyz".to_string(),
+            format!("sync={}&x=1", HANDED),
+        ] {
+            assert_eq!(Invite::read(&handed), Some(invite.clone()), "{}", handed);
+        }
+    }
+
+    #[test]
+    fn what_is_not_an_invitation_is_read_as_none() {
+        for handed in [
+            "",
+            "ABCD",
+            "sync=",
+            "ABCD-EFGHJKLMNPQRSTUVWXY",   // a character short
+            "ABCD-EFGHJKLMNPQRSTUVWXYZ2", // one too many
+            "ABCD-EFGHJKLMNPQRSTUVWXY0",  // 0 is not in the alphabet
+            "ABCD-EFGHIKLMNPQRSTUVWXYZ",  // nor is I
+            "brox_the_defiant",
+        ] {
+            assert_eq!(Invite::read(handed), None, "{}", handed);
+        }
+    }
+
+    // ── The sender ──
+
+    #[test]
+    fn the_sender_is_asked_before_anything_is_made() {
+        fresh();
+        ask();
+        assert_eq!(dialog().stage, Stage::Asked);
+        assert!(asked().0.is_none(), "nothing is connected until the player says yes");
+
+        close();
+        assert_eq!(dialog(), Dialog::default());
+        // Yes without having been asked does nothing.
+        invite();
+        assert_eq!(dialog().stage, Stage::Idle);
+        assert!(asked().0.is_none());
         fresh();
     }
 
     #[test]
-    fn creating_asks_the_relay_for_a_room_with_an_id_of_this_page_load() {
+    fn saying_yes_makes_a_room_under_a_name_made_from_a_secret_the_relay_is_not_sent() {
         fresh();
-        create("correct horse");
-        let (_, url) = asked().0.unwrap();
+        ask();
+        invite();
+        let (secret, name) = with_sync(|sync| (sync.secret.clone(), sync.pairing.as_ref().unwrap().room_name.clone()));
+        assert_eq!(secret.len(), 20);
+        let (opened, _, other) = asked();
+        let (_, url) = opened.unwrap();
         let player = with_sync(|sync| sync.player.clone());
-        assert_eq!(url, format!("wss://signal.kipukas.us/ws?action=create&name=&player={}", player));
-        assert_eq!(player.len(), 24);
+        assert_eq!(url, format!("wss://signal.kipukas.us/ws?action=create&name={}&player={}", name, player));
+        assert!(!url.contains(&secret));
+        assert!(other.contains(&serde_json::json!({ "set": "sync:expire", "ms": INVITE_LASTS_MS })), "{:?}", other);
+
         let shown = dialog();
-        assert_eq!(shown.screen, Screen::Paired);
-        assert_eq!(shown.status, "Creating sync room…");
+        assert_eq!((shown.stage, shown.side), (Stage::Inviting, Some(Side::Sender)));
+        assert_eq!(shown.invite, None, "the room has no code yet");
         fresh();
     }
 
     #[test]
-    fn joining_asks_for_the_code_first_and_sends_it_in_capitals() {
+    fn the_invitation_is_the_rooms_code_and_the_secret() {
         fresh();
-        ask_for_code("correct horse");
-        assert_eq!(dialog().screen, Screen::Join);
+        inviting();
+        let shown = dialog();
+        assert_eq!(shown.invite, Some(Invite { code: "ABCD".to_string(), secret: SECRET.to_string() }));
+        assert!(!shown.peer_here);
+        fresh();
+    }
 
-        join("abc");
-        assert_eq!(dialog().error, "Enter a 4-character room code");
-        assert_eq!(dialog().screen, Screen::Join);
+    #[test]
+    fn the_game_is_sent_only_when_the_other_device_asks_under_the_key() {
+        fresh();
+        player_doc::add_alarm(NOW, 3, "ours", "red");
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        assert!(dialog().peer_here);
+        assert!(asked().1.is_empty(), "being in the room is not asking");
 
-        join(" abcd ");
+        // Asked in plain words, and by a device that seals with another secret.
+        relay(socket, serde_json::json!({ "type": "relay", "data": { "say": "want" } }));
+        assert!(asked().1.is_empty());
+        let stranger = Pairing::new("22222222222222222222").seal(Side::Receiver, r#"{"say":"want"}"#, [1; 12]).unwrap();
+        relay(socket, serde_json::json!({ "type": "relay", "data": { "type": "sealed", "box": stranger } }));
+        let (_, sent, _) = asked();
+        assert!(said(&sent, Side::Sender).is_empty(), "nothing of the player's was sent");
+        assert_eq!(dialog().stage, Stage::Idle);
+        assert_eq!(dialog().error, "What the other device sent could not be read. Nothing was changed. Start again.");
+        fresh();
+    }
+
+    #[test]
+    fn the_sender_sends_its_whole_state_sealed_and_takes_in_what_comes_back() {
+        fresh();
+        // What the receiver will send back: a day of play this device lacks.
+        player_doc::add_alarm(NOW, 3, "ours", "red");
+        let ours = player_doc::encode_full_state();
+        let ours_sv = player_doc::encode_state_vector();
+        player_doc::increment_loyalty("liliel", "2026-11-17").unwrap();
+        let back = player_doc::encode_diff(&ours_sv).unwrap();
+        player_doc::restore_from_state(&ours).unwrap();
+
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        let (_, sent, other) = asked();
+        assert!(sent.iter().all(|text| !text.contains(&ours)), "the state is not sent in the clear");
+        let sent = said(&sent, Side::Sender);
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0]["say"], "game");
+        assert_eq!(sent[0]["state"], ours.as_str());
+        assert!(other.contains(&serde_json::json!({ "clear": "sync:expire" })), "the invitation no longer ends");
+        assert_eq!(dialog().stage, Stage::Moving);
+
+        page::take_refresh();
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "record", "update": back }));
+        assert_eq!(player_doc::get_loyalty("liliel").unwrap().0, 1);
+        assert_eq!(player_doc::get_alarms()[0].name, "ours", "its own game is as it was");
+        let shown = dialog();
+        assert_eq!((shown.stage, shown.days_brought), (Stage::Done, 1));
+        assert!(page::take_refresh());
+
+        // It says so, gives up its place in the room, and lets the socket go.
+        let (_, sent, other) = asked();
+        assert_eq!(said(&sent, Side::Sender), [serde_json::json!({ "say": "done" })]);
+        assert_eq!(sent.last().unwrap(), r#"{"type":"leave"}"#);
+        assert!(other.contains(&serde_json::json!({ "close": format!("sync:{}", socket) })), "{:?}", other);
+        fresh();
+    }
+
+    #[test]
+    fn an_invitation_nobody_uses_ends() {
+        fresh();
+        let socket = inviting();
+        wait_over("expire");
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Idle);
+        assert!(shown.error.starts_with("That code was not used within ten minutes"), "{}", shown.error);
+        let (_, sent, other) = asked();
+        assert_eq!(sent, [r#"{"type":"leave"}"#]);
+        assert!(other.contains(&serde_json::json!({ "close": format!("sync:{}", socket) })));
+
+        // Once the game is moving there is nothing left to end.
+        fresh();
+        let socket = inviting();
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        wait_over("expire");
+        assert_eq!(dialog().stage, Stage::Moving);
+        fresh();
+    }
+
+    #[test]
+    fn the_other_device_coming_and_going_leaves_the_invitation_standing() {
+        fresh();
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        relay(socket, serde_json::json!({ "type": "peer_away" }));
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Inviting);
+        assert!(!shown.peer_here && shown.invite.is_some());
+
+        // Gone once the game is on its way, the move is off.
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        relay(socket, serde_json::json!({ "type": "peer_left" }));
+        assert_eq!(dialog().error, "The other device went away before the game had moved. Start again.");
+        fresh();
+    }
+
+    // ── The receiver ──
+
+    #[test]
+    fn an_invitation_in_the_pages_address_is_offered_and_changes_nothing() {
+        fresh();
+        let offered = dialog_for("sync=ABCD-EFGHJKLMNPQRSTUVWXYZ").offered.expect("offered");
+        assert_eq!(offered.compact(), HANDED);
+        assert_eq!(dialog(), Dialog::default(), "nothing is held of it");
+        assert!(asked().0.is_none(), "and nothing is connected");
+        // Whatever else follows the # is no invitation.
+        assert_eq!(dialog_for("ABCD-EFGHJKLMNPQRSTUVWXYZ").offered, None);
+        assert_eq!(dialog_for("sync=nonsense").offered, None);
+
+        // Answered, it is not offered again by the same address.
+        decline(HANDED);
+        assert_eq!(dialog_for("sync=ABCD-EFGHJKLMNPQRSTUVWXYZ").offered, None);
+        // Another is.
+        assert!(dialog_for("sync=WXYZ-EFGHJKLMNPQRSTUVWXYZ").offered.is_some());
+        fresh();
+    }
+
+    #[test]
+    fn an_invitation_typed_or_scanned_is_offered_and_one_that_cannot_be_read_is_said() {
+        fresh();
+        offer("abcd-efghj-klmnp-qrstu-vwxyz");
+        assert_eq!(dialog().offered.unwrap().compact(), HANDED);
+        assert!(asked().0.is_none());
+
+        close();
+        offer("ABCD-123");
+        let shown = dialog();
+        assert_eq!(shown.offered, None);
+        assert_eq!(shown.typed, "ABCD-123");
+        assert_eq!(shown.error, "That is not a sync code. It is four characters, then twenty more.");
+        fresh();
+    }
+
+    #[test]
+    fn saying_yes_joins_the_senders_room_under_the_name_made_from_the_secret() {
+        fresh();
+        receive(HANDED);
         let (_, url) = asked().0.unwrap();
-        assert!(url.starts_with("wss://signal.kipukas.us/ws?action=join&code=ABCD&name=&player="), "{}", url);
-        assert_eq!(dialog().status, "Joining sync room…");
+        let name = Pairing::new(SECRET).room_name;
+        assert!(
+            url.starts_with(&format!("wss://signal.kipukas.us/ws?action=join&code=ABCD&name={}&player=", name)),
+            "{}",
+            url
+        );
+        assert!(!url.contains(SECRET));
+        let shown = dialog();
+        assert_eq!((shown.stage, shown.side), (Stage::Joining, Some(Side::Receiver)));
+        fresh();
+    }
 
-        back();
-        assert_eq!(dialog().screen, Screen::Menu);
-        assert_eq!(dialog().passphrase, "correct horse");
+    #[test]
+    fn the_receiver_asks_for_the_game_when_both_are_in_the_room() {
+        fresh();
+        receive(HANDED);
+        let (socket, _) = asked().0.unwrap();
+        socket_event(socket, SocketEvent::Open);
+        relay(socket, serde_json::json!({ "type": "room_joined", "code": "ABCD", "v": 2, "peer": "present" }));
+        assert!(asked().1.is_empty());
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        assert_eq!(said(&asked().1, Side::Receiver), [serde_json::json!({ "say": "want" })]);
+        assert_eq!(dialog().stage, Stage::Moving);
+        fresh();
+    }
+
+    #[test]
+    fn the_game_takes_the_place_of_the_one_here_and_the_record_here_goes_back() {
+        fresh();
+        let theirs = a_game_elsewhere();
+        // This device: a game of its own, and a day of play of its own.
+        player_doc::add_alarm(NOW, 2, "mine", "blue");
+        player_doc::increment_loyalty("liliel", "2026-11-17").unwrap();
+
+        let socket = receiving();
+        asked();
+        page::take_refresh();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+
+        let timers: Vec<String> = player_doc::get_alarms().into_iter().map(|alarm| alarm.name).collect();
+        assert_eq!(timers, ["siege"]);
+        assert!(player_doc::get_slot("brox_the_defiant", 2));
+        assert_eq!(player_doc::get_loyalty("brox_the_defiant").unwrap().0, 1);
+        assert_eq!(player_doc::get_loyalty("liliel").unwrap().0, 1);
+        assert!(page::take_refresh(), "every view is drawn again");
+
+        // Shown as done only once the sender has said it has what goes back.
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Moving);
+        let taken = shown.taken.unwrap();
+        assert_eq!((taken.days_new_here, taken.days_new_there), (1, 1));
+
+        // What it added goes back, sealed: applied to the sender's state, it
+        // gives the sender Liliel's day.
+        let sent = said(&asked().1, Side::Receiver);
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0]["say"], "record");
+        let here = player_doc::encode_full_state();
+        player_doc::restore_from_state(&theirs).unwrap();
+        player_doc::apply_update(sent[0]["update"].as_str().unwrap()).unwrap();
+        assert_eq!(player_doc::get_loyalty("liliel").unwrap().0, 1);
+        player_doc::restore_from_state(&here).unwrap();
+
+        // The sender says it has it: the receiver leaves the room.
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "done" }));
+        assert_eq!((dialog().stage, dialog().confirmed), (Stage::Done, true));
+        let (_, sent, other) = asked();
+        assert_eq!(sent, [r#"{"type":"leave"}"#]);
+        assert!(other.contains(&serde_json::json!({ "close": format!("sync:{}", socket) })));
+        fresh();
+    }
+
+    #[test]
+    fn a_game_that_cannot_be_read_changes_nothing_and_the_sender_is_told() {
+        fresh();
+        player_doc::add_alarm(NOW, 2, "mine", "blue");
+        let socket = receiving();
+        asked();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": "!!!" }));
+        assert_eq!(player_doc::get_alarms()[0].name, "mine");
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Idle);
+        assert_eq!(shown.error, "The game the other device sent could not be read. Nothing here was changed.");
+        assert_eq!(said(&asked().1, Side::Receiver), [serde_json::json!({ "say": "failed" })]);
+        fresh();
+    }
+
+    #[test]
+    fn nothing_is_taken_from_a_device_that_does_not_seal_with_the_key() {
+        fresh();
+        let theirs = a_game_elsewhere();
+        player_doc::add_alarm(NOW, 2, "mine", "blue");
+        let socket = receiving();
+        // In plain words: not heard. The move still waits for the real one.
+        relay(socket, serde_json::json!({ "type": "relay", "data": { "say": "game", "state": theirs } }));
+        assert_eq!(dialog().stage, Stage::Moving);
+        // Sealed as the receiver itself would, handed back to it.
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "game", "state": theirs }));
+        assert_eq!(player_doc::get_alarms()[0].name, "mine");
+        assert_eq!(dialog().error, "What the other device sent could not be read. Nothing was changed. Start again.");
+        fresh();
+    }
+
+    #[test]
+    fn a_game_is_taken_once_and_only_while_one_was_asked_for() {
+        fresh();
+        let theirs = a_game_elsewhere();
+        // Nothing was asked for.
+        from_peer(1, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+        assert!(player_doc::get_alarms().is_empty());
+
+        let socket = receiving();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+        assert_eq!(player_doc::merges().len(), 1);
+        // The same message again, as a relay could send it.
+        player_doc::add_alarm(NOW, 2, "since", "blue");
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+        assert_eq!(player_doc::get_alarms().len(), 2, "the game here was not replaced again");
+        fresh();
+    }
+
+    #[test]
+    fn a_code_the_relay_does_not_know_or_that_is_not_the_one_shown_is_said() {
+        for (code, why) in [
+            ("not_found", "That code has ended or has been used. Start again on the other device."),
+            ("name_mismatch", "That is not the code the other device is showing. Check it and try again."),
+            ("full", "That code is in use by another device. Start again on the other device."),
+        ] {
+            fresh();
+            receive(HANDED);
+            let (socket, _) = asked().0.unwrap();
+            socket_event(socket, SocketEvent::Open);
+            relay(socket, serde_json::json!({ "type": "error", "code": code, "message": "whatever the relay says" }));
+            let shown = dialog();
+            assert_eq!((shown.stage, shown.error.as_str()), (Stage::Idle, why));
+        }
+        fresh();
+    }
+
+    #[test]
+    fn a_room_the_sender_has_left_is_not_waited_in() {
+        fresh();
+        receive(HANDED);
+        let (socket, _) = asked().0.unwrap();
+        socket_event(socket, SocketEvent::Open);
+        relay(socket, serde_json::json!({ "type": "room_joined", "code": "ABCD", "v": 2, "peer": "away" }));
+        assert_eq!(dialog().error, "The other device is no longer showing that code. Start again there.");
+        assert_eq!(asked().1, [r#"{"type":"leave"}"#]);
+        fresh();
+    }
+
+    #[test]
+    fn the_sender_going_away_after_the_game_arrived_leaves_it_here() {
+        fresh();
+        let theirs = a_game_elsewhere();
+        let socket = receiving();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+        relay(socket, serde_json::json!({ "type": "peer_away" }));
+        socket_event(socket, SocketEvent::Close);
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Done);
+        assert!(!shown.confirmed && shown.error.is_empty());
+        assert_eq!(player_doc::get_alarms()[0].name, "siege");
+
+        // The same if it is the socket that goes.
+        fresh();
+        let theirs = a_game_elsewhere();
+        let socket = receiving();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+        socket_event(socket, SocketEvent::Close);
+        assert_eq!((dialog().stage, dialog().confirmed), (Stage::Done, false));
+        assert!(dialog().error.is_empty());
+        fresh();
+    }
+
+    // ── Either ──
+
+    #[test]
+    fn a_relay_that_cannot_be_reached_is_said() {
+        fresh();
+        ask();
+        invite();
+        let (socket, _) = asked().0.unwrap();
+        socket_event(socket, SocketEvent::Error);
+        socket_event(socket, SocketEvent::Close);
+        let shown = dialog();
+        assert_eq!(shown.stage, Stage::Idle);
+        assert_eq!(shown.error, "The relay could not be reached. Check the connection and try again.");
+        fresh();
+    }
+
+    #[test]
+    fn a_socket_lost_before_the_game_has_moved_ends_the_move_and_is_not_retried() {
+        fresh();
+        let socket = inviting();
+        socket_event(socket, SocketEvent::Close);
+        assert_eq!(dialog().error, "The connection was lost before the game had moved. Nothing was changed. Start again.");
+        assert_eq!(LINK.with(|link| link.borrow().state()), State::Idle);
+        assert!(asked().0.is_none());
+        fresh();
+    }
+
+    #[test]
+    fn closing_ends_a_move_and_forgets_it() {
+        fresh();
+        let socket = inviting();
+        close();
+        assert_eq!(dialog(), Dialog::default());
+        let (_, sent, other) = asked();
+        assert_eq!(sent, [r#"{"type":"leave"}"#]);
+        assert!(other.contains(&serde_json::json!({ "close": format!("sync:{}", socket) })), "{:?}", other);
+        assert!(other.contains(&serde_json::json!({ "clear": "sync:expire" })));
+
+        // Messages still on their way from the other device change nothing.
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        assert_eq!(dialog(), Dialog::default());
+        assert!(asked().1.is_empty());
+        fresh();
+    }
+
+    #[test]
+    fn a_player_changing_their_state_sends_nothing_to_the_other_device() {
+        fresh();
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        asked();
+        player_doc::add_alarm(NOW, 3, "since", "red");
+        // The change is stored, and nothing is asked of the worker.
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert!(handed["save"][store::PLAYER_DOC].is_string(), "{}", handed);
+        assert!(handed["wire"].is_null(), "{}", handed);
         fresh();
     }
 
@@ -572,202 +1187,9 @@ mod tests {
     fn the_relay_given_for_local_work_is_used_here_too() {
         fresh();
         connection::use_relay("ws://localhost:8792/ws?who=A");
-        create("correct horse");
-        assert!(asked().0.unwrap().1.starts_with("ws://localhost:8792/ws?who=A&action=create&name=&player="));
-        fresh();
-    }
-
-    #[test]
-    fn the_room_code_is_shown_once_the_relay_gives_it() {
-        fresh();
-        in_a_room();
-        let shown = dialog();
-        assert_eq!(shown.code, "ABCD");
-        assert_eq!(shown.status, "Room created! Share this code with your other device:");
-        fresh();
-    }
-
-    #[test]
-    fn when_the_other_device_arrives_each_proves_it_has_the_passphrase() {
-        fresh();
-        let socket = in_a_room();
-        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
-        let sent = data(&asked().1);
-        assert_eq!(sent.len(), 1);
-        assert_eq!(sent[0]["type"], "sync_auth");
-        assert_eq!(sent[0]["mac"], crypto::sign_export("correct horse", "ABCD").unwrap());
-        assert_eq!(dialog().status, "Peer device connected. Authenticating…");
-
-        // Their proof is right: the exchange starts with our state vector.
-        let mac = crypto::sign_export("correct horse", "ABCD").unwrap();
-        from_peer(socket, serde_json::json!({ "type": "sync_auth", "mac": mac }));
-        let sent = data(&asked().1);
-        assert_eq!(sent.len(), 1);
-        assert_eq!(sent[0]["type"], "player_sv");
-        assert_eq!(sent[0]["sv"], player_doc::encode_state_vector());
-        assert!(dialog().syncing);
-        fresh();
-    }
-
-    #[test]
-    fn a_wrong_passphrase_on_the_other_device_ends_the_pairing() {
-        fresh();
-        let socket = in_a_room();
-        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
-        asked();
-        let wrong = crypto::sign_export("another phrase", "ABCD").unwrap();
-        from_peer(socket, serde_json::json!({ "type": "sync_auth", "mac": wrong }));
-
-        let shown = dialog();
-        assert_eq!(shown.screen, Screen::Menu);
-        assert_eq!(shown.error, "Wrong passphrase on the other device");
-        assert_eq!(LINK.with(|link| link.borrow().state()), State::Idle);
-        assert!(asked().1.is_empty(), "nothing of the player's state was sent");
-        fresh();
-    }
-
-    #[test]
-    fn a_proof_made_for_another_room_is_no_proof() {
-        fresh();
-        let socket = in_a_room();
-        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
-        asked();
-        let elsewhere = crypto::sign_export("correct horse", "WXYZ").unwrap();
-        from_peer(socket, serde_json::json!({ "type": "sync_auth", "mac": elsewhere }));
-        assert_eq!(dialog().error, "Wrong passphrase on the other device");
-        from_peer(socket, serde_json::json!({ "type": "sync_auth" }));
-        assert!(!dialog().syncing);
-        fresh();
-    }
-
-    #[test]
-    fn nothing_is_exchanged_with_a_device_that_has_not_proved_itself() {
-        fresh();
-        let socket = in_a_room();
-        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
-        asked();
-        player_doc::add_alarm(NOW, 3, "mine", "red");
-
-        // It asks for our state, and offers its own, without a proof.
-        from_peer(socket, serde_json::json!({ "type": "player_sv", "sv": "AA" }));
-        from_peer(socket, serde_json::json!({ "type": "player_update", "update": "AAA" }));
-        assert!(asked().1.is_empty());
-        assert!(!dialog().done);
-        fresh();
-    }
-
-    #[test]
-    fn the_two_devices_each_send_what_the_other_lacks() {
-        fresh();
-        // The other device's state: one timer of its own.
-        player_doc::add_alarm(NOW, 5, "theirs", "blue");
-        let their_state = player_doc::encode_full_state();
-        player_doc::init_player_doc();
-        let empty_sv = player_doc::encode_state_vector();
-
-        player_doc::add_alarm(NOW, 3, "ours", "red");
-        let socket = paired();
-
-        // Their state vector (they have nothing of ours): our update, then our own state vector.
-        from_peer(socket, serde_json::json!({ "type": "player_sv", "sv": empty_sv }));
-        let sent = data(&asked().1);
-        assert_eq!(sent.len(), 2);
-        assert_eq!(sent[0]["type"], "player_update");
-        assert_eq!(sent[1]["type"], "player_sv_reply");
-
-        // What we lacked arrives: merged, said so, and the views drawn again.
-        page::take_redraws();
-        from_peer(socket, serde_json::json!({ "type": "player_update", "update": their_state }));
-        let names: Vec<String> = player_doc::get_alarms().into_iter().map(|alarm| alarm.name).collect();
-        assert!(names.contains(&"ours".to_string()) && names.contains(&"theirs".to_string()), "{:?}", names);
-        let shown = dialog();
-        assert!(shown.done && !shown.syncing);
-        assert_eq!(shown.status, "✓ Sync complete! Player data merged.");
-        let redraws = page::take_redraws();
-        for route in ["/api/card/panel", "/api/game/turns", "/api/player/affinity", "/api/player/sync"] {
-            assert!(redraws.contains(&route), "{} in {:?}", route, redraws);
-        }
-
-        // In answer to our state vector they send theirs: only an update goes back.
-        from_peer(socket, serde_json::json!({ "type": "player_sv_reply", "sv": empty_sv }));
-        let sent = data(&asked().1);
-        assert_eq!(sent.len(), 1);
-        assert_eq!(sent[0]["type"], "player_update");
-        fresh();
-    }
-
-    #[test]
-    fn a_change_made_while_paired_is_offered_to_the_other_device() {
-        fresh();
-        player_changed();
-        assert!(asked().1.is_empty(), "not paired: nothing is sent");
-
-        paired();
-        player_changed();
-        let sent = data(&asked().1);
-        assert_eq!(sent.len(), 1);
-        assert_eq!(sent[0]["type"], "player_sv");
-        fresh();
-    }
-
-    #[test]
-    fn a_relay_that_cannot_be_reached_or_refuses_is_said_on_the_first_screen() {
-        fresh();
-        create("correct horse");
-        let (socket, _) = asked().0.unwrap();
-        socket_event(socket, SocketEvent::Error);
-        socket_event(socket, SocketEvent::Close);
-        let shown = dialog();
-        assert_eq!(shown.screen, Screen::Menu);
-        assert_eq!(shown.error, "Could not connect to signaling server");
-        assert_eq!(shown.passphrase, "correct horse", "what was typed is kept");
-
-        ask_for_code("correct horse");
-        join("ZZZZ");
-        let (socket, _) = asked().0.unwrap();
-        socket_event(socket, SocketEvent::Open);
-        relay(socket, serde_json::json!({ "type": "error", "code": "not_found", "message": "Room not found" }));
-        let shown = dialog();
-        assert_eq!(shown.screen, Screen::Menu);
-        assert_eq!(shown.error, "Room not found");
-        fresh();
-    }
-
-    #[test]
-    fn the_other_device_leaving_or_the_socket_closing_is_said() {
-        fresh();
-        let socket = paired();
-        assert!(dialog().syncing);
-        relay(socket, serde_json::json!({ "type": "peer_left" }));
-        assert_eq!(dialog().status, "Peer device disconnected.");
-        assert!(!dialog().syncing);
-
-        fresh();
-        let socket = paired();
-        socket_event(socket, SocketEvent::Close);
-        assert_eq!(dialog().status, "Disconnected during sync");
-        assert_eq!(LINK.with(|link| link.borrow().state()), State::Idle, "a pairing is not retried");
-
-        // Before anything was being exchanged.
-        fresh();
-        let socket = in_a_room();
-        socket_event(socket, SocketEvent::Close);
-        assert_eq!(dialog().status, "Connection lost. Close and start again.");
-        fresh();
-    }
-
-    #[test]
-    fn closing_ends_the_pairing_and_forgets_what_was_typed() {
-        fresh();
-        let socket = paired();
-        close();
-        assert_eq!(dialog(), Dialog::default());
-        let asked = wire::take();
-        assert!(asked.contains(&serde_json::json!({ "close": format!("sync:{}", socket) })), "{:?}", asked);
-
-        // Messages still on their way from the other device change nothing.
-        from_peer(socket, serde_json::json!({ "type": "player_update", "update": "AAA" }));
-        assert_eq!(dialog(), Dialog::default());
+        ask();
+        invite();
+        assert!(asked().0.unwrap().1.starts_with("ws://localhost:8792/ws?who=A&action=create&name="));
         fresh();
     }
 
@@ -778,7 +1200,7 @@ mod tests {
         page::take_redraws();
         show();
         assert!(page::take_redraws().is_empty());
-        create("abc");
+        ask();
         assert_eq!(page::take_redraws(), ["/api/player/sync"]);
         fresh();
     }

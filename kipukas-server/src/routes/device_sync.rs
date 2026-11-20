@@ -1,253 +1,545 @@
-//! `/api/player/sync` — the Sync Devices dialog, an engine-owned view
-//! (Pattern 13 in CONTRIBUTING.md) of a pairing of two devices
-//! (`game::device_sync`).
+//! `/api/player/sync` — the Player Data page's sync section, an engine-owned
+//! view (Pattern 13 in CONTRIBUTING.md) of a game moving from one of the
+//! player's devices to another (`game::device_sync`).
 //!
-//! The dialog's forms and buttons post back to this route. What the relay
-//! and the other device then say changes what it shows, and the engine has
-//! it drawn again.
+//! Its buttons and its form post back to this route. What the relay and the
+//! other device then say changes what it shows, and the engine has it drawn
+//! again.
+//!
+//! The view's route carries what follows the `#` of the page's address
+//! (`/api/player/sync?link={hash}`): the address in an invitation's QR code
+//! opens the page with the invitation there. Drawing the view changes
+//! nothing. An invitation is acted on only when the player answers it,
+//! which is a post.
 
-use crate::game::device_sync::{self, Dialog, Screen};
-use crate::routes::util::{escape_html, get_param, parse_form_body};
+use qrcodegen::{QrCode, QrCodeEcc};
 
+use crate::game::crypto::Side;
+use crate::game::device_sync::{self, Dialog, Invite, Stage};
+use crate::game::player_doc::{self, Progress, Taken};
+use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
+
+const ROUTE: &str = "/api/player/sync";
+const FIELD: &str =
+    "w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white focus:border-kip-red focus:ring-kip-red";
 const RED_BUTTON: &str =
-    "bg-kip-red text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-red-700 active:bg-red-800";
+    "w-full bg-kip-red hover:bg-red-700 active:bg-red-800 text-amber-50 font-bold py-2 px-4 rounded text-sm";
+const GREY_BUTTON: &str = "w-full bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-2 px-4 rounded text-sm";
 
-/// GET /api/player/sync — what the dialog holds.
-pub fn handle_sync_get(_query: &str) -> String {
-    render(&device_sync::dialog())
+/// GET /api/player/sync?link=<what follows the # of the page's address> —
+/// where a move stands, or an invitation the address carries.
+pub fn handle_sync_get(query: &str) -> String {
+    let params = parse_query(query);
+    render(&device_sync::dialog_for(get_param(&params, "link").unwrap_or("")), &player_doc::progress())
 }
 
-/// POST /api/player/sync — a form or button of the dialog.
+/// POST /api/player/sync — a button or the form of the section.
 ///
 /// Body:
-///   - `passphrase=<passphrase>&action=create`: create a room for the other
-///     device to join
-///   - `passphrase=<passphrase>&action=code`: go on to ask for the other
-///     device's room code
-///   - `action=join&code=<room code>`: join the other device's room
-///   - `action=back`: back to the first screen
-///   - `action=close`: the dialog was closed (sent by the page), which ends
-///     the pairing
+///   - `action=ask`: the player wants to move this device's game to another
+///   - `action=invite`: and has said yes: make the code to show
+///   - `action=offer&invite=<code>`: a code typed on the receiving device
+///   - `action=receive&invite=<code>`: the player there said yes to it
+///   - `action=decline&invite=<code>`: or no
+///   - `action=close`: call a move off, or put away what came of one
 pub fn handle_sync_post(body: &str) -> String {
     let params = parse_form_body(body);
-    let passphrase = get_param(&params, "passphrase").unwrap_or("");
+    let invite = get_param(&params, "invite").unwrap_or("");
     match get_param(&params, "action").unwrap_or("") {
-        "create" => device_sync::create(passphrase),
-        "code" => device_sync::ask_for_code(passphrase),
-        "join" => device_sync::join(get_param(&params, "code").unwrap_or("")),
-        "back" => device_sync::back(),
+        "ask" => device_sync::ask(),
+        "invite" => device_sync::invite(),
+        "offer" => device_sync::offer(invite),
+        "receive" => device_sync::receive(invite),
+        "decline" => device_sync::decline(invite),
         "close" => device_sync::close(),
         _ => {}
     }
     String::new()
 }
 
-fn render(dialog: &Dialog) -> String {
-    let mut h = String::with_capacity(2048);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
-    h.push_str(r#"<p class="text-lg font-bold text-center mb-1">🔄 Sync Devices</p>"#);
-    h.push_str(
-        r#"<p class="text-xs text-slate-500 text-center mb-3">Merge your player data between two devices</p>"#,
-    );
+fn button(class: &str, body: &str, label: &str) -> String {
+    format!(
+        r#"<button type="button" data-engine-post="{}" data-engine-body="{}" class="{}">{}</button>"#,
+        ROUTE,
+        escape_html(body),
+        class,
+        label
+    )
+}
 
-    // What went wrong, or else where things stand. Both are partly the
-    // relay's words.
+fn render(dialog: &Dialog, here: &Progress) -> String {
+    let mut h = String::with_capacity(4096);
+    h.push_str(r#"<div class="text-kip-drk-sienna text-left leading-normal">"#);
     if !dialog.error.is_empty() {
         h.push_str(&format!(
-            r#"<div class="bg-red-50 border border-red-200 rounded p-2 mb-3 text-center"><p class="text-xs text-kip-red" role="alert">{}</p></div>"#,
+            r#"<div class="text-center text-sm mb-3 p-2 rounded bg-red-50 text-kip-red" role="alert">{}</div>"#,
             escape_html(&dialog.error)
         ));
-    } else if !dialog.status.is_empty() {
-        h.push_str(&format!(
-            r#"<div class="bg-blue-50 border border-blue-200 rounded p-2 mb-3 text-center"><p class="text-xs text-blue-700">{}</p></div>"#,
-            escape_html(&dialog.status)
-        ));
     }
-
-    match dialog.screen {
-        Screen::Menu => h.push_str(&render_menu(dialog)),
-        Screen::Join => h.push_str(&render_join()),
-        Screen::Paired => h.push_str(&render_paired(dialog)),
+    match (dialog.stage, dialog.side) {
+        (Stage::Inviting, _) => h.push_str(&render_inviting(dialog)),
+        (Stage::Joining, _) => h.push_str(&render_busy("Finding the other device…", true)),
+        (Stage::Moving, _) => h.push_str(&render_busy("Moving the game…", false)),
+        (Stage::Done, Some(Side::Receiver)) => h.push_str(&render_received(dialog)),
+        (Stage::Done, _) => h.push_str(&render_sent(dialog)),
+        (Stage::Idle | Stage::Asked, _) => {
+            h.push_str(&render_start(dialog));
+            if dialog.stage == Stage::Asked {
+                h.push_str(&render_asked());
+            } else if let Some(invite) = &dialog.offered {
+                h.push_str(&render_offered(invite, here));
+            }
+        }
     }
     h.push_str("</div>");
     h
 }
 
-/// The passphrase, and the choice of creating a room or joining one. The
-/// button pressed says which (its `name` and `value` are sent with the form).
-fn render_menu(dialog: &Dialog) -> String {
-    let typed = if dialog.passphrase.is_empty() {
-        String::new()
-    } else {
-        format!(r#" value="{}""#, escape_html(&dialog.passphrase))
-    };
+/// How the section opens: the button that starts a move from this device,
+/// and the field for a code shown by another. It is marked `data-sync-idle`,
+/// which the page shows its own button by: the one that opens the scanner
+/// to read such a code.
+fn render_start(dialog: &Dialog) -> String {
+    let typed =
+        if dialog.typed.is_empty() { String::new() } else { format!(r#" value="{}""#, escape_html(&dialog.typed)) };
     format!(
         concat!(
-            r#"<form data-engine-post="/api/player/sync" autocomplete="off">"#,
-            r#"<div class="mb-3">"#,
-            r#"<label class="block text-xs font-medium mb-1" for="sync-passphrase">Shared Passphrase</label>"#,
-            r#"<input type="password" id="sync-passphrase" name="passphrase"{typed} placeholder="Same passphrase on both devices" class="w-full border border-slate-300 rounded px-2 py-1.5 text-sm bg-white">"#,
-            r#"<p class="text-xs text-slate-400 mt-0.5">Both devices must use the same passphrase</p>"#,
-            r#"</div>"#,
-            r#"<div class="grid grid-cols-2 gap-2 mb-3">"#,
-            r#"<button name="action" value="create" class="{red}">Create Room</button>"#,
-            r#"<button name="action" value="code" class="bg-slate-600 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-700 active:bg-slate-800">Join Room</button>"#,
-            r#"</div>"#,
+            r#"<div class="grid gap-3" data-sync-idle>"#,
+            r#"{start}"#,
+            r#"<form data-engine-post="{route}" data-engine-body="action=offer" data-engine-stay autocomplete="off" class="grid gap-2 mt-2">"#,
+            r#"<label class="grid gap-1 text-sm font-medium">To take a game from another device, type the code it shows"#,
+            r#"<input type="text" name="invite"{typed} placeholder="ABCD-…" autocapitalize="characters" autocorrect="off" spellcheck="false" class="{field} font-mono font-normal uppercase"></label>"#,
+            r#"<button class="{grey}">Use this code</button>"#,
             r#"</form>"#,
-            r#"<div class="text-xs text-slate-400 text-center">"#,
-            r#"<p>Create a room on one device, then join from the other.</p>"#,
-            r#"<p class="mt-1">Data merges using conflict-free replication (CRDT).</p>"#,
             r#"</div>"#,
         ),
+        start = button(RED_BUTTON, "action=ask", "Sync a new device"),
+        route = ROUTE,
         typed = typed,
-        red = RED_BUTTON
+        field = FIELD,
+        grey = GREY_BUTTON,
     )
 }
 
-/// The other device's room code.
-fn render_join() -> String {
-    format!(
+/// A question over the page, with its two answers.
+fn render_question(label: &str, title: &str, paragraphs: &[String], no: String, yes: String) -> String {
+    let mut h = format!(
         concat!(
-            r#"<form data-engine-post="/api/player/sync" data-engine-body="action=join" autocomplete="off">"#,
-            r#"<div class="mb-3">"#,
-            r#"<label class="block text-xs font-medium mb-1" for="sync-code">Room Code</label>"#,
-            r#"<input type="text" id="sync-code" name="code" placeholder="4-letter code" maxlength="4" autocapitalize="characters" class="w-full border border-slate-300 rounded px-2 py-1.5 bg-white uppercase text-center font-mono text-lg tracking-widest">"#,
-            r#"</div>"#,
-            r#"<div class="grid grid-cols-2 gap-2 mb-3">"#,
-            r#"<button type="button" data-engine-post="/api/player/sync" data-engine-body="action=back" class="bg-slate-400 text-amber-50 font-bold py-2 px-3 rounded text-sm hover:bg-slate-500">← Back</button>"#,
-            r#"<button class="{red}">Join</button>"#,
-            r#"</div>"#,
-            r#"</form>"#,
+            r#"<div class="fixed inset-0 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="{label}">"#,
+            r#"<div class="absolute inset-0 bg-slate-300 opacity-75"></div>"#,
+            r#"<div class="relative bg-amber-50 p-5 rounded-lg shadow-xl w-full max-w-sm text-kip-drk-sienna text-left leading-normal">"#,
+            r#"<p class="text-lg font-bold mb-2">{title}</p>"#,
         ),
-        red = RED_BUTTON
+        label = label,
+        title = title,
+    );
+    for paragraph in paragraphs {
+        h.push_str(&format!(r#"<p class="text-sm mb-2">{}</p>"#, paragraph));
+    }
+    h.push_str(&format!(r#"<div class="grid grid-cols-2 gap-2 mt-4">{}{}</div></div></div>"#, no, yes));
+    h
+}
+
+/// The sender is asked whether to go on.
+fn render_asked() -> String {
+    render_question(
+        "Sync a new device",
+        "Sync a new device?",
+        &[
+            "Syncing removes the game in progress on the other device and puts this device's game in its place: its damage, its timers and its affinity.".to_string(),
+            "Your player record is merged: each card's loyalty is added together on both devices.".to_string(),
+            "Continue?".to_string(),
+        ],
+        button(GREY_BUTTON, "action=close", "No"),
+        button(RED_BUTTON, "action=invite", "Yes, continue"),
     )
 }
 
-/// In a room: its code, and how the exchange is going. The dialog's own
-/// Close button ends it.
-fn render_paired(dialog: &Dialog) -> String {
-    let mut h = String::new();
-    if !dialog.code.is_empty() {
-        h.push_str(&format!(
-            concat!(
-                r#"<div class="bg-white border-2 border-slate-300 rounded-lg p-3 mb-3 text-center">"#,
-                r#"<p class="text-xs text-slate-500 mb-1">Room Code</p>"#,
-                r#"<p class="text-3xl font-mono font-bold tracking-widest text-kip-drk-sienna">{}</p>"#,
-                r#"</div>"#,
-            ),
-            escape_html(&dialog.code)
-        ));
+/// The game in progress on this device, in words.
+fn in_words(here: &Progress) -> String {
+    if here.is_empty() {
+        return "This device has no game in progress.".to_string();
     }
-    if dialog.syncing {
-        h.push_str(concat!(
-            r#"<div class="flex items-center justify-center gap-2 mb-3">"#,
-            r#"<svg class="animate-spin h-4 w-4 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">"#,
-            r#"<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>"#,
-            r#"<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>"#,
-            r#"</svg>"#,
-            r#"<span class="text-xs text-slate-600">Syncing…</span>"#,
-            r#"</div>"#,
-        ));
+    let count = |n: usize, one: &str, many: &str| format!("{} {}", n, if n == 1 { one } else { many });
+    let mut parts: Vec<String> = Vec::new();
+    if here.damaged > 0 {
+        parts.push(count(here.damaged, "card with damage", "cards with damage"));
     }
-    if dialog.done {
-        h.push_str(concat!(
-            r#"<div class="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3 text-center">"#,
-            r#"<p class="text-sm font-bold text-emerald-700">✓ Sync Complete</p>"#,
-            r#"<p class="text-xs text-emerald-600 mt-1">Player data has been merged on both devices.</p>"#,
-            r#"</div>"#,
-        ));
+    if here.timers > 0 {
+        parts.push(count(here.timers, "timer", "timers"));
+    }
+    if let Some(affinity) = &here.affinity {
+        parts.push(format!("the {} affinity", escape_html(affinity)));
+    }
+    format!("This device's game will be removed: {}.", parts.join(", "))
+}
+
+/// The receiver is asked whether to take the game an invitation offers.
+fn render_offered(invite: &Invite, here: &Progress) -> String {
+    let answer = |action: &str| format!("action={}&invite={}", action, invite.compact());
+    render_question(
+        "Take the game from another device",
+        "Take the game from your other device?",
+        &[
+            "The game in progress on the other device takes the place of the one on this device.".to_string(),
+            in_words(here),
+            "Your player record is merged: each card's loyalty is added together on both devices.".to_string(),
+        ],
+        button(GREY_BUTTON, &answer("decline"), "Not now"),
+        button(RED_BUTTON, &answer("receive"), "Take the game"),
+    )
+}
+
+const SPINNER: &str = concat!(
+    r#"<svg class="animate-spin h-4 w-4 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">"#,
+    r#"<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>"#,
+    r#"<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>"#,
+    r#"</svg>"#,
+);
+
+fn render_busy(what: &str, can_cancel: bool) -> String {
+    let mut h = format!(
+        r#"<div class="flex items-center justify-center gap-2 my-3" role="status">{}<span class="text-sm">{}</span></div>"#,
+        SPINNER, what
+    );
+    if can_cancel {
+        h.push_str(&button(GREY_BUTTON, "action=close", "Cancel"));
     }
     h
+}
+
+/// A QR code of `text` as an SVG picture, with the quiet border a reader
+/// needs. Each run of dark squares in a row is one rectangle of the path.
+fn qr_svg(text: &str) -> Option<String> {
+    const BORDER: i32 = 4;
+    let code = QrCode::encode_text(text, QrCodeEcc::Medium).ok()?;
+    let size = code.size();
+    let mut path = String::new();
+    for y in 0..size {
+        let mut x = 0;
+        while x < size {
+            if !code.get_module(x, y) {
+                x += 1;
+                continue;
+            }
+            let start = x;
+            while x < size && code.get_module(x, y) {
+                x += 1;
+            }
+            path.push_str(&format!("M{},{}h{}v1h-{}z", start + BORDER, y + BORDER, x - start, x - start));
+        }
+    }
+    Some(format!(
+        concat!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {side} {side}" class="w-60 h-60 max-w-full" role="img" aria-label="QR code for the other device to scan" shape-rendering="crispEdges">"##,
+            r##"<rect width="{side}" height="{side}" fill="#fff"/><path d="{path}" fill="#000"/></svg>"##,
+        ),
+        side = size + 2 * BORDER,
+        path = path,
+    ))
+}
+
+/// The sender: its invitation, once the room has a code, for the other
+/// device to scan or its player to type.
+fn render_inviting(dialog: &Dialog) -> String {
+    let Some(invite) = &dialog.invite else {
+        return render_busy("Making a code…", true);
+    };
+    let mut h = String::new();
+    h.push_str(r#"<p class="text-sm mb-2">On the other device, open this site and scan this with its QR scanner, or point its camera at it:</p>"#);
+    if let Some(picture) = qr_svg(&invite.address()) {
+        h.push_str(&format!(r#"<div class="bg-white rounded-lg p-2 w-fit max-w-full mx-auto">{}</div>"#, picture));
+    }
+    h.push_str(&format!(
+        concat!(
+            r#"<p class="text-xs text-slate-500 text-center mt-3">Or open Player Data there and type this code:</p>"#,
+            r#"<p class="font-mono font-bold text-sm text-center select-all mb-3">{}</p>"#,
+        ),
+        invite.spelled()
+    ));
+    h.push_str(&format!(
+        r#"<div class="flex items-center justify-center gap-2 mb-1" role="status">{}<span class="text-sm">{}</span></div>"#,
+        SPINNER,
+        if dialog.peer_here {
+            "The other device is here. Waiting for its answer…"
+        } else {
+            "Waiting for the other device…"
+        }
+    ));
+    h.push_str(r#"<p class="text-xs text-slate-500 text-center mb-3">The code works once, and for ten minutes.</p>"#);
+    h.push_str(&button(GREY_BUTTON, "action=close", "Cancel"));
+    h
+}
+
+fn days(n: u32) -> String {
+    format!("{} day{} of play", n, if n == 1 { "" } else { "s" })
+}
+
+fn done(title: &str, lines: &[String]) -> String {
+    let mut h = format!(
+        r#"<div class="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3" role="status"><p class="text-sm font-bold text-emerald-700">✓ {}</p>"#,
+        title
+    );
+    for line in lines {
+        h.push_str(&format!(r#"<p class="text-xs text-emerald-700 mt-1">{}</p>"#, line));
+    }
+    h.push_str("</div>");
+    h.push_str(&button(GREY_BUTTON, "action=close", "Done"));
+    h
+}
+
+/// The receiver: what came of taking the game over.
+fn render_received(dialog: &Dialog) -> String {
+    let none = Taken::default();
+    let taken = dialog.taken.as_ref().unwrap_or(&none);
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(match (taken.days_new_here, taken.days_new_there) {
+        (0, 0) => "Your record was already the same on both.".to_string(),
+        (here, 0) => format!("Your record gained {} from the other device.", days(here)),
+        (0, there) => format!("This device added {} to your record.", days(there)),
+        (here, there) => format!(
+            "Your record gained {} from the other device, and this device added {}.",
+            days(here),
+            days(there)
+        ),
+    });
+    // What this device added reaches the other only if it was heard from
+    // afterwards.
+    if !dialog.confirmed && taken.days_new_there > 0 {
+        lines.push(
+            "The other device went away before it said it had this device's part of the record. Sync from it again to be sure."
+                .to_string(),
+        );
+    }
+    done("This device now has the game from your other device.", &lines)
+}
+
+/// The sender: the other device has the game.
+fn render_sent(dialog: &Dialog) -> String {
+    let line = match dialog.days_brought {
+        0 => "Your record is the same on both.".to_string(),
+        brought => format!("The other device added {} to your record.", days(brought)),
+    };
+    done("The other device now has this game.", &[line])
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn dialog(screen: Screen) -> Dialog {
-        Dialog { screen, ..Dialog::default() }
+    const HANDED: &str = "ABCD-EFGHJKLMNPQRSTUVWXYZ";
+
+    fn invite() -> Invite {
+        Invite::read(HANDED).unwrap()
+    }
+
+    fn at(stage: Stage, side: Option<Side>) -> Dialog {
+        Dialog { stage, side, ..Dialog::default() }
+    }
+
+    fn draw(dialog: &Dialog) -> String {
+        render(dialog, &Progress::default())
+    }
+
+    fn fresh() {
+        player_doc::init_player_doc();
+        crate::page::reset();
+        device_sync::reset();
     }
 
     #[test]
-    fn the_first_screen_asks_for_the_passphrase_and_which_way_to_pair() {
-        let html = render(&dialog(Screen::Menu));
-        assert!(html.contains(r#"<form data-engine-post="/api/player/sync" autocomplete="off">"#));
-        assert!(html.contains(r#"type="password" id="sync-passphrase" name="passphrase" placeholder"#));
-        assert!(html.contains(r#"<button name="action" value="create""#));
-        assert!(html.contains(r#"<button name="action" value="code""#));
+    fn the_section_opens_on_the_button_that_starts_a_move_and_a_field_for_a_code() {
+        let html = draw(&Dialog::default());
+        assert!(html.contains(r#"<button type="button" data-engine-post="/api/player/sync" data-engine-body="action=ask""#));
+        assert!(html.contains(r#"<form data-engine-post="/api/player/sync" data-engine-body="action=offer" data-engine-stay"#));
+        assert!(html.contains(r#"<input type="text" name="invite" placeholder="ABCD-…""#));
+        assert!(html.contains(" data-sync-idle>"));
+        assert!(!draw(&at(Stage::Inviting, Some(Side::Sender))).contains("data-sync-idle"));
+        assert!(!html.contains(r#"role="dialog""#));
+        assert!(!html.contains(r#"role="alert""#));
     }
 
     #[test]
-    fn the_dialog_has_nothing_for_the_page_to_run() {
-        let mut busy = dialog(Screen::Paired);
-        busy.code = "ABCD".to_string();
-        busy.syncing = true;
-        busy.done = true;
-        for shown in [dialog(Screen::Menu), dialog(Screen::Join), busy] {
-            let html = render(&shown);
-            for forbidden in ["onclick", "kipukasSync", "x-data", "x-model", "@click", "x-show", "<script", "<template"] {
-                assert!(!html.contains(forbidden), "{} at {:?}", forbidden, shown.screen);
+    fn the_section_has_nothing_for_the_page_to_run() {
+        let mut inviting = at(Stage::Inviting, Some(Side::Sender));
+        inviting.invite = Some(invite());
+        let mut offered = Dialog::default();
+        offered.offered = Some(invite());
+        let mut received = at(Stage::Done, Some(Side::Receiver));
+        received.taken = Some(Taken { days_new_here: 2, days_new_there: 1, ..Taken::default() });
+        for shown in [
+            Dialog::default(),
+            at(Stage::Asked, None),
+            offered,
+            inviting,
+            at(Stage::Inviting, Some(Side::Sender)),
+            at(Stage::Joining, Some(Side::Receiver)),
+            at(Stage::Moving, Some(Side::Sender)),
+            received,
+            at(Stage::Done, Some(Side::Sender)),
+        ] {
+            let html = draw(&shown);
+            for forbidden in ["onclick", "x-data", "x-model", "@click", "x-show", "<script", "<template", " id=", "href="] {
+                assert!(!html.contains(forbidden), "{} at {:?}", forbidden, shown.stage);
             }
         }
     }
 
     #[test]
-    fn what_was_typed_is_put_back_in_its_field_and_cannot_break_out_of_it() {
-        let mut shown = dialog(Screen::Menu);
-        shown.passphrase = r#"a"><b>"#.to_string();
-        let html = render(&shown);
-        assert!(html.contains(r#"name="passphrase" value="a&quot;&gt;&lt;b&gt;" placeholder"#), "{}", html);
+    fn a_code_that_could_not_be_read_is_said_and_stays_in_its_field_and_cannot_break_out_of_it() {
+        let mut shown = Dialog::default();
+        shown.typed = r#"a"><b>"#.to_string();
+        shown.error = "That is <not> a sync code.".to_string();
+        let html = draw(&shown);
+        assert!(html.contains(r#"name="invite" value="a&quot;&gt;&lt;b&gt;" placeholder"#), "{}", html);
+        assert!(html.contains(r#"role="alert">That is &lt;not&gt; a sync code.</div>"#));
     }
 
     #[test]
-    fn the_join_screen_asks_for_the_code_and_offers_the_way_back() {
-        let html = render(&dialog(Screen::Join));
-        assert!(html.contains(r#"<form data-engine-post="/api/player/sync" data-engine-body="action=join""#));
-        assert!(html.contains(r#"id="sync-code" name="code""#));
-        assert!(html.contains(r#"<button type="button" data-engine-post="/api/player/sync" data-engine-body="action=back""#));
+    fn the_sender_is_asked_in_a_dialog_what_syncing_will_do() {
+        let html = draw(&at(Stage::Asked, None));
+        assert!(html.contains(r#"role="dialog" aria-modal="true" aria-label="Sync a new device""#));
+        assert!(html.contains("Syncing removes the game in progress on the other device"));
+        assert!(html.contains("Your player record is merged"));
+        assert!(html.contains(r#"data-engine-body="action=close" class="w-full bg-slate-400"#));
+        assert!(html.contains(r#"data-engine-body="action=invite" class="w-full bg-kip-red"#));
     }
 
     #[test]
-    fn an_error_is_shown_in_place_of_the_status_and_neither_can_carry_markup() {
-        let mut shown = dialog(Screen::Menu);
-        shown.status = "Joining…".to_string();
-        shown.error = "<i>Room not found</i>".to_string();
-        let html = render(&shown);
-        assert!(html.contains("&lt;i&gt;Room not found&lt;/i&gt;"));
-        assert!(!html.contains("Joining…"));
+    fn the_invitation_is_shown_as_a_qr_code_of_its_address_and_as_a_code_to_type() {
+        let mut shown = at(Stage::Inviting, Some(Side::Sender));
+        assert!(draw(&shown).contains("Making a code…"), "until the room has its code");
+        assert!(!draw(&shown).contains("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 "));
 
-        shown.error.clear();
-        assert!(render(&shown).contains("Joining…"));
+        shown.invite = Some(invite());
+        let html = draw(&shown);
+        assert!(html.contains(r#"role="img" aria-label="QR code for the other device to scan""#));
+        assert!(html.contains(">ABCD-EFGHJ-KLMNP-QRSTU-VWXYZ</p>"));
+        assert!(html.contains("Waiting for the other device…"));
+        assert!(html.contains(r#"data-engine-body="action=close""#));
+        // The address is in the picture only, never in the page as a link.
+        assert!(!html.contains("kipukas.cards"));
+
+        shown.peer_here = true;
+        assert!(draw(&shown).contains("The other device is here. Waiting for its answer…"));
     }
 
     #[test]
-    fn a_pairing_shows_its_code_and_how_the_exchange_is_going() {
-        let mut shown = dialog(Screen::Paired);
-        assert!(!render(&shown).contains("Room Code"), "no code yet");
-        shown.code = "ABCD".to_string();
-        shown.syncing = true;
-        let html = render(&shown);
-        assert!(html.contains(">ABCD</p>"));
-        assert!(html.contains("Syncing…"));
-        assert!(!html.contains("Sync Complete"));
-        shown.syncing = false;
-        shown.done = true;
-        let html = render(&shown);
-        assert!(html.contains("✓ Sync Complete"));
-        assert!(!html.contains("Syncing…"));
+    fn the_qr_code_is_the_one_for_the_address_with_a_quiet_border() {
+        let address = invite().address();
+        let code = QrCode::encode_text(&address, QrCodeEcc::Medium).unwrap();
+        // 69 characters fit version 5 at this level: 37 squares a side.
+        assert_eq!(code.size(), 37);
+        let svg = qr_svg(&address).unwrap();
+        assert!(svg.contains(r#"viewBox="0 0 45 45""#));
+        // The top-left finder's first row: seven dark squares, four in from the edge.
+        assert!(svg.contains(r#"<path d="M4,4h7v1h-7z"#), "{}", &svg[..300]);
+        // As many dark squares in the path as in the code.
+        let dark = (0..37).flat_map(|y| (0..37).map(move |x| (x, y))).filter(|(x, y)| code.get_module(*x, *y)).count();
+        let drawn: usize = svg
+            .split('M')
+            .skip(1)
+            .map(|run| run.split('h').nth(1).unwrap().split('v').next().unwrap().parse::<usize>().unwrap())
+            .sum();
+        assert_eq!(drawn, dark);
+        // Nothing reaches into the border.
+        assert!(!svg.contains("M3,") && !svg.contains(",3h"));
     }
 
     #[test]
-    fn the_forms_reach_the_pairing() {
-        device_sync::reset();
-        assert_eq!(handle_sync_post("passphrase=abc&action=create"), "");
-        assert!(handle_sync_get("").contains("Passphrase must be at least 4 characters"));
-        handle_sync_post("passphrase=correct+horse&action=code");
-        assert!(handle_sync_get("").contains(r#"name="code""#));
-        handle_sync_post("action=back");
-        assert!(handle_sync_get("").contains(r#"value="correct horse""#));
+    fn the_receiver_is_asked_in_a_dialog_and_told_what_it_would_lose() {
+        let mut shown = Dialog::default();
+        shown.offered = Some(invite());
+        let html = draw(&shown);
+        assert!(html.contains(r#"role="dialog" aria-modal="true" aria-label="Take the game from another device""#));
+        assert!(html.contains("This device has no game in progress."));
+        assert!(html.contains(r#"data-engine-body="action=receive&amp;invite=ABCD-EFGHJKLMNPQRSTUVWXYZ""#));
+        assert!(html.contains(r#"data-engine-body="action=decline&amp;invite=ABCD-EFGHJKLMNPQRSTUVWXYZ""#));
+
+        let here = Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) };
+        let html = render(&shown, &here);
+        assert!(html.contains("This device's game will be removed: 2 cards with damage, 1 timer, the Brutal affinity."));
+        let here = Progress { damaged: 1, timers: 3, affinity: None };
+        assert!(render(&shown, &here).contains("removed: 1 card with damage, 3 timers."));
+    }
+
+    #[test]
+    fn a_move_on_its_way_says_so_and_can_be_called_off_only_before_the_game_moves() {
+        let html = draw(&at(Stage::Joining, Some(Side::Receiver)));
+        assert!(html.contains("Finding the other device…") && html.contains("action=close"));
+        let html = draw(&at(Stage::Moving, Some(Side::Receiver)));
+        assert!(html.contains("Moving the game…") && !html.contains("action=close"));
+    }
+
+    #[test]
+    fn the_receiver_is_told_what_came_of_it() {
+        let mut shown = at(Stage::Done, Some(Side::Receiver));
+        shown.confirmed = true;
+        for (here, there, said) in [
+            (0, 0, "Your record was already the same on both."),
+            (3, 0, "Your record gained 3 days of play from the other device."),
+            (0, 1, "This device added 1 day of play to your record."),
+            (1, 2, "Your record gained 1 day of play from the other device, and this device added 2 days of play."),
+        ] {
+            shown.taken = Some(Taken { days_new_here: here, days_new_there: there, ..Taken::default() });
+            let html = draw(&shown);
+            assert!(html.contains("✓ This device now has the game from your other device."));
+            assert!(html.contains(said), "{}", html);
+            assert!(!html.contains("went away"));
+            assert!(html.contains(r#"data-engine-body="action=close""#));
+        }
+        // The other device was not heard from after this one sent its part.
+        shown.confirmed = false;
+        assert!(draw(&shown).contains("went away before it said it had this device's part of the record"));
+        shown.taken = Some(Taken { days_new_here: 3, ..Taken::default() });
+        assert!(!draw(&shown).contains("went away"), "it had nothing to send");
+    }
+
+    #[test]
+    fn the_sender_is_told_the_other_device_has_the_game() {
+        let mut shown = at(Stage::Done, Some(Side::Sender));
+        let html = draw(&shown);
+        assert!(html.contains("✓ The other device now has this game."));
+        assert!(html.contains("Your record is the same on both."));
+        shown.days_brought = 2;
+        assert!(draw(&shown).contains("The other device added 2 days of play to your record."));
+    }
+
+    #[test]
+    fn the_buttons_and_the_form_reach_the_move() {
+        fresh();
+        assert_eq!(handle_sync_post("action=ask"), "");
+        assert!(handle_sync_get("").contains(r#"aria-label="Sync a new device""#));
         handle_sync_post("action=close");
-        assert!(!handle_sync_get("").contains("correct horse"));
-        device_sync::reset();
+        assert!(!handle_sync_get("").contains(r#"role="dialog""#));
+
+        handle_sync_post("action=offer&invite=nonsense");
+        assert!(handle_sync_get("").contains("That is not a sync code."));
+        handle_sync_post("action=offer&invite=abcd-efghj-klmnp-qrstu-vwxyz");
+        assert!(handle_sync_get("").contains(r#"aria-label="Take the game from another device""#));
+        handle_sync_post("action=decline&invite=ABCD-EFGHJKLMNPQRSTUVWXYZ");
+        assert!(!handle_sync_get("").contains(r#"role="dialog""#));
+        fresh();
+    }
+
+    #[test]
+    fn an_invitation_in_the_pages_address_is_asked_about_and_drawing_it_starts_nothing() {
+        fresh();
+        // As the page sends what follows its #, encoded.
+        let html = handle_sync_get("?link=sync%3DABCD-EFGHJKLMNPQRSTUVWXYZ");
+        assert!(html.contains(r#"aria-label="Take the game from another device""#));
+        assert!(crate::wire::take().is_empty(), "nothing is connected by drawing");
+        assert_eq!(device_sync::dialog(), Dialog::default());
+
+        // Said no to, it is not asked about again.
+        handle_sync_post("action=decline&invite=ABCD-EFGHJKLMNPQRSTUVWXYZ");
+        assert!(!handle_sync_get("?link=sync%3DABCD-EFGHJKLMNPQRSTUVWXYZ").contains(r#"role="dialog""#));
+
+        // Said yes to, the engine goes to the sender's room.
+        fresh();
+        handle_sync_post("action=receive&invite=ABCD-EFGHJKLMNPQRSTUVWXYZ");
+        assert!(handle_sync_get("?link=sync%3DABCD-EFGHJKLMNPQRSTUVWXYZ").contains("Finding the other device…"));
+        assert!(crate::wire::take().iter().any(|op| op["open"].is_string()));
+        fresh();
     }
 }

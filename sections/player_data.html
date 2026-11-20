@@ -1,0 +1,77 @@
+---
+layout: default
+permalink: /player_data
+title: "Player Data"
+description: "Carry a game on to another device, keep a backup of your game progress, or restore from one."
+bg-terra: "bg-hero-pattern "
+sitemap: false
+---
+<!-- The two sections are engine-owned views (Pattern 13,
+     assets/js/kipukas-view.js). The engine holds where each stands, draws
+     it, and does the work: /api/player/sync moves a game to another device
+     (kipukas-server/src/game/device_sync.rs, src/routes/device_sync.rs) and
+     /api/player/backup makes and restores backups (src/game/backup.rs,
+     src/routes/backup.rs).
+
+     The sync view's route carries what follows the # of this page's
+     address ({hash}): the QR code a device shows to hand its game over is
+     this page's address with the invitation there. The engine asks the
+     player before it does anything with one.
+
+     This page holds no state. Its one script is the scan button's, which
+     loads the camera script before it opens the scanner, as the toolbar's
+     button does. The button is shown while the sync section is as it opens,
+     which the engine marks (data-sync-idle). The scanner itself is the
+     toolbar's (qr_scanner.html), and is not among tools that can be hidden,
+     so that it can always be drawn. -->
+<div class="flex place-content-center w-screen h-fit">
+  <div class="z-10 grid grid-cols-1 content-start bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-left leading-normal pb-8 px-10 w-5/6 h-fit min-h-screen scroll-smooth">
+    {% include toolbar.html
+      hamburger=true
+      goHome=true
+      lastPage=true
+      install_pwa=true
+      qr_scanner=true
+      base_fill='fill-kip-goldenrod'
+      base_stroke='stroke-kip-goldenrod'
+      background_color='bg-slate-100/80'
+    %}
+    <h1 class="text-3xl font-bold my-4">Player Data</h1>
+    <p class="max-w-prose">
+      Your game progress is kept on this device and nowhere else: the damage
+      on your cards, your timers, your affinity, and each card's loyalty.
+      From here you can carry it to another device, or keep a copy of it.
+    </p>
+
+    <h2 class="text-2xl font-bold mt-8 mb-2">Sync a device</h2>
+    <p class="max-w-prose mb-2">
+      Carry a game on from one device to another. The device you start on
+      shows a code, and the other device scans it. The game in progress on
+      the other device is replaced. Your record is merged: each card's
+      loyalty is added together, so nothing either device knows is lost.
+    </p>
+    <p class="max-w-prose mb-4 text-sm">
+      The two devices talk through our relay, which cannot read what they
+      say: it is encrypted with a key that only the code carries.
+    </p>
+    <div class="group w-full max-w-sm">
+      <div data-engine-view="/api/player/sync?link={hash}" class="min-h-24"></div>
+      <!-- Shown while the section is as it opens (the engine marks that). -->
+      <button type="button"
+              class="hidden group-has-[[data-sync-idle]]:block w-full mt-2 bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-amber-50 font-bold py-2 px-4 rounded text-sm"
+              onclick="window.kipukasLoadQR().then(function() { kipukasViews.send('/api/qr/status', 'action=toggle'); })">
+        Or scan the code it shows
+      </button>
+    </div>
+
+    <h2 class="text-2xl font-bold mt-10 mb-2">Backup</h2>
+    <p class="max-w-prose mb-4">
+      A backup is a file, locked with a passphrase you choose. Keep one
+      before you clear this browser's data, or to move to a device you
+      cannot have beside this one.
+    </p>
+    <div class="w-full max-w-sm">
+      <div data-engine-view="/api/player/backup" class="min-h-24"></div>
+    </div>
+  </div>
+</div>

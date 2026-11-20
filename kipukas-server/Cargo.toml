@@ -40,6 +40,9 @@ aes-gcm = { version = "0.10", default-features = false, features = ["aes", "allo
 # backup's salt and nonce. Already in the dependency tree through fastrand,
 # same version and `js` feature.
 getrandom = { version = "0.2", features = ["js"] }
+# Draws the QR code one device shows another to pair with it
+# (src/routes/device_sync.rs). One file, no dependencies of its own.
+qrcodegen = "1.8"
 # JXL decode (pure Rust). default-features=false drops rayon/threadpool — required for wasm32.
 jxl-oxide = { version = "0.12.6", default-features = false }
 

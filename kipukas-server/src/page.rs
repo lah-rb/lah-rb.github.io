@@ -21,7 +21,7 @@
 
 use std::cell::{Cell, RefCell};
 
-use crate::game::{connection, device_sync, room};
+use crate::game::{connection, room};
 use crate::{store, wire};
 
 thread_local! {
@@ -138,14 +138,10 @@ fn take_in_room() -> Option<bool> {
 pub fn handle_handover_post(_body: &str) -> String {
     let mut handed = serde_json::Map::new();
 
-    // What this player changed goes to whoever shares it first, because
-    // it is sent through the wire: changes to the room to the opponent, and
-    // a change of the player's own state to a device paired with this one.
+    // What this player changed in the room goes to the opponent first,
+    // because it is sent through the wire.
     connection::send_updates();
     let saves = store::take_saves();
-    if saves.contains_key(store::PLAYER_DOC) {
-        device_sync::player_changed();
-    }
     let wire = wire::take();
     if !wire.is_empty() {
         handed.insert("wire".into(), serde_json::json!(wire));
@@ -221,7 +217,7 @@ mod tests {
     /// When the timers in these tests are made and changed, where the test
     /// does not care when.
     const NOW: f64 = 1_800_000_000_000.0;
-    use crate::game::{crdt, player_doc};
+    use crate::game::{crdt, device_sync, player_doc};
 
     fn fresh() {
         player_doc::init_player_doc();
@@ -334,32 +330,40 @@ mod tests {
     }
 
     #[test]
-    fn a_change_of_the_players_state_is_offered_to_a_paired_device_with_the_same_handover() {
+    fn a_game_moving_to_another_device_is_carried_by_the_same_handover() {
         fresh();
         store::handle_start_post("{}");
-        device_sync::create("correct horse");
-        let socket = handed()["wire"][0]["open"].as_str().unwrap().to_string();
+        handed();
+        device_sync::ask();
+        device_sync::invite();
+        let asked = handed();
+        let ops = asked["wire"].as_array().unwrap();
+        let socket = ops.iter().find_map(|op| op["open"].as_str()).unwrap().to_string();
         assert!(socket.starts_with("sync:"));
-        let report = |event: &str, data: String| {
+        assert!(ops.contains(&serde_json::json!({ "set": "sync:expire", "ms": device_sync::INVITE_LASTS_MS })));
+        assert_eq!(asked["redraw"], serde_json::json!(["/api/player/sync"]));
+        let report = |event: &str, data: &str| {
             let report = serde_json::json!({ "socket": socket, "event": event, "data": data });
             wire::handle_wire_post(&report.to_string());
         };
-        report("open", String::new());
-        report("message", r#"{"type":"room_created","code":"ABCD"}"#.to_string());
-        report("message", r#"{"type":"peer_joined","peerId":"other"}"#.to_string());
-        let mac = crate::game::crypto::sign_export("correct horse", "ABCD").unwrap();
-        let proof = serde_json::json!({ "type": "relay", "data": { "type": "sync_auth", "mac": mac } });
-        report("message", proof.to_string());
-        handed();
+        report("open", "");
+        report("message", r#"{"type":"room_created","code":"ABCD","peer":"none"}"#);
+        report("message", r#"{"type":"peer_joined","peerId":"other"}"#);
+        assert_eq!(handed()["redraw"], serde_json::json!(["/api/player/sync"]));
 
+        // The game moves when the other device asks, not as it is played:
+        // a change made meanwhile is stored and sent nowhere.
         player_doc::add_alarm(NOW, 3, "mine", "red");
         let changed = handed();
         assert!(changed["save"].as_object().unwrap().contains_key(store::PLAYER_DOC));
-        assert_eq!(changed["wire"][0]["send"], socket.as_str());
-        assert!(changed["wire"][0]["text"].as_str().unwrap().contains("player_sv"));
+        assert!(changed["wire"].is_null(), "{}", changed);
 
-        // Nothing changed: nothing is offered.
-        assert_eq!(handed(), serde_json::json!({}));
+        // The wait the worker was asked for ends a code nobody used.
+        wire::handle_wire_post(r#"{"timer":"sync:expire"}"#);
+        let ended = handed();
+        assert_eq!(ended["redraw"], serde_json::json!(["/api/player/sync"]));
+        assert!(ended["wire"].as_array().unwrap().contains(&serde_json::json!({ "close": socket })));
+        assert!(device_sync::dialog().error.starts_with("That code was not used"));
         fresh();
     }
 

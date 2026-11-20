@@ -2,8 +2,8 @@
 
 These drive a real browser, or read a real iPhone, against the site. `cargo
 test` does not run them and nothing else does either. Run them after a change
-to the QR scanner, to what is kept in the browser's storage, or to how a page
-takes up what another page or tab has stored.
+to the QR scanner, to what is kept in the browser's storage, to how a page
+takes up what another page or tab has stored, or to the Player Data page.
 
 Everything here is run from this folder:
 
@@ -30,8 +30,9 @@ checking the built one: it is `_site` that is served.
 | `browser/back.ts` | A page left with its scanner open and come back to with Back: the scanner is closed and holds no camera, and opens again with what was chosen on the page in between |
 | `browser/switch.ts` | The switch-camera button, with pretend cameras: an iPhone's seven, a phone's two, a computer's that do not say which way they face, a single one |
 | `browser/tabs.ts` | A choice made in one tab (the privacy notice, the camera, the light) is taken up by another that is already open, when the browser reports it and when the tab comes back into view |
+| `browser/sync.ts` | A game moved from one browser to another through the Player Data page: the code read by the site's own scanner, typed, and opened as an address; what the receiver is asked and told; a code that is used, wrong, or called off |
 | `browser/site.ts` | What they share: the built site served locally, the browser, pretend cameras, the scanner's buttons and what it shows |
-| `browser/all.ts` | Runs the three in turn |
+| `browser/all.ts` | Runs the four in turn |
 
 Things to know:
 
@@ -43,7 +44,14 @@ Things to know:
   the live site as well.
 - The pretend cameras stand in for `getUserMedia` and `enumerateDevices`. They
   show what the site asks of a browser and does with the answer, not what a
-  real browser answers. For that, see the phone below.
+  real browser answers. For that, see the phone below. A picture can be held
+  up to them (`holdUp`), which is how `sync.ts` has the site's reader read a
+  QR code.
+- `sync.ts` needs a relay. Against the built site it runs one here
+  (`wrangler dev` in `signaling-server/`, with storage it throws away) and
+  points both browsers at it. Against the live site the browsers use the
+  live relay: two rooms' worth of traffic, each ended when its game has
+  moved.
 
 The one library is puppeteer-core (Apache-2.0), fetched by Deno into its own
 cache.

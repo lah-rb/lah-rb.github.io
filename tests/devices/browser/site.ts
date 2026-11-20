@@ -264,7 +264,7 @@ export async function openScanner(page: Page) {
 
 export type Camera = { id: string; label: string; facing: '' | 'user' | 'environment' };
 export type Asked = { id: string; facing: string; gave: string };
-type Pretend = typeof globalThis & { __asked?: Asked[] };
+type Pretend = typeof globalThis & { __asked?: Asked[]; __held?: HTMLImageElement };
 
 /**
  * Give every page this tab loads these cameras in place of the browser's.
@@ -285,6 +285,14 @@ export function pretendCameras(page: Page, cameras: Camera[], listsBefore: boole
         const ctx = canvas.getContext('2d')!;
         let hue = 0;
         setInterval(() => {
+          // A picture held up to the camera (`holdUp`), or else a colour.
+          const held = (globalThis as Pretend).__held;
+          if (held && held.complete && held.naturalWidth) {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, 640, 480);
+            ctx.drawImage(held, 120, 40, 400, 400);
+            return;
+          }
           ctx.fillStyle = `hsl(${(hue += 7) % 360} 60% 50%)`;
           ctx.fillRect(0, 0, 640, 480);
         }, 100);
@@ -331,6 +339,24 @@ export function pretendCameras(page: Page, cameras: Camera[], listsBefore: boole
     cameras,
     listsBefore,
   );
+}
+
+/**
+ * Hold a picture up to this page's pretend cameras: an SVG, as its markup.
+ * Every camera of the page shows it from here on, in the middle of a white
+ * picture. `null` takes it away.
+ */
+export function holdUp(page: Page, svg: string | null) {
+  return page.evaluate((svg) => {
+    if (!svg) {
+      delete (globalThis as Pretend).__held;
+      return;
+    }
+    const sized = svg.replace('<svg ', '<svg width="400" height="400" ');
+    const picture = new Image();
+    picture.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sized);
+    (globalThis as Pretend).__held = picture;
+  }, svg);
 }
 
 /** What this page has asked of its pretend cameras, in order. */

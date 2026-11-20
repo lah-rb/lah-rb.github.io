@@ -17,9 +17,20 @@
 //! │             "color_set": String, "changed": f64 (ms, when last changed) }
 //! ├── "retired" (YMap) — timers removed lately while out of a room:
 //! │   └── "<timer id>": f64 (ms, when)
+//! ├── "affinity" (YMap) — the archetype declared for this game:
+//! │   └── "Brutal": { "level": 1, "last_declared": "YYYY-MM-DD" }
+//! ├── "loyalty" (YMap) — the days each card was played on:
+//! │   └── "brox_the_defiant": { "days": { "YYYY-MM-DD": true }, "earlier": u32,
+//! │                             "total_plays": u32, "last_played": "YYYY-MM-DD" }
+//! ├── "merges" (YMap) — each state taken over from another device or a backup:
+//! │   └── "<id>": { "at": f64 (ms), "by": "device" | "file", "gained": u32, "held": u32 }
 //! └── "settings" (YMap)
 //!     └── "show_alarms" (bool)
 //! ```
+//!
+//! Cards, timers, what is retired and the affinity are the game in progress:
+//! New Game clears them. Loyalty and the merges are the player's record,
+//! which outlives every game. See `take_over`.
 //!
 //! ## Lifecycle
 //!
@@ -33,6 +44,7 @@
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{
@@ -67,16 +79,26 @@ const VALID_ARCHETYPES: &[&str] = &[
 
 /// Create a fresh player Doc with all root types pre-created.
 fn new_player_doc() -> Doc {
-    let doc = Doc::new();
+    let doc = with_roots(Doc::new());
+    {
+        let mut txn = doc.transact_mut();
+        let settings = txn.get_or_insert_map("settings");
+        // Default: show_alarms = true
+        settings.insert(&mut txn, "show_alarms", Any::from(true));
+    }
+    doc
+}
+
+/// `doc` with every root type made, so that each is there to be read.
+fn with_roots(doc: Doc) -> Doc {
     {
         let mut txn = doc.transact_mut();
         txn.get_or_insert_map("cards");
         txn.get_or_insert_array("alarms");
         txn.get_or_insert_map("affinity");
         txn.get_or_insert_map("loyalty");
-        let settings = txn.get_or_insert_map("settings");
-        // Default: show_alarms = true
-        settings.insert(&mut txn, "show_alarms", Any::from(true));
+        txn.get_or_insert_map("merges");
+        txn.get_or_insert_map("settings");
     }
     doc
 }
@@ -114,18 +136,8 @@ pub fn restore_from_state(state_b64: &str) -> Result<(), String> {
 
     PLAYER_DOC.with(|cell| {
         // Replace with fresh doc then apply the update so root types exist
-        let doc = Doc::new();
-        {
-            let mut txn = doc.transact_mut();
-            txn.get_or_insert_map("cards");
-            txn.get_or_insert_array("alarms");
-            txn.get_or_insert_map("affinity");
-            txn.get_or_insert_map("loyalty");
-            txn.get_or_insert_map("settings");
-            txn.apply_update(update)
-                .map_err(|e| format!("restore error: {}", e))?;
-            Ok::<(), String>(())
-        }?;
+        let doc = with_roots(Doc::new());
+        doc.transact_mut().apply_update(update).map_err(|e| format!("restore error: {}", e))?;
         *cell.borrow_mut() = doc;
         Ok(())
     })
@@ -836,10 +848,115 @@ pub fn get_active_affinity() -> Option<(String, u32)> {
 }
 
 // ── Loyalty accessors ──────────────────────────────────────────────
+//
+// A card's loyalty is the days it was played on, each kept by its date, so
+// that two devices' records of one card join without a day counted twice
+// (`take_over`, below). An entry holds:
+//
+//   days         YMap: "<YYYY-MM-DD>" → true, a day the card was played
+//   earlier      plays counted before the days were kept
+//   total_plays  `earlier` and the days together
+//   last_played  the latest of the days
+//
+// The last two are all an entry held before the days were kept. They are
+// kept in step with the rest, for a page that still runs the engine as it
+// was, and are read with the rest, for what such a page has counted since.
 
-/// Increment loyalty for a card slug. Enforces once-per-day: if `last_played`
-/// already equals `today`, returns Ok but does not increment.
-/// Returns `Ok(new_total_plays)` on success.
+/// A card's loyalty: the days it was played on, and how many plays were
+/// counted before the days were kept.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Loyalty {
+    pub earlier: u32,
+    pub days: BTreeSet<String>,
+}
+
+impl Loyalty {
+    pub fn total(&self) -> u32 {
+        self.earlier + self.days.len() as u32
+    }
+
+    /// The latest day played, or nothing if no day is known.
+    pub fn last(&self) -> String {
+        self.days.iter().next_back().cloned().unwrap_or_default()
+    }
+
+    /// Take in another device's record of the same card. A day both hold is
+    /// one day. Of the plays counted before days were kept the larger number
+    /// stands: there is no telling which of them the two share.
+    fn join(&mut self, other: &Loyalty) {
+        self.earlier = self.earlier.max(other.earlier);
+        self.days.extend(other.days.iter().cloned());
+    }
+}
+
+fn number_in<T: ReadTxn>(map: &MapRef, txn: &T, name: &str) -> Option<f64> {
+    match map.get(txn, name) {
+        Some(yrs::Out::Any(Any::Number(n))) => Some(n),
+        _ => None,
+    }
+}
+
+fn text_in<T: ReadTxn>(map: &MapRef, txn: &T, name: &str) -> Option<String> {
+    match map.get(txn, name) {
+        Some(yrs::Out::Any(Any::String(s))) => Some(s.to_string()),
+        _ => None,
+    }
+}
+
+fn read_loyalty<T: ReadTxn>(entry: &MapRef, txn: &T) -> Loyalty {
+    // What the engine held before the days were kept: a count, and the last
+    // day, which is one of those counted. An entry that holds days as well
+    // may have been counted on since by a page still running that engine,
+    // so these are read whatever else is there.
+    let total = number_in(entry, txn, "total_plays").unwrap_or(0.0) as u32;
+    let mut days: BTreeSet<String> = match entry.get(txn, "days") {
+        Some(yrs::Out::YMap(days)) => days.keys(txn).map(str::to_string).collect(),
+        _ => BTreeSet::new(),
+    };
+    days.extend(text_in(entry, txn, "last_played").filter(|last| !last.is_empty()));
+    let earlier = number_in(entry, txn, "earlier").unwrap_or(0.0) as u32;
+    Loyalty { earlier: earlier.max(total.saturating_sub(days.len() as u32)), days }
+}
+
+/// Every card's loyalty.
+fn read_record<T: ReadTxn>(loyalty: &MapRef, txn: &T) -> BTreeMap<String, Loyalty> {
+    loyalty
+        .iter(txn)
+        .filter_map(|(slug, entry)| match entry {
+            yrs::Out::YMap(entry) => Some((slug.to_string(), read_loyalty(&entry, txn))),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Have a card's entry hold `want`. Only what differs is written.
+fn write_loyalty(loyalty: &MapRef, txn: &mut TransactionMut, slug: &str, want: &Loyalty) {
+    let entry = match loyalty.get(txn, slug) {
+        Some(yrs::Out::YMap(entry)) => entry,
+        _ => loyalty.insert(txn, slug, MapPrelim::default()),
+    };
+    let days = match entry.get(txn, "days") {
+        Some(yrs::Out::YMap(days)) => days,
+        _ => entry.insert(txn, "days", MapPrelim::default()),
+    };
+    for day in &want.days {
+        if days.get(txn, day).is_none() {
+            days.insert(txn, day.as_str(), Any::from(true));
+        }
+    }
+    for (name, value) in [("earlier", want.earlier), ("total_plays", want.total())] {
+        if number_in(&entry, txn, name) != Some(value as f64) {
+            entry.insert(txn, name, Any::from(value as f64));
+        }
+    }
+    if text_in(&entry, txn, "last_played") != Some(want.last()) {
+        entry.insert(txn, "last_played", Any::from(want.last()));
+    }
+}
+
+/// Count a play of a card on the day `today`. A card is counted once a day:
+/// a second play on a day already counted changes nothing.
+/// Returns `Ok(total_plays)`.
 pub fn increment_loyalty(slug: &str, today: &str) -> Result<u32, String> {
     if slug.is_empty() {
         return Err("Missing card slug".to_string());
@@ -852,64 +969,46 @@ pub fn increment_loyalty(slug: &str, today: &str) -> Result<u32, String> {
         let doc = cell.borrow();
         let loyalty = doc.get_or_insert_map("loyalty");
         let mut txn = doc.transact_mut();
-
-        match loyalty.get(&txn, slug) {
-            Some(yrs::Out::YMap(entry)) => {
-                // Check once-per-day
-                let last = match entry.get(&txn, "last_played") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                };
-                let current = match entry.get(&txn, "total_plays") {
-                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
-                    _ => 0,
-                };
-                if last == today {
-                    return Ok(current); // Already played today, no-op
-                }
-                let new_total = current + 1;
-                entry.insert(&mut txn, "total_plays", Any::from(new_total as f64));
-                entry.insert(&mut txn, "last_played", Any::from(today.to_string()));
-                Ok(new_total)
-            }
-            _ => {
-                // First play ever for this card
-                let entry = MapPrelim::from([
-                    ("total_plays".to_string(), Any::from(1.0_f64)),
-                    ("last_played".to_string(), Any::from(today.to_string())),
-                ]);
-                loyalty.insert(&mut txn, slug, entry);
-                Ok(1)
-            }
+        let mut now = match loyalty.get(&txn, slug) {
+            Some(yrs::Out::YMap(entry)) => read_loyalty(&entry, &txn),
+            _ => Loyalty::default(),
+        };
+        if now.days.insert(today.to_string()) {
+            write_loyalty(&loyalty, &mut txn, slug, &now);
         }
+        Ok(now.total())
     })
 }
 
 /// Get loyalty data for a single card slug.
 /// Returns `Some((total_plays, last_played))` if the card has loyalty data.
 pub fn get_loyalty(slug: &str) -> Option<(u32, String)> {
+    loyalty_of(slug).map(|loyalty| (loyalty.total(), loyalty.last()))
+}
+
+/// A card's loyalty as it is kept, if it has any.
+pub fn loyalty_of(slug: &str) -> Option<Loyalty> {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let loyalty = doc.get_or_insert_map("loyalty");
         let txn = doc.transact();
         match loyalty.get(&txn, slug) {
-            Some(yrs::Out::YMap(entry)) => {
-                let total = match entry.get(&txn, "total_plays") {
-                    Some(yrs::Out::Any(Any::Number(n))) => n as u32,
-                    _ => 0,
-                };
-                let last = match entry.get(&txn, "last_played") {
-                    Some(yrs::Out::Any(Any::String(s))) => s.to_string(),
-                    _ => String::new(),
-                };
-                Some((total, last))
-            }
+            Some(yrs::Out::YMap(entry)) => Some(read_loyalty(&entry, &txn)),
             _ => None,
         }
     })
 }
 
-/// Clear all loyalty data (used by "New Game" reset).
+/// How many days of play the record holds, over every card.
+pub fn days_played() -> u32 {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let loyalty = doc.get_or_insert_map("loyalty");
+        read_record(&loyalty, &doc.transact()).values().map(|card| card.days.len() as u32).sum()
+    })
+}
+
+/// Clear all loyalty data.
 pub fn clear_loyalty() {
     PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
@@ -920,6 +1019,219 @@ pub fn clear_loyalty() {
             loyalty.remove(&mut txn, &key);
         }
     });
+}
+
+// ── A game taken over from another device, or from a backup ───────
+//
+// The player's document holds two things. One is the game in progress:
+// damage, timers, the affinity declared, everything New Game clears. The
+// other is the player's record, which outlives every game: each card's
+// loyalty, and the merges below.
+//
+// Two games have no sensible union, so a game is only ever taken whole: the
+// state that arrives takes the place of the one here. The record is the
+// opposite. What this device knows of it is added to what arrives, so that
+// nothing either holds is lost and nothing is counted twice, and taking the
+// same state over again changes nothing.
+//
+// ## Merges
+//
+// Each time a state is taken over that holds something new to this device,
+// the two histories are compared and the comparison is kept, under `merges`:
+//
+//   "<id>": { at, by, gained, held }
+//
+// `gained` is how many changes the state taken held that this device had
+// not seen, `held` how many this device held that the state taken had not.
+// (A change is one step of a device's count in the document's state
+// vector.) A new device taking a game over holds next to nothing: `held` is
+// near zero. So does a device that only receives. Two records that grew
+// apart, or were never one player's, each hold much the other lacks. The
+// numbers are kept and nothing is decided by them: no merge is refused.
+// `by` is `device` (the other device sent it) or `file` (a backup).
+
+/// One state taken over, as `merges` keeps it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Merge {
+    pub id: String,
+    /// When, in milliseconds since 1970.
+    pub at: f64,
+    /// `device` or `file`.
+    pub by: String,
+    pub gained: u32,
+    pub held: u32,
+}
+
+/// What came of taking a state over.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Taken {
+    /// Changes the state taken held that this device had not seen.
+    pub gained: u32,
+    /// Changes this device held that the state taken had not.
+    pub held: u32,
+    /// Days of play the state taken brought to this device's record.
+    pub days_new_here: u32,
+    /// Days of play this device added to the record it took.
+    pub days_new_there: u32,
+    /// The state vector of the state as it arrived (base64): what its owner
+    /// holds, to be sent what it lacks (`encode_diff`).
+    pub their_state_vector: String,
+}
+
+/// How many changes `a` holds that `b` does not.
+fn ahead(a: &StateVector, b: &StateVector) -> u32 {
+    a.iter().map(|(client, clock)| clock.saturating_sub(b.get(client))).fold(0, u32::saturating_add)
+}
+
+fn read_merges<T: ReadTxn>(merges: &MapRef, txn: &T) -> Vec<Merge> {
+    let mut all: Vec<Merge> = merges
+        .iter(txn)
+        .filter_map(|(id, entry)| match entry {
+            yrs::Out::YMap(entry) => Some(Merge {
+                id: id.to_string(),
+                at: number_in(&entry, txn, "at").unwrap_or(0.0),
+                by: text_in(&entry, txn, "by").unwrap_or_default(),
+                gained: number_in(&entry, txn, "gained").unwrap_or(0.0) as u32,
+                held: number_in(&entry, txn, "held").unwrap_or(0.0) as u32,
+            }),
+            _ => None,
+        })
+        .collect();
+    all.sort_by(|a, b| a.at.total_cmp(&b.at).then_with(|| a.id.cmp(&b.id)));
+    all
+}
+
+fn write_merge(merges: &MapRef, txn: &mut TransactionMut, merge: &Merge) {
+    let entry = MapPrelim::from([
+        ("at".to_string(), Any::from(merge.at)),
+        ("by".to_string(), Any::from(merge.by.clone())),
+        ("gained".to_string(), Any::from(merge.gained as f64)),
+        ("held".to_string(), Any::from(merge.held as f64)),
+    ]);
+    merges.insert(txn, merge.id.as_str(), entry);
+}
+
+/// The states taken over so far, the earliest first.
+pub fn merges() -> Vec<Merge> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let merges = doc.get_or_insert_map("merges");
+        read_merges(&merges, &doc.transact())
+    })
+}
+
+/// Take over the game of `state_b64` (a document's full state, as
+/// `encode_full_state` gives it) at `now`: it takes the place of the game
+/// here, and this device's record is added to the one it brings. `by` says
+/// how it came: `device` or `file`.
+///
+/// Nothing is changed if the state cannot be read.
+pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
+    if state_b64.is_empty() {
+        return Err("no state".to_string());
+    }
+    let bytes = URL_SAFE_NO_PAD.decode(state_b64).map_err(|e| format!("base64 decode error: {}", e))?;
+    let update = Update::decode_v1(&bytes).map_err(|e| format!("state decode error: {}", e))?;
+
+    PLAYER_DOC.with(|cell| {
+        // What this device holds, before any of it is let go.
+        let (mine, my_merges, my_state_vector) = {
+            let doc = cell.borrow();
+            let (loyalty, merges) = (doc.get_or_insert_map("loyalty"), doc.get_or_insert_map("merges"));
+            let txn = doc.transact();
+            (read_record(&loyalty, &txn), read_merges(&merges, &txn), txn.state_vector())
+        };
+
+        let doc = with_roots(Doc::new());
+        doc.transact_mut().apply_update(update).map_err(|e| format!("restore error: {}", e))?;
+        let (loyalty, merges) = (doc.get_or_insert_map("loyalty"), doc.get_or_insert_map("merges"));
+        let mut txn = doc.transact_mut();
+        let theirs = read_record(&loyalty, &txn);
+        let their_state_vector = txn.state_vector();
+        let mut taken = Taken {
+            gained: ahead(&their_state_vector, &my_state_vector),
+            held: ahead(&my_state_vector, &their_state_vector),
+            their_state_vector: URL_SAFE_NO_PAD.encode(their_state_vector.encode_v1()),
+            ..Taken::default()
+        };
+
+        // The record: what this device knows is added to what arrived.
+        let nothing = Loyalty::default();
+        for (slug, had) in &mine {
+            let brought = theirs.get(slug).unwrap_or(&nothing);
+            taken.days_new_there += had.days.difference(&brought.days).count() as u32;
+            let mut joined = brought.clone();
+            joined.join(had);
+            if joined != *brought {
+                write_loyalty(&loyalty, &mut txn, slug, &joined);
+            }
+        }
+        for (slug, brought) in &theirs {
+            let had = mine.get(slug).unwrap_or(&nothing);
+            taken.days_new_here += brought.days.difference(&had.days).count() as u32;
+        }
+        let known: BTreeSet<String> = read_merges(&merges, &txn).into_iter().map(|merge| merge.id).collect();
+        for merge in my_merges.iter().filter(|merge| !known.contains(&merge.id)) {
+            write_merge(&merges, &mut txn, merge);
+        }
+        // A state that holds nothing new to this device is one it has had
+        // before (the same backup again): no two histories met.
+        if taken.gained > 0 {
+            let merge = Merge {
+                id: format!("{:016x}", fastrand::u64(..)),
+                at: now,
+                by: by.to_string(),
+                gained: taken.gained,
+                held: taken.held,
+            };
+            write_merge(&merges, &mut txn, &merge);
+        }
+        drop(txn);
+        *cell.borrow_mut() = doc;
+        Ok(taken)
+    })
+}
+
+/// The game in progress, in numbers: what would be lost if another took
+/// its place.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Progress {
+    /// Cards with damage marked, or wasted.
+    pub damaged: usize,
+    pub timers: usize,
+    pub affinity: Option<String>,
+}
+
+impl Progress {
+    pub fn is_empty(&self) -> bool {
+        *self == Progress::default()
+    }
+}
+
+/// The game in progress on this device.
+pub fn progress() -> Progress {
+    let damaged = PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let cards = doc.get_or_insert_map("cards");
+        let txn = doc.transact();
+        cards
+            .iter(&txn)
+            .filter(|(_, card)| match card {
+                yrs::Out::YMap(card) => {
+                    let wasted = matches!(card.get(&txn, "wasted"), Some(yrs::Out::Any(Any::Bool(true))));
+                    let marked = match card.get(&txn, "slots") {
+                        Some(yrs::Out::YArray(slots)) => {
+                            slots.iter(&txn).any(|slot| matches!(slot, yrs::Out::Any(Any::Bool(true))))
+                        }
+                        _ => false,
+                    };
+                    wasted || marked
+                }
+                _ => false,
+            })
+            .count()
+    });
+    Progress { damaged, timers: get_alarms().len(), affinity: get_active_affinity().map(|(name, _)| name) }
 }
 
 // ── Sync protocol (Cross-Device Sync — Phase E) ───────────────────
@@ -1536,6 +1848,259 @@ mod tests {
         let (total, last) = get_loyalty("brox").unwrap();
         assert_eq!(total, 2);
         assert_eq!(last, "2026-02-26");
+    }
+
+    #[test]
+    fn a_day_already_counted_is_not_counted_again_whatever_order_the_days_come_in() {
+        reset();
+        increment_loyalty("brox", "2026-02-26").unwrap();
+        // The device's clock was set back: an earlier day is still a day.
+        assert_eq!(increment_loyalty("brox", "2026-02-20").unwrap(), 2);
+        assert_eq!(increment_loyalty("brox", "2026-02-26").unwrap(), 2);
+        assert_eq!(increment_loyalty("brox", "2026-02-20").unwrap(), 2);
+        let kept = loyalty_of("brox").unwrap();
+        assert_eq!(kept.days, BTreeSet::from(["2026-02-20".to_string(), "2026-02-26".to_string()]));
+        assert_eq!(get_loyalty("brox").unwrap(), (2, "2026-02-26".to_string()));
+    }
+
+    /// A card's loyalty as the engine kept it before the days were: a count
+    /// and the last day.
+    fn loyalty_as_it_was(slug: &str, total: u32, last: &str) {
+        PLAYER_DOC.with(|cell| {
+            let doc = cell.borrow();
+            let loyalty = doc.get_or_insert_map("loyalty");
+            let mut txn = doc.transact_mut();
+            let entry = MapPrelim::from([
+                ("total_plays".to_string(), Any::from(total as f64)),
+                ("last_played".to_string(), Any::from(last.to_string())),
+            ]);
+            loyalty.insert(&mut txn, slug, entry);
+        });
+    }
+
+    #[test]
+    fn loyalty_kept_as_a_count_is_read_and_carried_on_from() {
+        reset();
+        loyalty_as_it_was("brox", 5, "2026-02-25");
+        assert_eq!(get_loyalty("brox").unwrap(), (5, "2026-02-25".to_string()));
+        // Its last day is one of the five, so that day played again is not a sixth.
+        assert_eq!(increment_loyalty("brox", "2026-02-25").unwrap(), 5);
+        assert_eq!(increment_loyalty("brox", "2026-02-27").unwrap(), 6);
+        let kept = loyalty_of("brox").unwrap();
+        assert_eq!(kept.earlier, 4);
+        assert_eq!(kept.days.len(), 2);
+        assert_eq!(get_loyalty("brox").unwrap(), (6, "2026-02-27".to_string()));
+
+        // What the engine as it was reads is kept in step.
+        PLAYER_DOC.with(|cell| {
+            let doc = cell.borrow();
+            let loyalty = doc.get_or_insert_map("loyalty");
+            let txn = doc.transact();
+            let Some(yrs::Out::YMap(entry)) = loyalty.get(&txn, "brox") else { panic!("no entry") };
+            assert_eq!(number_in(&entry, &txn, "total_plays"), Some(6.0));
+            assert_eq!(text_in(&entry, &txn, "last_played").as_deref(), Some("2026-02-27"));
+        });
+    }
+
+    #[test]
+    fn a_play_counted_by_the_engine_as_it_was_on_an_entry_that_keeps_days_is_not_lost() {
+        reset();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        increment_loyalty("brox", "2026-02-26").unwrap();
+        // A page still running the engine as it was counts a third day its
+        // way: the count and the last day, and no day among the days.
+        PLAYER_DOC.with(|cell| {
+            let doc = cell.borrow();
+            let loyalty = doc.get_or_insert_map("loyalty");
+            let mut txn = doc.transact_mut();
+            let Some(yrs::Out::YMap(entry)) = loyalty.get(&txn, "brox") else { panic!("no entry") };
+            entry.insert(&mut txn, "total_plays", Any::from(3.0));
+            entry.insert(&mut txn, "last_played", Any::from("2026-02-27".to_string()));
+        });
+        assert_eq!(get_loyalty("brox").unwrap(), (3, "2026-02-27".to_string()));
+        // The next count here puts it among the days.
+        assert_eq!(increment_loyalty("brox", "2026-02-28").unwrap(), 4);
+        let kept = loyalty_of("brox").unwrap();
+        assert_eq!((kept.earlier, kept.days.len()), (0, 4));
+    }
+
+    // ── A game taken over ──────────────────────────────────────────
+
+    /// When a state is taken over in these tests.
+    const THEN: f64 = 1_800_000_500_000.0;
+
+    /// A device with a game in progress and a record: damage on Brox, a
+    /// timer, an affinity, and Brox played on two days. Its state.
+    fn a_device_mid_game() -> String {
+        reset();
+        ensure_card_state("brox", 3);
+        toggle_slot("brox", 2);
+        add_alarm(NOW, 5, "siege", "red");
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        increment_loyalty("brox", "2026-02-24").unwrap();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        encode_full_state()
+    }
+
+    #[test]
+    fn a_new_device_takes_the_game_and_the_record_whole() {
+        let theirs = a_device_mid_game();
+        reset();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+
+        assert!(get_slot("brox", 2));
+        assert_eq!(get_alarms()[0].name, "siege");
+        assert_eq!(get_active_affinity().unwrap().0, "Brutal");
+        assert_eq!(get_loyalty("brox").unwrap(), (2, "2026-02-25".to_string()));
+        assert_eq!((taken.days_new_here, taken.days_new_there), (2, 0));
+        // All this device held was the one change every new document makes.
+        assert!(taken.gained > 5, "{:?}", taken);
+        assert_eq!(taken.held, 1);
+    }
+
+    #[test]
+    fn the_game_here_gives_way_to_the_one_taken_and_the_record_here_is_kept() {
+        let theirs = a_device_mid_game();
+        // This device: another game, and plays of its own. One day is the same.
+        reset();
+        ensure_card_state("brox", 3);
+        toggle_slot("brox", 1);
+        ensure_card_state("liliel", 2);
+        toggle_wasted("liliel");
+        add_alarm(NOW, 2, "mine", "blue");
+        declare_affinity("Avian", "2026-02-26").unwrap();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        increment_loyalty("brox", "2026-02-26").unwrap();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+
+        // The game is theirs, whole: nothing of this device's is mixed in.
+        assert!(get_slot("brox", 2) && !get_slot("brox", 1));
+        assert!(!has_card_state("liliel"));
+        let timers: Vec<String> = get_alarms().into_iter().map(|alarm| alarm.name).collect();
+        assert_eq!(timers, ["siege"]);
+        assert_eq!(get_all_affinities().len(), 1);
+        assert_eq!(get_active_affinity().unwrap().0, "Brutal");
+
+        // The record is both: three days of Brox, not four, and Liliel's one.
+        assert_eq!(get_loyalty("brox").unwrap(), (3, "2026-02-26".to_string()));
+        assert_eq!(get_loyalty("liliel").unwrap(), (1, "2026-02-26".to_string()));
+        assert_eq!((taken.days_new_here, taken.days_new_there), (1, 2));
+        assert!(taken.gained > 0 && taken.held > 0, "{:?}", taken);
+    }
+
+    #[test]
+    fn what_the_other_device_lacks_is_what_this_one_added_to_the_record() {
+        let theirs = a_device_mid_game();
+        reset();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        let back = encode_diff(&taken.their_state_vector).unwrap();
+        let here = encode_full_state();
+
+        // The other device, as it was, is sent it.
+        restore_from_state(&theirs).unwrap();
+        apply_update(&back).unwrap();
+        assert_eq!(get_loyalty("liliel").unwrap().0, 1);
+        assert_eq!(get_loyalty("brox").unwrap().0, 2);
+        // Its game is as it left it, and the two now hold the same.
+        assert!(get_slot("brox", 2));
+        assert_eq!(get_alarms()[0].name, "siege");
+        assert_eq!(merges().len(), 1);
+        assert_eq!(encode_state_vector(), {
+            restore_from_state(&here).unwrap();
+            encode_state_vector()
+        });
+    }
+
+    #[test]
+    fn taking_the_same_state_over_again_counts_nothing_twice() {
+        let theirs = a_device_mid_game();
+        reset();
+        increment_loyalty("brox", "2026-02-26").unwrap();
+        take_over(&theirs, THEN, "file").unwrap();
+        let once = (get_loyalty("brox").unwrap(), merges());
+        assert_eq!(once.0.0, 3);
+        assert_eq!(once.1.len(), 1);
+
+        let again = take_over(&theirs, THEN + 1000.0, "file").unwrap();
+        assert_eq!(again.gained, 0, "it holds nothing this device has not seen");
+        assert_eq!((again.days_new_here, again.days_new_there), (0, 1));
+        assert_eq!((get_loyalty("brox").unwrap(), merges()), once);
+    }
+
+    #[test]
+    fn plays_counted_before_the_days_were_kept_are_not_added_together() {
+        // Their record of Brox is a count; so is this device's.
+        reset();
+        loyalty_as_it_was("brox", 5, "2026-02-25");
+        let theirs = encode_full_state();
+        reset();
+        loyalty_as_it_was("brox", 3, "2026-02-26");
+        take_over(&theirs, THEN, "device").unwrap();
+        // The larger count, less its own last day, and the two last days.
+        let kept = loyalty_of("brox").unwrap();
+        assert_eq!(kept.earlier, 4);
+        assert_eq!(kept.days.len(), 2);
+        assert_eq!(get_loyalty("brox").unwrap(), (6, "2026-02-26".to_string()));
+    }
+
+    #[test]
+    fn each_state_taken_over_that_holds_something_new_is_kept_as_a_merge() {
+        let theirs = a_device_mid_game();
+        reset();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        let first = take_over(&theirs, THEN, "device").unwrap();
+        let kept = merges();
+        assert_eq!(kept.len(), 1);
+        assert_eq!((kept[0].at, kept[0].by.as_str()), (THEN, "device"));
+        assert_eq!((kept[0].gained, kept[0].held), (first.gained, first.held));
+        assert_eq!(kept[0].id.len(), 16);
+
+        // The merges this device holds go with it into the next state it takes.
+        let mine = encode_full_state();
+        let elsewhere = {
+            reset();
+            increment_loyalty("hilbert", "2026-03-01").unwrap();
+            encode_full_state()
+        };
+        restore_from_state(&mine).unwrap();
+        take_over(&elsewhere, THEN + 5000.0, "file").unwrap();
+        let kept = merges();
+        assert_eq!(kept.len(), 2);
+        assert_eq!(kept[0].by, "device");
+        assert_eq!(kept[1].by, "file");
+        assert!(kept[1].held > kept[0].held, "this device held the whole of the first by then: {:?}", kept);
+    }
+
+    #[test]
+    fn a_state_that_cannot_be_read_changes_nothing() {
+        let before = a_device_mid_game();
+        // Nothing, what is not base64, and a state cut short.
+        for unreadable in ["", "!!!", &before[..before.len() / 2]] {
+            assert!(take_over(unreadable, THEN, "file").is_err(), "{:?}", unreadable);
+            assert_eq!(encode_full_state(), before);
+        }
+    }
+
+    #[test]
+    fn the_game_in_progress_is_counted() {
+        reset();
+        assert!(progress().is_empty());
+        // A card that has only been looked at is not damage.
+        ensure_card_state("brox", 3);
+        assert!(progress().is_empty());
+        toggle_slot("brox", 2);
+        ensure_card_state("liliel", 2);
+        toggle_wasted("liliel");
+        add_alarm(NOW, 5, "siege", "red");
+        declare_affinity("Brutal", "2026-02-25").unwrap();
+        assert_eq!(progress(), Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) });
+        // The record is no part of it.
+        reset();
+        increment_loyalty("brox", "2026-02-25").unwrap();
+        assert!(progress().is_empty());
     }
 
     // ── Sync protocol tests (Phase E) ──────────────────────────────

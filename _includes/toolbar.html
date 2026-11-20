@@ -230,11 +230,3 @@ background_color
   {% endif %}
 
 </div>
-
-{% comment %} Fixed-position modals (event-triggered from the hamburger menu).
-  Rendered OUTSIDE the toolbar's flex column so their empty wrappers don't add
-  gap spacing below the hamburger. {% endcomment %}
-{% if include.hamburger %}
-  {% include player_data_tool.html %}
-  {% include device_sync_tool.html %}
-{% endif %}

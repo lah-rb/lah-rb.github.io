@@ -26,8 +26,8 @@
 //! ```
 //!
 //! A name starts with whose it is: `room` for the room's connection
-//! (`game::connection`), `sync` for a pairing of two devices
-//! (`game::device_sync`).
+//! (`game::connection`), `sync` for a game moving between two of the
+//! player's devices (`game::device_sync`).
 
 use std::cell::RefCell;
 
@@ -169,7 +169,7 @@ pub fn handle_wire_post(body: &str) -> String {
             (Channel::Room, Some(timer)) => connection::link_timer(timer),
             (Channel::Room, None) => connection::wait_over(wait),
             (Channel::Sync, Some(timer)) => device_sync::link_timer(timer),
-            (Channel::Sync, None) => {}
+            (Channel::Sync, None) => device_sync::wait_over(wait),
         }
     }
     "ok".to_string()

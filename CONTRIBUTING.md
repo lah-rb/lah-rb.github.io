@@ -128,7 +128,7 @@ All data is tracked across three distinct stores. Rust is the single source of t
 
 | Scope | Store | Persistence | Synced? | Examples |
 |-------|-------|-------------|---------|----------|
-| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes — opt-in cross-device sync via WebSocket relay (HMAC-authenticated) | Card damage, turn alarms, settings, affinity, loyalty |
+| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes: a game is moved to another of the player's devices through the relay, sealed with a key the relay never sees (the Player Data page) | Card damage, turn alarms, settings, affinity, loyalty, the merges made |
 | **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
 | **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player) |
 
@@ -218,15 +218,15 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `_plugins/card_pages.rb` | Jekyll hook: runs `card-pages` after every build |
 | `kipukas-server/src/routes/*.rs` | Route handlers (type matchup, QR, cards, game, room, player, shared utils) |
 | `kipukas-server/src/routes/player.rs` | Player routes — affinity, loyalty |
-| `kipukas-server/src/routes/backup.rs` | The Player Data dialog: making a backup of the player's data and restoring from one |
+| `kipukas-server/src/routes/backup.rs` | The Player Data page's backup section: making a backup of the player's data and restoring from one |
 | `kipukas-server/src/routes/room_status.rs` | The room dialog and the status pill, drawn from the connection |
-| `kipukas-server/src/routes/device_sync.rs` | The Sync Devices dialog, drawn from the pairing |
+| `kipukas-server/src/routes/device_sync.rs` | The Player Data page's sync section, drawn from the move: its questions, the invitation's QR code, what came of it |
 | `kipukas-server/src/routes/qr.rs` | The QR scanner: whether it is open, its switches, where a scanned code leads, and which files its reader, its model and the model's runner are |
 | `kipukas-server/src/settings.rs` | The settings page: the player's choices about this device, each a switch, and where they are stored |
 | `kipukas-server/src/scan.rs` | What is done to a camera frame around the model and the reader: the model's input, its boxes, each box cut out, the threshold, and the order the reader is offered pictures in |
 | `kipukas-server/src/game/player_doc.rs` | **Authoritative player data store** — yrs CRDT Doc for damage, alarms, settings, affinity, loyalty |
 | `kipukas-server/src/game/crypto.rs` | What protects a backup: the HMAC-SHA256 signature inside it and the seal a backup file is (AES-256-GCM under a PBKDF2 key), and the file format |
-| `kipukas-server/src/game/backup.rs` | Backups: what the Player Data dialog shows, making a backup file, restoring from one |
+| `kipukas-server/src/game/backup.rs` | Backups: what the backup section shows, making a backup file, restoring from one |
 | `kipukas-server/src/game/*.rs` | Damage rendering, turn logic, room state, CRDT sync |
 | `kipukas-server/src/game/crdt.rs` | The room document (`ROOM_DOC`): shared timers, persistence, sync handshake |
 | `kipukas-server/src/game/fists.rs` | Fists combat in the room document — pure functions over a `Doc`, tested with two documents |
@@ -235,7 +235,7 @@ The connection is the engine's (`kipukas-server/src/game/connection.rs`): what t
 | `kipukas-server/src/link.rs` | One connection to the relay as a state machine: one socket, one retry, backoff, heartbeat. Holds no socket and no clock, so its tests drive it with fakes |
 | `kipukas-server/src/wire.rs` | What the engine asks of its worker (open, send on and close a socket; start and forget a wait) and the worker's reports |
 | `kipukas-server/src/game/connection.rs` | The room's connection: create, join, leave, what the relay and the other player say, and what the dialog and pill show |
-| `kipukas-server/src/game/device_sync.rs` | Pairing two devices to merge the player's own state |
+| `kipukas-server/src/game/device_sync.rs` | Moving a game from one of the player's devices to another: the invitation, the sealed exchange through the relay |
 | `kipukas-server/src/game/card_panel.rs` | The card schema (fields, and card types as compositions of them) and the card detail panel renderer |
 | `kipukas-server/src/catalog.rs` | The card catalog: `Card`, and the cards themselves, included from the build script's output |
 | `kipukas-server/build.rs` | Build script: reads `cards/` into the catalog each time the engine is compiled |
@@ -308,7 +308,7 @@ thread_local! {
 
 **Why it works:** The WASM module runs in a single Web Worker thread. `thread_local!` provides safe global state without `unsafe`. Each store has its own lifecycle: PLAYER_DOC is stored for good; RoomState and ROOM_DOC exist for as long as the player is in a room, are stored, and are rebuilt from storage on every page load.
 
-Everything else the engine holds is kept the same way: the room's connection and its link (`game/connection.rs`), a pairing of devices (`game/device_sync.rs`), the QR scanner (`routes/qr.rs`), what storage holds (`store.rs`), and the queues of the handover (`page.rs`, `wire.rs`).
+Everything else the engine holds is kept the same way: the room's connection and its link (`game/connection.rs`), a game moving between devices (`game/device_sync.rs`), the QR scanner (`routes/qr.rs`), what storage holds (`store.rs`), and the queues of the handover (`page.rs`, `wire.rs`).
 
 **The one thing to watch:** a `RefCell` borrowed twice panics. Do not call into another module from inside a `with(|…| …)` closure if that module might come back to the cell you hold. The connection is the case in point: its link asks its owner questions (the relay address, whether to retry), so nothing of the connection's own state is borrowed while the link is being driven (`link()` in `game/connection.rs`).
 
@@ -470,8 +470,8 @@ Firefox does not keep a page that is left while its art is still loading, nor th
 
 **Key constraints:**
 - **Alpine owns visibility, the engine owns everything shown.** Don't fetch or compute in Alpine. Don't open or close a dialog from the engine.
-- **Tell the engine of a closing only if it changes something there** (`kipukasViews.post`): the room dialog forgets what it said, fists moves on from a finished round, device sync ends the pairing.
-- **Prefer window events for opening a tool from elsewhere**: the hamburger menu dispatches `open-player-data`, and the tool listens with `@open-player-data.window`.
+- **Tell the engine of a closing only if it changes something there** (`kipukasViews.post`): the room dialog forgets what it said, fists moves on from a finished round.
+- **Prefer window events for opening a tool from elsewhere**: a control outside the tool dispatches an event (`$dispatch('open-…')`), and the tool listens with `@open-….window`.
 
 ### Pattern 13: Engine-Owned Views
 
@@ -549,8 +549,9 @@ When a page script changes the engine's state from outside a view, it calls `kip
 - The binder: its grid, its filter menu and its search, all of one route. `kipukas-server/src/routes/cards.rs` holds what the binder shows: the boxes ticked in the menu, whether a search is on and what is typed, and how many tiles are on the page so far. The menu's parts (`_includes/filter.html`) are views of `/api/cards?menu=…`, so ticking a box draws the menu and the grid again; Alpine only opens the menu and folds its groups. The search field (`_includes/toolbar.html`) is a form sent as it is typed in; an open search shows the cards matching what is typed and nothing while nothing is typed, and closing it gives back what the menu says. The grid is a list that grows as it is read: in `index.html`, one element, `data-engine-view="/api/cards?columns={columns}"`. The engine holds which cards the binder shows and how many are on the page so far. It renders those tiles, at least a first batch of three rows, and after them a marker (`data-engine-seen`) that asks for the next batch when it scrolls into view. "More" is a change of the engine's state followed by a redraw, like any tap; because every tile is kept (`data-engine-keep`, with an id), the redraw only adds the new tiles, and a tile that stays through a change of filter keeps its loaded art. The request says how many to show in all, so asking twice does it once.
 - The hand page, a view that holds a view per card: `kipukas-server/src/routes/hand.rs`; template `hand.html`, which is one element. The engine reads the cards from the address and renders a pane for each. A hand opens offline for cards never viewed before, because the engine has every card.
 - The room dialog and the status pill, two views of the room's connection that nothing on the page drives: `kipukas-server/src/routes/room_status.rs`; templates `_includes/multiplayer.html` and `_includes/room_status.html`. Create and join are forms, so Enter submits them. What the relay answers changes what they show, and the engine has them drawn again: it compares what the dialog would show now with what it last asked to be drawn, and what the pill should show with what it shows. Something being waited for (reconnecting, the opponent away) is put on the pill only once it has lasted 1.5 seconds, by a wait the engine asks its worker for, because every page change reconnects for a moment.
-- Player Data, a dialog that hands the player a file and takes one back: `kipukas-server/src/routes/backup.rs` and `src/game/backup.rs`; template `_includes/player_data_tool.html`. Making a backup, the engine signs and encrypts the player's state (`game/crypto.rs`) and queues the file for the page (`page::download`). Restoring, the import form's file field arrives as the file's text; the engine opens it, checks the signature, puts the state in place of the player's and has every view drawn again (`page::refresh`), so nothing is reloaded. The settings page's switches are sealed in the file beside the state (`settings::for_backup`), and restoring puts each as the backup has it (`settings::from_backup`); a backup made before they were carried changes none. A refused form keeps its file (`data-engine-stay`) and its passphrase (drawn back by the engine, which forgets it when the dialog closes).
-- Device sync, a dialog of three screens: `kipukas-server/src/routes/device_sync.rs`; template `_includes/device_sync_tool.html`. The engine holds which screen it is on and what was typed, so a refusal keeps the passphrase in its field.
+- Player Data, a page of two sections, each a view: template `sections/player_data.html`, reached from the menu.
+  - Backup hands the player a file and takes one back: `kipukas-server/src/routes/backup.rs` and `src/game/backup.rs`. Making a backup, the engine signs and encrypts the player's state (`game/crypto.rs`) and queues the file for the page (`page::download`). Restoring, the import form's file field arrives as the file's text; the engine opens it, checks the signature, takes its state over (`player_doc::take_over`, below) and has every view drawn again (`page::refresh`), so nothing is reloaded. The settings page's switches are sealed in the file beside the state (`settings::for_backup`), and restoring puts each as the backup has it (`settings::from_backup`); a backup made before they were carried changes none. A refused form keeps its file (`data-engine-stay`) and its passphrase (drawn back by the engine, which forgets it when the player goes back to the section's first screen).
+  - Sync moves a game to another of the player's devices: `kipukas-server/src/routes/device_sync.rs` and `src/game/device_sync.rs`. See Moving a game to another device, below.
 - The settings page, a list of switches on a page of its own: `kipukas-server/src/settings.rs`; template `sections/settings.html`, reached from the menu. A setting is a choice about this device, on or off, off until the player turns it on. It is not synced to another device, and a backup of the player's data carries it. The engine holds each, draws it with its switch (`role="switch"`, whose `aria-checked` is also what colours it and moves its knob) and has it stored under a key of its own when the switch is turned (`store::put`). What a setting changes is the business of the module it is about, which asks `settings::is_on`. To add one: a `Setting` in `settings.rs`, its key in `CHOICES` in `kipukas-api.js` (the keys handed to the engine at load and watched for another tab's change), and the asking. There are two. That the camera privacy notice has been accepted (`CAMERA_PRIVACY`) is the choice the QR scanner's own notice asks for: its Accept turns the setting on (`settings::set`), under the key the notice has always written, and the switch is how a player takes it back without clearing the site's data. Turned off, an open scanner goes back to its notice and the next opening shows it. The other is whether the QR scanner shows what its frames take (see The QR scanner's frames).
 - The QR scanner, a view the page and the worker both serve: `kipukas-server/src/routes/qr.rs`; template `_includes/qr_scanner.html`. The engine holds whether it is open and its two switches. The camera is the page's: `qr-camera.js` runs it for as long as the element the engine marks `data-qr-camera` is drawn, into the video in it, which is marked `data-engine-keep` so that turning the screen light on does not disturb the picture. Which of the device's cameras is the page's too. The button marked `data-qr-switch` changes between the camera that faces the player and one that faces away, and leaves the browser to choose which of those; where the running camera does not say which way it faces (a computer's), or the browser turns out to have none that faces the other way, it goes round the device's cameras instead. The page tells the scanner which one it is running, in the browser's words, and the size of its picture (`action=camera`). The engine decides from that whether the picture is mirrored (`data-mirrored`): yes for a camera that faces the player or that nothing is known of, no for one that faces away. What it keeps is the player's choice: the camera they changed to (the page says `chosen=true`) or, before any change, the first that ran. A camera the browser started in place of the one wanted does not take its place, so the one wanted is asked for again the next time. The engine writes the choice on the scanner (`data-camera-id`, `data-camera-facing`), and the page asks the browser for it when it next starts the camera: by its id where the browser shows, before any camera runs, that it still has one of that id, and otherwise only by the way it faces, leaving the browser to choose which. An iPhone names no camera until one has been allowed on the page, so there the scanner asks for "the rear camera" and iOS chooses the lens, which it changes by itself as a card comes near. (Seen on an iPhone 14 Pro Max with iOS 26, November 2026: asked this way, Safari gives "Back Triple Camera", the one that changes lens. It lists seven cameras there, six of them rear lenses, and a button that went round them all was cumbersome and confusing to the owner, which is why it changes between the two ways a camera can face. The front camera that kept coming back on that phone was not Safari's doing: see The Back button, under Pattern 10.) The video and the canvas over it are kept elements, which are not drawn again, so they follow the attribute on what holds them by a class (`group-data-mirrored/camera:`). The screen light is kept as it was left as well. The frames go to the engine by way of its worker (see The QR scanner's frames, below), and what a code says is posted to the scanner, which decides where it leads and has the page go there (`GO` in the handover), or says in the scanner why it leads nowhere.
 
@@ -640,7 +641,8 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [yrs](https://crates.io/crates/yrs) | 0.25 | MIT | Yjs CRDT port — conflict-free replicated data types for multiplayer sync |
 | [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
 | [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports. At build time, names the cached preview pictures |
-| [aes-gcm](https://crates.io/crates/aes-gcm) | 0.10 | MIT / Apache-2.0 | Encrypts the player's backups (`src/game/crypto.rs`) |
+| [aes-gcm](https://crates.io/crates/aes-gcm) | 0.10 | MIT / Apache-2.0 | Encrypts the player's backups, and a game sent from one device to another (`src/game/crypto.rs`) |
+| [qrcodegen](https://crates.io/crates/qrcodegen) | 1.8 | MIT | Draws the QR code one device shows another to hand its game over (`src/routes/device_sync.rs`) |
 | [getrandom](https://crates.io/crates/getrandom) | 0.2 | MIT / Apache-2.0 | The browser's random numbers, for a backup's salt and nonce |
 | [fastrand](https://crates.io/crates/fastrand) | 2 | MIT / Apache-2.0 | Ids for turn timers. Already in the module through yrs |
 | [js-sys](https://crates.io/crates/js-sys) | 0.3 | MIT / Apache-2.0 | The browser's clock (`src/clock.rs`). WASM build only |
@@ -756,7 +758,7 @@ deno task build:sw         # Rebuild service worker only (after jekyll build)
 cd kipukas-server && cargo test
 ```
 
-These cover the game, the views' markup, and the connection: the link's state machine on a fake socket and a clock moved by hand (`src/link.rs`), the room protocol and device sync by playing the relay's and the other player's parts (`src/game/connection.rs`, `src/game/device_sync.rs`), and what is stored (`src/store.rs`).
+These cover the game, the views' markup, and the connection: the link's state machine on a fake socket and a clock moved by hand (`src/link.rs`), the room protocol and a game's move to another device by playing the relay's and the other side's parts (`src/game/connection.rs`, `src/game/device_sync.rs`), and what is stored (`src/store.rs`).
 
 **Relay tests** (the room rules, and the whole relay running locally and driven over real WebSockets):
 
@@ -778,7 +780,7 @@ The last step plays two of the site's engines against the local relay, each held
 
 The connection logs nothing. Where it stands is on the page: the room dialog and the status pill.
 
-**Checks that need a browser or a phone** are in `tests/devices/`, with a README of their own. `deno task browser` there drives Chrome through the scanner on the built site or the live one: a page come back to with Back, the switch-camera button on pretend cameras, a choice made in one tab taken up by another. The scripts under `phone/` read Safari on an iPhone that is plugged in, and record what its scanner asks of the phone and is given. Nothing runs them automatically: run them after a change to the scanner or to what is stored.
+**Checks that need a browser or a phone** are in `tests/devices/`, with a README of their own. `deno task browser` there drives Chrome through the scanner on the built site or the live one: a page come back to with Back, the switch-camera button on pretend cameras, a choice made in one tab taken up by another, and a game moved between two browsers (which runs the relay locally when it checks the built site). The scripts under `phone/` read Safari on an iPhone that is plugged in, and record what its scanner asks of the phone and is given. Nothing runs them automatically: run them after a change to the scanner, to what is stored, or to the Player Data page.
 
 **Multiplayer testing:**
 - One machine: a normal window and a private window (two tabs of one browser are the same player — see Pattern 10)
@@ -1020,6 +1022,32 @@ The core tameability infrastructure shipped in the Player Document sprint: `tama
 
 ---
 
+## Moving a game to another device
+
+The Player Data page's sync section (`sections/player_data.html`, `src/game/device_sync.rs`, `src/routes/device_sync.rs`). What it does was settled with the owner on 2026-11-20, after the first version (a merge of everything, kept live) left no clear answer to what two different games merged should be.
+
+**The contract.** The player's document holds two things, and they are moved by opposite rules:
+
+- **The game in progress** is damage, timers, what is retired and the affinity declared: everything New Game clears. Two games have no sensible union, so a game is only ever taken whole. It goes one way, from the device that starts the sync (the sender) to the other (the receiver), and takes the place of the receiver's game.
+- **The player's record** outlives every game: each card's loyalty, and the merges below. Each device adds what it knows to what the other holds. Both end with the same record, nothing either held is lost, and nothing is counted twice: loyalty is the days a card was played on, kept by date, so a day both devices counted is one day, and syncing again changes nothing.
+
+A backup that is restored is taken over by the same rule (`player_doc::take_over` does both), so the two ways of moving a player's data cannot drift apart. Nothing is mirrored between devices after the move.
+
+**The flow.**
+
+1. Sender: Player Data, "Sync a new device". A question says the other device loses its game. Yes makes a room on the relay and shows an invitation: the room's code and a secret the sender drew, as a QR code and as text.
+2. Receiver: is handed the invitation one of three ways. The QR code carries `https://www.kipukas.cards/player_data#sync=<code>-<secret>`, which a phone's camera app opens (what follows the `#` is sent to no server; the view's route carries it to the engine, `?link={hash}`). The site's scanner reads the same code (`routes::qr::found` takes the invitation up directly, because going to an address that differs only after its `#` loads nothing). Or the player types the code.
+3. Receiver: a question says what game it would lose. Nothing has moved yet, and nothing moves by an address being opened: a link sent by someone else must not be able to replace a game. Yes joins the room.
+4. The receiver asks for the game, the sender sends its whole state, the receiver takes it over and sends back what it added to the record, the sender takes that in and says so. Each then gives up its place in the room, which ends it: a code works once. One nobody uses ends after ten minutes.
+
+**What the relay sees.** The room's code, a room name, two random ids, and sealed messages. Everything the two devices say is sealed with AES-256-GCM under a key made from the secret (`crypto::Pairing`), each message for one direction, so a message that opens was sealed by a device that was shown the invitation and nothing else has to prove it. The room's name, which the relay asks of whoever joins, is made from the secret too and says nothing of the key: a stranger who guesses the four-character code is turned away by the relay. The relay needs no change for any of this.
+
+**Merges: a history, kept and not judged.** Each time a state is taken over that holds something new to the device, the two histories are compared and the comparison is kept in the document (`merges`): how many changes the state taken held that the device had not seen (`gained`), and how many the device held that the state taken had not (`held`). A change is one step of a device's count in the document's state vector, so the two numbers are the two halves of the difference between the histories. A new device taking a game over holds next to nothing; two records that grew apart, or were never one player's, each hold much the other lacks. Nothing is decided by these numbers and no sync is refused: they are kept so that a later rule (a tournament's, or an account's) has today's history to read. Small numbers are not meaningful: every new document makes one change, and looking at a card for the first time makes a few.
+
+**To check it:** `cargo test` plays the relay and the other device (`game::device_sync`), and `tests/devices/browser/sync.ts` moves a game between two browsers through a relay run locally, handing the invitation over each of the three ways. The QR code is held up to a pretend camera there, so the site's own reader reads it.
+
+**Not done:** a player's place in a room (two-player game) does not move with the game. The room's shared timers and fists are in the room's document, and a second device can already take the player's place by joining the room with its code and name.
+
 ## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
 > **Philosophy:** Kipukas is not meant to lock down the game after purchase. If Kipukas the company ceases to exist, gameplay experience should be unaffected. A player's progression data (affinity, loyalty, damage, decks) lives on *their* device in a conflict-free, exportable format. When a dedicated store account is available, backup/restore becomes a service — not a requirement.
@@ -1035,7 +1063,8 @@ The core tameability infrastructure shipped in the Player Document sprint: `tama
 | `"retired"` | `YMap<timer id, f64>` | When each timer removed in the last day was removed (ms) |
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |
 | `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
-| `"loyalty"` | `YMap<slug, YMap>` | `{ total_plays: i64, last_played: String }` |
+| `"loyalty"` | `YMap<slug, YMap>` | `{ days: YMap<date, true>, earlier: i64, total_plays: i64, last_played: String }`: the days the card was played on, each by its date; `earlier`, plays counted before the days were kept; the last two, all an entry once held, kept in step with the rest |
+| `"merges"` | `YMap<id, YMap>` | `{ at: f64, by: String, gained: i64, held: i64 }`: each state taken over from another device (`by: "device"`) or a backup (`"file"`), see Moving a game to another device |
 
 ### Phase Summary
 
@@ -1044,8 +1073,8 @@ The core tameability infrastructure shipped in the Player Document sprint: `tama
 | **A — Player Document Infrastructure** | `PLAYER_DOC` (yrs CRDT Doc) as sole authoritative store. (Saving and restoring it, and exporting and importing it unsigned, were routes; storage is now the engine's own doing, see Pattern 10, and a backup is always signed and sealed, see Phase D.) Old `GameState` serde struct and `kipukas_game_state` localStorage key fully removed. |
 | **B — Affinity Tracking** | Declare archetypal affinity once per day via toolbar panel (`_includes/affinity_tool.html`). Level grows with each declaration. +1 roll bonus shown in fists combat result when attacker's `genetic_disposition` matches active affinity. Routes: `/api/player/affinity` GET/POST. The panel is an engine-owned view (Pattern 13). |
 | **C — Loyalty Tracking** | Per-card play counter increments on fists combat submission (once per day per card). Loyalty badge on card pages. Species cards show tameability progress bar: `(loyalty + matching affinity) / tamability threshold`. `tamability` field added to all Species card YAML. |
-| **D — Signed & Encrypted Export/Import** | Two layers, both the engine's (`game/crypto.rs`): the player's state is signed with HMAC-SHA256, and the signed state is sealed with AES-256-GCM under a key made from the passphrase by PBKDF2 (100,000 rounds of HMAC-SHA256). `.kipukas` file format, unchanged since the seal was the page's (Web Crypto, `kipukas-crypto.js`, now gone): a test holds a file made then. Hamburger menu → "Player Data" dialog, an engine-owned view of `/api/player/backup` (Pattern 13). |
-| **E — Cross-Device Sync** | Sync PLAYER_DOC between two devices via existing WebSocket relay. Mutual HMAC-SHA256 authentication, yrs CRDT merge for conflict resolution. Hamburger menu → "Sync Devices" modal (the menu entry is commented out at present). While paired, a change on one device is offered to the other as it is stored. Now the engine's (`game/device_sync.rs`), with its dialog a view of `/api/player/sync`. |
+| **D — Signed & Encrypted Export/Import** | Two layers, both the engine's (`game/crypto.rs`): the player's state is signed with HMAC-SHA256, and the signed state is sealed with AES-256-GCM under a key made from the passphrase by PBKDF2 (100,000 rounds of HMAC-SHA256). `.kipukas` file format, unchanged since the seal was the page's (Web Crypto, `kipukas-crypto.js`, now gone): a test holds a file made then. The Player Data page's backup section, an engine-owned view of `/api/player/backup` (Pattern 13). Restoring takes the backup's game and merges the record, as a sync does (Phase E). |
+| **E — Cross-Device Sync** | First shipped as a merge of the whole PLAYER_DOC between two devices paired by a room code and a passphrase, kept live while paired. Rebuilt on 2026-11-20 as a one-way move of the game with a merge of the record: see Moving a game to another device. |
 
 ### Guiding Constraints (Retained)
 

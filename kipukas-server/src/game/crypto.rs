@@ -1,5 +1,7 @@
-//! What protects a backup of the player's data: a signature and a seal,
-//! both from a passphrase the player chooses.
+//! What protects the player's data when it leaves the device: a backup's
+//! signature and seal, both from a passphrase the player chooses, and the
+//! key two of the player's devices share while a game moves from one to the
+//! other ([`Pairing`], at the end).
 //!
 //! - **The signature** is HMAC-SHA256 of the player's state under the
 //!   passphrase ([`sign_export`], [`verify_export`]). It is kept inside the
@@ -23,7 +25,7 @@
 //! took the seal over: every backup a player already has opens here, and a
 //! test below holds one made by that script.
 
-use aes_gcm::aead::{Aead, KeyInit};
+use aes_gcm::aead::{Aead, KeyInit, Payload};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -219,6 +221,104 @@ fn hex_decode(hex: &str) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+// ── A pairing of two devices ───────────────────────────────────────
+//
+// When a game moves from one of the player's devices to another
+// (`game::device_sync`), the two meet in a room on the relay, and the relay
+// passes on what they say. So that it can read none of it, the device that
+// starts draws a secret, and shows it to the other in a QR code beside the
+// room's code. It never goes to the relay. From it both make:
+//
+// - the key everything they say to each other is sealed with (AES-256-GCM,
+//   a new nonce for every message). A message that opens was sealed by a
+//   device that was shown the secret, so nothing else need prove it;
+// - the room's name, which the relay asks of whoever joins a room. It keeps
+//   a stranger who has guessed the room's code out of the room, and says
+//   nothing of the key.
+//
+// A message is sealed for one direction: one a device sent cannot be handed
+// back to it as if the other had said it.
+
+/// The letters and digits a pairing's secret is written in: the relay's
+/// alphabet for room codes, which leaves out 0, O, 1 and I.
+pub const PAIRING_ALPHABET: &[u8; 32] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/// How many characters a pairing's secret has: 100 bits.
+pub const PAIRING_SECRET_LENGTH: usize = 20;
+
+/// A new secret for a pairing, from the system's random numbers.
+pub fn new_pairing_secret() -> Result<String, String> {
+    let bytes: [u8; PAIRING_SECRET_LENGTH] = random_bytes()?;
+    Ok(bytes.iter().map(|byte| PAIRING_ALPHABET[(byte & 31) as usize] as char).collect())
+}
+
+/// Which of the two devices sealed a message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    /// The device the game is moving from: it drew the secret.
+    Sender,
+    /// The device the game is moving to.
+    Receiver,
+}
+
+impl Side {
+    fn label(self) -> &'static [u8] {
+        match self {
+            Side::Sender => b"kipukas device sync 1: from the sender",
+            Side::Receiver => b"kipukas device sync 1: from the receiver",
+        }
+    }
+
+    pub fn other(self) -> Side {
+        match self {
+            Side::Sender => Side::Receiver,
+            Side::Receiver => Side::Sender,
+        }
+    }
+}
+
+/// What two devices that were shown the same secret share.
+#[derive(Clone, PartialEq)]
+pub struct Pairing {
+    key: [u8; 32],
+    /// The name the room has on the relay.
+    pub room_name: String,
+}
+
+impl Pairing {
+    pub fn new(secret: &str) -> Pairing {
+        let made = |what: &[u8]| hmac_sha256::HMAC::mac(what, secret.as_bytes());
+        Pairing {
+            key: made(b"kipukas device sync 1: key"),
+            room_name: hex_encode(&made(b"kipukas device sync 1: room")[..12]),
+        }
+    }
+
+    /// Seal `text` as said by `from`, under a nonce that must be new for
+    /// every message ([`random_bytes`]): the nonce and the ciphertext, in
+    /// URL-safe base64 with a dot between.
+    pub fn seal(&self, from: Side, text: &str, iv: [u8; 12]) -> Result<String, String> {
+        let sealed = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.key))
+            .encrypt(Nonce::from_slice(&iv), Payload { msg: text.as_bytes(), aad: from.label() })
+            .map_err(|_| "Could not encrypt the message".to_string())?;
+        Ok(format!("{}.{}", URL_SAFE_NO_PAD.encode(iv), URL_SAFE_NO_PAD.encode(sealed)))
+    }
+
+    /// What `from` sealed, or nothing if it was not sealed with this key by
+    /// that side, or has been altered.
+    pub fn open(&self, from: Side, sealed: &str) -> Option<String> {
+        let (iv, data) = sealed.split_once('.')?;
+        let (iv, data) = (URL_SAFE_NO_PAD.decode(iv).ok()?, URL_SAFE_NO_PAD.decode(data).ok()?);
+        if iv.len() != 12 {
+            return None;
+        }
+        let text = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.key))
+            .decrypt(Nonce::from_slice(&iv), Payload { msg: &data, aad: from.label() })
+            .ok()?;
+        String::from_utf8(text).ok()
+    }
+}
+
 /// A backup made on 2026-11-18 by the site as it then was: the engine
 /// signed the state and the page's script (kipukas-crypto.js, the browser's
 /// Web Crypto) sealed it. Files like it are on players' devices.
@@ -350,6 +450,58 @@ mod tests {
             Ok(true)
         );
         assert_eq!(open("another passphrase", MADE_BY_THE_PAGE_SCRIPT), Err(Sealed::WrongOrAltered));
+    }
+
+    #[test]
+    fn a_pairing_secret_is_twenty_characters_of_the_alphabet_and_new_each_time() {
+        let (a, b) = (new_pairing_secret().unwrap(), new_pairing_secret().unwrap());
+        assert_eq!(a.len(), PAIRING_SECRET_LENGTH);
+        assert!(a.bytes().all(|c| PAIRING_ALPHABET.contains(&c)), "{}", a);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn two_devices_shown_the_same_secret_read_each_other_and_nobody_else_does() {
+        let (here, there) = (Pairing::new("ABCDEFGHJKLMNPQRSTUV"), Pairing::new("ABCDEFGHJKLMNPQRSTUV"));
+        let sealed = here.seal(Side::Sender, "the game", [3; 12]).unwrap();
+        assert_eq!(there.open(Side::Sender, &sealed).as_deref(), Some("the game"));
+        assert!(!sealed.contains("game"));
+
+        // Another secret opens nothing, and gives the room another name.
+        let stranger = Pairing::new("ABCDEFGHJKLMNPQRSTUW");
+        assert_eq!(stranger.open(Side::Sender, &sealed), None);
+        assert_ne!(stranger.room_name, here.room_name);
+        assert_eq!(here.room_name, there.room_name);
+        assert_eq!(here.room_name.len(), 24);
+    }
+
+    #[test]
+    fn a_message_is_sealed_for_one_direction_and_does_not_open_altered() {
+        let pairing = Pairing::new("ABCDEFGHJKLMNPQRSTUV");
+        let sealed = pairing.seal(Side::Sender, "the game", [3; 12]).unwrap();
+        // Handed back to the device that sent it, as if the other had said it.
+        assert_eq!(pairing.open(Side::Receiver, &sealed), None);
+
+        let (iv, data) = sealed.split_once('.').unwrap();
+        let flipped = |text: &str| -> String {
+            text.chars().enumerate().map(|(i, c)| if i == 2 { if c == 'A' { 'B' } else { 'A' } } else { c }).collect()
+        };
+        for altered in [
+            format!("{}.{}", flipped(iv), data),
+            format!("{}.{}", iv, flipped(data)),
+            format!("{}{}", iv, data),
+            format!("AAAA.{}", data),
+            String::new(),
+        ] {
+            assert_eq!(pairing.open(Side::Sender, &altered), None, "{}", altered);
+        }
+        assert_eq!(pairing.open(Side::Sender, &sealed).as_deref(), Some("the game"));
+    }
+
+    #[test]
+    fn the_room_name_says_nothing_of_the_key() {
+        let pairing = Pairing::new("ABCDEFGHJKLMNPQRSTUV");
+        assert!(!hex_encode(&pairing.key).contains(&pairing.room_name[..8]));
     }
 
     #[test]

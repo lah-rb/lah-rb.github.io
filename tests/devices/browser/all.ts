@@ -8,13 +8,15 @@
 import { run as back } from './back.ts';
 import { BROWSER, Checks, serveBuiltSite } from './site.ts';
 import { run as switchCamera } from './switch.ts';
+import { run as sync } from './sync.ts';
 import { run as tabs } from './tabs.ts';
 
 const given = Deno.args[0];
 const served = given ? null : serveBuiltSite();
 const site = given || served!.site;
 const checks = new Checks();
-for (const [name, run] of [['back', back], ['switch', switchCamera], ['tabs', tabs]] as const) {
+const all = [['back', back], ['switch', switchCamera], ['tabs', tabs], ['sync', sync]] as const;
+for (const [name, run] of all) {
   try {
     await run(site, checks);
   } catch (error) {

@@ -80,7 +80,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/player/affinity", "player_affinity").ok();
     router.insert("/api/player/backup", "player_backup").ok();
 
-    // Pairing two devices to merge the player's state
+    // A game moving from one of the player's devices to another
     router.insert("/api/player/sync", "player_sync").ok();
 
     // Between the engine and what holds it: the page (`page`, `store`) and
@@ -126,7 +126,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("player_backup", "GET") => routes::backup::handle_get(query),
             ("player_backup", "POST") => routes::backup::handle_post(body),
 
-            // Pairing two devices to merge the player's state
+            // A game moving from one of the player's devices to another
             ("player_sync", "GET") => routes::device_sync::handle_sync_get(query),
             ("player_sync", "POST") => routes::device_sync::handle_sync_post(body),
 

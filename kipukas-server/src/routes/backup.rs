@@ -1,8 +1,8 @@
-//! `/api/player/backup` — the Player Data dialog, an engine-owned view
-//! (Pattern 13 in CONTRIBUTING.md) of making a backup of the player's data
-//! and restoring from one (`game::backup`).
+//! `/api/player/backup` — the Player Data page's backup section, an
+//! engine-owned view (Pattern 13 in CONTRIBUTING.md) of making a backup of
+//! the player's data and restoring from one (`game::backup`).
 //!
-//! The dialog's buttons and forms post back to this route. The import
+//! The section's buttons and forms post back to this route. The import
 //! form's file field is sent as the chosen file's text
 //! (`assets/js/kipukas-view.js`), and a backup that is made reaches the
 //! player as a file through the handover (`page::download`). Neither form is
@@ -31,7 +31,7 @@ pub fn handle_get(_query: &str) -> String {
 ///   - `action=export-screen` | `import-screen` | `menu`: go to that screen
 ///   - `action=export&passphrase=…&confirm=…`: make a backup
 ///   - `action=import&file=<the file's text>&passphrase=…`: restore from one
-///   - `action=close`: the dialog was closed (sent by the page)
+///   - `action=close`: as `menu`
 pub fn handle_post(body: &str) -> String {
     let params = parse_form_body(body);
     let passphrase = get_param(&params, "passphrase").unwrap_or("");
@@ -40,7 +40,7 @@ pub fn handle_post(body: &str) -> String {
         "import-screen" => backup::show(Screen::Import),
         "menu" => backup::show(Screen::Menu),
         "export" => backup::export(clock::now_ms(), passphrase, get_param(&params, "confirm").unwrap_or("")),
-        "import" => backup::import(passphrase, get_param(&params, "file").unwrap_or("")),
+        "import" => backup::import(clock::now_ms(), passphrase, get_param(&params, "file").unwrap_or("")),
         "close" => backup::close(),
         _ => {}
     }
@@ -49,9 +49,7 @@ pub fn handle_post(body: &str) -> String {
 
 fn render(dialog: &Dialog) -> String {
     let mut h = String::with_capacity(2048);
-    h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
-    h.push_str(r#"<p class="text-lg font-bold text-center mb-1">Player Data</p>"#);
-    h.push_str(r#"<p class="text-xs text-slate-500 text-center mb-4">Backup and restore your game progress</p>"#);
+    h.push_str(r#"<div class="text-kip-drk-sienna text-left leading-normal">"#);
 
     // What came of the last thing asked. Partly a file's words (a version).
     if !dialog.notice.is_empty() {
@@ -91,8 +89,10 @@ fn render_menu() -> String {
             r#"<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">"#,
             r#"<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />"#,
             r#"</svg>Import Backup</button>"#,
-            r#"<p class="text-xs text-slate-400 text-center mt-2">Exports are signed and encrypted with your passphrase."#,
-            r#"<br>Keep your passphrase safe — it cannot be recovered.</p>"#,
+            r#"<p class="text-xs text-slate-500 mt-2">Exports are signed and encrypted with your passphrase. "#,
+            r#"Keep your passphrase safe: it cannot be recovered.</p>"#,
+            r#"<p class="text-xs text-slate-500">Importing puts the backup's game in place of the one on this device. "#,
+            r#"Your record is merged: each card's loyalty is added together.</p>"#,
             r#"</div>"#,
         ),
         route = ROUTE
@@ -214,7 +214,7 @@ mod tests {
             .collect();
         let body = format!("action=import&file={}&passphrase=correct+horse", encoded);
         handle_post(&body);
-        assert!(handle_get("").contains("✓ Player data restored"));
+        assert!(handle_get("").contains("✓ Backup restored: this device has its game."));
         assert_eq!(player_doc::get_alarms()[0].name, "siege");
         assert!(page::take_refresh());
         fresh();

@@ -624,11 +624,27 @@ fn found(url: &str) {
     }
     let read = kipukas_path(url).and_then(destination);
     if let Ok(path) = &read {
+        // The code another of the player's devices shows to hand its game
+        // over leads to the Player Data page, which may be the page the
+        // scanner is open on. Going to an address that differs only after
+        // its # loads nothing, so the invitation is taken up here as well,
+        // and the scanner closed over the question it brings.
+        if let Some(invite) = path.strip_prefix(SYNC_PAGE) {
+            crate::game::device_sync::offer(invite);
+            close();
+            page::go(path);
+            page::redraw("/api/qr/status");
+            return;
+        }
         page::go(path);
     }
     with_scanner(|scanner| scanner.read = Some(read));
     said_by_the_worker();
 }
+
+/// Where an invitation to take a game over from another device leads
+/// (`game::device_sync`), up to the invitation itself.
+const SYNC_PAGE: &str = "/player_data#sync=";
 
 /// The worker has reported something the scanner shows. The report is not a
 /// tap in the scanner, so nothing draws the scanner again unless it is
@@ -1835,6 +1851,25 @@ mod tests {
         scanning();
         let (go, _) = read("https://www.kipukas.cards/brox_the_defiant/");
         assert_eq!(go.as_deref(), Some("/brox_the_defiant/"));
+        fresh();
+    }
+
+    #[test]
+    fn a_code_another_device_shows_to_hand_its_game_over_is_taken_up_and_the_scanner_closed() {
+        use crate::game::device_sync;
+        scanning();
+        device_sync::reset();
+        let (go, html) = read("https://www.kipukas.cards/player_data#sync=ABCD-EFGHJKLMNPQRSTUVWXYZ");
+        // The page is sent there, for when it is another page.
+        assert_eq!(go.as_deref(), Some("/player_data#sync=ABCD-EFGHJKLMNPQRSTUVWXYZ"));
+        // For when it is this one: the player is asked, over a closed scanner.
+        assert_eq!(html, "");
+        assert_eq!(device_sync::dialog().offered.map(|invite| invite.compact()).as_deref(), Some("ABCD-EFGHJKLMNPQRSTUVWXYZ"));
+        let redraws = page::take_redraws();
+        assert!(redraws.contains(&"/api/player/sync") && redraws.contains(&"/api/qr/status"), "{:?}", redraws);
+        // Nothing is connected by reading it.
+        assert!(crate::wire::take().is_empty());
+        device_sync::reset();
         fresh();
     }
 

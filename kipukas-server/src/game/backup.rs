@@ -1,26 +1,29 @@
 //! Backups of the player's data: a file the player keeps, and restoring
 //! the player's data from one.
 //!
-//! The Player Data dialog is an engine-owned view (Pattern 13) of
-//! `/api/player/backup` (`routes::backup`). What it shows is held here:
-//! which screen it is on, what was typed, and what came of the last thing
-//! asked.
+//! The Player Data page's backup section is an engine-owned view (Pattern
+//! 13) of `/api/player/backup` (`routes::backup`). What it shows is held
+//! here: which screen it is on, what was typed, and what came of the last
+//! thing asked.
 //!
 //! A backup is the player's state, signed and sealed with a passphrase the
 //! player chooses (`game::crypto`). Making one hands the page a file to save
 //! (`page::download`). Restoring from one opens the file with the
-//! passphrase, checks the signature, puts the state in place of the
-//! player's, and has every view drawn again from it. Nothing is restored
-//! from a file that does not open or whose signature does not hold.
+//! passphrase, checks the signature, and takes its state over as a game
+//! sent by another device is taken (`player_doc::take_over`): the backup's
+//! game takes the place of the one here, and this device's record is added
+//! to the backup's, so that restoring loses no day of play and restoring
+//! twice counts none twice. Every view is then drawn again. Nothing is
+//! restored from a file that does not open or whose signature does not hold.
 //!
 //! The settings page's switches travel with it (`crate::settings`): they
 //! are sealed in the file beside the state, and restoring puts each as the
 //! backup has it. A backup made before they were carried changes none.
 //!
-//! The passphrase is held only while the dialog is open and something it
-//! asked was refused, so that the field keeps it (the engine draws the form
-//! again). It is forgotten when the backup is made or restored and when the
-//! dialog closes.
+//! The passphrase is held only while something asked was refused, so that
+//! the field keeps it (the engine draws the form again). It is forgotten
+//! when the backup is made or restored, and when the player goes back to
+//! the section's first screen.
 
 use std::cell::RefCell;
 
@@ -65,7 +68,7 @@ pub fn show(screen: Screen) {
     DIALOG.with(|dialog| *dialog.borrow_mut() = Dialog { screen, ..Dialog::default() });
 }
 
-/// The dialog was closed: back to how it opens.
+/// Back to how the section opens, with nothing typed and nothing said.
 pub fn close() {
     show(Screen::Menu);
 }
@@ -123,26 +126,40 @@ pub fn export(now: f64, passphrase: &str, confirm: &str) {
     }
 }
 
-/// Restore the player's data from a backup file's text.
-pub fn import(passphrase: &str, file: &str) {
+/// Restore the player's data from a backup file's text, at `now`.
+pub fn import(now: f64, passphrase: &str, file: &str) {
     if file.trim().is_empty() {
         return refuse("Please select a .kipukas file", passphrase, "");
     }
     if passphrase.is_empty() {
         return refuse("Please enter the passphrase", passphrase, "");
     }
-    match restore(passphrase, file) {
-        Ok(()) => {
+    match restore(now, passphrase, file) {
+        Ok(taken) => {
             // Everything on the page that shows the player's state shows
             // the restored one. It is stored with the next handover.
             page::refresh();
-            done("✓ Player data restored");
+            done(&restored(&taken));
         }
         Err(problem) => refuse(problem, passphrase, ""),
     }
 }
 
-fn restore(passphrase: &str, file: &str) -> Result<(), String> {
+/// What is said of a backup that was restored.
+fn restored(taken: &player_doc::Taken) -> String {
+    let days = |n: u32| format!("{} day{} of play", n, if n == 1 { "" } else { "s" });
+    let record = match (taken.days_new_here, taken.days_new_there) {
+        (0, 0) => String::new(),
+        (brought, 0) => format!(" Your record gained {}.", days(brought)),
+        (0, kept) => format!(" This device's {} were kept.", days(kept)),
+        (brought, kept) => {
+            format!(" Your record gained {}, and this device's {} were kept.", days(brought), days(kept))
+        }
+    };
+    format!("✓ Backup restored: this device has its game.{}", record)
+}
+
+fn restore(now: f64, passphrase: &str, file: &str) -> Result<player_doc::Taken, String> {
     let signed = crypto::open(passphrase, file).map_err(|sealed| sealed.to_string())?;
     let signed: serde_json::Value =
         serde_json::from_str(&signed).map_err(|_| crypto::Sealed::NotABackup.to_string())?;
@@ -155,9 +172,10 @@ fn restore(passphrase: &str, file: &str) -> Result<(), String> {
             return Err("Verification failed — wrong passphrase or data has been tampered with".to_string());
         }
     }
-    player_doc::restore_from_state(state).map_err(|e| format!("The backup could not be restored: {}", e))?;
+    let taken =
+        player_doc::take_over(state, now, "file").map_err(|e| format!("The backup could not be restored: {}", e))?;
     settings::from_backup(&signed["settings"]);
-    Ok(())
+    Ok(taken)
 }
 
 #[cfg(test)]
@@ -236,11 +254,44 @@ mod tests {
         player_doc::init_player_doc();
         assert!(player_doc::get_alarms().is_empty());
         show(Screen::Import);
-        import("correct horse", &file);
-        assert_eq!((dialog().screen, dialog().notice.as_str(), dialog().good), (Screen::Menu, "✓ Player data restored", true));
+        import(NOW, "correct horse", &file);
+        assert_eq!((dialog().screen, dialog().notice.as_str(), dialog().good), (Screen::Menu, "✓ Backup restored: this device has its game.", true));
         assert!(player_doc::get_slot("brox_the_defiant", 2));
         assert_eq!(player_doc::get_alarms()[0].name, "siege");
         assert!(page::take_refresh(), "every view is drawn again");
+        fresh();
+    }
+
+    #[test]
+    fn restoring_takes_the_backups_game_and_keeps_the_record_of_this_device() {
+        fresh();
+        a_player();
+        player_doc::increment_loyalty("brox_the_defiant", "2026-11-17").unwrap();
+        export(NOW, "correct horse", "correct horse");
+        let (_, file) = page::take_download().unwrap();
+
+        // Another device, with a game and plays of its own.
+        player_doc::init_player_doc();
+        player_doc::add_alarm(NOW, 2, "another game", "blue");
+        player_doc::increment_loyalty("brox_the_defiant", "2026-11-18").unwrap();
+        player_doc::increment_loyalty("liliel", "2026-11-18").unwrap();
+        import(NOW, "correct horse", &file);
+        assert_eq!(
+            dialog().notice,
+            "✓ Backup restored: this device has its game. Your record gained 1 day of play, and this device's 2 days of play were kept."
+        );
+        let timers: Vec<String> = player_doc::get_alarms().into_iter().map(|alarm| alarm.name).collect();
+        assert_eq!(timers, ["siege"], "the game is the backup's");
+        assert_eq!(player_doc::get_loyalty("brox_the_defiant").unwrap().0, 2);
+        assert_eq!(player_doc::get_loyalty("liliel").unwrap().0, 1);
+        let merges = player_doc::merges();
+        assert_eq!((merges.len(), merges[0].by.as_str(), merges[0].at), (1, "file", NOW));
+
+        // The same file again: nothing is counted twice.
+        import(NOW + 1000.0, "correct horse", &file);
+        assert_eq!(dialog().notice, "✓ Backup restored: this device has its game. This device's 2 days of play were kept.");
+        assert_eq!(player_doc::get_loyalty("brox_the_defiant").unwrap().0, 2);
+        assert_eq!(player_doc::merges().len(), 1);
         fresh();
     }
 
@@ -258,8 +309,8 @@ mod tests {
         fresh();
         settings::handle_post("toggle=qr-privacy-accepted");
         page::handle_handover_post("");
-        import("correct horse", &file);
-        assert_eq!(dialog().notice, "✓ Player data restored");
+        import(NOW, "correct horse", &file);
+        assert_eq!(dialog().notice, "✓ Backup restored: this device has its game.");
         assert!(settings::is_on(&settings::SCANNER_STATUS));
         assert!(!settings::is_on(&settings::CAMERA_PRIVACY));
         // They are stored with the player's state, and every view is drawn
@@ -278,7 +329,7 @@ mod tests {
         export(NOW, "correct horse", "correct horse");
         let (_, file) = page::take_download().unwrap();
         fresh();
-        import("wrong horse", &file);
+        import(NOW, "wrong horse", &file);
         assert!(!dialog().good);
         assert!(!settings::is_on(&settings::SCANNER_STATUS));
         fresh();
@@ -317,7 +368,7 @@ mod tests {
             ("correct horse", "a holiday photo", "Not a valid Kipukas backup file"),
             ("correct horse", r#"{"format":"kipukas-player-export","version":7}"#, "Unsupported backup version: 7"),
         ] {
-            import(passphrase, text);
+            import(NOW, passphrase, text);
             let refused = dialog();
             assert_eq!((refused.screen, refused.notice.as_str(), refused.good), (Screen::Import, why, false));
             assert_eq!(refused.passphrase, passphrase, "the passphrase stays in its field");
@@ -344,7 +395,7 @@ mod tests {
             ("not json".to_string(), "Not a valid Kipukas backup file"),
         ] {
             let file = crypto::seal("correct horse", &inner, [1; 16], [2; 12]).unwrap();
-            import("correct horse", &file);
+            import(NOW, "correct horse", &file);
             assert_eq!(dialog().notice, why);
             assert!(!player_doc::get_slot("brox_the_defiant", 2));
         }
@@ -355,8 +406,8 @@ mod tests {
     fn a_backup_made_before_the_engine_sealed_them_is_restored() {
         fresh();
         show(Screen::Import);
-        import(ITS_PASSPHRASE, MADE_BY_THE_PAGE_SCRIPT);
-        assert_eq!((dialog().notice.as_str(), dialog().good), ("✓ Player data restored", true));
+        import(NOW, ITS_PASSPHRASE, MADE_BY_THE_PAGE_SCRIPT);
+        assert_eq!((dialog().notice.as_str(), dialog().good), ("✓ Backup restored: this device has its game.", true));
         // What that player had: a mark on Brox's second slot and a timer.
         assert!(player_doc::get_slot("brox_the_defiant", 2));
         assert!(!player_doc::get_slot("brox_the_defiant", 1));
@@ -366,7 +417,7 @@ mod tests {
 
         // It carries no settings, so those of this device stay as they are.
         settings::handle_post("toggle=kipukas-scanner-status");
-        import(ITS_PASSPHRASE, MADE_BY_THE_PAGE_SCRIPT);
+        import(NOW, ITS_PASSPHRASE, MADE_BY_THE_PAGE_SCRIPT);
         assert!(dialog().good);
         assert!(settings::is_on(&settings::SCANNER_STATUS));
         fresh();
