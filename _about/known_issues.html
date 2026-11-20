@@ -58,8 +58,9 @@ bg-terra: "bg-hero-pattern "
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         Each card's art is decoded locally with WebAssembly. If the gray placeholder tiles never fill
         in with art, it almost always means your browser (or a privacy extension) is <b>blocking
-        WebAssembly or JavaScript</b> for the site. Our decoder also requires WASM SIMD, so a browser
-        with WASM restricted can't paint the images at all.
+        WebAssembly or JavaScript</b> for the site. A browser with WASM restricted can't paint the
+        images at all. (An older browser without WASM SIMD is fine: it is given a build that does
+        not need it.)
       </p>
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         <b>Fix:</b> allow JavaScript and WebAssembly for <span class="italic">kipukas.cards</span>
@@ -70,7 +71,7 @@ bg-terra: "bg-hero-pattern "
       <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Multiplayer won't connect on my VPN</h2>
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         Multiplayer rooms sync over a lightweight relay connection. Some VPNs block the underlying
-        WebSocket/WebRTC traffic that relay needs, so the room never connects (a tester first hit this
+        WebSocket traffic that relay needs, so the room never connects (a tester first hit this
         on <span class="italic">Riseup VPN</span>). Everything else — browsing the binder, single-device
         tools, and offline play — is unaffected, since none of it touches the network.
       </p>
@@ -90,8 +91,22 @@ bg-terra: "bg-hero-pattern "
         <b>Fix (if you want it now):</b> in the browser, do a hard refresh
         (<span class="italic">Ctrl/Cmd + Shift + R</span>, or pull-to-refresh on mobile). For the
         installed app, fully close and reopen it. If something still looks wrong after that, clearing
-        the site's data and reloading will rebuild the cache from scratch — your saved progress lives
-        in your encrypted player backup, so export one first from the menu if you haven't.
+        the site's data and reloading will rebuild the cache from scratch. Clearing the site's data
+        also clears your saved progress, so export an encrypted backup first
+        (<span class="italic">Manage Player Data</span> in the menu) and import it afterward.
+      </p>
+
+      <!-- ─── iPhone camera prompt ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">My iPhone asks for the camera every time</h2>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Safari on an iPhone asks for permission to use the camera each time the QR scanner is opened on a
+        new page, unless it has been told to always allow the camera for the site. Nothing is wrong, and
+        the binder cannot change it for you.
+      </p>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Fix:</b> set Camera to <b>Allow</b> in Safari's Website Settings for
+        <span class="italic">kipukas.cards</span>. The steps are in
+        <a href="/using_the_binder#iphone-camera" class="underline">Using the Binder</a>.
       </p>
 
       <div class="bg-kip-red w-3/4 h-0.5 place-self-center mt-6"></div>

@@ -620,6 +620,8 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [Alpine.js](https://alpinejs.dev/) | 3.14.9 | MIT | Purely visual state: dialogs and menus opening, folded sections, transitions |
 | [Idiomorph](https://github.com/bigskysoftware/idiomorph) | 0.7 | 0BSD | Patches what the engine renders into the page, changing only what differs (`assets/js/idiomorph.min.js`, committed) |
 | [Workbox](https://developer.chrome.com/docs/workbox) | 7.3.0 | MIT | Service worker tooling / PWA caching |
+| [marked](https://marked.js.org/) | 17 | MIT | Turns `kipukas_rules_book/rules.md` into the rules book's page when it is built, and formats Kippa's answers in the browser (`game_rules/js/vendor/`) |
+| [DOMPurify](https://github.com/cure53/DOMPurify) | 3 | MPL-2.0 / Apache-2.0 | Cleans the HTML marked makes, at build time and in the browser |
 
 **Alpine.js plugins bundled:** persist, intersect, focus, anchor, collapse
 
@@ -634,6 +636,11 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [yrs](https://crates.io/crates/yrs) | 0.25 | MIT | Yjs CRDT port — conflict-free replicated data types for multiplayer sync |
 | [base64](https://crates.io/crates/base64) | 0.22 | MIT / Apache-2.0 | Binary ↔ base64 encoding for yrs update transport |
 | [hmac-sha256](https://crates.io/crates/hmac-sha256) | 1.1 | MIT / Apache-2.0 | HMAC-SHA256 signing for tamper-resistant player data exports. At build time, names the cached preview pictures |
+| [aes-gcm](https://crates.io/crates/aes-gcm) | 0.10 | MIT / Apache-2.0 | Encrypts the player's backups (`src/game/crypto.rs`) |
+| [getrandom](https://crates.io/crates/getrandom) | 0.2 | MIT / Apache-2.0 | The browser's random numbers, for a backup's salt and nonce |
+| [fastrand](https://crates.io/crates/fastrand) | 2 | MIT / Apache-2.0 | Ids for turn timers. Already in the module through yrs |
+| [js-sys](https://crates.io/crates/js-sys) | 0.3 | MIT / Apache-2.0 | The browser's clock (`src/clock.rs`). WASM build only |
+| [jxl-oxide](https://github.com/tirr-c/jxl-oxide) | 0.12.6 | MIT / Apache-2.0 | Decodes the card art and the articles' pictures (JPEG XL) in the browser |
 | [jpeg-encoder](https://crates.io/crates/jpeg-encoder) | 0.7 | (MIT / Apache-2.0) and IJG | Writes the cards' preview pictures. Build time only, not in the WASM module |
 | [yaml-rust2](https://crates.io/crates/yaml-rust2) | 0.13 | MIT / Apache-2.0 | Reads the card files' front matter when the engine is compiled. Build time only, not in the WASM module |
 | [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp) | 3.2.0-rc1 | Apache-2.0 | Reads QR codes. A WASM module of its own, built by `zxing-reader/build.sh` (see The QR reader) |
@@ -657,6 +664,12 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | cargo (native) | MIT / Apache-2.0 | Build and run the engine's `card-pages` program after each Jekyll build |
 | [Workbox CLI](https://developer.chrome.com/docs/workbox/modules/workbox-cli) | MIT | Generate precache manifest into service worker |
 | [@tailwindcss/cli](https://tailwindcss.com/) | MIT | Compile Tailwind CSS |
+| [jsdom](https://github.com/jsdom/jsdom) | MIT | A page for DOMPurify to work in while the rules book is built |
+| [SVGO](https://svgo.dev/) | MIT | Slims the SVG artwork (`deno task build:svg`) |
+| [libjxl](https://github.com/libjxl/libjxl) (`cjxl`) | BSD 3-Clause | Encodes the card art as JPEG XL (`deno task build:images`) |
+| [Emscripten](https://emscripten.org/) | MIT / NCSA | Compiles zxing-cpp to WASM, from its container image (see The QR reader) |
+| [WeasyPrint](https://weasyprint.org/) | BSD 3-Clause | Makes the rules book's PDF |
+| [pillow-jxl-plugin](https://pypi.org/project/pillow-jxl-plugin/) | GPL-3.0-or-later | Lets WeasyPrint read the rules book's JPEG XL pictures. Runs only while the PDF is made; nothing of it is in the site |
 | [tmuxinator](https://github.com/tmuxinator/tmuxinator) | MIT | Multi-pane terminal dev environment |
 
 ### Jekyll Plugins
@@ -927,6 +940,12 @@ Do not skip step 2. The site build compiles its own engine from the card files, 
 - Use an **engine-owned view** for: anything that shows game state, the connection, or a tool's progress (see Pattern 13). Rust renders it, a tap asks Rust for a change, the page patches in the result
 - Write **page or worker script** only for what the engine cannot do itself (storage, sockets, the camera), and have it do as the engine says through the handover. It decides nothing
 - **Rust is the single source of truth** — nothing reads game state from localStorage or JS variables
+
+**A picture in an about article (`_about/`):**
+- The picture is a JPEG XL file in `kipukas_rules_book/images/`. The rules book's build copies that folder to `game_rules/images/`, which is where the site serves it from
+- Link it as `/game_rules/images/<name>.jxl?d=1024`. A browser is never sent the `.jxl` as it is: the service worker decodes it, and `?d=` is the longest side it is made, in pixels (never larger than the file). A link to a `.png` or `.jpg` of the same name is a broken picture
+- Make the file from a PNG with `cjxl <name>.png <name>.jxl -d 0.6`
+- `QR_scanner.jxl` is a photograph taken through the scanner and needs a real camera to take again; the others are screenshots of the site
 
 **Jekyll exclusions:**
 Non-Jekyll directories must be listed in `_config.yml` under `exclude:` to prevent Jekyll from processing them (especially `kipukas-server/target/` which contains thousands of Rust build files). The card files (`cards/`) are listed there too: Jekyll must not build pages from them.
