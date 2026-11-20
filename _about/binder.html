@@ -31,7 +31,9 @@ bg-terra: "bg-hero-pattern "
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         <b>TLDR:</b> The Kipukas binder is a free, community-driven digital card binder with integrated gameplay tools
         and rulebook. We prioritize artist collaboration, transparency, and player experience. Our platform is
-        statically hosted ensuring <b>zero data collection</b> and its free (and Ad free) use by Kipukas players.
+        statically hosted ensuring <b>zero data collection</b> and its free (and Ad free) use by Kipukas players. Two
+        optional features reach a server: multiplayer, through a thin relay that collects nothing, and our chatbot
+        Kippa, whose chats may be logged anonymously.
       </p>
       <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
@@ -88,13 +90,37 @@ bg-terra: "bg-hero-pattern "
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Your privacy is paramount to us. Here's the best part: our site is designed to <b>not collect any of your
-          data</b>. We've built Kipukas as a fully static platform, which means all interactions are stored safely on
+        Your privacy is paramount to us. Here's the best part: the binder itself is designed to <b>not collect any of
+          your data</b>. We've built it as a fully static platform, which means all interactions are stored safely on
         <b>your device, and yours alone</b>. For added peace of mind, we've got Cloudflare watching over us to protect
         against potential disruptions. Plus, with offline capabilities, you can enjoy the binder even without an
         internet connection. As we explore new features that might normally require a server, rest assured we're
         committed to innovative solutions - like using special conflict-resolution technology and optional,
         user-encrypted backups - to keep your experience both seamless and secure.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Two features do reach beyond your device, and you deserve to know exactly how. The first is multiplayer. The
+        security rules of the web don't let two browsers simply open a connection to one another; they need a server
+        that both can reach securely. So when you play in a room with a friend, or carry a game over to another of
+        your own devices, the two devices meet through a thin relay server of ours. It exists only to keep that
+        security contract clean: it passes messages from one device to the other, <b>collects no data</b>, and stores
+        none of what it passes along. All it holds is a room's code and name, which it deletes when the room is left
+        or, at the latest, twelve hours after it empties. And a game moving between your own devices is encrypted so
+        that even the relay cannot read it.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The second is Kippa. Unlike the rest of the binder, Kippa runs on a server that Kipukas owns. Your chats with
+        Kippa may be logged anonymously, and we may look through them, primarily to help develop the game's mechanics
+        and the binder itself. Kippa asks for no account and no name, and the binder never contacts Kippa's server
+        until you open the chat. Our <a href="/privacy_policy#kippa" class="underline">privacy policy</a> has the
+        details.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        All three - the binder, the relay, and Kippa - are covered by the same promise I made above: if development
+        on Kipukas ever stops after launch, each of them will be open sourced.
       </p>
 
 
