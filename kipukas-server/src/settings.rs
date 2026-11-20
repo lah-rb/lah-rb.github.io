@@ -83,6 +83,21 @@ pub fn restore(stored: &BTreeMap<String, String>) {
     ON.with(|held| *held.borrow_mut() = on.collect());
 }
 
+/// The page was brought back by the Back button, with its engine as it was
+/// when the page was left (`store::page_event`). A page visited since may
+/// have turned a setting: they are taken up as `stored` has them now, and
+/// the settings page is drawn again if any is not as it was. What a setting
+/// is about is not told: the scanner, the only one told so far, takes up
+/// its own (`routes::qr::came_back`).
+pub fn came_back(stored: &BTreeMap<String, String>) {
+    let held = || ALL.iter().map(|setting| is_on(setting)).collect::<Vec<_>>();
+    let before = held();
+    restore(stored);
+    if held() != before {
+        crate::page::redraw("/api/settings");
+    }
+}
+
 /// Whether the player has turned `setting` on.
 pub fn is_on(setting: &Setting) -> bool {
     ON.with(|held| held.borrow().contains(&setting.key))
@@ -304,6 +319,28 @@ mod tests {
             from_backup(&carried);
             assert!(is_on(&SCANNER_STATUS) && !is_on(&CAMERA_PRIVACY), "{}", carried);
         }
+        fresh();
+    }
+
+    #[test]
+    fn a_page_that_comes_back_takes_up_the_settings_turned_on_a_page_visited_since() {
+        fresh();
+        restore(&stored(&[("qr-privacy-accepted", "true")]));
+        page::reset();
+
+        // Nothing was turned meanwhile: nothing is drawn again.
+        came_back(&stored(&[("qr-privacy-accepted", "true")]));
+        assert!(is_on(&CAMERA_PRIVACY) && !is_on(&SCANNER_STATUS));
+        assert!(page::take_redraws().is_empty());
+
+        // The privacy notice was taken back and the status line turned on.
+        came_back(&stored(&[("qr-privacy-accepted", "false"), ("kipukas-scanner-status", "true")]));
+        assert!(!is_on(&CAMERA_PRIVACY) && is_on(&SCANNER_STATUS));
+        assert_eq!(page::take_redraws(), ["/api/settings"]);
+        // Nothing is written: storage already holds them.
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert!(handed["save"].get("kipukas-scanner-status").is_none(), "nothing is written: {}", handed);
+        assert!(handed["save"].get("qr-privacy-accepted").is_none(), "nothing is written: {}", handed);
         fresh();
     }
 

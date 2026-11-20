@@ -266,15 +266,52 @@ fn with_scanner<R>(f: impl FnOnce(&mut Scanner) -> R) -> R {
 /// At load: the scanner's choices as they are stored. `stored` is
 /// everything the page handed over (`store::handle_start_post`).
 pub fn restore(stored: &BTreeMap<String, String>) {
+    let (cv, light, wanted) = choices(stored);
+    with_scanner(|scanner| {
+        *scanner = Scanner { cv, light, wanted, ..Scanner::default() };
+    });
+}
+
+/// The scanner's choices as `stored` has them: whether codes are found by
+/// computer vision, whether the screen light is on, and the camera the
+/// player chose.
+fn choices(stored: &BTreeMap<String, String>) -> (bool, bool, Camera) {
     let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
     let wanted = stored
         .get(CAMERA)
         .and_then(|raw| serde_json::from_str::<Camera>(raw).ok())
         .map(|camera| Camera::described(&camera.id, &camera.label, &camera.facing))
         .unwrap_or_default();
+    (chosen(CV), chosen(LIGHT), wanted)
+}
+
+/// The page was brought back by the Back button, with its engine as it was
+/// when the page was left (`store::page_event`). `stored` is everything
+/// stored now.
+///
+/// The scanner's choices may have been changed on a page visited since, so
+/// they are taken up as at load. Without that, a page loaded before the
+/// player changed camera asks for the camera they changed from: seen on an
+/// iPhone, where going back a page is a swipe and Safari keeps every page.
+///
+/// A scanner that was open when the page was left is closed, as on a page
+/// just loaded. Every code read leaves its page with the scanner open, and
+/// the camera does not come back with the page: its last picture would stay
+/// in the scanner, still. What the worker has said of its reader and its
+/// model stands: the worker came back with the page.
+pub fn came_back(stored: &BTreeMap<String, String>) {
+    let before = handle_status("");
+    let (cv, light, wanted) = choices(stored);
     with_scanner(|scanner| {
-        *scanner = Scanner { cv: chosen(CV), light: chosen(LIGHT), wanted, ..Scanner::default() };
+        scanner.cv = cv;
+        scanner.light = light;
+        scanner.wanted = wanted;
+        scanner.tally = Tally::default();
     });
+    close();
+    if handle_status("") != before {
+        page::redraw("/api/qr/status");
+    }
 }
 
 /// Forget everything, as before any page has loaded.
@@ -1241,6 +1278,95 @@ mod tests {
         assert!(tap("action=toggle").contains(r#"title="Disable CV detection (YOLO)""#));
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
         assert_eq!(handed["qr"], asked_of_the_worker(true, false));
+        fresh();
+    }
+
+    // -- a page brought back by the Back button --
+
+    fn stored_now(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
+        pairs.iter().map(|(key, value)| (key.to_string(), value.to_string())).collect()
+    }
+
+    const FRONT: &str = r#"{"id":"front-1","label":"Front Camera","facing":"user"}"#;
+    const REAR: &str = r#"{"id":"back-1","label":"Back Triple Camera","facing":"environment"}"#;
+
+    #[test]
+    fn a_page_that_comes_back_asks_for_the_camera_chosen_on_a_page_visited_since() {
+        // The page loaded while the front camera was the player's choice.
+        fresh();
+        restored_with_camera(FRONT);
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("front-1", "user", true));
+        tap("action=close");
+        page::reset();
+
+        // On a later page they changed to a rear one. Back to this page:
+        // its engine is as it was left, and is handed what is stored now.
+        came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true"), (CAMERA, REAR)]));
+        // Its scanner was closed and is: there is nothing to draw again.
+        assert!(page::take_redraws().is_empty());
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-1", "environment", false));
+        // Nothing is written: storage already holds the choice.
+        assert!(store::take_saves().get(CAMERA).is_none());
+        fresh();
+    }
+
+    #[test]
+    fn a_page_that_comes_back_takes_up_the_light_and_computer_vision_as_left_since() {
+        fresh();
+        restored(true, false);
+        came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true"), (CV, "true"), (LIGHT, "true")]));
+        let html = tap("action=toggle");
+        assert!(html.contains(r#"title="Disable CV detection (YOLO)""#));
+        assert!(html.contains("bg-white w-screen"));
+
+        // And off again, where a later page turned them off.
+        tap("action=close");
+        came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true")]));
+        let html = tap("action=toggle");
+        assert!(html.contains(r#"title="Enable CV detection (YOLO)""#));
+        assert!(!html.contains("bg-white w-screen"));
+        fresh();
+    }
+
+    #[test]
+    fn a_scanner_left_open_is_closed_when_its_page_comes_back() {
+        // A code was read: the page is left with its scanner open and a
+        // camera running.
+        scanning();
+        tap("action=camera&id=back-1&label=Back%20Triple%20Camera&facing=environment&width=480&height=640&chosen=true");
+        store::take_saves();
+        page::reset();
+
+        came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true"), (CAMERA, REAR)]));
+        assert_eq!(handle_status(""), "", "closed, as on a page just loaded");
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+        // Opened again, it asks for the camera the player chose, and
+        // nothing is known of one running.
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-1", "environment", false));
+        assert!(!handle_status("").contains("camera 480x640"));
+        fresh();
+    }
+
+    #[test]
+    fn a_scanner_left_open_asks_again_if_the_privacy_notice_was_taken_back_since() {
+        scanning();
+        // On the settings page, visited since, the player took it back.
+        let now = stored_now(&[(settings::CAMERA_PRIVACY.key, "false")]);
+        settings::came_back(&now);
+        came_back(&now);
+        assert_eq!(handle_status(""), "");
+        let html = tap("action=toggle");
+        assert!(html.contains("Privacy Notice"));
+        assert!(!html.contains("<video"));
+        fresh();
+    }
+
+    #[test]
+    fn what_the_worker_could_not_load_is_still_said_after_the_page_comes_back() {
+        scanning();
+        tap("action=reader&state=failed");
+        came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true")]));
+        assert!(tap("action=toggle").contains("The QR reader could not be loaded."));
         fresh();
     }
 

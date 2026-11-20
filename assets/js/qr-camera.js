@@ -7,7 +7,7 @@
  * page can do is left to this file:
  *
  *   - run the camera for as long as the scanner's video is drawn, and stop it
- *     when it is not (browser getUserMedia API);
+ *     when it is not, or when the page is left (browser getUserMedia API);
  *   - hand frames to the engine's worker, which finds and reads the codes in
  *     them and posts what a code says to the engine (kipukas-worker.js). A
  *     frame is the part of the camera's picture that the scanner shows, and
@@ -454,6 +454,14 @@
     { childList: true, subtree: true },
   );
   follow();
+
+  // A page that is left may be kept by the browser, to be brought back whole
+  // on Back. Its camera is not kept with it, so it is stopped here: the page
+  // does not come back holding a picture that has ended. The engine closes
+  // the scanner of a page that comes back (kipukas-server/src/store.rs).
+  globalThis.addEventListener('pagehide', () => {
+    if (scanning) stop();
+  });
 
   // The button that changes camera.
   document.addEventListener('click', (event) => {

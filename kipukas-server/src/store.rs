@@ -343,6 +343,12 @@ pub fn page_event(body: &str) -> Follows {
                 page::reload();
                 return Follows::Nothing;
             }
+            // The settings and the scanner's choices are single keys, which
+            // this engine was handed when its page loaded. What the pages in
+            // between made of them is taken up, and a scanner that was open
+            // when the page was left is closed.
+            crate::settings::came_back(&stored);
+            crate::routes::qr::came_back(&stored);
             // Only the player's own state moved on (damage marked on the card
             // page this one was left for, say). Take it up and draw the page's
             // views again: the page stays as it was left, and is current.
@@ -704,6 +710,44 @@ mod tests {
             assert_eq!(report(serde_json::json!({ "event": "restored", "stored": stored })), Follows::Nothing);
             assert!(page::take_reload());
         }
+        fresh();
+    }
+
+    #[test]
+    fn a_page_brought_back_takes_up_the_settings_and_the_scanners_choices_as_stored_now() {
+        use crate::routes::qr;
+        use crate::settings;
+        const FRONT: &str = r#"{"id":"front-1","label":"Front Camera","facing":"user"}"#;
+        const REAR: &str = r#"{"id":"back-1","label":"Back Camera","facing":"environment"}"#;
+        let privacy = settings::CAMERA_PRIVACY.key;
+
+        // The page loads while the front camera is the player's choice, and
+        // is left with its scanner open, as a code that is read leaves it.
+        fresh();
+        start(&[(privacy, "true"), (qr::CAMERA, FRONT)]);
+        qr::handle_status_post("action=toggle");
+        assert!(qr::handle_status("").contains(r#"data-camera-facing="user""#));
+        page::reset();
+
+        // On a page visited since, the player changed to a rear camera.
+        let now = serde_json::json!({ privacy: "true", qr::CAMERA: REAR });
+        assert_eq!(report(serde_json::json!({ "event": "restored", "stored": now })), Follows::CameBack);
+        assert!(!page::take_reload(), "the page is kept");
+        assert_eq!(qr::handle_status(""), "", "its scanner is closed");
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+        qr::handle_status_post("action=toggle");
+        assert!(qr::handle_status("").contains(r#"data-camera-facing="environment""#));
+        qr::handle_status_post("action=toggle");
+
+        // And then took their acceptance of the privacy notice back.
+        let now = serde_json::json!({ privacy: "false", qr::CAMERA: REAR });
+        assert_eq!(report(serde_json::json!({ "event": "restored", "stored": now })), Follows::CameBack);
+        assert!(!settings::is_on(&settings::CAMERA_PRIVACY));
+        qr::handle_status_post("action=toggle");
+        assert!(qr::handle_status("").contains("Privacy Notice"));
+
+        // Left as before any page has loaded, for the tests that follow.
+        start(&[]);
         fresh();
     }
 
