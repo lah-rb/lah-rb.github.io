@@ -42,33 +42,75 @@ bg-terra: "bg-hero-pattern "
         Every Kipukas card has a unique QR code printed on its back. Scanning it takes you straight to that card's
         play data page. To make this as user-friendly as possible we include a <b>private QR scanner</b> that
         runs entirely on your device through our web app. The camera feed is never stored and never touches the
-        internet — we (nor any other interested party) can see footage from the scanner.
+        internet — neither we nor any other interested party can see footage from the scanner.
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        <b>How to scan:</b> Click the <b>QR button</b> in the toolbar, accept the privacy statement, then point
-        your camera at a card's back. The QR code should fill most of the camera frame. When a valid Kipukas QR
-        is detected you will be taken to that card's page automatically. To cancel scanning, click the
-        <b>eye icon</b> on the top left of the scanner overlay.
+        <b>How to scan:</b> Click the <b>QR button</b> in the toolbar, accept the privacy notice the first time,
+        then point your camera at a card's back. Keep the QR code inside the square the scanner shows: it reads
+        only what you see there. When a valid Kipukas QR is detected you will be taken to that card's page
+        automatically. If you change your mind about the privacy notice, you can take your acceptance back
+        under <a href="#settings" class="underline">Settings</a>.
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        The scanner only recognises QR codes that pattern-match against Kipukas playing cards. For the best
+        <b>The scanner's buttons:</b>
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li><b>Crossed-out eye</b> (top left) — closes the scanner.</li>
+        <li><b>Circling arrows</b> (top center) — switches to your device's next camera. A camera that faces you is shown mirrored; one that faces away is not.</li>
+        <li><b>Lightning bolt</b> (top right) — turns the screen white to light the card, which helps a front-facing camera in a dim room.</li>
+        <li><b>Chip</b> (bottom left) — turns on computer vision, an optional helper that finds the code in the picture before reading it. It helps with small, tilted, or far-away codes. It downloads a model the first time it is used and can be slow on older devices.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The scanner opens the way you left it, with the same camera, light, and computer vision choice.
+      </p>
+
+      <h3 id="iphone-camera" class="z-20 text-lg md:text-xl pt-4 pb-1 place-self-center text-center">iPhone: Camera Permission</h3>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        On an iPhone, Safari asks for permission to use the camera every time you open the scanner on a new
+        page. The binder cannot change that, but you can tell Safari to always allow the camera for this site:
+      </p>
+
+      <ol class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-decimal list-inside space-y-1">
+        <li>Open <span class="italic">kipukas.cards</span> in Safari.</li>
+        <li>Tap the <b>Page Menu</b> button
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="a rounded square with two lines under it"
+            class="inline-block size-6 align-text-bottom fill-none stroke-current stroke-2"><rect x="5.5" y="2.5" width="13" height="11.5" rx="3.5" /><path stroke-linecap="round" d="M6.5 18h11M6.5 21.5h11" /></svg>
+          on the right side of the address bar.</li>
+        <li>Tap the <b>More</b> button
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="three dots"
+            class="inline-block size-6 align-text-bottom fill-current"><circle cx="5" cy="12" r="1.9" /><circle cx="12" cy="12" r="1.9" /><circle cx="19" cy="12" r="1.9" /></svg>
+          on the right.</li>
+        <li>Scroll to the bottom and tap <b>Website Settings</b> for <span class="italic">kipukas.cards</span>.</li>
+        <li>Tap <b>Camera</b>, which will say <b>Ask</b>, and choose <b>Allow</b>.</li>
+      </ol>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        On older versions of iOS the button is <b>aA</b>, on the left side of the address bar, and
+        <b>Website Settings</b> is in its menu. To take the permission back, set Camera to Ask again in the
+        same place.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The scanner only recognizes QR codes that pattern-match against Kipukas playing cards. For the best
         experience during a game, prevent your device from sleeping — a caffeine-mode app is recommended.
         If you prefer a standalone app, we recommend the open-source Android app
         <b>Binary Eye</b> (same code library as ours) or <b>Cognex Barcode Scanner</b> on iPhone.
       </p>
 
       <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
-        <img src="/game_rules/images/QR_modal.png" alt="QR modal screenshot"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
-        <img src="/game_rules/images/QR_scanner.png" alt="QR scanner screenshot"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/QR_modal.jxl?d=1024" alt="The scanner's privacy notice"
+          class="w-full max-w-xs h-fit rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/QR_scanner.jxl?d=1024" alt="The QR scanner open over a card page"
+          class="w-full max-w-xs h-fit rounded shadow" loading="lazy" />
       </div>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 italic text-xs md:text-sm">
-        The QR scanner running on a 1080p laptop. The card being scanned is "Shard's Desert" — the first card
-        commissioned for Kipukas.
+        An earlier version of the QR scanner running on a 1080p laptop. The card being scanned is
+        "Shard's Desert" — the first card commissioned for Kipukas.
       </p>
 
       <!-- ─── Fists Tool ─── -->
@@ -81,9 +123,10 @@ bg-terra: "bg-hero-pattern "
 
       <h3 class="z-20 text-lg md:text-xl pt-4 pb-1 place-self-center">Local (Single-Player) Mode</h3>
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Click the fists icon in the toolbar to open the tool without connecting to an opponent. Select the
-        attacker's and defender's archetypal adaptations to instantly see the resulting roll modifier. This is
-        useful for checking type match-ups during play or studying card interactions on your own.
+        Click the fists icon in the toolbar to open the tool without connecting to an opponent. Check up to
+        three archetypes each for the attacker and the defender, and a motivation each for Final Blows, to
+        instantly see the resulting Attack Die Modifier. This is useful for checking type match-ups during
+        play or studying card interactions on your own.
       </p>
 
       <h3 class="z-20 text-lg md:text-xl pt-4 pb-1 place-self-center">Multiplayer Mode</h3>
@@ -93,12 +136,12 @@ bg-terra: "bg-hero-pattern "
       </p>
 
       <ol class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-decimal list-inside space-y-1">
-        <li>One player creates a room and shares the room code with their opponent.</li>
-        <li>The other player joins by entering the code. Once connected, the fists icon appears in both toolbars.</li>
-        <li>Each player opens the fists tool, selects their card and KEAL means (or Archetypal Gene for Final Blows), and submits. Submissions are hidden until both sides submit.</li>
+        <li>One player opens the room tool (the signal icon in the toolbar), names a room, and creates it. They share the room's name and four-character code with their opponent.</li>
+        <li>The other player joins by entering the code and the name. From then on the fists icon in both toolbars opens the multiplayer tool.</li>
+        <li>Each player goes to the page of the card they are playing, opens the fists tool, chooses whether they are attacking or defending, picks a KEAL means, and locks in their choice. For Final Blows the tool states the card's motivation instead. Choices are hidden until both sides have locked in.</li>
         <li>Once both players submit, the tool reveals the match-up result with all applicable modifiers (archetypal material interactions, affinity bonus, etc.) and the total Attack Die Modifier.</li>
         <li>After reviewing the result, either player can report the combat outcome ("Did you win?"). The tool then automatically marks KEAL means damage on the losing defender's card, and both players see a role-appropriate result message.</li>
-        <li>Players can reset and start a new round for the next bout.</li>
+        <li>Either player can start a new round for the next bout.</li>
       </ol>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
@@ -110,45 +153,49 @@ bg-terra: "bg-hero-pattern "
       </p>
 
       <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
-        <img src="/game_rules/images/fists_open.png" alt="Fists tool open"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
-        <img src="/game_rules/images/fists_closed.png" alt="Fists tool closed"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/fists_open.jxl?d=1024" alt="The fists tool open, with a match-up picked"
+          class="w-full max-w-xs h-fit rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/fists_closed.jxl?d=1024" alt="The toolbar on a card page, with the fists icon circled"
+          class="w-20 h-fit rounded shadow" loading="lazy" />
       </div>
 
       <!-- ─── KEAL Means Damage Tracker ─── -->
       <h2 id="damage-tracker" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">KEAL Means Damage Tracker</h2>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Each card page on kipukas.cards includes a damage tracker. Mark injuries by checking the box next to the
-        KEAL means name. Once all KEAL means are marked as injured the <b>Final Blows</b> section appears,
-        indicating the card is downed and vulnerable to a final attack. If the card is wasted, mark the wasted
-        checkbox.
+        Each card page on kipukas.cards includes a damage tracker. Every KEAL means has a heart for each
+        injury it can take. Tap a heart to break it, and tap it again to mend it. Once every heart is broken the
+        <b>Final Blows</b> section appears, indicating the card is downed and vulnerable to a final attack. If
+        the card is wasted, tap the <b>Wasted</b> heart.
       </p>
 
       <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex flex-wrap gap-4 justify-center">
-        <img src="/game_rules/images/healthy_keal_means.png" alt="Healthy KEAL means tracker"
-          class="w-full max-w-40 rounded shadow" loading="lazy" />
-        <img src="/game_rules/images/injured_keal_means.png" alt="Injured KEAL means tracker"
-          class="w-full max-w-40 rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/healthy_keal_means.jxl?d=1024" alt="A KEAL means with its heart whole"
+          class="w-full max-w-64 h-fit rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/injured_keal_means.jxl?d=1024" alt="The same KEAL means with its heart broken, and Final Blows below"
+          class="w-full max-w-64 h-fit rounded shadow" loading="lazy" />
       </div>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        After your game is complete, use the <b>reset</b> option in the toolbar to clear the KEAL state of all cards.
+        After your game is complete, use <b>New Game</b> (the sparkles icon in a card page's toolbar) to mend
+        every card, clear your affinity, and remove your turn timers. In a multiplayer room the shared timers
+        stay.
       </p>
 
       <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex justify-center">
-        <img src="/game_rules/images/keal_means_clean.png" alt="KEAL means reset toolbar option"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/keal_means_clean.jxl?d=1024" alt="The New Game button in the toolbar"
+          class="w-16 h-fit rounded shadow" loading="lazy" />
       </div>
 
       <!-- ─── Turn Timer ─── -->
       <h2 id="turn-timer" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Turn Timer</h2>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        The turn timer tool helps players keep track of diel cycle turns during a game. Accessible from the
-        toolbar, it lets you set a countdown for each turn. In multiplayer mode the timer syncs between both
-        players so neither side can run the clock without the other knowing.
+        The turn timer tool helps players keep track of anything that lasts a number of diel cycles. Open it
+        from the clock icon in the toolbar, give the timer a name, a number of diel cycles, and a color, and it
+        joins the list at the top left of the page. Each time the diel die is rolled, press
+        <b>Advance on Diel Roll</b> and every timer counts down by one. In a multiplayer room the timers are
+        shared, so both players see the same list and neither side can run the clock without the other knowing.
       </p>
 
       <!-- ─── Affinity Tool ─── -->
@@ -156,8 +203,8 @@ bg-terra: "bg-hero-pattern "
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         Open the affinity tool by clicking the <b>Heart icon</b> in the toolbar. Here you declare your
-        affinity for an archetypal adaptation <b>once per day</b>. Your affinity level for that archetype
-        increases with each declaration. When a soul card's archetypal adaptation matches your declared affinity
+        affinity for one archetypal adaptation for the game. The choice is then locked until you start a
+        <b>New Game</b>. When a soul card's archetypal adaptation matches your declared affinity
         you receive a <b>+1 bonus to attack and defense rolls</b> made for that card. The fists tool
         automatically includes this bonus in the Attack Die Modifier when applicable.
       </p>
@@ -188,22 +235,23 @@ bg-terra: "bg-hero-pattern "
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         During our founders period all recipe combinations possible with the founder's deck items have been
-        published. You can find the recipe lookup tool under the <b>menu</b> in the toolbar. In the future these
+        published. You can find the recipe lookup tool under <b>"View Item Recipes"</b> in the toolbar's menu. In the future these
         will also be produced as physical recipe cards. The founder's recipes will always be accepted at
         competitions as open use and the online lookup will always reside on the binder.
       </p>
 
       <div class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 flex justify-center">
-        <img src="/game_rules/images/recipe_lookup.png" alt="Recipe lookup tool"
-          class="w-full max-w-xs rounded shadow" loading="lazy" />
+        <img src="/game_rules/images/recipe_lookup.jxl?d=1024" alt="The recipe lookup with three items checked, showing the Basic bow recipe"
+          class="w-full max-w-xs h-fit rounded shadow" loading="lazy" />
       </div>
 
       <!-- ─── Kippa Chatbot ─── -->
       <h2 id="kippa" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Kippa (Rules Chatbot)</h2>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Kippa is an <b>alpha</b> feature designed to assist players in learning the rules. It lives on the
-        binder and can answer questions about game mechanics, card interactions, and general Kipukas information.
+        Kippa is an <b>alpha</b> feature designed to assist players in learning the rules. It lives in the
+        <a href="/game_rules/" class="underline">Rules</a>, behind the round button in the bottom right corner, and
+        can answer questions about game mechanics, card interactions, and general Kipukas information.
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
@@ -211,7 +259,8 @@ bg-terra: "bg-hero-pattern "
       </p>
 
       <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
-        <li><b>No conversation memory</b> — each message is independent; previous context is not remembered.</li>
+        <li><b>Short conversation memory</b> — only your last three exchanges are sent along with a new question; anything older is not remembered.</li>
+        <li><b>Online only</b> — Kippa runs on our server, so it is not available offline.</li>
         <li><b>Conversation history limited</b> — once the page refreshes the history is wiped.</li>
         <li><b>Expect delays</b> — limited hardware capacity means requests may queue when busy (30 s timeout).</li>
         <li><b>Check facts</b> — Kippa can hallucinate and produce inaccurate results. The rules text is the canonical source.</li>
@@ -227,14 +276,27 @@ bg-terra: "bg-hero-pattern "
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         All your progression data (card damage, affinity, loyalty, turn alarms, settings) lives on <b>your
         device only</b>. Nothing is sent to a server. You can export and import your player data as an encrypted
-        <code>.kipukas</code> file via the <b>"Player Data"</b> option in the hamburger menu.
+        <code>.kipukas</code> file, locked with a passphrase you choose, via the <b>"Manage Player Data"</b>
+        option in the hamburger menu. A backup also carries the switches on the Settings page.
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        If you play on multiple devices you can sync your player data between them via the
-        <b>"Sync Devices"</b> option in the hamburger menu. Sync uses a peer-to-peer connection through our
-        relay server and is authenticated with HMAC signatures to prevent tampering.
+        Syncing two devices directly is switched off while we rework it. Until it returns, a backup file is the
+        way to move your player data from one device to another.
       </p>
+
+      <!-- ─── Settings ─── -->
+      <h2 id="settings" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Settings</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <a href="/settings" class="underline">Settings</a>, in the hamburger menu, holds switches that are kept
+        on the device you set them on:
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li><b>Camera privacy notice</b> — on once you have accepted the QR scanner's privacy notice. Turn it off to take that back; the scanner will show its notice again before it next uses the camera.</li>
+        <li><b>Scanner status</b> — shows a small readout on the scanner of the camera's picture size and how long each frame takes to read. Off unless you turn it on.</li>
+      </ul>
 
       <!-- ─── General Tips ─── -->
       <h2 id="tips" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">General Tips</h2>
