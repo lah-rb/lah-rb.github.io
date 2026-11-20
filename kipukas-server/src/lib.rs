@@ -79,6 +79,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     // Player document routes
     router.insert("/api/player/affinity", "player_affinity").ok();
     router.insert("/api/player/backup", "player_backup").ok();
+    router.insert("/api/player/history", "player_history").ok();
 
     // A game moving from one of the player's devices to another
     router.insert("/api/player/sync", "player_sync").ok();
@@ -125,6 +126,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("player_affinity", "POST") => routes::player::handle_affinity_post(body),
             ("player_backup", "GET") => routes::backup::handle_get(query),
             ("player_backup", "POST") => routes::backup::handle_post(body),
+            ("player_history", "GET") => routes::player::handle_history_get(query),
 
             // A game moving from one of the player's devices to another
             ("player_sync", "GET") => routes::device_sync::handle_sync_get(query),

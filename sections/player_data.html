@@ -6,7 +6,7 @@ description: "Carry a game on to another device, keep a backup of your game prog
 bg-terra: "bg-hero-pattern "
 sitemap: false
 ---
-<!-- The two sections are engine-owned views (Pattern 13,
+<!-- The sections are engine-owned views (Pattern 13,
      assets/js/kipukas-view.js). The engine holds where each stands, draws
      it, and does the work: /api/player/sync moves a game to another device
      (kipukas-server/src/game/device_sync.rs, src/routes/device_sync.rs) and
@@ -17,6 +17,11 @@ sitemap: false
      address ({hash}): the QR code a device shows to hand its game over is
      this page's address with the invitation there. The engine asks the
      player before it does anything with one.
+
+     A third view, /api/player/history, draws nothing unless the address is
+     /player_data#history. It is then the record of what each sync and
+     import compared (src/routes/player.rs). No link leads there: nothing
+     uses the numbers yet.
 
      This page holds no state. Its one script is the scan button's, which
      loads the camera script before it opens the scanner, as the toolbar's
@@ -73,5 +78,7 @@ sitemap: false
     <div class="w-full max-w-sm">
       <div data-engine-view="/api/player/backup" class="min-h-24"></div>
     </div>
+
+    <div data-engine-view="/api/player/history?show={hash}"></div>
   </div>
 </div>

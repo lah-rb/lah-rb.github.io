@@ -342,6 +342,38 @@ export async function run(site: string, checks: Checks) {
       stored.marked,
     );
 
+    // ── What is kept of it ──
+
+    /** The sync history a page draws: the sum's parts, and how many merges are listed. */
+    const history = (page: Page) =>
+      page.evaluate(() => {
+        const view = document.querySelector('[data-engine-view^="/api/player/history"]');
+        const part = (name: string) =>
+          Number(view?.querySelector(`[data-sum="${name}"]`)?.textContent ?? NaN);
+        return {
+          shown: !!view?.querySelector('[data-sync-history]'),
+          merges: part('merges'),
+          gained: part('gained'),
+          held: part('held'),
+          distance: part('distance'),
+          listed: view?.querySelectorAll('[data-merge]').length ?? 0,
+        };
+      });
+    await go(b.page, `${site}/player_data`);
+    const unasked = await history(b.page);
+    await go(b.page, `${site}/player_data#history`);
+    await until('the history', async () => (await history(b.page)).shown);
+    const theirs = await history(b.page);
+    await go(a.page, `${site}/player_data#history`);
+    await until('the history', async () => (await history(a.page)).shown);
+    const ours = await history(a.page);
+    checks.check(
+      'sync: the merge and the sync sum are kept, the same on both devices, and drawn only at #history',
+      !unasked.shown && theirs.merges === 1 && theirs.listed === 1 && theirs.gained > 0 &&
+        theirs.held > 0 && theirs.distance > 0 && JSON.stringify(theirs) === JSON.stringify(ours),
+      JSON.stringify({ unasked: unasked.shown, theirs, ours }),
+    );
+
     // ── A code works once ──
 
     await go(b.page, `${site}/player_data`);

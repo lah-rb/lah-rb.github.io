@@ -23,14 +23,17 @@
 //! │   └── "brox_the_defiant": { "days": { "YYYY-MM-DD": true }, "earlier": u32,
 //! │                             "total_plays": u32, "last_played": "YYYY-MM-DD" }
 //! ├── "merges" (YMap) — each state taken over from another device or a backup:
-//! │   └── "<id>": { "at": f64 (ms), "by": "device" | "file", "gained": u32, "held": u32 }
+//! │   └── "<id>": { "at": f64 (ms), "by": "device" | "file",
+//! │                 "gained": u32, "held": u32, "shared": u32 }
+//! ├── "sync_sum" (YMap) — the merges added up:
+//! │   └── { "merges": u32, "gained": u64, "held": u64, "distance": u64 }
 //! └── "settings" (YMap)
 //!     └── "show_alarms" (bool)
 //! ```
 //!
 //! Cards, timers, what is retired and the affinity are the game in progress:
-//! New Game clears them. Loyalty and the merges are the player's record,
-//! which outlives every game. See `take_over`.
+//! New Game clears them. Loyalty, the merges and their sum are the player's
+//! record, which outlives every game. See `take_over`.
 //!
 //! ## Lifecycle
 //!
@@ -98,6 +101,7 @@ fn with_roots(doc: Doc) -> Doc {
         txn.get_or_insert_map("affinity");
         txn.get_or_insert_map("loyalty");
         txn.get_or_insert_map("merges");
+        txn.get_or_insert_map("sync_sum");
         txn.get_or_insert_map("settings");
     }
     doc
@@ -1026,7 +1030,7 @@ pub fn clear_loyalty() {
 // The player's document holds two things. One is the game in progress:
 // damage, timers, the affinity declared, everything New Game clears. The
 // other is the player's record, which outlives every game: each card's
-// loyalty, and the merges below.
+// loyalty, and the merges below with their sum.
 //
 // Two games have no sensible union, so a game is only ever taken whole: the
 // state that arrives takes the place of the one here. The record is the
@@ -1039,16 +1043,39 @@ pub fn clear_loyalty() {
 // Each time a state is taken over that holds something new to this device,
 // the two histories are compared and the comparison is kept, under `merges`:
 //
-//   "<id>": { at, by, gained, held }
+//   "<id>": { at, by, gained, held, shared }
 //
 // `gained` is how many changes the state taken held that this device had
-// not seen, `held` how many this device held that the state taken had not.
-// (A change is one step of a device's count in the document's state
-// vector.) A new device taking a game over holds next to nothing: `held` is
-// near zero. So does a device that only receives. Two records that grew
-// apart, or were never one player's, each hold much the other lacks. The
-// numbers are kept and nothing is decided by them: no merge is refused.
-// `by` is `device` (the other device sent it) or `file` (a backup).
+// not seen, `held` how many this device held that the state taken had not,
+// and `shared` how many both held. (A change is one step of a device's
+// count in the document's state vector.) The three say all there is to say
+// of the sizes of two histories and of how far they overlap, so whatever is
+// asked of a merge later can be worked out again from what was kept. A new
+// device taking a game over holds next to nothing: `held` is near zero. So
+// does a device that only receives. Two records that grew apart, or were
+// never one player's, each hold much the other lacks. The numbers are kept
+// and nothing is decided by them: no merge is refused. `by` is `device`
+// (the other device sent it) or `file` (a backup). A merge kept before
+// `shared` was (November 2026) reads as sharing nothing.
+//
+// ## The sync sum
+//
+// The merges are also added up, under `sync_sum`, for a judgement that is
+// quick and needs none of the above:
+//
+//   { merges, gained, held, distance }
+//
+// `merges` is how many there were, `gained` and `held` are theirs added
+// together, and `distance` is each merge's distance added together
+// (`Merge::distance`): how far apart the two histories were, times how
+// alike the two sides were in size. It costs a player next to nothing to
+// carry a game between their own devices, however often, and costs two
+// players who put their records together about the size of both.
+//
+// The sum is always worked out from the merges (`SyncSum::of`), never
+// added to, so that two devices that hold the same merges hold the same
+// sum whatever order they met in. It is written down whenever the merges
+// change.
 
 /// One state taken over, as `merges` keeps it.
 #[derive(Debug, Clone, PartialEq)]
@@ -1060,6 +1087,57 @@ pub struct Merge {
     pub by: String,
     pub gained: u32,
     pub held: u32,
+    /// Changes both held.
+    pub shared: u32,
+}
+
+impl Merge {
+    /// How far apart the two histories were, times how alike the two sides
+    /// were in size: the changes only one of them held (`gained + held`),
+    /// times the smaller of the two over the larger.
+    ///
+    /// Nothing, when either side held nothing the other lacked: a new
+    /// device, or one that only ever receives. Little, when one side held
+    /// little: about what that side held. About the size of both, when two
+    /// histories of a size that share nothing are put together.
+    pub fn distance(&self) -> u64 {
+        // (In 128 bits: the product of two counts of 32 bits and their sum
+        // does not fit in 64.)
+        let (small, large) = (self.gained.min(self.held) as u128, self.gained.max(self.held) as u128);
+        if large == 0 {
+            0
+        } else {
+            ((small + large) * small / large) as u64
+        }
+    }
+}
+
+/// The merges added up: what `sync_sum` keeps.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SyncSum {
+    /// How many merges there were.
+    pub merges: u32,
+    /// Every merge's `gained`, added together.
+    pub gained: u64,
+    /// Every merge's `held`, added together.
+    pub held: u64,
+    /// Every merge's distance, added together.
+    pub distance: u64,
+}
+
+impl SyncSum {
+    pub fn of(merges: &[Merge]) -> SyncSum {
+        merges.iter().fold(SyncSum::default(), |sum, merge| SyncSum {
+            merges: sum.merges + 1,
+            gained: sum.gained + merge.gained as u64,
+            held: sum.held + merge.held as u64,
+            distance: sum.distance + merge.distance(),
+        })
+    }
+
+    fn parts(&self) -> [(&'static str, u64); 4] {
+        [("merges", self.merges as u64), ("gained", self.gained), ("held", self.held), ("distance", self.distance)]
+    }
 }
 
 /// What came of taking a state over.
@@ -1083,6 +1161,11 @@ fn ahead(a: &StateVector, b: &StateVector) -> u32 {
     a.iter().map(|(client, clock)| clock.saturating_sub(b.get(client))).fold(0, u32::saturating_add)
 }
 
+/// How many changes `a` and `b` both hold.
+fn common(a: &StateVector, b: &StateVector) -> u32 {
+    a.iter().map(|(client, clock)| (*clock).min(b.get(client))).fold(0, u32::saturating_add)
+}
+
 fn read_merges<T: ReadTxn>(merges: &MapRef, txn: &T) -> Vec<Merge> {
     let mut all: Vec<Merge> = merges
         .iter(txn)
@@ -1093,6 +1176,7 @@ fn read_merges<T: ReadTxn>(merges: &MapRef, txn: &T) -> Vec<Merge> {
                 by: text_in(&entry, txn, "by").unwrap_or_default(),
                 gained: number_in(&entry, txn, "gained").unwrap_or(0.0) as u32,
                 held: number_in(&entry, txn, "held").unwrap_or(0.0) as u32,
+                shared: number_in(&entry, txn, "shared").unwrap_or(0.0) as u32,
             }),
             _ => None,
         })
@@ -1107,8 +1191,19 @@ fn write_merge(merges: &MapRef, txn: &mut TransactionMut, merge: &Merge) {
         ("by".to_string(), Any::from(merge.by.clone())),
         ("gained".to_string(), Any::from(merge.gained as f64)),
         ("held".to_string(), Any::from(merge.held as f64)),
+        ("shared".to_string(), Any::from(merge.shared as f64)),
     ]);
     merges.insert(txn, merge.id.as_str(), entry);
+}
+
+/// Write the sum down, where it is not what is written already. (A part
+/// that is not written reads as nothing.)
+fn write_sync_sum(sync_sum: &MapRef, txn: &mut TransactionMut, sum: &SyncSum) {
+    for (name, value) in sum.parts() {
+        if number_in(sync_sum, txn, name).unwrap_or(0.0) != value as f64 {
+            sync_sum.insert(txn, name, Any::from(value as f64));
+        }
+    }
 }
 
 /// The states taken over so far, the earliest first.
@@ -1117,6 +1212,25 @@ pub fn merges() -> Vec<Merge> {
         let doc = cell.borrow();
         let merges = doc.get_or_insert_map("merges");
         read_merges(&merges, &doc.transact())
+    })
+}
+
+/// The merges added up.
+pub fn sync_sum() -> SyncSum {
+    SyncSum::of(&merges())
+}
+
+/// The sum as the document has it written down, for whoever reads the
+/// document and not the merges. (A document whose merges were all kept
+/// before the sum was has it written at its next merge.)
+#[cfg(test)]
+fn sync_sum_written() -> SyncSum {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let sync_sum = doc.get_or_insert_map("sync_sum");
+        let txn = doc.transact();
+        let part = |name: &str| number_in(&sync_sum, &txn, name).unwrap_or(0.0) as u64;
+        SyncSum { merges: part("merges") as u32, gained: part("gained"), held: part("held"), distance: part("distance") }
     })
 }
 
@@ -1145,6 +1259,7 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
         let doc = with_roots(Doc::new());
         doc.transact_mut().apply_update(update).map_err(|e| format!("restore error: {}", e))?;
         let (loyalty, merges) = (doc.get_or_insert_map("loyalty"), doc.get_or_insert_map("merges"));
+        let sync_sum = doc.get_or_insert_map("sync_sum");
         let mut txn = doc.transact_mut();
         let theirs = read_record(&loyalty, &txn);
         let their_state_vector = txn.state_vector();
@@ -1183,9 +1298,13 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
                 by: by.to_string(),
                 gained: taken.gained,
                 held: taken.held,
+                shared: common(&my_state_vector, &their_state_vector),
             };
             write_merge(&merges, &mut txn, &merge);
         }
+        // The sum of the merges both devices knew of, and of this one.
+        let sum = SyncSum::of(&read_merges(&merges, &txn));
+        write_sync_sum(&sync_sum, &mut txn, &sum);
         drop(txn);
         *cell.borrow_mut() = doc;
         Ok(taken)
@@ -2008,9 +2127,12 @@ mod tests {
         assert!(get_slot("brox", 2));
         assert_eq!(get_alarms()[0].name, "siege");
         assert_eq!(merges().len(), 1);
-        assert_eq!(encode_state_vector(), {
+        // (The vectors themselves: one as it is written out lists the
+        // devices in no set order.)
+        let held = || PLAYER_DOC.with(|cell| cell.borrow().transact().state_vector());
+        assert_eq!(held(), {
             restore_from_state(&here).unwrap();
-            encode_state_vector()
+            held()
         });
     }
 
@@ -2072,6 +2194,145 @@ mod tests {
         assert_eq!(kept[0].by, "device");
         assert_eq!(kept[1].by, "file");
         assert!(kept[1].held > kept[0].held, "this device held the whole of the first by then: {:?}", kept);
+    }
+
+    fn merge_of(gained: u32, held: u32) -> Merge {
+        Merge { id: String::new(), at: THEN, by: "device".to_string(), gained, held, shared: 0 }
+    }
+
+    #[test]
+    fn a_merge_costs_nothing_where_one_side_held_nothing_and_much_where_both_held_much() {
+        // A new device, a device that only receives, the same state again.
+        assert_eq!(merge_of(900, 0).distance(), 0);
+        assert_eq!(merge_of(0, 900).distance(), 0);
+        assert_eq!(merge_of(0, 0).distance(), 0);
+        // One side held little: about what it held, whichever side it was.
+        assert_eq!(merge_of(1000, 1).distance(), 1);
+        assert_eq!(merge_of(1000, 10).distance(), 10);
+        assert_eq!(merge_of(10, 1000).distance(), 10);
+        // The nearer the two are in size, the nearer the whole of both.
+        assert_eq!(merge_of(1000, 500).distance(), 750);
+        assert_eq!(merge_of(1000, 1000).distance(), 2000);
+        // The largest two histories there can be do not overflow.
+        assert_eq!(merge_of(u32::MAX, u32::MAX).distance(), 2 * u32::MAX as u64);
+    }
+
+    #[test]
+    fn the_merges_are_added_up() {
+        assert_eq!(SyncSum::of(&[]), SyncSum::default());
+        let sum = SyncSum::of(&[merge_of(1000, 1), merge_of(40, 0), merge_of(300, 300)]);
+        assert_eq!(sum, SyncSum { merges: 3, gained: 1340, held: 301, distance: 1 + 0 + 600 });
+    }
+
+    #[test]
+    fn a_new_device_taking_a_game_adds_next_to_nothing_to_the_sum() {
+        let theirs = a_device_mid_game();
+        reset();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        let sum = sync_sum();
+        assert_eq!((sum.merges, sum.gained, sum.held), (1, taken.gained as u64, 1));
+        // The one change every new document makes is all it held.
+        assert_eq!(sum.distance, 1);
+        assert_eq!(sync_sum_written(), sum, "what is written down is what the merges add up to");
+        assert_eq!(merges()[0].shared, 0);
+    }
+
+    #[test]
+    fn two_records_put_together_add_about_the_size_of_both_to_the_sum() {
+        let theirs = a_device_mid_game();
+        // Another player's device, with as much of its own.
+        reset();
+        ensure_card_state("liliel", 3);
+        toggle_slot("liliel", 1);
+        add_alarm(NOW, 4, "mine", "blue");
+        declare_affinity("Avian", "2026-02-26").unwrap();
+        increment_loyalty("liliel", "2026-02-25").unwrap();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+
+        let (small, large) = (taken.gained.min(taken.held) as u64, taken.gained.max(taken.held) as u64);
+        assert!(small * 2 > large, "the two are of a size: {:?}", taken);
+        let sum = sync_sum();
+        assert!(sum.distance > large && sum.distance <= small + large, "{:?}", sum);
+        assert_eq!(sync_sum_written(), sum);
+    }
+
+    #[test]
+    fn a_game_carried_back_and_forth_between_two_devices_adds_little_to_the_sum() {
+        // The phone's game goes to the tablet, which is new.
+        let phone = a_device_mid_game();
+        reset();
+        take_over(&phone, THEN, "device").unwrap();
+        // It is played on there for a while...
+        for day in 10..40 {
+            increment_loyalty("brox", &format!("2026-03-{}", day)).unwrap();
+        }
+        let tablet = encode_full_state();
+        // ...and all the phone did meanwhile was look at a card.
+        restore_from_state(&phone).unwrap();
+        ensure_card_state("hilbert", 3);
+        let back = take_over(&tablet, THEN + 5000.0, "device").unwrap();
+
+        let kept = merges();
+        assert_eq!(kept.len(), 2);
+        assert!(kept[1].shared > 0, "the two have a history in common: {:?}", kept[1]);
+        assert!(back.gained > 30 && back.held < 10, "{:?}", back);
+        let sum = sync_sum();
+        assert!(sum.distance <= 1 + 2 * back.held as u64, "{:?} {:?}", sum, kept);
+        assert_eq!(sync_sum_written(), sum);
+    }
+
+    #[test]
+    fn two_devices_that_hold_the_same_merges_hold_the_same_sum() {
+        let theirs = a_device_mid_game();
+        reset();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        let back = encode_diff(&taken.their_state_vector).unwrap();
+        let here = (merges(), sync_sum(), sync_sum_written());
+        assert_eq!(here.1, here.2);
+
+        // The other device is sent the merge with the rest of the record.
+        restore_from_state(&theirs).unwrap();
+        assert_eq!(sync_sum(), SyncSum::default());
+        apply_update(&back).unwrap();
+        assert_eq!((merges(), sync_sum(), sync_sum_written()), here);
+    }
+
+    #[test]
+    fn the_sum_is_of_the_merges_both_devices_knew_of_and_none_is_counted_twice() {
+        // This device has taken a game before. So has the other, apart.
+        let first = a_device_mid_game();
+        reset();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        take_over(&first, THEN, "device").unwrap();
+        let mine = (encode_full_state(), sync_sum());
+        let theirs = {
+            let second = {
+                reset();
+                increment_loyalty("hilbert", "2026-03-01").unwrap();
+                increment_loyalty("hilbert", "2026-03-02").unwrap();
+                encode_full_state()
+            };
+            reset();
+            increment_loyalty("brox", "2026-03-03").unwrap();
+            take_over(&second, THEN + 1000.0, "device").unwrap();
+            (encode_full_state(), sync_sum())
+        };
+        assert_eq!((mine.1.merges, theirs.1.merges), (1, 1));
+
+        restore_from_state(&mine.0).unwrap();
+        take_over(&theirs.0, THEN + 9000.0, "device").unwrap();
+        let kept = merges();
+        assert_eq!(kept.len(), 3);
+        let sum = sync_sum();
+        assert_eq!(sum.merges, 3);
+        assert_eq!(sum.distance, mine.1.distance + theirs.1.distance + kept[2].distance());
+        assert_eq!(sync_sum_written(), sum);
+
+        // The same state again: the same merges, and the same sum.
+        take_over(&theirs.0, THEN + 20_000.0, "device").unwrap();
+        assert_eq!((merges(), sync_sum(), sync_sum_written()), (kept, sum, sum));
     }
 
     #[test]

@@ -128,7 +128,7 @@ All data is tracked across three distinct stores. Rust is the single source of t
 
 | Scope | Store | Persistence | Synced? | Examples |
 |-------|-------|-------------|---------|----------|
-| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes: a game is moved to another of the player's devices through the relay, sealed with a key the relay never sees (the Player Data page) | Card damage, turn alarms, settings, affinity, loyalty, the merges made |
+| **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes: a game is moved to another of the player's devices through the relay, sealed with a key the relay never sees (the Player Data page) | Card damage, turn alarms, settings, affinity, loyalty, the merges made and their sum |
 | **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
 | **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player) |
 
@@ -1029,7 +1029,7 @@ The Player Data page's sync section (`sections/player_data.html`, `src/game/devi
 **The contract.** The player's document holds two things, and they are moved by opposite rules:
 
 - **The game in progress** is damage, timers, what is retired and the affinity declared: everything New Game clears. Two games have no sensible union, so a game is only ever taken whole. It goes one way, from the device that starts the sync (the sender) to the other (the receiver), and takes the place of the receiver's game.
-- **The player's record** outlives every game: each card's loyalty, and the merges below. Each device adds what it knows to what the other holds. Both end with the same record, nothing either held is lost, and nothing is counted twice: loyalty is the days a card was played on, kept by date, so a day both devices counted is one day, and syncing again changes nothing.
+- **The player's record** outlives every game: each card's loyalty, and the merges below with their sum. Each device adds what it knows to what the other holds. Both end with the same record, nothing either held is lost, and nothing is counted twice: loyalty is the days a card was played on, kept by date, so a day both devices counted is one day, and syncing again changes nothing.
 
 A backup that is restored is taken over by the same rule (`player_doc::take_over` does both), so the two ways of moving a player's data cannot drift apart. Nothing is mirrored between devices after the move.
 
@@ -1042,7 +1042,25 @@ A backup that is restored is taken over by the same rule (`player_doc::take_over
 
 **What the relay sees.** The room's code, a room name, two random ids, and sealed messages. Everything the two devices say is sealed with AES-256-GCM under a key made from the secret (`crypto::Pairing`), each message for one direction, so a message that opens was sealed by a device that was shown the invitation and nothing else has to prove it. The room's name, which the relay asks of whoever joins, is made from the secret too and says nothing of the key: a stranger who guesses the four-character code is turned away by the relay. The relay needs no change for any of this.
 
-**Merges: a history, kept and not judged.** Each time a state is taken over that holds something new to the device, the two histories are compared and the comparison is kept in the document (`merges`): how many changes the state taken held that the device had not seen (`gained`), and how many the device held that the state taken had not (`held`). A change is one step of a device's count in the document's state vector, so the two numbers are the two halves of the difference between the histories. A new device taking a game over holds next to nothing; two records that grew apart, or were never one player's, each hold much the other lacks. Nothing is decided by these numbers and no sync is refused: they are kept so that a later rule (a tournament's, or an account's) has today's history to read. Small numbers are not meaningful: every new document makes one change, and looking at a card for the first time makes a few.
+**Merges: a history, kept and not judged.** Each time a state is taken over that holds something new to the device, the two histories are compared and the comparison is kept in the document (`merges`): how many changes the state taken held that the device had not seen (`gained`), how many the device held that the state taken had not (`held`), and how many both held (`shared`). A change is one step of a device's count in the document's state vector, so the first two numbers are the two halves of the difference between the histories, and the three together say all there is to say of the two histories' sizes and of how far they overlap: whatever is asked of a merge later can be worked out again from them. (A merge kept before `shared` was reads as sharing nothing.) A new device taking a game over holds next to nothing; two records that grew apart, or were never one player's, each hold much the other lacks. Nothing is decided by these numbers and no sync is refused: they are kept so that a later rule (a tournament's, or an account's) has today's history to read. Small numbers are not meaningful: every new document makes one change, and looking at a card for the first time makes a few.
+
+**The sync sum: the merges added up.** The owner's idea is that a player's history can stand for an account: a sync between a player's own devices should cost nothing, and two players' records put together should cost a great deal. So each merge has a distance (`Merge::distance`): the changes only one side held, times how alike the two sides were in size.
+
+```text
+distance = (gained + held) × smaller of the two ÷ larger of the two
+```
+
+| The two histories | gained | held | distance |
+|---|---|---|---|
+| A new device takes a game | 900 | 1 | 1 |
+| A device that only receives | 40 | 0 | 0 |
+| One device was played on, the other looked at a card | 300 | 4 | 4 |
+| Two records of a size that share nothing | 1000 | 1000 | 2000 |
+| A small record put into a large one | 1000 | 50 | 52 |
+
+The document keeps the merges added up under `sync_sum`: `{ merges, gained, held, distance }`, for a judgement that needs none of the detail. The sum is always worked out from the merges (`SyncSum::of`) and written down when they change, never added to: two devices that hold the same merges hold the same sum, whatever order they met in. Where two histories share nothing the ratio is that of their whole sizes; where they share much it is that of what each added since, which is why going back and forth between two devices stays cheap.
+
+Nothing reads the sum yet and no player is shown it. To read it, open the Player Data page as `/player_data#history`: a third view there (`/api/player/history`, `src/routes/player.rs`) lists the merges and the sum, and draws nothing under any other address. The numbers are in the player's own data, so they are what an honest device reports and no proof of anything.
 
 **To check it:** `cargo test` plays the relay and the other device (`game::device_sync`), and `tests/devices/browser/sync.ts` moves a game between two browsers through a relay run locally, handing the invitation over each of the three ways. The QR code is held up to a pretend camera there, so the site's own reader reads it.
 
@@ -1064,7 +1082,8 @@ A backup that is restored is taken over by the same rule (`player_doc::take_over
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |
 | `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
 | `"loyalty"` | `YMap<slug, YMap>` | `{ days: YMap<date, true>, earlier: i64, total_plays: i64, last_played: String }`: the days the card was played on, each by its date; `earlier`, plays counted before the days were kept; the last two, all an entry once held, kept in step with the rest |
-| `"merges"` | `YMap<id, YMap>` | `{ at: f64, by: String, gained: i64, held: i64 }`: each state taken over from another device (`by: "device"`) or a backup (`"file"`), see Moving a game to another device |
+| `"merges"` | `YMap<id, YMap>` | `{ at: f64, by: String, gained: i64, held: i64, shared: i64 }`: each state taken over from another device (`by: "device"`) or a backup (`"file"`), see Moving a game to another device |
+| `"sync_sum"` | `YMap` | `{ merges: i64, gained: i64, held: i64, distance: i64 }`: the merges added up, written whenever they change |
 
 ### Phase Summary
 

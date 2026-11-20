@@ -9,10 +9,85 @@
 //! The panel is an engine-owned view (Pattern 13) of `/api/player/affinity`.
 //! Each Declare button is an engine post; the view sends it and draws the
 //! panel again. The engine dates the declaration by its own clock.
+//!
+//! ## Sync history
+//! Each state this device took over from another device or a backup is kept
+//! as a merge, and the merges are added up (`player_doc::take_over`).
+//! Nothing uses the numbers yet. `/api/player/history` draws them on the
+//! Player Data page for whoever opens it as `/player_data#history`, which
+//! no link does.
 
 use crate::clock;
-use crate::game::player_doc;
-use crate::routes::util::{get_param, parse_form_body};
+use crate::game::player_doc::{self, Merge, SyncSum};
+use crate::routes::util::{get_param, parse_form_body, parse_query};
+
+// ── GET /api/player/history ────────────────────────────────────────
+
+/// What follows the `#` of the Player Data page's address when the sync
+/// history is asked for.
+const HISTORY: &str = "history";
+
+/// GET /api/player/history?show=<what follows the # of the page's address>
+/// — the merges and their sum, where the address asks for them, and nothing
+/// where it does not.
+pub fn handle_history_get(query: &str) -> String {
+    let params = parse_query(query);
+    if get_param(&params, "show") != Some(HISTORY) {
+        return String::new();
+    }
+    render_history(&player_doc::merges(), &player_doc::sync_sum())
+}
+
+fn render_history(merges: &[Merge], sum: &SyncSum) -> String {
+    let mut h = String::with_capacity(2048);
+    h.push_str(concat!(
+        r#"<section class="mt-10 text-sm" data-sync-history>"#,
+        r#"<h2 class="text-2xl font-bold mb-2">Sync history</h2>"#,
+        r#"<p class="max-w-prose mb-3">Each time this device took a game from another device or a backup "#,
+        r#"that held something new to it, the two histories were compared. Gained is how many changes "#,
+        r#"arrived that this device lacked, held how many it had that the other lacked, shared how many "#,
+        r#"both had. Distance is gained and held together, times the smaller of the two over the larger. "#,
+        r#"Nothing is decided by these numbers.</p>"#,
+    ));
+    h.push_str(&format!(
+        concat!(
+            r#"<dl class="grid grid-cols-[auto_1fr] gap-x-4 max-w-xs mb-4" data-sync-sum>"#,
+            r#"<dt class="font-bold">Sync sum</dt><dd data-sum="distance">{}</dd>"#,
+            r#"<dt>Merges</dt><dd data-sum="merges">{}</dd>"#,
+            r#"<dt>Gained</dt><dd data-sum="gained">{}</dd>"#,
+            r#"<dt>Held</dt><dd data-sum="held">{}</dd>"#,
+            r#"</dl>"#,
+        ),
+        sum.distance, sum.merges, sum.gained, sum.held
+    ));
+    if merges.is_empty() {
+        h.push_str(r#"<p>No merges yet.</p>"#);
+    } else {
+        // A line for each, of two rows, so that it fits a phone's width.
+        h.push_str(r#"<ul class="max-w-sm">"#);
+        for merge in merges {
+            // To the minute: `YYYY-MM-DD HH:MM`.
+            let when = clock::moment_of(merge.at).replace('T', " ");
+            let from = if merge.by == "file" { "a backup" } else { "a device" };
+            h.push_str(&format!(
+                concat!(
+                    r#"<li class="py-1 border-t border-kip-drk-goldenrod/30" data-merge>"#,
+                    r#"<div class="font-bold">{} UTC, from {}</div>"#,
+                    r#"<div>gained {}, held {}, shared {}, distance {}</div></li>"#,
+                ),
+                &when[..16.min(when.len())],
+                from,
+                merge.gained,
+                merge.held,
+                merge.shared,
+                merge.distance()
+            ));
+        }
+        h.push_str("</ul>");
+    }
+    h.push_str("</section>");
+    h
+}
 
 // ── GET /api/player/affinity ───────────────────────────────────────
 
@@ -159,6 +234,46 @@ mod tests {
 
     fn reset() {
         player_doc::init_player_doc();
+    }
+
+    #[test]
+    fn the_sync_history_is_drawn_only_where_the_address_asks_for_it() {
+        reset();
+        assert_eq!(handle_history_get(""), "");
+        assert_eq!(handle_history_get("?show="), "");
+        assert_eq!(handle_history_get("?show=sync%3DABCD-EFGHJKLMNPQRSTUVWXYZ"), "");
+        let html = handle_history_get("?show=history");
+        assert!(html.contains("Sync history"));
+        assert!(html.contains(r#"<dd data-sum="distance">0</dd>"#));
+        assert!(html.contains("No merges yet."));
+        reset();
+    }
+
+    #[test]
+    fn the_sync_history_lists_each_merge_and_the_sum() {
+        // Another device's state, with a play of its own, taken over here.
+        reset();
+        player_doc::increment_loyalty("brox", "2026-02-25").unwrap();
+        let theirs = player_doc::encode_full_state();
+        reset();
+        player_doc::increment_loyalty("liliel", "2026-02-26").unwrap();
+        let taken = player_doc::take_over(&theirs, 1_800_000_500_000.0, "file").unwrap();
+
+        let html = handle_history_get("?show=history");
+        let sum = player_doc::sync_sum();
+        assert!(sum.distance > 0, "{:?}", sum);
+        assert!(html.contains(&format!(r#"<dd data-sum="distance">{}</dd>"#, sum.distance)));
+        assert!(html.contains(r#"<dd data-sum="merges">1</dd>"#));
+        assert!(html.contains(&format!(r#"<dd data-sum="gained">{}</dd>"#, taken.gained)));
+        assert!(html.contains(&format!(r#"<dd data-sum="held">{}</dd>"#, taken.held)));
+        assert_eq!(html.matches("data-merge").count(), 1);
+        assert!(html.contains(">2027-01-15 08:08 UTC, from a backup</div>"), "{}", html);
+        assert!(html.contains(&format!(
+            ">gained {}, held {}, shared 0, distance {}</div>",
+            taken.gained, taken.held, sum.distance
+        )));
+        assert!(!html.contains("No merges yet."));
+        reset();
     }
 
     #[test]
