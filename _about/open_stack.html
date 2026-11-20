@@ -156,13 +156,19 @@ bg-terra: "bg-hero-pattern "
               <td class="py-1 pr-2"><a href="https://crates.io/crates/aes-gcm" class="underline">aes-gcm</a></td>
               <td class="py-1 pr-2">0.10</td>
               <td class="py-1 pr-2">MIT / Apache-2.0</td>
-              <td class="py-1">Encrypting player data backups</td>
+              <td class="py-1">Encrypting player data backups, and a game sent from one device to another</td>
             </tr>
             <tr class="border-b border-kip-drk-goldenrod/30">
               <td class="py-1 pr-2"><a href="https://crates.io/crates/getrandom" class="underline">getrandom</a></td>
               <td class="py-1 pr-2">0.2</td>
               <td class="py-1 pr-2">MIT / Apache-2.0</td>
-              <td class="py-1">The browser's random numbers, for each backup</td>
+              <td class="py-1">The browser's random numbers, for each backup and each device sync</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/qrcodegen" class="underline">qrcodegen</a></td>
+              <td class="py-1 pr-2">1.8</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Draws the QR code one device shows another to sync</td>
             </tr>
             <tr class="border-b border-kip-drk-goldenrod/30">
               <td class="py-1 pr-2"><a href="https://crates.io/crates/fastrand" class="underline">fastrand</a></td>
@@ -386,7 +392,7 @@ bg-terra: "bg-hero-pattern "
             <tr class="border-b border-kip-drk-goldenrod/30">
               <td class="py-1 pr-2">Cloudflare Workers</td>
               <td class="py-1 pr-2">Free tier</td>
-              <td class="py-1">WebSocket relay between two players (one small object per room)</td>
+              <td class="py-1">WebSocket relay between two players, or two of one player's devices (one small object per room)</td>
             </tr>
             <tr class="border-b border-kip-drk-goldenrod/30">
               <td class="py-1 pr-2">In-browser WASM</td>

@@ -2,8 +2,8 @@
 layout: default
 permalink: /using_the_binder
 title: "Using the Binder"
-description: "A practical guide to the tools and features on kipukas.cards — QR
-scanner, fists tool, damage tracker, affinity, loyalty, recipes, and more."
+description: "A practical guide to the tools and features on kipukas.cards — search
+and filter, QR scanner, fists tool, damage tracker, affinity, loyalty, recipes, device sync, and more."
 bg-terra: "bg-hero-pattern "
 ---
 {% include toolbar.html 
@@ -34,6 +34,33 @@ bg-terra: "bg-hero-pattern "
         <a href="/game_rules/" class="underline">Rules</a> instead.
       </p>
       <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+
+      <!-- ─── Finding Cards ─── -->
+      <h2 id="finding-cards" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Finding Cards</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <a href="/" class="underline">Binder Home</a> shows every card, and adds more to the page as you scroll.
+        Tap a card to open its page. Two buttons in the toolbar narrow the binder down:
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li><b>Search</b> (magnifying glass) — opens a search bar. Type part of a card's name and the binder shows the cards that match as you type. It shows nothing until you have typed something. Press the button again to close the search and get the binder back as it was.</li>
+        <li><b>Filter</b> (funnel) — opens a menu of boxes: card <b>Variations</b> (Character, Species, Trap, Item and the rest), <b>Soul Types</b>, <b>Motivations</b> and <b>Habitats</b>. Untick <b>Show All</b> first, then tick what you are looking for. A card is shown if it matches any box you ticked. The number beside Show All is how many cards the binder holds.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        A search looks through the whole binder, whatever the filter says. Both start over when you leave the
+        page: a fresh visit shows every card.
+      </p>
+
+      <!-- ─── Card Art ─── -->
+      <h2 id="card-art" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Card Art</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        A card's page lays its play data over its art. The <b>eye</b> button in the toolbar hides the play data
+        so you can see the art by itself. Press it again (it is then a crossed-out eye) to bring the play data
+        back.
+      </p>
 
       <!-- ─── QR Scanner ─── -->
       <h2 id="qr-scanner" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">QR Scanner</h2>
@@ -271,18 +298,36 @@ bg-terra: "bg-hero-pattern "
       </ul>
 
       <!-- ─── Player Data & Sync ─── -->
-      <h2 id="player-data" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Player Data &amp; Cross-Device Sync</h2>
+      <h2 id="player-data" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Player Data &amp; Device Sync</h2>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        All your progression data (card damage, affinity, loyalty, turn alarms, settings) lives on <b>your
-        device only</b>. Nothing is sent to a server. You can export and import your player data as an encrypted
-        <code>.kipukas</code> file, locked with a passphrase you choose, via the <b>"Manage Player Data"</b>
-        option in the hamburger menu. A backup also carries the switches on the Settings page.
+        Your game progress (card damage, turn timers, affinity and loyalty) lives on <b>your device only</b>.
+        <a href="/player_data" class="underline">Player Data</a>, in the hamburger menu, is where you carry it
+        to another device or keep a copy of it.
       </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Syncing two devices directly is switched off while we rework it. Until it returns, a backup file is the
-        way to move your player data from one device to another.
+        <b>Sync a device</b> carries a game on from one device to another:
+      </p>
+
+      <ol class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-decimal list-inside space-y-1">
+        <li>On the device that has the game, open Player Data, press <b>Sync a new device</b> and confirm. It shows a QR code, and the same code in letters.</li>
+        <li>On the other device, scan the QR code: with the site's QR scanner, or with the camera app, which opens the site. You can also open Player Data there and type the code.</li>
+        <li>The other device asks whether to take the game, and tells you what it would lose. Press <b>Take the game</b>.</li>
+      </ol>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The game in progress on the other device is <b>replaced</b> by the one you sent: its damage, timers and
+        affinity. Your record is <b>merged</b>: each card's loyalty is added together on both devices, and a day
+        both devices counted is counted once. A code works once, and for ten minutes. The two devices talk
+        through our relay, which cannot read what they say: it is encrypted with a key that only the code carries.
+      </p>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        <b>Backup</b> exports your player data as an encrypted <code>.kipukas</code> file, locked with a passphrase
+        you choose, and imports one. Importing treats the file as a sync treats the other device: the backup's
+        game replaces the one on the device, and your record is merged. A backup also carries the switches on
+        the Settings page. Keep the passphrase safe: it cannot be recovered.
       </p>
 
       <!-- ─── Settings ─── -->
@@ -306,8 +351,25 @@ bg-terra: "bg-hero-pattern "
         <li>A <b>front-facing (selfie) camera</b> works best with the QR scanner and phone stand.</li>
         <li>The binder works <b>offline</b> after the first load — great for venues with spotty Wi-Fi.</li>
         <li>A <b>Chromium-based browser</b> (Chrome, Edge, Brave, etc.) provides the best experience.</li>
-        <li>The site is a <b>PWA</b> — you can install it to your home screen for an app-like experience.</li>
       </ul>
+
+      <!-- ─── Installing ─── -->
+      <h2 id="installing" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Installing the Binder</h2>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The binder is a web app that can be installed, which gives it an icon of its own and its own window,
+        and has it fetch the card art ahead of time for playing offline. Installing collects no data from you.
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-4/6 place-self-center pb-2 list-disc list-inside space-y-1">
+        <li><b>Android and computers</b> — press the <b>install</b> button in the toolbar (an arrow pointing down into a tray) and choose <b>Install</b>. If your browser cannot install web apps, the button tells you so. Chromium-based browsers install most reliably.</li>
+        <li><b>iPhone and iPad</b> — Safari has no install button for us to press. Use Safari's <b>Share</b> button, then <b>Add to Home Screen</b>. There the installed binder keeps its own player data, apart from Safari's: use <a href="#player-data" class="underline">Sync a device</a> or a backup to carry a game between the two.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        The install button goes away once the binder is installed, and its notice has a box to hide it if you
+        would rather not be asked.
+      </p>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-6">
         For more about the binder's philosophy, privacy stance, and business model see
