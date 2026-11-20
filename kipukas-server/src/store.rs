@@ -288,8 +288,12 @@ pub fn take_saves() -> BTreeMap<&'static str, Option<String>> {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "event", rename_all = "lowercase")]
 enum PageEvent {
-    /// The page came back into view.
-    Shown,
+    /// The page came back into view. `stored` is what storage holds now of
+    /// the settings and the scanner's choices, where the page says.
+    Shown {
+        #[serde(default)]
+        stored: Option<BTreeMap<String, String>>,
+    },
     /// The browser says the network is back.
     Online,
     /// The page was brought back whole from the browser's back/forward cache
@@ -325,13 +329,21 @@ pub fn page_event(body: &str) -> Follows {
     };
     match event {
         PageEvent::Online => Follows::CameBack,
-        PageEvent::Shown => {
+        PageEvent::Shown { stored } => {
             if is_stale() {
                 page::reload();
-                Follows::Nothing
-            } else {
-                Follows::CameBack
+                return Follows::Nothing;
             }
+            // Another tab may have turned a setting or changed one of the
+            // scanner's choices while this one was out of view. The browser
+            // reports such a write as it happens (`Storage`, below), but a
+            // tab that is out of view may be asleep to it. So they are taken
+            // up here as well, each as if it had just been reported.
+            if let Some(stored) = stored {
+                crate::settings::in_view_again(&stored);
+                crate::routes::qr::in_view_again(&stored);
+            }
+            Follows::CameBack
         }
         PageEvent::Restored { stored } => {
             let moved_on = |key: &str| {
@@ -368,6 +380,13 @@ pub fn page_event(body: &str) -> Follows {
             Follows::CameBack
         }
         PageEvent::Storage { key, value } => {
+            // A setting, or one of the scanner's choices, made in another
+            // tab: this one takes it up.
+            if crate::settings::changed_elsewhere(&key, value.as_deref())
+                || crate::routes::qr::changed_elsewhere(&key, value.as_deref())
+            {
+                return Follows::Nothing;
+            }
             if !KEYS.contains(&key.as_str()) {
                 return Follows::Nothing;
             }
@@ -745,6 +764,50 @@ mod tests {
         assert!(!settings::is_on(&settings::CAMERA_PRIVACY));
         qr::handle_status_post("action=toggle");
         assert!(qr::handle_status("").contains("Privacy Notice"));
+
+        // Left as before any page has loaded, for the tests that follow.
+        start(&[]);
+        fresh();
+    }
+
+    #[test]
+    fn a_choice_made_in_another_tab_is_taken_up_when_it_is_reported_and_when_the_page_is_shown() {
+        use crate::routes::qr;
+        use crate::settings;
+        const FRONT: &str = r#"{"id":"front-1","label":"Front Camera","facing":"user"}"#;
+        const REAR: &str = r#"{"id":"back-1","label":"Back Camera","facing":"environment"}"#;
+        let privacy = settings::CAMERA_PRIVACY.key;
+
+        fresh();
+        start(&[(privacy, "true"), (qr::CAMERA, FRONT)]);
+        page::reset();
+
+        // The browser reports the write of another tab as it happens.
+        let write = serde_json::json!({ "event": "storage", "key": qr::CAMERA, "value": REAR });
+        assert_eq!(report(write), Follows::Nothing);
+        assert!(!page::take_reload(), "the page is kept");
+        qr::handle_status_post("action=toggle");
+        assert!(qr::handle_status("").contains(r#"data-camera-facing="environment""#));
+
+        // The page comes back into view and hands over what is stored now.
+        // Its scanner stays open, unlike that of a page brought back by Back.
+        let now = serde_json::json!({ privacy: "true", qr::CAMERA: FRONT, qr::LIGHT: "true" });
+        assert_eq!(report(serde_json::json!({ "event": "shown", "stored": now })), Follows::CameBack);
+        let html = qr::handle_status("");
+        assert!(html.contains("<video"), "the scanner stays open");
+        assert!(html.contains(r#"data-camera-facing="user""#));
+        assert!(html.contains("bg-white w-screen"), "the light turned on in the other tab is on");
+
+        // A page that says nothing of storage when it is shown: nothing is
+        // taken to have been turned off.
+        assert_eq!(report(serde_json::json!({ "event": "shown" })), Follows::CameBack);
+        assert!(settings::is_on(&settings::CAMERA_PRIVACY));
+        assert!(qr::handle_status("").contains("bg-white w-screen"));
+
+        // A setting turned in another tab.
+        let write = serde_json::json!({ "event": "storage", "key": "kipukas-scanner-status", "value": "true" });
+        assert_eq!(report(write), Follows::Nothing);
+        assert!(settings::is_on(&settings::SCANNER_STATUS));
 
         // Left as before any page has loaded, for the tests that follow.
         start(&[]);

@@ -37,25 +37,31 @@
 //     engine's to ask for (RELOAD).
 const ENGINE_KEYS = ['kipukas_player_doc', 'kipukas_room', 'kipukas_room_doc', 'kipukas_room_tab'];
 
-// Handed to the engine at load with the rest, but not watched for changes:
-//   - a relay address to use in place of the engine's own, for local work,
-//     written by nobody but a developer. Run the relay locally (`deno task
-//     dev` in signaling-server/) and point at it with:
-//       localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
+// Single choices of the player's, each under a key of its own, handed to the
+// engine at load with the rest and written when they are made:
 //   - the settings page's switches (kipukas-server/src/settings.rs): that
 //     the camera privacy notice has been accepted, and whether the QR
 //     scanner shows what its frames take;
 //   - what the QR scanner keeps as it was left: whether codes are found by
 //     computer vision, whether the screen light is on, and which camera
 //     the player chose (kipukas-server/src/routes/qr.rs).
-const READ_AT_START = [
-  'kipukas_relay_url',
+// A tab that is open takes up a choice made in another: the engine is told
+// when the browser reports the write, and is handed them all again when the
+// page comes back into view (below).
+const CHOICES = [
   'qr-privacy-accepted',
   'kipukas-scanner-status',
   'kipukas-cv-enabled',
   'kipukas-scanner-light',
   'kipukas-scanner-camera',
 ];
+
+// Handed to the engine at load as well, but not watched for changes: a relay
+// address to use in place of the engine's own, for local work, written by
+// nobody but a developer. Run the relay locally (`deno task dev` in
+// signaling-server/) and point at it with:
+//   localStorage.setItem('kipukas_relay_url', 'ws://localhost:8787/ws')
+const READ_AT_START = ['kipukas_relay_url', ...CHOICES];
 
 /** What is stored under one of the engine's keys, or null. */
 function stored(key) {
@@ -66,14 +72,19 @@ function stored(key) {
   }
 }
 
-/** Everything stored for the engine. */
-function allStored() {
+/** What is stored under each of `keys` that holds anything. */
+function storedUnder(keys) {
   const all = {};
-  for (const key of [...ENGINE_KEYS, ...READ_AT_START]) {
+  for (const key of keys) {
     const value = stored(key);
     if (value !== null) all[key] = value;
   }
   return all;
+}
+
+/** Everything stored for the engine. */
+function allStored() {
+  return storedUnder([...ENGINE_KEYS, ...READ_AT_START]);
 }
 
 // Whether the player is in a room, as the engine last said. Toolbar tools
@@ -143,17 +154,22 @@ wasmWorker.addEventListener('message', (event) => {
   }
 });
 
-// Another tab wrote or removed one of the engine's keys. What it holds now
-// is read afresh: two tabs loading at once both write, and the last write is
-// the one that counts.
+// Another tab wrote or removed one of the engine's keys, or made one of the
+// player's single choices. What the key holds now is read afresh: two tabs
+// loading at once both write, and the last write is the one that counts.
 globalThis.addEventListener('storage', (event) => {
-  if (ENGINE_KEYS.includes(event.key)) {
+  if (ENGINE_KEYS.includes(event.key) || CHOICES.includes(event.key)) {
     report({ event: 'storage', key: event.key, value: stored(event.key) });
   }
 });
 
+// The page is in view again. A tab that is out of view may not be told of
+// what another writes meanwhile (a phone puts it to sleep), so the engine is
+// handed the single choices as they are stored now.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') report({ event: 'shown' });
+  if (document.visibilityState === 'visible') {
+    report({ event: 'shown', stored: storedUnder(CHOICES) });
+  }
 });
 
 // A page restored from the back/forward cache saw nothing of storage while

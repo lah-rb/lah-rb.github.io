@@ -277,12 +277,67 @@ pub fn restore(stored: &BTreeMap<String, String>) {
 /// player chose.
 fn choices(stored: &BTreeMap<String, String>) -> (bool, bool, Camera) {
     let chosen = |key: &str| stored.get(key).is_some_and(|value| value == "true");
-    let wanted = stored
-        .get(CAMERA)
-        .and_then(|raw| serde_json::from_str::<Camera>(raw).ok())
+    (chosen(CV), chosen(LIGHT), camera_stored(stored.get(CAMERA).map(String::as_str)))
+}
+
+/// The camera the player chose, as it is stored under `CAMERA`. Nothing is
+/// known of one if nothing is stored, or what is stored cannot be read.
+fn camera_stored(raw: Option<&str>) -> Camera {
+    raw.and_then(|raw| serde_json::from_str::<Camera>(raw).ok())
         .map(|camera| Camera::described(&camera.id, &camera.label, &camera.facing))
-        .unwrap_or_default();
-    (chosen(CV), chosen(LIGHT), wanted)
+        .unwrap_or_default()
+}
+
+/// One of the scanner's choices was made in another tab: `key` now holds
+/// `value` (`store::page_event`). It is taken up in this one as well, so
+/// that its scanner opens as the player last left one. Says whether `key`
+/// is one of the scanner's.
+///
+/// Nothing is written: storage already holds it. A scanner that is open
+/// stays open, with the camera it is running: the camera chosen is the one
+/// asked for the next time a camera is started.
+pub fn changed_elsewhere(key: &str, value: Option<&str>) -> bool {
+    if ![CV, LIGHT, CAMERA].contains(&key) {
+        return false;
+    }
+    let before = handle_status("");
+    let on = value == Some("true");
+    let asked = with_scanner(|scanner| match key {
+        CV => {
+            let changed = scanner.cv != on;
+            scanner.cv = on;
+            if changed {
+                scanner.tally = Tally::default();
+            }
+            // The worker of an open scanner is asked for the model, or to
+            // read without it.
+            (changed && scanner.face != Face::Closed).then_some(on)
+        }
+        LIGHT => {
+            scanner.light = on;
+            None
+        }
+        _ => {
+            scanner.wanted = camera_stored(value);
+            None
+        }
+    });
+    if let Some(cv) = asked {
+        page::qr(cv);
+    }
+    if handle_status("") != before {
+        page::redraw("/api/qr/status");
+    }
+    true
+}
+
+/// The page is in view again, and is handed what is stored now
+/// (`store::page_event`): each of the scanner's choices is taken up as
+/// another tab may have left it while this one was out of view.
+pub fn in_view_again(stored: &BTreeMap<String, String>) {
+    for key in [CV, LIGHT, CAMERA] {
+        changed_elsewhere(key, stored.get(key).map(String::as_str));
+    }
 }
 
 /// The page was brought back by the Back button, with its engine as it was
@@ -1367,6 +1422,113 @@ mod tests {
         tap("action=reader&state=failed");
         came_back(&stored_now(&[(settings::CAMERA_PRIVACY.key, "true")]));
         assert!(tap("action=toggle").contains("The QR reader could not be loaded."));
+        fresh();
+    }
+
+    // -- a choice made in another tab --
+
+    #[test]
+    fn a_camera_chosen_in_another_tab_is_the_one_asked_for_the_next_time() {
+        fresh();
+        restored_with_camera(FRONT);
+        page::reset();
+
+        assert!(changed_elsewhere(CAMERA, Some(REAR)));
+        // The scanner is closed: there is nothing to draw again.
+        assert!(page::take_redraws().is_empty());
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("back-1", "environment", false));
+        // Nothing is written: storage already holds the choice.
+        assert!(store::take_saves().get(CAMERA).is_none());
+
+        // The choice removed, or not readable: nothing is known of a camera.
+        tap("action=close");
+        assert!(changed_elsewhere(CAMERA, None));
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("", "", true));
+        tap("action=close");
+        assert!(changed_elsewhere(CAMERA, Some("not a camera")));
+        assert_eq!(camera_asked_for(&tap("action=toggle")), asked("", "", true));
+        fresh();
+    }
+
+    #[test]
+    fn a_scanner_that_is_open_stays_on_its_camera_when_another_tab_changes_the_choice() {
+        scanning();
+        tap("action=camera&id=front-1&label=Front%20Camera&facing=user&width=480&height=640");
+        store::take_saves();
+        page::reset();
+
+        changed_elsewhere(CAMERA, Some(REAR));
+        let html = handle_status("");
+        assert!(html.contains("<video"), "still open");
+        // The choice is written on the scanner for the next start. The
+        // picture is still the front camera's, and is shown as such.
+        assert_eq!(camera_asked_for(&html), asked("back-1", "environment", true));
+        assert_eq!(page::take_redraws(), ["/api/qr/status"]);
+        fresh();
+    }
+
+    #[test]
+    fn the_light_and_computer_vision_turned_in_another_tab_are_taken_up() {
+        // A closed scanner opens with them.
+        fresh();
+        restored(true, false);
+        page::reset();
+        assert!(changed_elsewhere(CV, Some("true")));
+        assert!(changed_elsewhere(LIGHT, Some("true")));
+        assert!(page::take_redraws().is_empty());
+        let html = tap("action=toggle");
+        assert!(html.contains(r#"title="Disable CV detection (YOLO)""#));
+        assert!(html.contains("bg-white w-screen"));
+        page::handle_handover_post("");
+
+        // An open scanner is drawn again, and its worker is told to read
+        // without the model.
+        changed_elsewhere(CV, Some("false"));
+        assert!(handle_status("").contains(r#"title="Enable CV detection (YOLO)""#));
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert_eq!(handed["qr"], asked_of_the_worker(false, false));
+        // A key removed from storage counts as off.
+        changed_elsewhere(LIGHT, None);
+        assert!(!handle_status("").contains("bg-white w-screen"));
+        // Neither is written: storage already holds them.
+        let saves = store::take_saves();
+        assert!(saves.get(CV).is_none() && saves.get(LIGHT).is_none());
+        fresh();
+    }
+
+    #[test]
+    fn a_key_that_is_not_the_scanners_is_left_to_others() {
+        fresh();
+        assert!(!changed_elsewhere("kipukas_player_doc", Some("true")));
+        assert!(!changed_elsewhere(settings::CAMERA_PRIVACY.key, Some("true")));
+        fresh();
+    }
+
+    #[test]
+    fn the_privacy_notice_taken_back_in_another_tab_stops_a_scanner_that_is_open_here() {
+        scanning();
+        assert!(settings::changed_elsewhere(settings::CAMERA_PRIVACY.key, Some("false")));
+        let html = handle_status("");
+        assert!(html.contains("Privacy Notice"));
+        assert!(!html.contains("<video"));
+        fresh();
+    }
+
+    #[test]
+    fn the_privacy_notice_accepted_in_another_tab_does_not_start_a_camera_here() {
+        fresh();
+        restored(false, false);
+        assert!(tap("action=toggle").contains("Privacy Notice"));
+
+        settings::changed_elsewhere(settings::CAMERA_PRIVACY.key, Some("true"));
+        // The notice stays until it is answered here: this may be a tab
+        // nobody is looking at.
+        let html = handle_status("");
+        assert!(html.contains("Privacy Notice"));
+        assert!(!html.contains("<video"));
+        // A scanner opened anew goes straight to the camera.
+        tap("action=close");
+        assert!(tap("action=toggle").contains("<video"));
         fresh();
     }
 

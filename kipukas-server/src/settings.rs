@@ -21,7 +21,7 @@
 //! What a setting changes is the business of the module it is about, which
 //! asks [`is_on`], and may turn it by a control of its own ([`set`]: the
 //! scanner's privacy notice does). To add one: a [`Setting`] here, listed
-//! in [`ALL`]; its key in `READ_AT_START` in kipukas-api.js; and the
+//! in [`ALL`]; its key in `CHOICES` in kipukas-api.js; and the
 //! asking.
 
 use std::cell::RefCell;
@@ -106,6 +106,18 @@ pub fn is_on(setting: &Setting) -> bool {
 /// Turn `setting` on or off, and have that stored. What the setting is
 /// about is told.
 pub fn set(setting: &'static Setting, on: bool) {
+    hold(setting, on);
+    store::put(setting.key, Some(on.to_string()));
+    if setting.key == SCANNER_STATUS.key {
+        crate::routes::qr::status_setting_changed();
+    }
+    if setting.key == CAMERA_PRIVACY.key {
+        crate::routes::qr::privacy_setting_changed();
+    }
+}
+
+/// Hold `setting` as on or off, and no more.
+fn hold(setting: &Setting, on: bool) {
     ON.with(|held| {
         let mut held = held.borrow_mut();
         held.retain(|key| *key != setting.key);
@@ -113,12 +125,42 @@ pub fn set(setting: &'static Setting, on: bool) {
             held.push(setting.key);
         }
     });
-    store::put(setting.key, Some(on.to_string()));
+}
+
+/// A setting was turned in another tab: `key` now holds `value`
+/// (`store::page_event`). It is taken up in this one as well, and the
+/// settings page is drawn again. Says whether `key` is a setting's.
+///
+/// Nothing is written: storage already holds it. What the setting is about
+/// is told, with one exception. The camera privacy notice accepted in
+/// another tab does not start the camera of a scanner that shows the notice
+/// in this one, which may be a tab nobody is looking at: the notice stays
+/// until it is answered here. Taken back, it does stop a camera here.
+pub fn changed_elsewhere(key: &str, value: Option<&str>) -> bool {
+    let Some(setting) = ALL.iter().copied().find(|setting| setting.key == key) else {
+        return false;
+    };
+    let on = value == Some("true");
+    if is_on(setting) == on {
+        return true;
+    }
+    hold(setting, on);
+    crate::page::redraw("/api/settings");
     if setting.key == SCANNER_STATUS.key {
         crate::routes::qr::status_setting_changed();
     }
-    if setting.key == CAMERA_PRIVACY.key {
+    if setting.key == CAMERA_PRIVACY.key && !on {
         crate::routes::qr::privacy_setting_changed();
+    }
+    true
+}
+
+/// The page is in view again, and is handed what is stored now
+/// (`store::page_event`): every setting is taken up as another tab may have
+/// left it while this one was out of view.
+pub fn in_view_again(stored: &BTreeMap<String, String>) {
+    for setting in ALL {
+        changed_elsewhere(setting.key, stored.get(setting.key).map(String::as_str));
     }
 }
 
@@ -341,6 +383,43 @@ mod tests {
         let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
         assert!(handed["save"].get("kipukas-scanner-status").is_none(), "nothing is written: {}", handed);
         assert!(handed["save"].get("qr-privacy-accepted").is_none(), "nothing is written: {}", handed);
+        fresh();
+    }
+
+    #[test]
+    fn a_setting_turned_in_another_tab_is_taken_up_and_not_written_again() {
+        fresh();
+        restore(&stored(&[]));
+        page::reset();
+
+        assert!(changed_elsewhere("kipukas-scanner-status", Some("true")));
+        assert!(is_on(&SCANNER_STATUS));
+        assert_eq!(page::take_redraws(), ["/api/settings"]);
+        let handed: serde_json::Value = serde_json::from_str(&page::handle_handover_post("")).unwrap();
+        assert!(handed["save"].get("kipukas-scanner-status").is_none(), "nothing is written: {}", handed);
+
+        // Said again, nothing is drawn again.
+        assert!(changed_elsewhere("kipukas-scanner-status", Some("true")));
+        assert!(page::take_redraws().is_empty());
+
+        // Removed from storage, it is off.
+        assert!(changed_elsewhere("kipukas-scanner-status", None));
+        assert!(!is_on(&SCANNER_STATUS));
+
+        // A key that is no setting's is left to others.
+        assert!(!changed_elsewhere("kipukas_player_doc", Some("true")));
+        assert!(!changed_elsewhere("kipukas-scanner-camera", Some("true")));
+        fresh();
+    }
+
+    #[test]
+    fn a_page_in_view_again_takes_up_every_setting_as_it_is_stored() {
+        fresh();
+        restore(&stored(&[("qr-privacy-accepted", "true")]));
+        page::reset();
+        in_view_again(&stored(&[("kipukas-scanner-status", "true")]));
+        assert!(!is_on(&CAMERA_PRIVACY) && is_on(&SCANNER_STATUS));
+        assert!(page::take_redraws().contains(&"/api/settings"));
         fresh();
     }
 
