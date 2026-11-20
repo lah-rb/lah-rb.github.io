@@ -1,0 +1,20 @@
+{
+  "imports": {
+    "puppeteer-core": "npm:puppeteer-core@24"
+  },
+  "tasks": {
+    "browser": "deno run -A browser/all.ts"
+  },
+  "fmt": {
+    "include": ["browser/", "phone/"],
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true
+  },
+  "lint": {
+    "include": ["browser/"],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}

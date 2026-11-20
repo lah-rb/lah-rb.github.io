@@ -675,6 +675,8 @@ A view may hold other views where each inner one should be drawn by itself: the 
 | [WeasyPrint](https://weasyprint.org/) | BSD 3-Clause | Makes the rules book's PDF |
 | [pillow-jxl-plugin](https://pypi.org/project/pillow-jxl-plugin/) | GPL-3.0-or-later | Lets WeasyPrint read the rules book's JPEG XL pictures. Runs only while the PDF is made; nothing of it is in the site |
 | [tmuxinator](https://github.com/tmuxinator/tmuxinator) | MIT | Multi-pane terminal dev environment |
+| [puppeteer-core](https://pptr.dev/) | Apache-2.0 | Drives a browser for the checks in `tests/devices/browser/`. Run through Deno; nothing of it is in the site |
+| [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) | GPL-3.0 | Reads Safari on an iPhone for the scripts in `tests/devices/phone/`. Run through `uvx`, which keeps it in its own cache; nothing of it is in the site or the repository |
 
 ### Jekyll Plugins
 
@@ -775,6 +777,8 @@ The last step plays two of the site's engines against the local relay, each held
 | `[kipukas-worker] Could not read all that is stored:` | Something in localStorage could not be restored at load; what, follows |
 
 The connection logs nothing. Where it stands is on the page: the room dialog and the status pill.
+
+**Checks that need a browser or a phone** are in `tests/devices/`, with a README of their own. `deno task browser` there drives Chrome through the scanner on the built site or the live one: a page come back to with Back, the switch-camera button on pretend cameras, a choice made in one tab taken up by another. The scripts under `phone/` read Safari on an iPhone that is plugged in, and record what its scanner asks of the phone and is given. Nothing runs them automatically: run them after a change to the scanner or to what is stored.
 
 **Multiplayer testing:**
 - One machine: a normal window and a private window (two tabs of one browser are the same player — see Pattern 10)
