@@ -14,9 +14,11 @@
  *     no more: what the player aims at is what is read. How
  *     often is the engine's to say (data-qr-every on the scanner); the next
  *     frame is taken only when the worker is done with the last;
- *   - change which camera is in use, of those the device has (the button the
- *     engine marks data-qr-switch), and tell the engine which is running and
- *     the size of its picture. The engine shows the picture mirrored or not
+ *   - change which camera is in use (the button the engine marks
+ *     data-qr-switch): between the one that faces the player and one that
+ *     faces away, or round all of them where they do not say which way they
+ *     face. And tell the engine which is running and the size of its
+ *     picture. The engine shows the picture mirrored or not
  *     by which way that camera faces. It keeps the camera the player changed
  *     to, and writes it on the scanner for this file to ask the browser for
  *     the next time;
@@ -56,6 +58,9 @@
   // for a browser that does not say which of them is running. Until there
   // has been a change, that is taken to be the first.
   let changedTo = 0;
+  // The browser was asked for a camera that faces the other way and gave one
+  // that does not: this device's cameras are gone round from here on.
+  let oneWay = false;
 
   // Cleared a moment after the worker last reported what it found.
   let bboxFadeTimer = null;
@@ -388,27 +393,55 @@
   }
 
   /**
-   * Change to the next of the device's cameras, in the browser's order, and
-   * round to the first again. Where the browser names no cameras to choose
-   * between, ask for one that faces the other way.
+   * Change camera.
+   *
+   * A camera that says which way it faces is a phone's or a tablet's. The
+   * change is to one that faces the other way, and which of those is the
+   * browser's to choose: the same that is asked of it on the next page. An
+   * iPhone lists every rear lens as a camera of its own (six on a 14 Pro
+   * Max), and going round them all to come back to the front one was no way
+   * to change camera.
+   *
+   * Where the camera does not say (a computer's), or the browser turns out
+   * to have none that faces the other way, the device's cameras are gone
+   * round instead, in the browser's order, and round to the first again.
    */
-  function switchCamera() {
+  async function switchCamera() {
     if (starting) return;
+    const now = running || remembered();
+    const other = now.facing === 'user'
+      ? 'environment'
+      : now.facing === 'environment'
+      ? 'user'
+      : '';
+    if (other && !oneWay) {
+      console.log(`[qr-camera] Switching camera: ${other}`);
+      stop();
+      await start({ id: '', facing: other });
+      // Done if the camera given faces the way asked. Done as well if
+      // there is none to judge by: the scanner was closed meanwhile, or
+      // the camera could not be started.
+      if (!running || running.facing === other) return;
+      oneWay = true;
+    }
+
     const named = videoDevices.filter((device) => device.deviceId);
     let next;
     if (named.length > 1) {
-      // The one after the camera that is running: known by its id, or its
+      // The one after the camera that was running: known by its id, or its
       // name, or failing both by where the last change went.
-      const now = running || {};
       let at = named.findIndex((device) => now.id && device.deviceId === now.id);
       if (at < 0) at = named.findIndex((device) => now.label && device.label === now.label);
       if (at < 0) at = changedTo;
       changedTo = (at + 1) % named.length;
-      const device = named[changedTo];
-      next = { id: device.deviceId, facing: '' };
+      next = { id: named[changedTo].deviceId, facing: '' };
+    } else if (other) {
+      // One camera, which faces one way: there is nothing to change to.
+      return;
     } else {
-      const away = (running || remembered()).facing === 'environment';
-      next = { id: '', facing: away ? 'user' : 'environment' };
+      // The browser names no cameras to choose between and does not say
+      // which way this one faces: ask for one that faces away.
+      next = { id: '', facing: 'environment' };
     }
     console.log(`[qr-camera] Switching camera: ${next.id ? 'the next' : next.facing}`);
 
