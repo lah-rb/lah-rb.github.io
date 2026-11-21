@@ -48,14 +48,13 @@ struct Met {
     days_here: f64,
     /// Days of play the device added to the record it took.
     days_there: f64,
-    /// Changes the state taken had let go before this, that the device
-    /// never saw: what `held` came to in each take-over known to the state
-    /// taken and not to the device. A device lets its own history go when
-    /// it takes a state over.
-    gained_let_go: f64,
-    /// The same of the device: changes it had let go, that the state taken
-    /// never saw.
-    held_let_go: f64,
+    /// `gained`, `held` and `shared` as they would be if no history were
+    /// ever let go. A device lets its own history go when it takes a state
+    /// over; here every change a device or a state has ever held still
+    /// counts as its own (`Device::id`).
+    kept_gained: f64,
+    kept_held: f64,
+    kept_shared: f64,
 }
 
 /// The smaller of two sizes over the larger, or nothing where one is nothing.
@@ -114,23 +113,39 @@ impl Met {
         (self.days_here + self.days_there) * ratio(self.days_here, self.days_there)
     }
 
-    /// The built formula, each side weighing what it holds and what it has
-    /// let go: a history let go still counts for the one that held it.
-    fn weighed(&self) -> f64 {
-        let (gained, held) = (self.gained + self.gained_let_go, self.held + self.held_let_go);
-        ((gained + held) * ratio(gained, held)).floor()
+    /// The built formula, no history ever let go.
+    fn kept(&self) -> f64 {
+        ((self.kept_gained + self.kept_held) * ratio(self.kept_gained, self.kept_held)).floor()
+    }
+
+    /// The owner's formula counted in changes, no history ever let go.
+    fn kept_counted(&self) -> f64 {
+        let (mine, theirs) = (self.kept_held + self.kept_shared, self.kept_gained + self.kept_shared);
+        (self.kept_gained + self.kept_held) * ratio(mine, theirs)
+    }
+
+    /// The owner's formula in bits, no history ever let go.
+    fn kept_bits(&self) -> f64 {
+        let (mine, theirs) = (self.kept_held + self.kept_shared, self.kept_gained + self.kept_shared);
+        if mine == 0.0 || theirs == 0.0 {
+            return 0.0;
+        }
+        let both = self.kept_gained + self.kept_held + self.kept_shared;
+        (2.0 * both.log2() - mine.log2() - theirs.log2()) * ratio(mine, theirs)
     }
 }
 
 type Formula = (&'static str, fn(&Met) -> f64);
 
-const FORMULAS: [Formula; 6] = [
+const FORMULAS: [Formula; 8] = [
     ("built", Met::built),
     ("counted", Met::counted),
     ("bits", Met::bits),
     ("writer bits", Met::writer_bits),
     ("record", Met::record),
-    ("weighed", Met::weighed),
+    ("kept", Met::kept),
+    ("kept counted", Met::kept_counted),
+    ("kept bits", Met::kept_bits),
 ];
 
 fn state_vector(encoded: &str) -> StateVector {
@@ -154,24 +169,35 @@ fn entropy(vector: &StateVector) -> f64 {
         .sum()
 }
 
-fn met(mine: &StateVector, theirs: &StateVector, taken: &doc::Taken, let_go: (f64, f64)) -> Met {
+/// Every change either of two histories holds.
+fn joined(a: &StateVector, b: &StateVector) -> StateVector {
+    let mut both = a.clone();
+    for (client, clock) in b.iter() {
+        both.set_max(*client, *clock);
+    }
+    both
+}
+
+/// What two histories had of each other. `ids` are the two again with
+/// everything each has ever held, let go or not.
+fn met(mine: &StateVector, theirs: &StateVector, taken: &doc::Taken, ids: (&StateVector, &StateVector)) -> Met {
     let ahead = |a: &StateVector, b: &StateVector| -> f64 {
         a.iter().map(|(client, clock)| clock.saturating_sub(b.get(client)) as f64).sum()
     };
-    let shared: f64 = mine.iter().map(|(client, clock)| (*clock).min(theirs.get(client)) as f64).sum();
-    let mut both = mine.clone();
-    for (client, clock) in theirs.iter() {
-        both.set_max(*client, *clock);
-    }
+    let common = |a: &StateVector, b: &StateVector| -> f64 {
+        a.iter().map(|(client, clock)| (*clock).min(b.get(client)) as f64).sum()
+    };
+    let both = joined(mine, theirs);
     let met = Met {
         gained: ahead(theirs, mine),
         held: ahead(mine, theirs),
-        shared,
+        shared: common(mine, theirs),
         writers: 2.0 * entropy(&both) - entropy(mine) - entropy(theirs),
         days_here: taken.days_new_here as f64,
         days_there: taken.days_new_there as f64,
-        gained_let_go: let_go.0,
-        held_let_go: let_go.1,
+        kept_gained: ahead(ids.1, ids.0),
+        kept_held: ahead(ids.0, ids.1),
+        kept_shared: common(ids.0, ids.1),
     };
     assert_eq!((met.gained as u32, met.held as u32), (taken.gained, taken.held));
     met
@@ -195,12 +221,23 @@ const DECK: usize = 14;
 struct Device {
     state: String,
     ledger: BTreeMap<u64, Met>,
+    /// Every change this device has ever held, as a state vector: what it
+    /// holds now is added when it is asked for (`Device::id`). What the
+    /// engine would have for a history if a take-over let none go.
+    past: StateVector,
+}
+
+impl Device {
+    fn id(&self) -> StateVector {
+        doc::restore_from_state(&self.state).unwrap();
+        joined(&self.past, &state_vector(&doc::encode_state_vector()))
+    }
 }
 
 /// A device whose browser has never opened the site.
 fn fresh() -> Device {
     doc::init_player_doc();
-    Device { state: doc::encode_full_state(), ledger: BTreeMap::new() }
+    Device { state: doc::encode_full_state(), ledger: BTreeMap::new(), past: StateVector::default() }
 }
 
 /// What makes a history up as it goes: the dice, the days, and a number for
@@ -297,20 +334,16 @@ impl World {
     }
 
     /// The receiver takes a state over, and every formula is told of it.
-    fn take(&mut self, state: &str, ledger: &BTreeMap<u64, Met>, receiver: &mut Device, by: &str) -> doc::Taken {
+    fn take(&mut self, sender: &Device, receiver: &mut Device, by: &str) -> doc::Taken {
+        let (my_id, their_id) = (receiver.id(), sender.id());
         doc::restore_from_state(&receiver.state).unwrap();
         let mine = state_vector(&doc::encode_state_vector());
-        let taken = doc::take_over(state, self.now(), by).unwrap();
-        // What each side has let go that the other never saw: the take-overs
-        // one knows of and the other does not.
-        let let_go = |of: &BTreeMap<u64, Met>, other: &BTreeMap<u64, Met>| -> f64 {
-            of.iter().filter(|(id, _)| !other.contains_key(id)).map(|(_, met)| met.held).sum()
-        };
-        let let_go = (let_go(ledger, &receiver.ledger), let_go(&receiver.ledger, ledger));
-        let met = met(&mine, &state_vector(&taken.their_state_vector), &taken, let_go);
+        let taken = doc::take_over(&sender.state, self.now(), by).unwrap();
+        let met = met(&mine, &state_vector(&taken.their_state_vector), &taken, (&my_id, &their_id));
         receiver.state = doc::encode_full_state();
-        receiver.ledger.extend(ledger.iter().map(|(id, met)| (*id, *met)));
+        receiver.ledger.extend(sender.ledger.iter().map(|(id, met)| (*id, *met)));
         receiver.ledger.insert(self.takeovers, met);
+        receiver.past = joined(&my_id, &their_id);
         self.takeovers += 1;
         taken
     }
@@ -318,17 +351,18 @@ impl World {
     /// A game is moved from one device to another: the receiver takes it,
     /// and the sender is sent what the receiver added to the record.
     fn sync(&mut self, sender: &mut Device, receiver: &mut Device) {
-        let taken = self.take(&sender.state.clone(), &sender.ledger.clone(), receiver, "device");
+        let taken = self.take(sender, receiver, "device");
         let back = doc::encode_diff(&taken.their_state_vector).unwrap();
         doc::restore_from_state(&sender.state).unwrap();
         doc::apply_update(&back).unwrap();
         sender.state = doc::encode_full_state();
         sender.ledger = receiver.ledger.clone();
+        sender.past = receiver.past.clone();
     }
 
     /// A backup is imported.
     fn import(&mut self, backup: &Device, receiver: &mut Device) {
-        self.take(&backup.state, &backup.ledger, receiver, "file");
+        self.take(backup, receiver, "file");
     }
 }
 
@@ -582,6 +616,7 @@ fn made_up_histories_through_each_formula() {
     for (name, odd, persona) in PERSONAS {
         let mut by_formula: Vec<Vec<f64>> = vec![Vec::new(); FORMULAS.len()];
         let (mut takeovers, mut sizes, mut days) = (Vec::new(), Vec::new(), Vec::new());
+        let (mut stored, mut writers, mut ever) = (Vec::new(), Vec::new(), Vec::new());
         for seed in 0..HISTORIES {
             let device = persona(&mut World::new(seed));
             doc::restore_from_state(&device.state).unwrap();
@@ -590,9 +625,10 @@ fn made_up_histories_through_each_formula() {
                 println!("TRACE {}: each take-over of its first history", name);
                 for met in device.ledger.values() {
                     println!(
-                        "    gained {:>6} held {:>6} shared {:>6} | let go: theirs {:>6} ours {:>6} | days {:>3} and {:>3} | built {:>6} weighed {:>6} record {:>6.1}",
-                        met.gained, met.held, met.shared, met.gained_let_go, met.held_let_go,
-                        met.days_here, met.days_there, met.built(), met.weighed(), met.record()
+                        "    gained {:>6} held {:>6} shared {:>6} built {:>6} | none let go: gained {:>6} held {:>6} shared {:>6} kept {:>6} | days {:>3} and {:>3} record {:>6.1}",
+                        met.gained, met.held, met.shared, met.built(),
+                        met.kept_gained, met.kept_held, met.kept_shared, met.kept(),
+                        met.days_here, met.days_there, met.record()
                     );
                 }
                 let sum = doc::sync_sum();
@@ -611,6 +647,15 @@ fn made_up_histories_through_each_formula() {
             takeovers.push(device.ledger.len() as f64);
             sizes.push(total(&state_vector(&doc::encode_state_vector())));
             days.push(doc::days_played() as f64);
+            // What the browser stores, who wrote it, and what the ids of
+            // everything ever held would come to, written out.
+            let id = device.id();
+            stored.push(device.state.len() as f64 / 1024.0);
+            writers.push(state_vector(&doc::encode_state_vector()).len() as f64);
+            ever.push((id.len() as f64, total(&id), {
+                use yrs::updates::encoder::Encode;
+                URL_SAFE_NO_PAD.encode(id.encode_v1()).len() as f64 / 1024.0
+            }));
         }
         println!();
         println!("{} {}", if odd { "ODD   " } else { "NORMAL" }, name);
@@ -619,6 +664,16 @@ fn made_up_histories_through_each_formula() {
             spread(takeovers).0,
             spread(sizes).0,
             spread(days).0
+        );
+        ever.sort_by(|a, b| a.1.total_cmp(&b.1));
+        let (ever_writers, ever_changes, ever_stored) = ever[ever.len() / 2];
+        println!(
+            "    stored {:.0} kB, written by {:.0} page loads; ever held: {:.0} changes by {:.0} page loads, whose ids are {:.1} kB",
+            spread(stored).0,
+            spread(writers).0,
+            ever_changes,
+            ever_writers,
+            ever_stored
         );
         for (sums, (formula, _)) in by_formula.iter().zip(FORMULAS) {
             let (middle, least, most) = spread(sums.clone());
