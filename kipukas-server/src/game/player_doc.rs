@@ -8,7 +8,8 @@
 //!
 //! ```text
 //! PLAYER_DOC (yrs::Doc)
-//! ├── "cards" (YMap)
+//! ├── "cards" (YMap) — a card in play, by its name; a further copy of it
+//! │   │                 by its name and number, "brox_the_defiant~2" (`game::copies`)
 //! │   └── "brox_the_defiant" (YMap)
 //! │       ├── "slots" (YArray<bool>)  — index 0 = slot 1
 //! │       ├── "wasted" (bool)
@@ -342,6 +343,58 @@ pub fn set_effects(slug: &str, points: u8) {
                     ("effects".to_string(), Any::from(points as f64)),
                 ]);
                 cards.insert(&mut txn, slug, card);
+            }
+        }
+    });
+}
+
+/// All that is kept of one card in play: its damage, and what card effects
+/// add towards controlling it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CardState {
+    /// Each damage slot, the first first: whether it is marked.
+    pub slots: Vec<bool>,
+    pub wasted: bool,
+    pub effects: u8,
+}
+
+/// What is kept of a card in play, if anything is.
+pub fn card_state(slug: &str) -> Option<CardState> {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let cards = doc.get_or_insert_map("cards");
+        let txn = doc.transact();
+        let Some(yrs::Out::YMap(card)) = cards.get(&txn, slug) else {
+            return None;
+        };
+        let slots = match card.get(&txn, "slots") {
+            Some(yrs::Out::YArray(slots)) => {
+                slots.iter(&txn).map(|slot| matches!(slot, yrs::Out::Any(Any::Bool(true)))).collect()
+            }
+            _ => Vec::new(),
+        };
+        Some(CardState {
+            slots,
+            wasted: matches!(card.get(&txn, "wasted"), Some(yrs::Out::Any(Any::Bool(true)))),
+            effects: number_in(&card, &txn, "effects").unwrap_or(0.0) as u8,
+        })
+    })
+}
+
+/// Keep `state` as what is kept of a card in play, in place of whatever
+/// was. For a copy of a card that takes another's place, or comes from
+/// another player (`game::copies`).
+pub fn put_card_state(slug: &str, state: &CardState) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let cards = doc.get_or_insert_map("cards");
+        let mut txn = doc.transact_mut();
+        cards.insert(&mut txn, slug, MapPrelim::from([("wasted".to_string(), Any::from(state.wasted))]));
+        if let Some(yrs::Out::YMap(card)) = cards.get(&txn, slug) {
+            let slots: Vec<Any> = state.slots.iter().map(|marked| Any::from(*marked)).collect();
+            card.insert(&mut txn, "slots", ArrayPrelim::from(slots));
+            if state.effects > 0 {
+                card.insert(&mut txn, "effects", Any::from(state.effects as f64));
             }
         }
     });

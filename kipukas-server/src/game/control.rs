@@ -102,23 +102,25 @@ pub fn roll_bonus(card: &Card, declared: Option<&str>) -> i32 {
     }
 }
 
-/// What the player brings to this card now.
-pub fn stack(card: &Card) -> Stack {
+/// What the player brings now to the copy of this card that is kept under
+/// `key` (`game::copies`). Affinity and loyalty are the card's, whichever
+/// copy it is. Card effects are the copy's own.
+pub fn stack(card: &Card, key: &str) -> Stack {
     let declared = player_doc::get_active_affinity().map(|(archetype, _)| archetype);
     let own = is_own(card, declared.as_deref());
     let days = player_doc::get_loyalty(card.slug).map(|(days, _)| days).unwrap_or(0);
     Stack {
         affinity: if own { AFFINITY_POINTS } else { 0 },
-        effects: player_doc::get_effects(card.slug).min(CARD_EFFECTS_MAX),
+        effects: player_doc::get_effects(key).min(CARD_EFFECTS_MAX),
         loyalty: loyalty_points(days, card.loyalty_days.unwrap_or(LOYALTY_DAYS)),
     }
 }
 
-/// Where this card stands with its player. None for a card that is not a
-/// species with a tameability.
-pub fn of(card: &Card) -> Option<Control> {
+/// Where the copy of this card kept under `key` stands with its player.
+/// None for a card that is not a species with a tameability.
+pub fn of(card: &Card, key: &str) -> Option<Control> {
     let tameability = card.tamability.filter(|_| card.layout == "Species")?;
-    let stack = stack(card);
+    let stack = stack(card, key);
     let standing = match tameability {
         0 => Standing::Free,
         more if more > STACK_MAX => Standing::Untameable,
@@ -128,16 +130,17 @@ pub fn of(card: &Card) -> Option<Control> {
     Some(Control { standing, stack, tameability })
 }
 
-/// Add `by` (1 or -1, say) to the points card effects in play give this
-/// card, within what they can give. Nothing for a card that has no stack.
-pub fn adjust_effects(card: &Card, by: i32) {
-    if of(card).is_none() {
+/// Add `by` (1 or -1, say) to the points card effects in play give the
+/// copy of this card kept under `key`, within what they can give. Nothing
+/// for a card that has no stack.
+pub fn adjust_effects(card: &Card, key: &str, by: i32) {
+    if of(card, key).is_none() {
         return;
     }
-    let now = player_doc::get_effects(card.slug).min(CARD_EFFECTS_MAX) as i32;
+    let now = player_doc::get_effects(key).min(CARD_EFFECTS_MAX) as i32;
     let wanted = (now + by).clamp(0, CARD_EFFECTS_MAX as i32) as u8;
-    if wanted != player_doc::get_effects(card.slug) {
-        player_doc::set_effects(card.slug, wanted);
+    if wanted != player_doc::get_effects(key) {
+        player_doc::set_effects(key, wanted);
     }
 }
 
@@ -182,7 +185,7 @@ mod tests {
     fn a_species_nobody_has_played_is_rogue_until_something_is_brought_to_it() {
         reset();
         let card = species(5);
-        let control = of(card).unwrap();
+        let control = of(card, card.slug).unwrap();
         assert_eq!((control.standing, control.tameability), (Standing::Rogue, 5));
         assert_eq!(control.stack, Stack::default());
         reset();
@@ -194,21 +197,21 @@ mod tests {
         let card = species(5);
         // Its own archetype declared: three.
         player_doc::declare_affinity(card.genetic_disposition.unwrap(), "2026-11-21").unwrap();
-        assert_eq!(of(card).unwrap().stack, Stack { affinity: 3, effects: 0, loyalty: 0 });
-        assert_eq!(of(card).unwrap().standing, Standing::Rogue);
+        assert_eq!(of(card, card.slug).unwrap().stack, Stack { affinity: 3, effects: 0, loyalty: 0 });
+        assert_eq!(of(card, card.slug).unwrap().standing, Standing::Rogue);
         // A card in play adds one.
-        adjust_effects(card, 1);
-        assert_eq!(of(card).unwrap().stack.total(), 4);
+        adjust_effects(card, card.slug, 1);
+        assert_eq!(of(card, card.slug).unwrap().stack.total(), 4);
         // A quarter of its days played: one more, and that is five.
         for day in 1..=3 {
             player_doc::increment_loyalty(card.slug, &format!("2026-11-{:02}", day)).unwrap();
         }
-        let control = of(card).unwrap();
+        let control = of(card, card.slug).unwrap();
         assert_eq!(control.stack, Stack { affinity: 3, effects: 1, loyalty: 1 });
         assert_eq!(control.standing, Standing::Held, "equal is enough");
         // The card in play is lost: rogue again.
-        adjust_effects(card, -1);
-        assert_eq!(of(card).unwrap().standing, Standing::Rogue);
+        adjust_effects(card, card.slug, -1);
+        assert_eq!(of(card, card.slug).unwrap().standing, Standing::Rogue);
         reset();
     }
 
@@ -235,7 +238,7 @@ mod tests {
         let card = species(5);
         let other = player_doc::valid_archetypes().iter().find(|a| Some(**a) != card.genetic_disposition).unwrap();
         player_doc::declare_affinity(other, "2026-11-21").unwrap();
-        assert_eq!(of(card).unwrap().stack.affinity, 0);
+        assert_eq!(of(card, card.slug).unwrap().stack.affinity, 0);
         reset();
     }
 
@@ -244,18 +247,18 @@ mod tests {
         reset();
         let card = species(5);
         for _ in 0..7 {
-            adjust_effects(card, 1);
+            adjust_effects(card, card.slug, 1);
         }
-        assert_eq!(of(card).unwrap().stack.effects, CARD_EFFECTS_MAX);
+        assert_eq!(of(card, card.slug).unwrap().stack.effects, CARD_EFFECTS_MAX);
         for _ in 0..7 {
-            adjust_effects(card, -1);
+            adjust_effects(card, card.slug, -1);
         }
-        assert_eq!(of(card).unwrap().stack.effects, 0);
+        assert_eq!(of(card, card.slug).unwrap().stack.effects, 0);
         // More than they can give, however it came to be stored, counts as the most.
         player_doc::set_effects(card.slug, 9);
-        assert_eq!(of(card).unwrap().stack.effects, CARD_EFFECTS_MAX);
-        adjust_effects(card, -1);
-        assert_eq!(of(card).unwrap().stack.effects, CARD_EFFECTS_MAX - 1);
+        assert_eq!(of(card, card.slug).unwrap().stack.effects, CARD_EFFECTS_MAX);
+        adjust_effects(card, card.slug, -1);
+        assert_eq!(of(card, card.slug).unwrap().stack.effects, CARD_EFFECTS_MAX - 1);
         reset();
     }
 
@@ -264,22 +267,22 @@ mod tests {
         reset();
         let card = species(5);
         player_doc::declare_affinity(card.genetic_disposition.unwrap(), "2026-11-21").unwrap();
-        adjust_effects(card, 2);
+        adjust_effects(card, card.slug, 2);
         for day in 1..=6 {
             player_doc::increment_loyalty(card.slug, &format!("2026-11-{:02}", day)).unwrap();
         }
-        assert_eq!(of(card).unwrap().stack, Stack { affinity: 3, effects: 2, loyalty: 2 });
+        assert_eq!(of(card, card.slug).unwrap().stack, Stack { affinity: 3, effects: 2, loyalty: 2 });
         // What New Game does.
         player_doc::clear_all();
         player_doc::clear_affinity();
-        assert_eq!(of(card).unwrap().stack, Stack { affinity: 0, effects: 0, loyalty: 2 });
+        assert_eq!(of(card, card.slug).unwrap().stack, Stack { affinity: 0, effects: 0, loyalty: 2 });
         reset();
     }
 
     #[test]
     fn a_species_of_no_tameability_needs_no_taming_and_one_beyond_any_stack_is_always_rogue() {
         reset();
-        assert_eq!(of(species(0)).unwrap().standing, Standing::Free);
+        assert_eq!(of(species(0), species(0).slug).unwrap().standing, Standing::Free);
         let mut beyond = species(5).clone();
         beyond.tamability = Some(STACK_MAX + 1);
         // Everything a player can bring: still rogue.
@@ -288,12 +291,12 @@ mod tests {
         for day in 1..=28 {
             player_doc::increment_loyalty(beyond.slug, &format!("2026-10-{:02}", day)).unwrap();
         }
-        let control = of(&beyond).unwrap();
+        let control = of(&beyond, beyond.slug).unwrap();
         assert_eq!(control.stack.total(), STACK_MAX);
         assert_eq!(control.standing, Standing::Untameable);
         // The hardest there can be is met by all of it.
         beyond.tamability = Some(STACK_MAX);
-        assert_eq!(of(&beyond).unwrap().standing, Standing::Held);
+        assert_eq!(of(&beyond, beyond.slug).unwrap().standing, Standing::Held);
         reset();
     }
 
@@ -303,9 +306,9 @@ mod tests {
         let mut card = species(5).clone();
         card.loyalty_days = Some(4);
         player_doc::increment_loyalty(card.slug, "2026-11-01").unwrap();
-        assert_eq!(of(&card).unwrap().stack.loyalty, 1);
+        assert_eq!(of(&card, card.slug).unwrap().stack.loyalty, 1);
         card.loyalty_days = Some(40);
-        assert_eq!(of(&card).unwrap().stack.loyalty, 0);
+        assert_eq!(of(&card, card.slug).unwrap().stack.loyalty, 0);
         reset();
     }
 
@@ -313,8 +316,8 @@ mod tests {
     fn characters_and_cards_that_are_not_souls_have_no_stack() {
         reset();
         for card in CARDS.iter().filter(|card| card.layout != "Species") {
-            assert_eq!(of(card), None, "{}", card.slug);
-            adjust_effects(card, 1);
+            assert_eq!(of(card, card.slug), None, "{}", card.slug);
+            adjust_effects(card, card.slug, 1);
             assert_eq!(player_doc::get_effects(card.slug), 0, "{}", card.slug);
         }
         reset();

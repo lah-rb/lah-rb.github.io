@@ -34,8 +34,9 @@ checking the built one: it is `_site` that is served.
 | `browser/seat.ts` | A game moved while it is being played against someone, with a third browser as the opponent: the player's place in the room goes with it, the device it came from is out of the room, and a device that is in a room leaves it when it takes a game |
 | `browser/control.ts` | A species' page says whether it is under the player's control: card effects added with the page's buttons, its archetype declared, the stack reaching its tameability, and New Game taking both away |
 | `browser/affinity.ts` | Two browsers in a room play rounds of fists with affinities declared: both screens must give the same bonus, to the attack die and to the defence die, and never give a player's affinity to the other player's card |
+| `browser/copies.ts` | More than one copy of a card in play: the button at the lower left of a card's page adds a copy, each copy takes its own damage, the page's address says which is shown, and a copy is taken out again once the player has said yes |
 | `browser/site.ts` | What they share: the built site served locally, the browser, pretend cameras, the scanner's buttons and what it shows |
-| `browser/all.ts` | Runs the seven in turn |
+| `browser/all.ts` | Runs the eight in turn |
 
 Things to know:
 

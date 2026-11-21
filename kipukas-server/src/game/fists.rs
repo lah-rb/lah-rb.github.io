@@ -86,6 +86,11 @@ impl Entry {
     pub fn keal_idx(&self) -> u8 {
         self.sub.as_ref().map_or(0, |s| s.keal_idx)
     }
+
+    /// Which copy of the card this player fights with (`game::copies`).
+    pub fn copy(&self) -> u8 {
+        self.sub.as_ref().map(|s| s.copy).or_else(|| self.fb.as_ref().map(|f| f.copy)).unwrap_or(1)
+    }
 }
 
 /// How a round ended.
@@ -448,6 +453,7 @@ mod tests {
             card: card.to_string(),
             keal_idx: 1,
             affinity: None,
+            copy: 1,
         }
     }
 
@@ -457,6 +463,7 @@ mod tests {
             card: card.to_string(),
             keal_idx: 2,
             affinity: None,
+            copy: 1,
         }
     }
 
@@ -772,6 +779,7 @@ mod tests {
             FinalBlowsSubmission {
                 card: "brox_the_defiant".to_string(),
                 affinity: None,
+                copy: 1,
             },
         );
         submit(&b, B, A, attack("liliel_healing_fairy"));

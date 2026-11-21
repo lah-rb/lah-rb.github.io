@@ -4,7 +4,7 @@
 //! All game state is stored in PLAYER_DOC (yrs CRDT document).
 
 use crate::clock;
-use crate::game::{damage, player_doc, room, turns};
+use crate::game::{copies, damage, player_doc, room, turns};
 use crate::routes::util::{get_param, parse_form_body, parse_query};
 
 // ── GET /api/game/damage ───────────────────────────────────────────
@@ -39,6 +39,11 @@ pub fn handle_damage_post(body: &str) -> String {
     let params = parse_form_body(body);
     let action = get_param(&params, "action").unwrap_or("");
     let card = get_param(&params, "card").unwrap_or("");
+    // `card` is a card's name, or the key of a further copy of it in play
+    // (`game::copies`). One that is of no copy in play changes nothing.
+    if !card.is_empty() && !copies::in_play(card) {
+        return r#"<span class="text-kip-red">No such copy of this card is in play</span>"#.to_string();
+    }
 
     match action {
         "new_game" => {

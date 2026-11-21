@@ -67,6 +67,7 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
     router.insert("/api/hand", "hand").ok();
 
     // Game state routes (PLAYER_DOC backed)
+    router.insert("/api/card/copies", "card_copies").ok();
     router.insert("/api/game/damage", "game_damage").ok();
     router.insert("/api/game/turns", "game_turns").ok();
     router.insert("/api/game/turns/form", "game_turns_form").ok();
@@ -106,6 +107,8 @@ pub fn handle_request(method: &str, path: &str, query: &str, body: &str) -> Stri
             ("qr_status", "POST") => routes::qr::handle_status_post(body),
             ("settings", "GET") => settings::handle_get(query),
             ("settings", "POST") => settings::handle_post(body),
+            ("card_copies", "GET") => routes::copies::handle_copies_get(query),
+            ("card_copies", "POST") => routes::copies::handle_copies_post(body),
             ("game_damage", "GET") => routes::game::handle_damage_get(query),
             ("game_turns", "GET") => routes::game::handle_turns_get(query),
             ("game_turns_form", "GET") => routes::game::handle_turns_form_get(query),

@@ -29,6 +29,7 @@ use std::sync::OnceLock;
 
 use crate::catalog::{Card, CARDS};
 use crate::game::control::{self, Control, Standing};
+use crate::game::copies;
 use crate::game::player_doc;
 use crate::routes::util::escape_html;
 
@@ -91,8 +92,10 @@ fn heart() -> &'static str {
     })
 }
 
-/// Look up a card by slug from the compiled-in catalog.
-fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
+/// Look up a card from the compiled-in catalog, by its name or by the key
+/// of one of its copies (`game::copies`).
+fn find_card(key: &str) -> Option<&'static crate::catalog::Card> {
+    let slug = copies::slug_of(key);
     CARDS.iter().find(|c| c.slug == slug)
 }
 
@@ -139,7 +142,7 @@ pub fn clear_all() {
 /// species (`game::control`).
 pub fn adjust_effects(slug: &str, by: i32) {
     if let Some(card) = find_card(slug) {
-        control::adjust_effects(card, by);
+        control::adjust_effects(card, slug, by);
     }
 }
 
@@ -176,7 +179,7 @@ const CHIP: &str = "inline-block rounded-full px-2 text-amber-50";
 /// (`game::control`): a bar of ten squares, filled by affinity, card effects
 /// and loyalty in turn, with a mark at the species' tameability. Card
 /// effects are the one part the player sets here, a point at a time.
-fn render_control(card: &Card, control: &Control) -> String {
+fn render_control(card: &Card, key: &str, control: &Control) -> String {
     let (stack, needed) = (control.stack, control.tameability);
     let numbers = format!(r#" <span class="font-normal">{} of {}</span>"#, stack.total(), needed);
     let chip = |colour: &str, said: &str| format!(r#"<span class="{} {}">{}</span>"#, CHIP, colour, said);
@@ -227,7 +230,7 @@ fn render_control(card: &Card, control: &Control) -> String {
                     r#"<button type="button" data-engine-post="/api/game/damage" "#,
                     r#"data-engine-body="card={}&amp;action=effects&amp;by={}" aria-label="{}" class="{}"{}>{}</button>"#,
                 ),
-                card.slug,
+                key,
                 by,
                 label,
                 STEP_BUTTON,
@@ -269,7 +272,9 @@ fn render_control(card: &Card, control: &Control) -> String {
     h
 }
 
-/// Render the keal damage tracker HTML for a specific card.
+/// Render the keal damage tracker HTML for a specific card: for the copy of
+/// it kept under `slug`, which is the card's name or the key of a further
+/// copy (`game::copies`). Every button names that copy.
 ///
 /// The markup carries the state itself. Each slot is a button whose
 /// `aria-pressed` says whether it is marked (and so which heart shows), and
@@ -278,6 +283,10 @@ fn render_control(card: &Card, control: &Control) -> String {
 /// The Final Blows section is present but `hidden` until every slot is marked
 /// or the card is wasted. No script or reactive binding is emitted.
 pub fn render_damage_tracker(slug: &str) -> String {
+    // Drawing a card's tracker keeps a place for its damage. A copy that
+    // is not in play (taken out since, or cleared by New Game) is not given
+    // one: the first copy is drawn.
+    let slug = if copies::in_play(slug) { slug } else { copies::slug_of(slug) };
     let card = match find_card(slug) {
         Some(c) => c,
         None => {
@@ -312,7 +321,8 @@ pub fn render_damage_tracker(slug: &str) -> String {
     html.push_str(r#"<div class="mt-1 h-0.5 w-full bg-slate-200 lg:bg-kip-red"></div>"#);
 
     // Phase C: Loyalty badge
-    if let Some((total_plays, _last)) = player_doc::get_loyalty(slug) {
+    // (Loyalty is the card's, whichever copy this is.)
+    if let Some((total_plays, _last)) = player_doc::get_loyalty(card.slug) {
         html.push_str(&format!(
             r#"<p class="text-center">&#x2665; {} play{}</p>"#,
             total_plays,
@@ -321,8 +331,8 @@ pub fn render_damage_tracker(slug: &str) -> String {
     }
 
     // Whether a species is under the player's control, and what of.
-    if let Some(control) = control::of(card) {
-        html.push_str(&render_control(card, &control));
+    if let Some(control) = control::of(card, slug) {
+        html.push_str(&render_control(card, slug, &control));
     }
 
     // Keal Means header

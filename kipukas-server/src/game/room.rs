@@ -20,6 +20,15 @@ pub enum CombatRole {
     Defending,
 }
 
+/// The copy of a card a submission is of where it says nothing: the first.
+fn first_copy() -> u8 {
+    1
+}
+
+fn is_first_copy(copy: &u8) -> bool {
+    *copy <= 1
+}
+
 /// A single player's fists combat submission.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FistsSubmission {
@@ -34,6 +43,11 @@ pub struct FistsSubmission {
     /// screens give the card the same roll bonus (`control::roll_bonus`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub affinity: Option<String>,
+    /// Which copy of the card this is, where its player has more than one
+    /// in play (`game::copies`). It is the player's own business: damage
+    /// from the round is marked on that copy. The first is not written.
+    #[serde(default = "first_copy", skip_serializing_if = "is_first_copy")]
+    pub copy: u8,
 }
 
 /// Final Blows submission — used when a player's keal means are all exhausted.
@@ -45,6 +59,9 @@ pub struct FinalBlowsSubmission {
     /// [`FistsSubmission`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub affinity: Option<String>,
+    /// Which copy of the card this is, as in [`FistsSubmission`].
+    #[serde(default = "first_copy", skip_serializing_if = "is_first_copy")]
+    pub copy: u8,
 }
 
 /// One round of fists combat as this player sees it: their own submission
@@ -270,6 +287,7 @@ mod tests {
             card: "brox_the_defiant".to_string(),
             keal_idx: 1,
             affinity: None,
+            copy: 1,
         });
         assert!(!combat.is_complete());
 
@@ -278,6 +296,7 @@ mod tests {
             card: "liliel_healing_fairy".to_string(),
             keal_idx: 1,
             affinity: None,
+            copy: 1,
         });
         assert!(combat.is_complete());
     }
@@ -290,12 +309,14 @@ mod tests {
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 2,
                 affinity: None,
+                copy: 1,
             }),
             remote: Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             }),
             local_final_blows: None,
             remote_final_blows: None,
@@ -318,12 +339,14 @@ mod tests {
                 card: "test".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             }),
             remote: Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "test2".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             }),
             local_final_blows: None,
             remote_final_blows: None,
@@ -347,6 +370,7 @@ mod tests {
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
         });
 

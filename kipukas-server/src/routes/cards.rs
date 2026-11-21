@@ -398,14 +398,18 @@ pub fn handle_post(body: &str) -> String {
 
 // ── GET /api/card/panel ────────────────────────────────────────────
 
-/// Handle GET /api/card/panel?card={slug}
+/// Handle GET /api/card/panel?card={slug}&copy={what follows the # of the
+/// page's address}
 ///
 /// Returns one card's detail panel: its title, the rows of its type, its
 /// damage tracker if it fights. An engine-owned view; see `game::card_panel`.
+/// `copy` says which copy of the card in play the tracker is of, where the
+/// player has more than one (`game::copies`).
 pub fn handle_panel(query: &str) -> String {
     let params = crate::routes::util::parse_query(query);
+    let copy = crate::routes::util::get_param(&params, "copy").unwrap_or("");
     match crate::routes::util::get_param(&params, "card") {
-        Some(slug) if !slug.is_empty() => crate::game::card_panel::render_card_panel(slug),
+        Some(slug) if !slug.is_empty() => crate::game::card_panel::render_card_panel_shown(slug, copy),
         _ => r#"<span class="text-kip-red">Missing card parameter</span>"#.to_string(),
     }
 }
@@ -413,6 +417,33 @@ pub fn handle_panel(query: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_panel_shows_the_damage_of_the_copy_the_address_asks_for() {
+        use crate::game::{copies, player_doc};
+        player_doc::init_player_doc();
+        let brox = crate::catalog::CARDS.iter().find(|card| card.slug == "brox_the_defiant").unwrap();
+        copies::add(brox);
+        player_doc::toggle_slot("brox_the_defiant~2", 1);
+        let marked = r#"aria-pressed="true""#;
+
+        let first = handle_panel("?card=brox_the_defiant");
+        assert!(!first.contains(marked));
+        assert!(first.contains(r#"data-engine-body="card=brox_the_defiant&slot=1""#));
+
+        let second = handle_panel("?card=brox_the_defiant&copy=2");
+        assert_eq!(second.matches(marked).count(), 1);
+        assert!(second.contains(r#"data-engine-body="card=brox_the_defiant~2&slot=1""#));
+        assert!(second.contains(r#"data-engine-body="card=brox_the_defiant~2&action=wasted""#), "{}", second);
+
+        // A copy there is not, or what is not a number: the first.
+        for other in ["3", "", "x"] {
+            let html = handle_panel(&format!("?card=brox_the_defiant&copy={}", other));
+            assert!(!html.contains(marked) && !html.contains("brox_the_defiant~"), "{}", other);
+        }
+        assert!(!player_doc::has_card_state("brox_the_defiant~3"), "drawing makes no copy");
+        player_doc::init_player_doc();
+    }
 
     /// The slugs of the tiles in some grid markup, in order.
     fn tiles(html: &str) -> Vec<String> {

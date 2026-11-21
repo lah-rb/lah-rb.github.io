@@ -1098,7 +1098,14 @@ A tameability of 0 needs no taming. One above 10 can never be met, which is how 
 
 **Where it is.** `src/game/control.rs` is the stack and the standing it gives, with each number a constant, since the owner means them to be settled by play. `damage::render_control` draws it on a species' page (the damage tracker's view): a bar of ten squares in the three parts' colours with a mark at the tameability, and the three parts beneath, card effects with its two buttons (`action=effects&by=1` or `-1` to `/api/game/damage`). The points from card effects are in the card's game state (`effects`), so New Game clears them with its damage and a game moved to another device takes them along.
 
-**Built so far:** the stack on a species' page, and the roll bonus in a room. **To come, in this order:** more than one copy of a card in play, each with its own damage and card effects; handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
+**Copies of a card in play.** A player may have the same soul on the board twice. Each copy is kept as a card in play of its own (`src/game/copies.rs`): the first under the card's name, as a card always was, the others under the name and their number (`brox_the_defiant~2`). That written form is a card's key, and it travels wherever a card's name did, in a view's buttons and in what they post, so the damage tracker and the fists dialog work on a copy without knowing of copies: looking a card up reads the name out of the key, and the player's document keeps what is kept under the whole.
+
+- Which copy a page shows is in its address, after the `#` (`/brox_the_defiant/#2`), and nowhere else. The views that show a copy are given it (`&copy={hash}`: the card panel, the fists dialog, the copies view), so turning to another copy is following a link and writes nothing to the player's document. An address that asks for a copy there is not shows the first.
+- The copies view (`/api/card/copies`, `src/routes/copies.rs`) is fixed at the lower left of a card's page, above the room's status pill when that is shown. One copy: a button that adds another. More: a tile that says which copy is shown and turns to the next, a button that takes the shown copy out of play (asked about first, since its damage goes with it), and the button that adds. Adding and taking out are posts, after which the engine asks the page for the address of the copy to show. Copies stay numbered from one with none missing: taking one out moves the later ones up.
+- A round of fists is fought with the copy on the page. What is locked in names the card by its own name, as before, and the copy beside it (`copy`, not written for the first, so a round with one copy is byte for byte what it was and an engine that knows nothing of copies reads it as it always did). Damage from a lost round is marked on that copy.
+- Loyalty and affinity are the card's, whichever copy it is. Card effects are the copy's own. Copies are the game's: New Game clears them, and a game moved to another device takes them along.
+
+**Built so far:** the stack on a species' page, the roll bonus in a room, and copies. **To come:** handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
 
 ## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
@@ -1110,7 +1117,7 @@ A tameability of 0 needs no taming. One above 10 can never be met, which is how 
 
 | Root key | yrs type | Contents |
 |----------|----------|----------|
-| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool, effects: f64 }` per card: `effects` is the points card effects in play add towards controlling a species (see Affinity, loyalty and control) |
+| `"cards"` | `YMap<key, YMap>` | `{ slots: YArray<bool>, wasted: bool, effects: f64 }` per card in play, keyed by the card's name, or by name and number for a further copy of it (`brox_the_defiant~2`): `effects` is the points card effects in play add towards controlling a species (see Affinity, loyalty and control) |
 | `"alarms"` | `YArray<YMap>` | `{ id: String, remaining: i32, name: String, color_set: String, changed: f64 }` (`changed`: when it was last changed, ms) |
 | `"retired"` | `YMap<timer id, f64>` | When each timer removed in the last day was removed (ms) |
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |

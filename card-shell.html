@@ -26,6 +26,13 @@ card_shell: true
   patched in place. So what is here must be what the engine renders, which is
   why the engine writes it.
 
+  A player may have more than one copy of a card in play, each with damage of
+  its own. Which copy the page shows is what follows the # of its address
+  (/brox_the_defiant/#2), which the views that show a copy are given
+  ({hash}): the panel, the fists dialog (in the toolbar), and the copies view
+  below, which adds a copy, turns to the next and takes one out
+  (kipukas-server/src/game/copies.rs, src/routes/copies.rs).
+
   Anything that differs between cards must come through a hole. The build
   fails if a hole is missing, misspelled, or left unfilled.
 {% endcomment %}
@@ -47,6 +54,8 @@ card_shell: true
     base_fill='fill-slate-200'
     base_stroke='stroke-slate-200'
   %}
+  <!-- The copies of this card in play: fixed at the lower left, over the art. -->
+  <div data-engine-view="/api/card/copies?card=[[card.slug]]&copy={hash}"></div>
   <!-- Unified full-bleed layout for all cards on all screen sizes: fixed art
        background + text overlaid on a dimmed/blurred panel. Replaces the old
        large-screen side-by-side branch, whose invisible-image spacer reserved
@@ -69,7 +78,7 @@ card_shell: true
       onload="this.classList.remove('opacity-0')">
     <div x-show="showCardInfo" class="relative w-screen min-h-screen h-fit backdrop-brightness-50 backdrop-blur-sm backdrop-contrast-125 backdrop-saturate-150">
       <div class="flex flex-1 place-content-center w-screen h-fit">
-        <div data-card-detail data-engine-view="/api/card/panel?card=[[card.slug]]" class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">[[card.panel]]</div>
+        <div data-card-detail data-engine-view="/api/card/panel?card=[[card.slug]]&copy={hash}" class="z-20 grid grid-cols-1 bg-transparent/50 text-slate-200 text-justify leading-tight w-4/6 lg:max-w-3xl h-fit min-h-screen scroll-smooth">[[card.panel]]</div>
       </div>
     </div>
   </div>

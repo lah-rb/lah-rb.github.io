@@ -41,6 +41,7 @@
 //! may contain markup (`<b>`, `<br>`), and is emitted as written.
 
 use crate::catalog::{Card, CARDS};
+use crate::game::copies;
 use crate::game::damage;
 use crate::routes::util::escape_html;
 
@@ -260,8 +261,15 @@ fn render_row(html: &mut String, label: &str, value: &str) {
 
 /// Render the detail panel of the card with this slug.
 pub fn render_card_panel(slug: &str) -> String {
+    render_card_panel_shown(slug, "")
+}
+
+/// Render the detail panel of the card with this slug, for the copy of it
+/// that `shown` asks for (what follows the `#` of the page's address), if
+/// such a copy is in play: the first otherwise (`game::copies`).
+pub fn render_card_panel_shown(slug: &str, shown: &str) -> String {
     match find_card(slug) {
-        Some(card) => render_panel(card),
+        Some(card) => render_panel_of(card, &copies::key(card.slug, copies::shown(card.slug, shown))),
         None => format!(
             r#"<span class="text-kip-red">Card not found: {}</span>"#,
             escape_html(slug)
@@ -274,6 +282,12 @@ pub fn render_card_panel(slug: &str) -> String {
 ///
 /// A row whose field the card has no text for is left out.
 pub fn render_panel(card: &Card) -> String {
+    render_panel_of(card, card.slug)
+}
+
+/// The panel of the copy of a card that is kept under `key`: the card's
+/// own text, and that copy's damage.
+fn render_panel_of(card: &Card, key: &str) -> String {
     let Some(card_type) = card_type(card.layout) else {
         return format!(
             r#"<span class="text-kip-red">Unknown card type: {}</span>"#,
@@ -296,7 +310,7 @@ pub fn render_panel(card: &Card) -> String {
                 r#"<div id="keal-damage-{}" class="w-full grid grid-cols-1 place-self-center">"#,
                 card.slug
             ));
-            html.push_str(&damage::render_damage_tracker(card.slug));
+            html.push_str(&damage::render_damage_tracker(key));
             html.push_str("</div>");
         } else if let Some(value) = row.field.text(card) {
             render_row(&mut html, row.label, &value);

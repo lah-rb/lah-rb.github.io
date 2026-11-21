@@ -14,6 +14,7 @@
 use crate::catalog::CARDS;
 use crate::clock;
 use crate::game::control;
+use crate::game::copies;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::fists;
@@ -25,7 +26,12 @@ use crate::store;
 use crate::routes::util::{escape_html, get_param, parse_form_body, parse_query};
 use crate::typing;
 
-fn find_card(slug: &str) -> Option<&'static crate::catalog::Card> {
+/// A card of the catalog, by its name or by the key of one of its copies in
+/// play (`game::copies`). Throughout this file a card the player fights
+/// with is named by its key, so that the copy on the page is the one whose
+/// keal means are offered and whose damage is marked.
+fn find_card(key: &str) -> Option<&'static crate::catalog::Card> {
+    let slug = copies::slug_of(key);
     CARDS.iter().find(|c| c.slug == slug)
 }
 
@@ -241,25 +247,34 @@ fn apply_outcome(p: &fists::Pending) -> bool {
     if p.outcome != fists::Outcome::AttackerWon || p.mine.role() != Some(CombatRole::Defending) {
         return false;
     }
-    let card = p.mine.card();
-    if card.is_empty() {
+    if p.mine.card().is_empty() {
+        return false;
+    }
+    // The copy of the card this player fought with.
+    let card = copies::key(p.mine.card(), p.mine.copy());
+    if !copies::in_play(&card) {
+        // It was taken out of play since. There is nothing to mark.
         return false;
     }
     if p.final_blows {
         // Final Blows: the defender lost, so the card is wasted.
-        damage::toggle_wasted(card);
+        damage::toggle_wasted(&card);
         true
     } else {
-        auto_mark_damage(card, p.mine.keal_idx())
+        auto_mark_damage(&card, p.mine.keal_idx())
     }
 }
 
 // ── GET /api/room/fists ────────────────────────────────────────────
 
-/// The fists dialog's contents for the page's card: `?card=<slug>`.
+/// The fists dialog's contents for the page's card: `?card=<slug>`, and
+/// `&copy=<what follows the # of the page's address>` for which copy of it
+/// the page shows, where the player has more than one in play.
 pub fn handle_fists_get(query: &str) -> String {
     let params = parse_query(query);
     let slug = get_param(&params, "card").unwrap_or("");
+    let key = copies::key(slug, copies::shown(slug, get_param(&params, "copy").unwrap_or("")));
+    let slug = key.as_str();
 
     // Being in a room is enough. The opponent may be away for a moment (a
     // page change, a locked phone): a choice locked in meanwhile is in the
@@ -322,21 +337,31 @@ fn fists_message(view: &fists::View, refusal: &str) -> String {
 
 /// For each of a card's keal means, in order, whether every damage slot of
 /// it is marked: such a keal means can no longer be fought with.
-fn exhausted_keal_means(card: &crate::catalog::Card) -> Vec<bool> {
+fn exhausted_keal_means(card: &crate::catalog::Card, key: &str) -> Vec<bool> {
     let mut slot_start: u8 = 1;
     card.keal_means
         .iter()
         .map(|km| {
             let slots = slot_start..slot_start + km.count;
             slot_start += km.count;
-            km.count > 0 && slots.into_iter().all(|s| player_doc::get_slot(card.slug, s))
+            km.count > 0 && slots.into_iter().all(|s| player_doc::get_slot(key, s))
         })
         .collect()
 }
 
 /// Whether a card can still fight with its keal means number `idx` (1-based).
-fn keal_means_is_open(card: &crate::catalog::Card, idx: u8) -> bool {
-    idx >= 1 && exhausted_keal_means(card).get(idx as usize - 1) == Some(&false)
+fn keal_means_is_open(card: &crate::catalog::Card, key: &str, idx: u8) -> bool {
+    idx >= 1 && exhausted_keal_means(card, key).get(idx as usize - 1) == Some(&false)
+}
+
+/// " (copy 2 of 3)" after a card's title, where the player has more than
+/// one copy of it in play.
+fn copy_label(key: &str) -> String {
+    let (slug, copy) = copies::split(key);
+    match copies::count(slug) {
+        1 => String::new(),
+        copies => format!(" (copy {} of {})", copy, copies),
+    }
 }
 
 /// Check if ALL keal means groups on a card are fully exhausted (every damage slot checked).
@@ -362,12 +387,13 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
 
 /// Render Final Blows section for a card whose keal means are all exhausted.
 /// Shows local card motivation + D20 roll instruction + button to send to opponent.
-fn render_final_blows(card: &crate::catalog::Card, message: &str) -> String {
+fn render_final_blows(card: &crate::catalog::Card, key: &str, message: &str) -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(&format!(
-        r#"<p class="text-lg font-bold mb-2">Fists: {}</p>"#,
-        card.title
+        r#"<p class="text-lg font-bold mb-2">Fists: {}{}</p>"#,
+        card.title,
+        copy_label(key)
     ));
 
     h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
@@ -396,7 +422,7 @@ fn render_final_blows(card: &crate::catalog::Card, message: &str) -> String {
     // State Final Blows button
     h.push_str(&format!(
         r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=final&card={}" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded text-sm">State Final Blows to Opponent</button>"#,
-        card.slug
+        key
     ));
 
     h.push_str(message);
@@ -446,19 +472,20 @@ fn render_fists_form(slug: &str, view: &fists::View) -> String {
         return r#"<div class="p-4 text-kip-drk-sienna"><p class="text-sm">This card has no keal means for combat.</p></div>"#.to_string();
     }
 
-    let choice = choice_for(card.slug);
+    let choice = choice_for(slug);
     let message = fists_message(view, &choice.refusal);
 
     // If all keal means are exhausted, show Final Blows instead of the normal form
     if all_keal_means_exhausted(slug) {
-        return render_final_blows(card, &message);
+        return render_final_blows(card, slug, &message);
     }
 
     let mut h = String::with_capacity(2048);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     h.push_str(&format!(
-        r#"<p class="text-lg font-bold mb-2">Fists: {}</p>"#,
-        card.title
+        r#"<p class="text-lg font-bold mb-2">Fists: {}{}</p>"#,
+        card.title,
+        copy_label(slug)
     ));
 
     // Role selector
@@ -470,7 +497,7 @@ fn render_fists_form(slug: &str, view: &fists::View) -> String {
     ] {
         h.push_str(&format!(
             r#"<label class="flex-1 text-center"><input type="radio" name="fists-role" value="{value}" class="mr-1 text-kip-red focus:ring-kip-red" data-engine-post="/api/room/fists" data-engine-body="action=choose&card={slug}&role={value}"{checked}>{label}</label>"#,
-            slug = card.slug,
+            slug = slug,
             checked = if choice.role == Some(role) { " checked" } else { "" },
         ));
     }
@@ -479,7 +506,7 @@ fn render_fists_form(slug: &str, view: &fists::View) -> String {
     // Keal means selector — disable groups where all damage slots are checked
     h.push_str(r#"<p class="text-sm mb-2 font-bold">Select Keal Means:</p>"#);
 
-    let exhausted = exhausted_keal_means(card);
+    let exhausted = exhausted_keal_means(card, slug);
     for (place, km) in card.keal_means.iter().enumerate() {
         let idx = place as u8 + 1;
         let genetics_str = km.genetics.join("-");
@@ -492,7 +519,7 @@ fn render_fists_form(slug: &str, view: &fists::View) -> String {
         } else {
             h.push_str(&format!(
                 r#"<label class="block mb-1 text-sm"><input type="radio" name="fists-keal" value="{idx}" class="mr-1 text-kip-red focus:ring-kip-red" data-engine-post="/api/room/fists" data-engine-body="action=choose&card={slug}&keal={idx}"{checked}><span class="text-kip-red font-bold">{name}</span> <span class="text-xs">({genetics_str})</span></label>"#,
-                slug = card.slug,
+                slug = slug,
                 checked = if choice.keal_idx == Some(idx) { " checked" } else { "" },
                 name = km.name,
             ));
@@ -502,7 +529,7 @@ fn render_fists_form(slug: &str, view: &fists::View) -> String {
     // Lock In button
     h.push_str(&format!(
         r#"<button type="button" data-engine-post="/api/room/fists" data-engine-body="action=lock&card={}" class="w-full bg-kip-red hover:bg-kip-drk-sienna text-amber-50 font-bold py-2 px-4 rounded mt-3 text-sm">Lock In Choice</button>"#,
-        card.slug
+        slug
     ));
 
     h.push_str(&message);
@@ -556,8 +583,10 @@ fn render_role_conflict(role_name: &str) -> String {
 /// Returns nothing: the dialog is drawn again from the GET route.
 pub fn handle_fists_post(body: &str) -> String {
     let params = parse_form_body(body);
-    if room::in_room() {
-        let card = get_param(&params, "card").unwrap_or("");
+    // `card` is the card's name, or the key of a further copy of it: the
+    // copy the page shows. One that is of no copy in play asks for nothing.
+    let card = get_param(&params, "card").unwrap_or("");
+    if room::in_room() && (card.is_empty() || copies::in_play(card)) {
         match get_param(&params, "action").unwrap_or("") {
             "choose" => choose(card, get_param(&params, "role"), get_param(&params, "keal")),
             "lock" => lock_in(card),
@@ -577,7 +606,7 @@ fn choose(slug: &str, role: Option<&str>, keal: Option<&str>) {
     let Some(card) = find_card(slug) else {
         return;
     };
-    let mut choice = choice_for(card.slug);
+    let mut choice = choice_for(slug);
     choice.refusal.clear();
     match role {
         Some("attacking") => choice.role = Some(CombatRole::Attacking),
@@ -585,7 +614,7 @@ fn choose(slug: &str, role: Option<&str>, keal: Option<&str>) {
         _ => {}
     }
     if let Some(idx) = keal.and_then(|k| k.parse::<u8>().ok()) {
-        if keal_means_is_open(card, idx) {
+        if keal_means_is_open(card, slug, idx) {
             choice.keal_idx = Some(idx);
         }
     }
@@ -623,8 +652,8 @@ fn lock_in(slug: &str) {
         return;
     }
 
-    let mut choice = choice_for(card.slug);
-    let keal_idx = choice.keal_idx.filter(|idx| keal_means_is_open(card, *idx));
+    let mut choice = choice_for(slug);
+    let keal_idx = choice.keal_idx.filter(|idx| keal_means_is_open(card, slug, *idx));
     let (Some(role), Some(keal_idx)) = (choice.role, keal_idx) else {
         choice.refusal = if choice.role.is_none() {
             "Please select Attacking or Defending."
@@ -644,6 +673,7 @@ fn lock_in(slug: &str) {
         card: card.slug.to_string(),
         keal_idx,
         affinity: declared_affinity(),
+        copy: copies::split(slug).1,
     };
     crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::submit(doc, &me, &peer, submission));
@@ -668,6 +698,7 @@ fn state_final_blows(slug: &str) {
     let submission = room::FinalBlowsSubmission {
         card: card.slug.to_string(),
         affinity: declared_affinity(),
+        copy: copies::split(slug).1,
     };
     crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::final_blows(doc, &me, &peer, submission));
@@ -932,8 +963,15 @@ fn render_fists_result() -> String {
             control::roll_bonus(def_card, def.affinity.as_deref()),
         );
 
+        // This player's own card is named by the copy that fought: its
+        // damage is on this device. The opponent's is on theirs.
+        let named = |sub: &FistsSubmission| match &r.fists.local {
+            Some(local) if std::ptr::eq(local, sub) => copies::key(&sub.card, sub.copy),
+            _ => sub.card.clone(),
+        };
+
         // Build result HTML
-        build_result_html(atk_card, &atk.card, atk_km, def_card, &def.card, def_km, &result, bonus)
+        build_result_html(atk_card, &named(atk), atk_km, def_card, &named(def), def_km, &result, bonus)
     })
 }
 
@@ -1421,6 +1459,7 @@ mod tests {
             card: card.to_string(),
             keal_idx: 1,
             affinity: None,
+            copy: 1,
         }
     }
 
@@ -1430,6 +1469,7 @@ mod tests {
             card: card.to_string(),
             keal_idx: 1,
             affinity: None,
+            copy: 1,
         }
     }
 
@@ -1587,12 +1627,14 @@ mod tests {
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Attacking,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
         });
         let html = render_fists_result();
@@ -1896,12 +1938,14 @@ mod tests {
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
         });
         let html = render_fists_result();
@@ -2206,12 +2250,14 @@ mod tests {
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
                 affinity: None,
+                copy: 1,
             });
         });
         let html = render_fists_result();
@@ -2410,9 +2456,9 @@ mod tests {
             room::with_room_mut(|r| {
                 r.connected = true;
                 r.fists.local =
-                    Some(FistsSubmission { role: ours, card: split.slug.to_string(), keal_idx: 1, affinity: None });
+                    Some(FistsSubmission { role: ours, card: split.slug.to_string(), keal_idx: 1, affinity: None, copy: 1 });
                 r.fists.remote =
-                    Some(FistsSubmission { role: theirs, card: brox.slug.to_string(), keal_idx: 1, affinity: None });
+                    Some(FistsSubmission { role: theirs, card: brox.slug.to_string(), keal_idx: 1, affinity: None, copy: 1 });
             });
             render_fists_result()
         };
@@ -2435,6 +2481,108 @@ mod tests {
                 assert!(!die_for(card, role).is_empty(), "{} has no die to roll {:?}", card.slug, role);
             }
         }
+    }
+
+    // ── More than one copy of a card ──
+
+    const BROX_2: &str = "?card=brox_the_defiant&copy=2";
+
+    /// Two copies of Brox in play, in a room.
+    fn two_of_brox() {
+        fresh_room();
+        copies::add(find_card("brox_the_defiant").unwrap());
+        handed_over();
+    }
+
+    #[test]
+    fn the_fists_form_is_for_the_copy_the_page_shows() {
+        two_of_brox();
+        // The first copy can no longer fight with its first keal means.
+        exhaust_brox_keal_means(1);
+
+        let first = handle_fists_get(BROX);
+        assert!(first.contains("Fists: Brox The Defiant (copy 1 of 2)"), "{}", first);
+        assert!(first.contains(r#"data-engine-body="action=lock&card=brox_the_defiant""#));
+        assert!(first.contains("line-through"), "its first keal means is used up");
+
+        // The second copy is whole, and every button names it.
+        let second = handle_fists_get(BROX_2);
+        assert!(second.contains("Fists: Brox The Defiant (copy 2 of 2)"));
+        assert!(!second.contains("line-through"));
+        assert!(second.contains(r#"data-engine-body="action=choose&card=brox_the_defiant~2&role=attacking""#));
+        assert!(second.contains(r#"data-engine-body="action=choose&card=brox_the_defiant~2&keal=1""#));
+        assert!(second.contains(r#"data-engine-body="action=lock&card=brox_the_defiant~2""#));
+
+        // An address that asks for a copy there is not shows the first.
+        assert!(handle_fists_get("?card=brox_the_defiant&copy=7").contains("(copy 1 of 2)"));
+        // With one copy in play the title says nothing of copies.
+        fresh_room();
+        assert!(handle_fists_get(BROX).contains("Fists: Brox The Defiant</p>"));
+        reset();
+    }
+
+    #[test]
+    fn what_is_locked_in_names_the_copy_and_the_card_by_its_own_name() {
+        two_of_brox();
+        handle_fists_post("action=choose&card=brox_the_defiant~2&role=defending");
+        handle_fists_post("action=choose&card=brox_the_defiant~2&keal=1");
+        // Picks made for one copy are not the other's.
+        assert!(checked(&handle_fists_get(BROX_2)).contains(&"defending".to_string()));
+        assert!(checked(&handle_fists_get(BROX)).is_empty());
+        handle_fists_post("action=lock&card=brox_the_defiant~2");
+
+        let ours = crdt::with_doc(|doc| fists::view(doc, ME, THEM)).combat.local.unwrap();
+        assert_eq!((ours.card.as_str(), ours.copy), ("brox_the_defiant", 2));
+        // The first copy is not written at all: a round as it always was.
+        assert_eq!(
+            serde_json::to_string(&their_attack("brox_the_defiant")).unwrap(),
+            r#"{"role":"Attacking","card":"brox_the_defiant","keal_idx":1}"#
+        );
+        let read: FistsSubmission =
+            serde_json::from_str(r#"{"role":"Attacking","card":"brox_the_defiant","keal_idx":1}"#).unwrap();
+        assert_eq!(read.copy, 1);
+        assert!(serde_json::to_string(&ours).unwrap().ends_with(r#","copy":2}"#));
+        reset();
+    }
+
+    #[test]
+    fn a_lost_round_marks_damage_on_the_copy_that_fought() {
+        two_of_brox();
+        handle_fists_post("action=choose&card=brox_the_defiant~2&role=defending");
+        handle_fists_post("action=choose&card=brox_the_defiant~2&keal=1");
+        handle_fists_post("action=lock&card=brox_the_defiant~2");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
+        handed_over();
+
+        handle_fists_post("action=outcome&won=no");
+        assert!(player_doc::get_slot("brox_the_defiant~2", 1));
+        assert!(!player_doc::get_slot("brox_the_defiant", 1), "the first copy is untouched");
+        reset();
+    }
+
+    #[test]
+    fn a_tap_for_a_copy_that_is_not_in_play_asks_for_nothing() {
+        fresh_room();
+        handle_fists_post("action=choose&card=brox_the_defiant~2&role=attacking");
+        handle_fists_post("action=choose&card=brox_the_defiant~2&keal=1");
+        handle_fists_post("action=lock&card=brox_the_defiant~2");
+        assert!(crdt::with_doc(|doc| fists::view(doc, ME, THEM)).combat.local.is_none());
+        assert!(!player_doc::has_card_state("brox_the_defiant~2"));
+        reset();
+    }
+
+    #[test]
+    fn a_copy_taken_out_of_play_before_its_round_is_settled_takes_no_damage() {
+        two_of_brox();
+        handle_fists_post("action=choose&card=brox_the_defiant~2&role=defending");
+        handle_fists_post("action=choose&card=brox_the_defiant~2&keal=1");
+        handle_fists_post("action=lock&card=brox_the_defiant~2");
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
+        copies::remove(find_card("brox_the_defiant").unwrap(), 2);
+        handle_fists_post("action=outcome&won=no");
+        assert!(!player_doc::has_card_state("brox_the_defiant~2"), "no copy is made by the damage");
+        assert!(!player_doc::get_slot("brox_the_defiant", 1));
+        reset();
     }
 
     #[test]
