@@ -43,6 +43,26 @@
 //! either              {"say":"failed"}                could not be read
 //! ```
 //!
+//! ## A place in a room goes with the game
+//!
+//! A game being played against someone is in a room, and the player's
+//! place there is part of it. So a sender that is in a room sends its place
+//! with the game (`"seat"`, a `connection::Seat`), and the receiver takes it
+//! up: it returns to the room as the player, which the relay and the
+//! opponent see as the player coming back, as after any page load. The
+//! receiver says whether it did (`"seat": true` with the record), and only
+//! then does the sender forget the room. It does not leave it: the player
+//! is still there.
+//!
+//! The room the receiver was in, if any, was part of the game it had. It
+//! leaves that room when it takes the game.
+//!
+//! One thing can go wrong between the two messages: the receiver takes the
+//! game and the place, and the sender never hears. The relay then closes
+//! the sender's connection to the room, since the player has come back
+//! elsewhere, and the sender takes that as the word it missed
+//! ([`seat_taken_up`]).
+//!
 //! Then each gives up its place in the room, which ends it: an invitation
 //! works once. One nobody has used ends after [`INVITE_LASTS_MS`]. The
 //! socket is a [`Link`] of its own, which does not retry: a move that drops
@@ -62,6 +82,11 @@ pub const INVITE_LASTS_MS: u32 = 10 * 60 * 1000;
 
 /// The wait that ends an invitation nobody has used.
 const EXPIRE: &str = "expire";
+
+/// For this long after the sender sent its place in a room with its game,
+/// the player coming back to that room from elsewhere is taken to be the
+/// receiver taking the place up. (It does so at once, if it does.)
+const SEAT_OUT_MS: f64 = 30_000.0;
 
 /// Where the site is, for the address an invitation's QR code carries.
 const SITE: &str = "https://www.kipukas.cards";
@@ -152,6 +177,13 @@ pub struct Dialog {
     pub days_brought: u32,
     /// The receiver: the sender has said it took in what was sent back.
     pub confirmed: bool,
+    /// The room whose place went with the game: the receiver has taken it
+    /// up, the sender has let it go.
+    pub room: Option<String>,
+    /// The sender: the other device has the game, as its taking up the
+    /// place in the room showed, but was not heard from again. What it
+    /// added to the record has not arrived.
+    pub unheard: bool,
 }
 
 /// What this device asked the relay for.
@@ -177,6 +209,11 @@ struct Sync {
     /// goes on carrying the one it was opened with, which is not offered
     /// again.
     answered: Vec<String>,
+    /// The sender: the room whose place it sent with the game, and when,
+    /// until the receiver has said what it did with it.
+    seat_out: Option<(String, f64)>,
+    /// The sender: the relay has shown the receiver taking that place up.
+    seat_went: bool,
     /// The dialog as it was when the page was last asked to draw it.
     drawn: Option<Dialog>,
 }
@@ -323,6 +360,7 @@ pub fn invite() {
                 sync.pairing = Some(Pairing::new(&secret));
                 sync.secret = secret;
                 sync.dialog = Dialog { stage: Stage::Inviting, side: Some(Side::Sender), ..Dialog::default() };
+                (sync.seat_out, sync.seat_went) = (None, false);
             });
             connect_for(Want::Create);
             wire::set(Channel::Sync, EXPIRE, INVITE_LASTS_MS);
@@ -366,6 +404,7 @@ pub fn receive(handed: &str) {
         sync.answered.push(invite.compact());
         sync.pairing = Some(Pairing::new(&invite.secret));
         sync.dialog = Dialog { stage: Stage::Joining, side: Some(Side::Receiver), ..Dialog::default() };
+        (sync.seat_out, sync.seat_went) = (None, false);
     });
     connect_for(Want::Join { code: invite.code });
     show();
@@ -388,7 +427,10 @@ pub fn decline(handed: &str) {
 /// opens.
 pub fn close() {
     leave();
-    with_sync(|sync| sync.dialog = Dialog::default());
+    with_sync(|sync| {
+        sync.dialog = Dialog::default();
+        (sync.seat_out, sync.seat_went) = (None, false);
+    });
     show();
 }
 
@@ -426,14 +468,48 @@ fn has_the_game() -> bool {
 /// The other device, or the way to it, is lost while a move is on. Before
 /// the game has arrived the move is off, and `error` says so. After, the
 /// receiver has the game: the move is done, though the sender never said it
-/// took in what was sent back.
+/// took in what was sent back, or the receiver what it added.
 fn lost(error: &str) {
     if has_the_game() {
         with_sync(|sync| sync.dialog.stage = Stage::Done);
         leave();
+    } else if with_sync(|sync| sync.seat_went) {
+        moved_unheard();
     } else {
         fail(error);
     }
+}
+
+/// The sender: the other device has the game, as its taking up the place
+/// in the room showed, though it was not heard from again.
+fn moved_unheard() {
+    leave();
+    with_sync(|sync| {
+        let room = sync.seat_out.take().map(|(code, _)| code);
+        sync.seat_went = false;
+        sync.dialog =
+            Dialog { stage: Stage::Done, side: Some(Side::Sender), room, unheard: true, ..Dialog::default() };
+    });
+}
+
+/// The relay says this player has come back to their room from elsewhere.
+/// Whether that is the other device taking up the place this one sent with
+/// its game: it is, if one was sent a moment ago. The other device then has
+/// the game, since it takes the place up only once it does.
+pub fn seat_taken_up() -> bool {
+    let taken_up = with_sync(|sync| {
+        let out = sync.seat_out.as_ref().is_some_and(|(_, sent)| clock::now_ms() - sent <= SEAT_OUT_MS);
+        sync.seat_went |= out;
+        out
+    });
+    // A move given up as lost was not: the game arrived.
+    if taken_up && !matches!(stage(), Stage::Moving | Stage::Done) {
+        moved_unheard();
+    }
+    if taken_up {
+        show();
+    }
+    taken_up
 }
 
 /// Back to how the page opens, saying what went wrong.
@@ -528,19 +604,39 @@ fn peer_said(data: &serde_json::Value) {
         // The player on the other device said yes: send the game.
         (Some(Side::Sender), Stage::Inviting, "want") => {
             wire::clear(Channel::Sync, EXPIRE);
-            with_sync(|sync| sync.dialog.stage = Stage::Moving);
-            say(serde_json::json!({ "say": "game", "state": player_doc::encode_full_state() }));
+            // This device's place in a room, if it holds one, goes with it.
+            let seat = connection::seat();
+            with_sync(|sync| {
+                sync.dialog.stage = Stage::Moving;
+                sync.seat_out = seat.as_ref().map(|seat| (seat.code.clone(), clock::now_ms()));
+                sync.seat_went = false;
+            });
+            let mut game = serde_json::json!({ "say": "game", "state": player_doc::encode_full_state() });
+            if let Some(seat) = seat {
+                game["seat"] = serde_json::to_value(seat).unwrap_or_default();
+            }
+            say(game);
         }
         // The game. It takes the place of the one here, this device's record
         // is added to the one it brings, and what was added goes back.
         (Some(Side::Receiver), Stage::Moving, "game") if !has_the_game() => {
             match player_doc::take_over(text("state"), clock::now_ms(), "device") {
                 Ok(taken) => {
+                    // What goes back is what this device added to the
+                    // record: worked out before the room is touched, which
+                    // can mark damage from a round that was waiting.
                     let update = player_doc::encode_diff(&taken.their_state_vector).unwrap_or_default();
-                    say(serde_json::json!({ "say": "record", "update": update }));
+                    // The room this device was in went with the game it
+                    // had. The sender's place in one comes with the game.
+                    let seat: Option<connection::Seat> = serde_json::from_value(said["seat"].clone()).ok();
+                    let sat = connection::game_taken(seat.as_ref());
+                    say(serde_json::json!({ "say": "record", "update": update, "seat": sat }));
                     // The move is done here. It is shown as done once the
                     // sender has said it took that in, or is lost.
-                    with_sync(|sync| sync.dialog.taken = Some(taken));
+                    with_sync(|sync| {
+                        sync.dialog.taken = Some(taken);
+                        sync.dialog.room = seat.filter(|_| sat).map(|seat| seat.code.to_uppercase());
+                    });
                     // Everything on the page that shows the player's state
                     // shows the game taken over.
                     page::refresh();
@@ -553,6 +649,16 @@ fn peer_said(data: &serde_json::Value) {
         }
         // What the other device added to the record.
         (Some(Side::Sender), Stage::Moving, "record") => {
+            // The place sent with the game is the other device's once it
+            // says it has taken it up. The room is forgotten here.
+            let room = with_sync(|sync| {
+                sync.seat_went = false;
+                sync.seat_out.take().map(|(code, _)| code)
+            })
+            .filter(|_| said["seat"].as_bool() == Some(true));
+            if room.is_some() {
+                connection::seat_handed_over();
+            }
             let before = player_doc::days_played();
             if player_doc::apply_update(text("update")).is_err() {
                 say(serde_json::json!({ "say": "failed" }));
@@ -563,6 +669,7 @@ fn peer_said(data: &serde_json::Value) {
             with_sync(|sync| {
                 sync.dialog.stage = Stage::Done;
                 sync.dialog.days_brought = player_doc::days_played().saturating_sub(before);
+                sync.dialog.room = room;
             });
             leave();
             page::refresh();
@@ -649,9 +756,8 @@ mod tests {
         let mut sent = Vec::new();
         let mut other = Vec::new();
         for op in wire::take() {
-            if let Some(name) = op["open"].as_str() {
-                let id = name.strip_prefix("sync:").expect("a socket of the sync channel").parse().unwrap();
-                opened = Some((id, op["url"].as_str().unwrap().to_string()));
+            if let Some(id) = op["open"].as_str().and_then(|name| name.strip_prefix("sync:")) {
+                opened = Some((id.parse().unwrap(), op["url"].as_str().unwrap().to_string()));
             } else if op["send"].as_str().is_some_and(|name| name.starts_with("sync:")) {
                 sent.push(op["text"].as_str().unwrap().to_string());
             } else {
@@ -1166,6 +1272,336 @@ mod tests {
         from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
         assert_eq!(dialog(), Dialog::default());
         assert!(asked().1.is_empty());
+        fresh();
+    }
+
+    // ── A place in a room goes with the game ──
+
+    const ME: &str = "aaaaaaaaaaaaaaaaaaaaaaaa";
+    const THEM: &str = "bbbbbbbbbbbbbbbbbbbbbbbb";
+
+    /// What was asked of the worker for the room's own socket (`open`,
+    /// `send` or `close`), among what `asked` returned last: each address,
+    /// or text.
+    fn of_room(other: &[serde_json::Value], what: &str) -> Vec<String> {
+        other
+            .iter()
+            .filter(|op| op[what].as_str().is_some_and(|name| name.starts_with("room:")))
+            .map(|op| op["url"].as_str().or(op["text"].as_str()).unwrap_or("").to_string())
+            .collect()
+    }
+
+    /// This device in room `code` as `me`, connected to the relay, the
+    /// room holding one timer. Returns the room's socket.
+    fn in_a_room(code: &str, me: &str) -> u32 {
+        crate::routes::room::resume(code, "Table", me, THEM, true, "").unwrap();
+        store::claim_room();
+        connection::resumed();
+        let socket: u32 = wire::take()
+            .iter()
+            .find_map(|op| op["open"].as_str()?.strip_prefix("room:")?.parse().ok())
+            .expect("the room's socket");
+        connection::socket_event(socket, SocketEvent::Open);
+        let joined = serde_json::json!({ "type": "room_joined", "code": code, "name": "Table", "v": 2, "peer": "none" });
+        connection::socket_event(socket, SocketEvent::Message(joined.to_string()));
+        crdt::add_alarm(NOW, 2, "room timer", "blue");
+        crdt::export_to_local();
+        crdt::take_outbox();
+        store::take_saves();
+        wire::take();
+        socket
+    }
+
+    /// The place another device holds in room WXYZ, as it would send it.
+    fn a_seat_elsewhere() -> connection::Seat {
+        crdt::init_doc();
+        crdt::add_alarm(NOW, 5, "siege", "red");
+        let doc = crdt::encode_full_state();
+        crdt::reset_doc();
+        crdt::take_outbox();
+        connection::Seat {
+            code: "WXYZ".to_string(),
+            name: "Table".to_string(),
+            player: ME.to_string(),
+            peer: THEM.to_string(),
+            creator: true,
+            doc,
+        }
+    }
+
+    /// An update that brings nothing: what a receiver with no record sends back.
+    fn nothing_back() -> String {
+        player_doc::encode_diff(&player_doc::encode_state_vector()).unwrap()
+    }
+
+    fn timers() -> Vec<String> {
+        player_doc::get_alarms().into_iter().map(|alarm| alarm.name).collect()
+    }
+
+    /// The sender, in room WXYZ, having sent its game. Returns the sync
+    /// socket, the room's, and the game as it was sent.
+    fn sent_from_a_room() -> (u32, u32, serde_json::Value) {
+        let room_socket = in_a_room("WXYZ", ME);
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        let game = said(&asked().1, Side::Sender).remove(0);
+        (socket, room_socket, game)
+    }
+
+    #[test]
+    fn a_sender_that_is_in_no_room_sends_no_place() {
+        fresh();
+        let socket = inviting();
+        relay(socket, serde_json::json!({ "type": "peer_joined", "peerId": "other" }));
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "want" }));
+        let game = said(&asked().1, Side::Sender).remove(0);
+        assert_eq!(game["say"], "game");
+        assert!(game.get("seat").is_none(), "{}", game);
+        assert!(!seat_taken_up());
+        fresh();
+    }
+
+    #[test]
+    fn a_sender_in_a_room_sends_its_place_and_forgets_the_room_once_it_is_taken_up() {
+        fresh();
+        let (socket, room_socket, game) = sent_from_a_room();
+        let seat: connection::Seat = serde_json::from_value(game["seat"].clone()).unwrap();
+        assert_eq!((seat.code.as_str(), seat.name.as_str(), seat.creator), ("WXYZ", "Table", true));
+        assert_eq!((seat.player.as_str(), seat.peer.as_str()), (ME, THEM));
+        assert_eq!(seat.doc, crdt::encode_full_state(), "the room's document goes whole");
+        assert!(room::in_room(), "the room is its own until the other device says it has the place");
+
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "record", "update": nothing_back(), "seat": true }));
+        assert!(!room::in_room());
+        assert_eq!(connection::face(), connection::Face::Off);
+        let shown = dialog();
+        assert_eq!((shown.stage, shown.room.as_deref(), shown.unheard), (Stage::Done, Some("WXYZ"), false));
+        // The relay is not told the player left: they are in the room on
+        // the other device. The room's socket is let go.
+        let (_, _, other) = asked();
+        assert!(of_room(&other, "send").is_empty(), "{:?}", other);
+        assert!(other.contains(&serde_json::json!({ "close": format!("room:{}", room_socket) })), "{:?}", other);
+        // Its game is as it was, the room's timer its own again, and the
+        // room is gone from what is stored.
+        assert_eq!(timers(), ["room timer"]);
+        assert_eq!(store::take_saves().get(store::ROOM), Some(&None));
+        fresh();
+    }
+
+    #[test]
+    fn a_sender_keeps_its_place_if_the_other_device_does_not_say_it_took_it_up() {
+        // A device on an earlier copy of the site knows nothing of places.
+        for answer in [
+            serde_json::json!({ "say": "record", "update": nothing_back() }),
+            serde_json::json!({ "say": "record", "update": nothing_back(), "seat": false }),
+        ] {
+            fresh();
+            let (socket, _, _) = sent_from_a_room();
+            from_peer(socket, Side::Receiver, answer);
+            assert!(room::in_room());
+            assert_eq!((dialog().stage, dialog().room), (Stage::Done, None));
+            assert!(!seat_taken_up(), "the place is no longer on its way");
+        }
+        fresh();
+    }
+
+    #[test]
+    fn a_receiver_takes_up_the_place_that_comes_with_the_game() {
+        fresh();
+        let (theirs, seat) = (a_game_elsewhere(), a_seat_elsewhere());
+        let socket = receiving();
+        asked();
+        let game = serde_json::json!({ "say": "game", "state": theirs, "seat": seat });
+        from_peer(socket, Side::Sender, game);
+
+        // It is in the room as the player, with the room's document, and
+        // returns to it on the relay the way a page load does.
+        assert!(room::in_room());
+        room::with_room(|r| {
+            assert_eq!((r.room_code.as_str(), r.room_name.as_str(), r.creator), ("WXYZ", "Table", true));
+            assert_eq!((r.player_id.as_str(), r.peer_id.as_str()), (ME, THEM));
+        });
+        assert_eq!(crdt::get_alarms()[0].name, "siege");
+        let (_, sent, other) = asked();
+        let addresses = of_room(&other, "open");
+        assert_eq!(addresses.len(), 1);
+        assert!(
+            addresses[0].ends_with(&format!("?action=rejoin&code=WXYZ&name=Table&player={}", ME)),
+            "{}",
+            addresses[0]
+        );
+        // It says so with the record, and shows it.
+        let sent = said(&sent, Side::Receiver);
+        assert_eq!((sent[0]["say"].as_str(), sent[0]["seat"].as_bool()), (Some("record"), Some(true)));
+        assert_eq!(dialog().room.as_deref(), Some("WXYZ"));
+        // The room is stored, to be returned to from the next page.
+        let saves = store::take_saves();
+        assert!(saves.get(store::ROOM).unwrap().as_ref().unwrap().contains(r#""code":"WXYZ""#));
+        assert_eq!(saves.get(store::ROOM_DOC).unwrap().as_deref(), Some(seat.doc.as_str()));
+        fresh();
+    }
+
+    #[test]
+    fn a_receiver_in_a_room_leaves_it_and_keeps_none_of_its_timers() {
+        fresh();
+        let theirs = a_game_elsewhere();
+        let room_socket = in_a_room("HERE", "cccccccccccccccccccccccc");
+        assert_eq!(timers(), ["room timer"]);
+        let socket = receiving();
+        asked();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs }));
+
+        // The room went with the game this device had: the relay is told
+        // the player left it, and the opponent with it.
+        assert!(!room::in_room());
+        let (_, sent, other) = asked();
+        assert_eq!(of_room(&other, "send"), [r#"{"type":"leave"}"#]);
+        assert!(other.contains(&serde_json::json!({ "close": format!("room:{}", room_socket) })), "{:?}", other);
+        // The game taken is whole: its timers, and none of the room's.
+        assert_eq!(timers(), ["siege"]);
+        let sent = said(&sent, Side::Receiver);
+        assert_eq!(sent[0]["seat"].as_bool(), Some(false));
+        assert_eq!(dialog().room, None);
+        assert_eq!(store::take_saves().get(store::ROOM), Some(&None));
+        fresh();
+    }
+
+    #[test]
+    fn a_receiver_in_a_room_leaves_it_for_the_place_that_comes_with_the_game() {
+        fresh();
+        let (theirs, seat) = (a_game_elsewhere(), a_seat_elsewhere());
+        in_a_room("HERE", "cccccccccccccccccccccccc");
+        let socket = receiving();
+        asked();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs, "seat": seat }));
+
+        let (_, _, other) = asked();
+        assert_eq!(of_room(&other, "send"), [r#"{"type":"leave"}"#], "it leaves the room it was in");
+        assert!(of_room(&other, "open")[0].contains("action=rejoin&code=WXYZ"), "and returns to the other");
+        assert_eq!(room::with_room(|r| r.room_code.clone()), "WXYZ");
+        assert_eq!(timers(), ["siege"]);
+        let room_timers: Vec<String> = crdt::get_alarms().into_iter().map(|alarm| alarm.name).collect();
+        assert_eq!(room_timers, ["siege"], "the room's document is the one that came");
+        fresh();
+    }
+
+    #[test]
+    fn a_receiver_that_already_holds_the_same_place_does_not_leave_the_room() {
+        fresh();
+        let (theirs, seat) = (a_game_elsewhere(), a_seat_elsewhere());
+        in_a_room("WXYZ", ME);
+        let socket = receiving();
+        asked();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs, "seat": seat }));
+        let (_, _, other) = asked();
+        assert!(of_room(&other, "send").is_empty(), "{:?}", other);
+        assert_eq!(room::with_room(|r| (r.room_code.clone(), r.player_id.clone())), ("WXYZ".to_string(), ME.to_string()));
+        assert_eq!(timers(), ["siege"]);
+        fresh();
+    }
+
+    #[test]
+    fn a_place_that_cannot_be_one_is_not_taken_up() {
+        for (code, player) in [("WXYZ", "not an id"), ("", ME), ("TOOLONG", ME)] {
+            fresh();
+            let theirs = a_game_elsewhere();
+            let mut seat = a_seat_elsewhere();
+            (seat.code, seat.player) = (code.to_string(), player.to_string());
+            let socket = receiving();
+            asked();
+            from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": theirs, "seat": seat }));
+            assert!(!room::in_room(), "{} {}", code, player);
+            let (_, sent, other) = asked();
+            assert!(of_room(&other, "open").is_empty());
+            assert_eq!(said(&sent, Side::Receiver)[0]["seat"].as_bool(), Some(false));
+            assert_eq!(timers(), ["siege"], "the game is taken all the same");
+        }
+        fresh();
+    }
+
+    #[test]
+    fn a_game_that_cannot_be_read_leaves_the_receiver_in_its_room() {
+        fresh();
+        in_a_room("HERE", "cccccccccccccccccccccccc");
+        let socket = receiving();
+        asked();
+        from_peer(socket, Side::Sender, serde_json::json!({ "say": "game", "state": "!!!", "seat": a_seat_elsewhere() }));
+        assert_eq!(room::with_room(|r| r.room_code.clone()), "HERE");
+        assert_eq!(timers(), ["room timer"]);
+        assert!(of_room(&asked().2, "send").is_empty());
+        fresh();
+    }
+
+    #[test]
+    fn the_relay_showing_the_place_taken_up_is_enough_for_the_sender_to_forget_the_room() {
+        fresh();
+        let (socket, room_socket, _) = sent_from_a_room();
+        // The receiver has returned to the room as the player. The relay
+        // closes this device's connection, before the receiver's word arrives.
+        let superseded = serde_json::json!({ "type": "superseded" });
+        connection::socket_event(room_socket, SocketEvent::Message(superseded.to_string()));
+        assert!(!room::in_room());
+        assert_eq!(connection::face(), connection::Face::Off, "not shown as open in another tab");
+        assert_eq!(dialog().stage, Stage::Moving, "the record is still to come");
+
+        from_peer(socket, Side::Receiver, serde_json::json!({ "say": "record", "update": nothing_back(), "seat": true }));
+        let shown = dialog();
+        assert_eq!((shown.stage, shown.room.as_deref(), shown.unheard), (Stage::Done, Some("WXYZ"), false));
+        fresh();
+    }
+
+    #[test]
+    fn a_sender_that_never_hears_back_learns_from_the_relay_that_the_game_arrived() {
+        let superseded = serde_json::json!({ "type": "superseded" }).to_string();
+        // The connection to the other device is lost, then the relay shows
+        // the place taken up; and the other way about.
+        for lost_first in [true, false] {
+            fresh();
+            let (socket, room_socket, _) = sent_from_a_room();
+            if lost_first {
+                socket_event(socket, SocketEvent::Close);
+                assert!(dialog().error.starts_with("The connection was lost"), "{:?}", dialog());
+                connection::socket_event(room_socket, SocketEvent::Message(superseded.clone()));
+            } else {
+                connection::socket_event(room_socket, SocketEvent::Message(superseded.clone()));
+                socket_event(socket, SocketEvent::Close);
+            }
+            let shown = dialog();
+            assert_eq!((shown.stage, shown.side), (Stage::Done, Some(Side::Sender)), "{}", lost_first);
+            assert_eq!((shown.room.as_deref(), shown.unheard, shown.error.as_str()), (Some("WXYZ"), true, ""));
+            assert!(!room::in_room());
+            assert_eq!(timers(), ["room timer"], "its own game is as it was");
+        }
+        fresh();
+    }
+
+    #[test]
+    fn coming_back_elsewhere_is_another_tab_unless_a_place_was_sent_a_moment_ago() {
+        let superseded = serde_json::json!({ "type": "superseded" }).to_string();
+        // No move at all.
+        fresh();
+        let room_socket = in_a_room("WXYZ", ME);
+        connection::socket_event(room_socket, SocketEvent::Message(superseded.clone()));
+        assert!(room::in_room());
+        assert_eq!(connection::face(), connection::Face::Moved);
+
+        // A move that was lost a while ago.
+        fresh();
+        let (socket, room_socket, _) = sent_from_a_room();
+        socket_event(socket, SocketEvent::Close);
+        with_sync(|sync| sync.seat_out = Some(("WXYZ".to_string(), clock::now_ms() - SEAT_OUT_MS - 1_000.0)));
+        connection::socket_event(room_socket, SocketEvent::Message(superseded.clone()));
+        assert!(room::in_room());
+        assert_eq!(connection::face(), connection::Face::Moved);
+        assert!(dialog().error.starts_with("The connection was lost"));
+
+        // A move called off, or put away, and another begun.
+        fresh();
+        let (_, room_socket, _) = sent_from_a_room();
+        close();
+        connection::socket_event(room_socket, SocketEvent::Message(superseded));
+        assert!(room::in_room());
         fresh();
     }
 

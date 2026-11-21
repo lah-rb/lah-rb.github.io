@@ -100,7 +100,7 @@ export async function startRelay() {
 // ── A device ───────────────────────────────────────────────────────
 
 /** A browser with storage of its own, with one page open. */
-async function device(browser: Browser, relay: string | null) {
+export async function device(browser: Browser, relay: string | null) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   await page.setViewport({ width: 420, height: 900 });
@@ -115,7 +115,7 @@ async function device(browser: Browser, relay: string | null) {
 }
 
 /** Ask the page's engine for a change. */
-const post = (page: Page, route: string, body: string) =>
+export const post = (page: Page, route: string, body: string) =>
   page.evaluate(
     (route, body) => (globalThis as Engine).kipukasViews.post(route, body),
     route,
@@ -123,7 +123,7 @@ const post = (page: Page, route: string, body: string) =>
   );
 
 /** What the page's engine draws for a route. */
-const drawn = (page: Page, route: string): Promise<string> =>
+export const drawn = (page: Page, route: string): Promise<string> =>
   page.evaluate((route) => {
     const url = new URL(route, location.origin);
     return new Promise<string>((resolve) => {
@@ -146,7 +146,7 @@ async function game(page: Page, card: string) {
 }
 
 /** The sync section of the Player Data page, as it is drawn. */
-function section(page: Page) {
+export function section(page: Page) {
   return page.evaluate(() => {
     const view = document.querySelector('[data-engine-view^="/api/player/sync"]');
     const text = (view?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -164,7 +164,7 @@ function section(page: Page) {
 }
 
 /** Press the section's button that asks the engine for `action`. */
-function press(page: Page, action: string) {
+export function press(page: Page, action: string) {
   return page.evaluate((action) => {
     const button = [
       ...document.querySelectorAll('[data-engine-view^="/api/player/sync"] [data-engine-body]'),
@@ -174,11 +174,11 @@ function press(page: Page, action: string) {
   }, action);
 }
 
-const says = (page: Page, what: string, ms = 20000) =>
+export const says = (page: Page, what: string, ms = 20000) =>
   until(`"${what}"`, async () => (await section(page)).text.includes(what), ms);
 
 /** Have the sender show a code: asked, answered yes, and the code drawn. */
-async function invite(page: Page) {
+export async function invite(page: Page) {
   await press(page, 'ask');
   await until('asked', async () => (await section(page)).question === 'Sync a new device');
   await press(page, 'invite');

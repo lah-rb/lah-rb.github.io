@@ -14,6 +14,7 @@
 
 use qrcodegen::{QrCode, QrCodeEcc};
 
+use crate::game::connection;
 use crate::game::crypto::Side;
 use crate::game::device_sync::{self, Dialog, Invite, Stage};
 use crate::game::player_doc::{self, Progress, Taken};
@@ -30,7 +31,24 @@ const GREY_BUTTON: &str = "w-full bg-slate-400 hover:bg-slate-500 text-amber-50 
 /// where a move stands, or an invitation the address carries.
 pub fn handle_sync_get(query: &str) -> String {
     let params = parse_query(query);
-    render(&device_sync::dialog_for(get_param(&params, "link").unwrap_or("")), &player_doc::progress())
+    let here = Here {
+        game: player_doc::progress(),
+        room: connection::room_code(),
+        seat: connection::seat().map(|seat| seat.code),
+    };
+    render(&device_sync::dialog_for(get_param(&params, "link").unwrap_or("")), &here)
+}
+
+/// What this device has that a move would change.
+#[derive(Debug, Clone, Default)]
+struct Here {
+    /// Its game in progress.
+    game: Progress,
+    /// The room it is in, by its code.
+    room: Option<String>,
+    /// The room whose place it would send with its game: the same, unless
+    /// another tab holds the room.
+    seat: Option<String>,
 }
 
 /// POST /api/player/sync — a button or the form of the section.
@@ -67,7 +85,7 @@ fn button(class: &str, body: &str, label: &str) -> String {
     )
 }
 
-fn render(dialog: &Dialog, here: &Progress) -> String {
+fn render(dialog: &Dialog, here: &Here) -> String {
     let mut h = String::with_capacity(4096);
     h.push_str(r#"<div class="text-kip-drk-sienna text-left leading-normal">"#);
     if !dialog.error.is_empty() {
@@ -85,7 +103,7 @@ fn render(dialog: &Dialog, here: &Progress) -> String {
         (Stage::Idle | Stage::Asked, _) => {
             h.push_str(&render_start(dialog));
             if dialog.stage == Stage::Asked {
-                h.push_str(&render_asked());
+                h.push_str(&render_asked(here));
             } else if let Some(invite) = &dialog.offered {
                 h.push_str(&render_offered(invite, here));
             }
@@ -141,41 +159,54 @@ fn render_question(label: &str, title: &str, paragraphs: &[String], no: String, 
 }
 
 /// The sender is asked whether to go on.
-fn render_asked() -> String {
+fn render_asked(here: &Here) -> String {
+    let mut paragraphs = vec![
+        "Syncing removes the game in progress on the other device and puts this device's game in its place: its damage, its timers and its affinity.".to_string(),
+    ];
+    if let Some(room) = &here.seat {
+        paragraphs.push(format!(
+            "Your place in room {} goes with the game: the other device carries on there, and this device leaves the room.",
+            escape_html(room)
+        ));
+    }
+    paragraphs.push("Your player record is merged: each card's loyalty is added together on both devices.".to_string());
+    paragraphs.push("Continue?".to_string());
     render_question(
         "Sync a new device",
         "Sync a new device?",
-        &[
-            "Syncing removes the game in progress on the other device and puts this device's game in its place: its damage, its timers and its affinity.".to_string(),
-            "Your player record is merged: each card's loyalty is added together on both devices.".to_string(),
-            "Continue?".to_string(),
-        ],
+        &paragraphs,
         button(GREY_BUTTON, "action=close", "No"),
         button(RED_BUTTON, "action=invite", "Yes, continue"),
     )
 }
 
-/// The game in progress on this device, in words.
-fn in_words(here: &Progress) -> String {
-    if here.is_empty() {
-        return "This device has no game in progress.".to_string();
-    }
+/// What this device would lose, in words: its game in progress, and the
+/// room it is in, which is part of that game.
+fn in_words(here: &Here) -> String {
     let count = |n: usize, one: &str, many: &str| format!("{} {}", n, if n == 1 { one } else { many });
     let mut parts: Vec<String> = Vec::new();
-    if here.damaged > 0 {
-        parts.push(count(here.damaged, "card with damage", "cards with damage"));
+    if here.game.damaged > 0 {
+        parts.push(count(here.game.damaged, "card with damage", "cards with damage"));
     }
-    if here.timers > 0 {
-        parts.push(count(here.timers, "timer", "timers"));
+    if here.game.timers > 0 {
+        parts.push(count(here.game.timers, "timer", "timers"));
     }
-    if let Some(affinity) = &here.affinity {
+    if let Some(affinity) = &here.game.affinity {
         parts.push(format!("the {} affinity", escape_html(affinity)));
     }
-    format!("This device's game will be removed: {}.", parts.join(", "))
+    let game = if parts.is_empty() {
+        "This device has no game in progress.".to_string()
+    } else {
+        format!("This device's game will be removed: {}.", parts.join(", "))
+    };
+    match &here.room {
+        Some(room) => format!("{} It will leave room {}.", game, escape_html(room)),
+        None => game,
+    }
 }
 
 /// The receiver is asked whether to take the game an invitation offers.
-fn render_offered(invite: &Invite, here: &Progress) -> String {
+fn render_offered(invite: &Invite, here: &Here) -> String {
     let answer = |action: &str| format!("action={}&invite={}", action, invite.compact());
     render_question(
         "Take the game from another device",
@@ -311,16 +342,28 @@ fn render_received(dialog: &Dialog) -> String {
                 .to_string(),
         );
     }
+    if let Some(room) = &dialog.room {
+        lines.push(format!("It has taken your place in room {}.", escape_html(room)));
+    }
     done("This device now has the game from your other device.", &lines)
 }
 
 /// The sender: the other device has the game.
 fn render_sent(dialog: &Dialog) -> String {
-    let line = match dialog.days_brought {
-        0 => "Your record is the same on both.".to_string(),
-        brought => format!("The other device added {} to your record.", days(brought)),
-    };
-    done("The other device now has this game.", &[line])
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(if dialog.unheard {
+        "It was not heard from after it took the game, so anything it added to your record has not reached this device. Sync again to bring it."
+            .to_string()
+    } else {
+        match dialog.days_brought {
+            0 => "Your record is the same on both.".to_string(),
+            brought => format!("The other device added {} to your record.", days(brought)),
+        }
+    });
+    if let Some(room) = &dialog.room {
+        lines.push(format!("It has your place in room {}, and this device has left the room.", escape_html(room)));
+    }
+    done("The other device now has this game.", &lines)
 }
 
 #[cfg(test)]
@@ -338,7 +381,7 @@ mod tests {
     }
 
     fn draw(dialog: &Dialog) -> String {
-        render(dialog, &Progress::default())
+        render(dialog, &Here::default())
     }
 
     fn fresh() {
@@ -456,11 +499,55 @@ mod tests {
         assert!(html.contains(r#"data-engine-body="action=receive&amp;invite=ABCD-EFGHJKLMNPQRSTUVWXYZ""#));
         assert!(html.contains(r#"data-engine-body="action=decline&amp;invite=ABCD-EFGHJKLMNPQRSTUVWXYZ""#));
 
-        let here = Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) };
+        let here = Here {
+            game: Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) },
+            ..Here::default()
+        };
         let html = render(&shown, &here);
         assert!(html.contains("This device's game will be removed: 2 cards with damage, 1 timer, the Brutal affinity."));
-        let here = Progress { damaged: 1, timers: 3, affinity: None };
+        let here = Here { game: Progress { damaged: 1, timers: 3, affinity: None }, ..Here::default() };
         assert!(render(&shown, &here).contains("removed: 1 card with damage, 3 timers."));
+
+        // The room it is in is part of the game it would lose.
+        let here = Here { room: Some("HERE".to_string()), ..here };
+        assert!(render(&shown, &here).contains("removed: 1 card with damage, 3 timers. It will leave room HERE."));
+        let here = Here { room: Some("HERE".to_string()), ..Here::default() };
+        assert!(render(&shown, &here).contains("This device has no game in progress. It will leave room HERE."));
+    }
+
+    #[test]
+    fn a_sender_in_a_room_is_told_its_place_goes_with_the_game() {
+        let asked = at(Stage::Asked, None);
+        assert!(!draw(&asked).contains("room"));
+        let here = Here { room: Some("WXYZ".to_string()), seat: Some("WXYZ".to_string()), ..Here::default() };
+        assert!(render(&asked, &here).contains(
+            "Your place in room WXYZ goes with the game: the other device carries on there, and this device leaves the room."
+        ));
+        // Another tab holds the room: this one has no place to send.
+        let here = Here { room: Some("WXYZ".to_string()), ..Here::default() };
+        assert!(!render(&asked, &here).contains("room"));
+    }
+
+    #[test]
+    fn both_are_told_where_the_place_in_the_room_went() {
+        let mut shown = at(Stage::Done, Some(Side::Receiver));
+        shown.taken = Some(Taken::default());
+        assert!(!draw(&shown).contains("room"));
+        shown.room = Some("WXYZ".to_string());
+        assert!(draw(&shown).contains("It has taken your place in room WXYZ."));
+
+        let mut shown = at(Stage::Done, Some(Side::Sender));
+        assert!(!draw(&shown).contains("room"));
+        shown.room = Some("WXYZ".to_string());
+        let html = draw(&shown);
+        assert!(html.contains("Your record is the same on both."));
+        assert!(html.contains("It has your place in room WXYZ, and this device has left the room."));
+        // The other device was seen to take the place, and not heard from.
+        shown.unheard = true;
+        let html = draw(&shown);
+        assert!(html.contains("✓ The other device now has this game."));
+        assert!(html.contains("It was not heard from after it took the game"));
+        assert!(!html.contains("Your record is the same on both."));
     }
 
     #[test]

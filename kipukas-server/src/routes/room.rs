@@ -144,6 +144,14 @@ pub fn leave() {
     // The room's timers are copied back to the player's own before the room
     // is forgotten, so they are still there when playing alone.
     crdt::export_to_local();
+    forget();
+}
+
+/// Forget the room and leave the player's own timers as they are. For a
+/// device whose game has just given way to the game of another of the
+/// player's devices (`connection::game_taken`): the room it was in went
+/// with the game it had, and the game it took has timers of its own.
+pub fn forget() {
     room::reset_room();
     crdt::reset_doc();
     // The turn tracker goes back to listing the player's own timers.

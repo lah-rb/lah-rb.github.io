@@ -33,10 +33,22 @@
 //! Between the players, as `data`: `hello` (with `proto` and `playerId`),
 //! then `yrs_sv`, `yrs_sv_reply` and `yrs_update`, which carry the room
 //! document's state vectors and updates.
+//!
+//! ## A place carried to another device
+//!
+//! A game moved to another of the player's devices takes the player's place
+//! in the room with it (`game::device_sync`). The place is a [`Seat`]: the
+//! room's code and name, the player's id in it, and the room's document.
+//! The device that takes it returns to the room under that id, exactly as
+//! a page load does, so neither the relay nor the opponent sees anything
+//! but the player coming back ([`game_taken`]). The device it came from
+//! forgets the room without leaving it ([`seat_handed_over`]).
 
 use std::cell::RefCell;
 
-use crate::game::{crdt, room};
+use serde::{Deserialize, Serialize};
+
+use crate::game::{crdt, device_sync, fists, room};
 use crate::link::{Link, Owner, State, Timer, Told};
 use crate::routes::room as life;
 use crate::wire::{self, Channel, SocketEvent};
@@ -64,6 +76,25 @@ const HELLO_TIMEOUT_MS: u32 = 3_000;
 /// Every page change reconnects for a moment, so the pill only shows that
 /// something is being waited for if the wait lasts this long.
 const SHOW_WAITING_AFTER_MS: u32 = 1_500;
+
+/// This player's place in a room, as one of their devices hands it to
+/// another along with the game.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Seat {
+    pub code: String,
+    #[serde(default)]
+    pub name: String,
+    /// This player's id in the room.
+    pub player: String,
+    /// The opponent's, if one has been in the room.
+    #[serde(default)]
+    pub peer: String,
+    #[serde(default)]
+    pub creator: bool,
+    /// The room's document, whole: its timers, and fists.
+    #[serde(default)]
+    pub doc: String,
+}
 
 /// What the player just asked for and the relay has not yet answered.
 #[derive(Debug, Clone, PartialEq)]
@@ -462,8 +493,16 @@ fn connect_for(pending: Pending) {
     link(|link| link.start());
 }
 
-/// Leave the room here: the engine forgets it and goes back to playing alone.
+/// Leave the room here: the engine forgets it and goes back to playing
+/// alone, with the room's timers as the player's own.
 fn leave_room() {
+    drop_room(true);
+}
+
+/// Forget the room here. `timers_kept` copies the room's timers over the
+/// player's own first, which is right unless the player's own have just
+/// been replaced by another game's.
+fn drop_room(timers_kept: bool) {
     with_conn(|conn| {
         conn.peer_present = false;
         conn.pending = None;
@@ -479,8 +518,87 @@ fn leave_room() {
     // Only a room can be left: leaving copies the room's timers over the
     // player's own.
     if room::in_room() {
-        life::leave();
+        if timers_kept {
+            life::leave();
+        } else {
+            life::forget();
+        }
     }
+}
+
+// ── A place carried to another device ──────────────────────────────
+
+/// The place this device holds in a room, to go with its game to another
+/// of the player's devices. None if it is in no room, or if another tab
+/// holds the room: that tab has the room as it is now, and this one may not.
+pub fn seat() -> Option<Seat> {
+    let held = room::in_room() && !is_pending() && store::is_owner();
+    if !held || with_conn(|conn| conn.moved || conn.expired) {
+        return None;
+    }
+    let doc = crdt::encode_full_state();
+    Some(room::with_room(|r| Seat {
+        code: r.room_code.clone(),
+        name: r.room_name.clone(),
+        player: r.player_id.clone(),
+        peer: r.peer_id.clone(),
+        creator: r.creator,
+        doc,
+    }))
+}
+
+/// The room this device is in, by its code, if it is in one.
+pub fn room_code() -> Option<String> {
+    room::with_room(|r| (!r.room_code.is_empty()).then(|| r.room_code.clone()))
+}
+
+/// The game on this device has given way to the game of another of the
+/// player's devices, which was sent with `seat` if that device was in a
+/// room.
+///
+/// The room this device was in went with the game it had: it is left, and
+/// its timers are not kept, since the game taken has its own. Then the
+/// place that came with the game is taken up: this device returns to that
+/// room as the player, the way a page load does, and the relay closes the
+/// other device's connection. Returns whether a place was taken up.
+pub fn game_taken(seat: Option<&Seat>) -> bool {
+    let seat = seat.filter(|seat| seat.code.len() == 4 && fists::is_valid_player_id(&seat.player));
+    if room::in_room() || is_pending() {
+        // Whichever tab held the room, this one does now, so that what it
+        // forgets is forgotten in storage too.
+        store::claim_room();
+        // The same place on both devices (it was handed over before, and
+        // never heard to have arrived) is not a room to leave.
+        let same = seat.is_some_and(|seat| {
+            room::with_room(|r| r.room_code.eq_ignore_ascii_case(&seat.code) && r.player_id == seat.player)
+        });
+        if !same {
+            link(|link| link.send(r#"{"type":"leave"}"#));
+        }
+        drop_room(false);
+    }
+    if let Some(seat) = seat {
+        // A document that cannot be read leaves the room's state to come
+        // from the opponent, by the exchange that follows every return.
+        let _ = life::resume(&seat.code, &seat.name, &seat.player, &seat.peer, seat.creator, &seat.doc);
+        store::claim_room();
+        link(|link| link.start());
+    }
+    with_conn(|conn| conn.notice.clear());
+    show();
+    seat.is_some()
+}
+
+/// The place this device held has gone, with its game, to another of the
+/// player's devices, which has taken it up. The room is forgotten here and
+/// its timers stay as the player's own. The relay is not told the player
+/// left, because they have not: they are in the room on the other device.
+pub fn seat_handed_over() {
+    if room::in_room() {
+        leave_room();
+        with_conn(|conn| conn.notice.clear());
+    }
+    show();
 }
 
 // ── What the link tells ────────────────────────────────────────────
@@ -539,10 +657,17 @@ fn relay_said(message: &serde_json::Value) {
         // The opponent's connection closed (a page change, a locked phone);
         // they still have their place in the room. Or they left for good.
         "peer_away" | "peer_left" => peer_is_gone(),
-        // This player connected again elsewhere (another tab, which the
-        // storage event did not reach in time). The relay is closing this
-        // socket.
-        "superseded" => go_quiet(),
+        // This player connected again elsewhere. The relay is closing this
+        // socket. Either the place went with the game to another device,
+        // which has just taken it up; or it is another tab, which the
+        // storage event did not reach in time.
+        "superseded" => {
+            if device_sync::seat_taken_up() {
+                seat_handed_over();
+            } else {
+                go_quiet();
+            }
+        }
         "error" => refused(text("code"), text("message")),
         _ => {}
     }
