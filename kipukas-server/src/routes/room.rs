@@ -1103,6 +1103,18 @@ fn render_final_blows_result() -> String {
     h
 }
 
+/// The die a card rolls in a role: the one it always rolls, or, for a card
+/// that rolls one die to attack and another to defend, the one for the role.
+fn die_for(card: &crate::catalog::Card, role: CombatRole) -> &'static str {
+    if !card.die.is_empty() {
+        return card.die;
+    }
+    match role {
+        CombatRole::Attacking => card.atk_die.unwrap_or(""),
+        CombatRole::Defending => card.def_die.unwrap_or(""),
+    }
+}
+
 fn build_result_html(
     atk_card: &crate::catalog::Card,
     atk_slug: &str,
@@ -1135,11 +1147,9 @@ fn build_result_html(
         r#"<p class="text-xs">Archetypes: {}</p>"#,
         atk_km.genetics.join(", ")
     ));
-    if !atk_card.die.is_empty() {
-        h.push_str(&format!(
-            r#"<p class="text-sm mt-1">Rolls: <strong>{}</strong></p>"#,
-            atk_card.die
-        ));
+    let rolls = die_for(atk_card, CombatRole::Attacking);
+    if !rolls.is_empty() {
+        h.push_str(&format!(r#"<p class="text-sm mt-1" data-rolls="attacker">Rolls: <strong>{}</strong></p>"#, rolls));
     }
     h.push_str(r#"</div>"#);
 
@@ -1158,11 +1168,9 @@ fn build_result_html(
         r#"<p class="text-xs">Archetypes: {}</p>"#,
         def_km.genetics.join(", ")
     ));
-    if !def_card.die.is_empty() {
-        h.push_str(&format!(
-            r#"<p class="text-sm mt-1">Rolls: <strong>{}</strong></p>"#,
-            def_card.die
-        ));
+    let rolls = die_for(def_card, CombatRole::Defending);
+    if !rolls.is_empty() {
+        h.push_str(&format!(r#"<p class="text-sm mt-1" data-rolls="defender">Rolls: <strong>{}</strong></p>"#, rolls));
     }
     h.push_str(r#"</div>"#);
 
@@ -2387,6 +2395,46 @@ mod tests {
         let html = tap("action=final&card=brox_the_defiant");
         assert!(html.contains("Final Blows") && !html.contains("from affinity"));
         reset();
+    }
+
+    #[test]
+    fn a_card_with_one_die_to_attack_and_another_to_defend_shows_the_one_for_its_role() {
+        // Sboi rolls one die attacking and another defending. Brox always rolls the same.
+        let split = find_card("sboi_threat_plus_plus").unwrap();
+        let (attacks_with, defends_with) = (split.atk_die.unwrap(), split.def_die.unwrap());
+        assert!(split.die.is_empty() && attacks_with != defends_with);
+        let brox = find_card("brox_the_defiant").unwrap();
+        let rolls = |who: &str, die: &str| format!(r#"data-rolls="{}">Rolls: <strong>{}</strong></p>"#, who, die);
+        let round = |ours: CombatRole, theirs: CombatRole| {
+            fresh_room();
+            room::with_room_mut(|r| {
+                r.connected = true;
+                r.fists.local =
+                    Some(FistsSubmission { role: ours, card: split.slug.to_string(), keal_idx: 1, affinity: None });
+                r.fists.remote =
+                    Some(FistsSubmission { role: theirs, card: brox.slug.to_string(), keal_idx: 1, affinity: None });
+            });
+            render_fists_result()
+        };
+
+        let html = round(CombatRole::Attacking, CombatRole::Defending);
+        assert!(html.contains(&rolls("attacker", attacks_with)), "{}", html);
+        assert!(html.contains(&rolls("defender", brox.die)));
+        assert!(!html.contains(&rolls("attacker", defends_with)));
+
+        let html = round(CombatRole::Defending, CombatRole::Attacking);
+        assert!(html.contains(&rolls("defender", defends_with)), "{}", html);
+        assert!(html.contains(&rolls("attacker", brox.die)));
+        reset();
+    }
+
+    #[test]
+    fn every_soul_that_can_fight_has_a_die_to_show_in_either_role() {
+        for card in CARDS.iter().filter(|card| !card.keal_means.is_empty()) {
+            for role in [CombatRole::Attacking, CombatRole::Defending] {
+                assert!(!die_for(card, role).is_empty(), "{} has no die to roll {:?}", card.slug, role);
+            }
+        }
     }
 
     #[test]

@@ -1152,7 +1152,7 @@
     "scarcity": "Founder's Deck",
     "tags": "dragon city fire tech smoke tower electric digital",
     "description": "Born from a Russian deep learning algorithm that became trapped in its target's neural network, Sboi are not to be trifled with.",
-    "play_style": "Roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal. A failed summon results in Sboi becoming rogue.",
+    "play_style": "If Sboi's combat total says rogue, you may roll D20 to play card. If an 1, 10, or 11 is rolled then place as normal. Otherwise you must summon Sboi to the kipuka rogue.",
     "url": "https://www.kipukas.cards/sboi_threat_plus_plus/"
   },
   {
