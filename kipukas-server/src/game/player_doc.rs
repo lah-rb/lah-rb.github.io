@@ -13,8 +13,10 @@
 //! │   └── "brox_the_defiant" (YMap)
 //! │       ├── "slots" (YArray<bool>)  — index 0 = slot 1
 //! │       ├── "wasted" (bool)
-//! │       └── "effects" (f64) — points card effects in play add towards
-//! │                             controlling the card, this game (`game::control`)
+//! │       ├── "effects" (f64) — points card effects in play add towards
+//! │       │                     controlling the card, this game (`game::control`)
+//! │       └── "guest" (bool)  — the copy was handed over by the other player
+//! │                             (`game::copies`); written only when it was
 //! ├── "alarms" (YArray<YMap>)
 //! │   └── [0] { "id": String, "remaining": i32, "name": String,
 //! │             "color_set": String, "changed": f64 (ms, when last changed) }
@@ -356,6 +358,8 @@ pub struct CardState {
     pub slots: Vec<bool>,
     pub wasted: bool,
     pub effects: u8,
+    /// The copy is the other player's, handed over for this game.
+    pub guest: bool,
 }
 
 /// What is kept of a card in play, if anything is.
@@ -377,6 +381,7 @@ pub fn card_state(slug: &str) -> Option<CardState> {
             slots,
             wasted: matches!(card.get(&txn, "wasted"), Some(yrs::Out::Any(Any::Bool(true)))),
             effects: number_in(&card, &txn, "effects").unwrap_or(0.0) as u8,
+            guest: matches!(card.get(&txn, "guest"), Some(yrs::Out::Any(Any::Bool(true)))),
         })
     })
 }
@@ -395,6 +400,9 @@ pub fn put_card_state(slug: &str, state: &CardState) {
             card.insert(&mut txn, "slots", ArrayPrelim::from(slots));
             if state.effects > 0 {
                 card.insert(&mut txn, "effects", Any::from(state.effects as f64));
+            }
+            if state.guest {
+                card.insert(&mut txn, "guest", Any::from(true));
             }
         }
     });

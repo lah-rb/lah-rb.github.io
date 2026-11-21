@@ -131,7 +131,7 @@ All data is tracked across three distinct stores. Rust is the single source of t
 |-------|-------|-------------|---------|----------|
 | **Player** (permanent) | `PLAYER_DOC` (yrs Doc) | `kipukas_player_doc` in localStorage (base64 binary), written when it changes | Yes: a game is moved to another of the player's devices through the relay, sealed with a key the relay never sees (the Player Data page) | Card damage, turn alarms, settings, affinity, loyalty, the merges made and their sum |
 | **Room** (who and where) | `RoomState` (RefCell) | `kipukas_room` in localStorage: `{v, code, name, creator, playerId, peerId, ts}`, forgotten after 12 h without use | No — each player's own | Room code and name, this player's id in the room, the opponent's id, whether the opponent is reachable |
-| **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player) |
+| **Room** (shared game state) | `ROOM_DOC` (yrs Doc) | `kipukas_room_doc` in localStorage (base64), written when it changes | Yes — yrs sync protocol | Shared turn timers (`timers`, each player's dated version of each timer) and fists combat (`fists`, one entry per round per player), and copies of cards on their way from one player to the other (`handed`) |
 
 A choice about the device itself is in none of the three: the QR scanner's choices and the settings page's switches are each kept under a key of their own (Pattern 10), so they are not synced to another device. A backup carries the settings page's switches beside the player's state, and nothing else of these.
 
@@ -319,7 +319,7 @@ Everything else the engine holds is kept the same way: the room's connection and
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
-| `hello` | Both → peer | `{ proto: 4, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
+| `hello` | Both → peer | `{ proto: 5, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
 | `yrs_sv` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector (sync handshake step 1) |
 | `yrs_sv_reply` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector reply (sync handshake step 2) |
 | `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (a change to timers or fists combat) |
@@ -331,6 +331,8 @@ There are no per-feature messages. A feature changes `ROOM_DOC` and the resultin
 **Protocol version:** `hello.proto` is bumped when the room document's shape changes. Site updates are applied when each user accepts the update prompt, so two players can be on different copies. A player whose opponent sends no `hello` (an older copy) or a different `proto` sees "Opponent needs to update" in the status pill; timers and combat do not sync until both are current.
 
 That is enforced, not only said (`agreed` in `game/connection.rs`): the engine applies nothing of the room document from an opponent, and sends them nothing of it, until they have said hello in its own protocol since they last appeared. An update in one format applied by a copy that expects another changes what that player sees: a timer that the newer copy has rewritten the way protocol 3 keeps it disappears from the list of a copy that speaks protocol 2. Meanwhile each player's document goes its own way, and the handshake that follows the next matching hello brings the two together. An opponent's hello is the first thing they send on a connection, and both players say it on every (re)connect of either, so nothing is missed by waiting for it. (Copies of the site up to protocol 2 do not hold back; the newer side holding back is enough.)
+
+**Copies handed over, in the document:** the `handed` map holds `give:<id>`, written by the player who hands a copy of a card to the other, and `took:<id>`, written by the one who takes it (`game/handed.rs`; see Affinity, loyalty and control).
 
 **Fists combat in the document:** the `fists` map holds one entry per round per player, keyed `<round>:<playerId>` and written only by that player (`game/fists.rs`).
 
@@ -1106,7 +1108,14 @@ A tameability of 0 needs no taming. One above 10 can never be met, which is how 
 - A round of fists is fought with the copy on the page. What is locked in names the card by its own name, as before, and the copy beside it (`copy`, not written for the first, so a round with one copy is byte for byte what it was and an engine that knows nothing of copies reads it as it always did). Damage from a lost round is marked on that copy.
 - Loyalty and affinity are the card's, whichever copy it is. Card effects are the copy's own. Copies are the game's: New Game clears them, and a game moved to another device takes them along.
 
-**Built so far:** the stack on a species' page, the roll bonus in a room, and copies. **To come:** handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
+**A copy handed to the other player.** A soul can change sides in play: stolen, or tamed by the other player. In a room, with the opponent there, the copies view has a button that hands the copy shown to them, which is asked about first. The copy leaves the giver's cards as it is, damage and card effects with it (`copies::hand_out`), and comes into play among the opponent's (`copies::arrive`), marked a guest: its page says "From your opponent". Handed back, it is its owner's own again. The stack is worked out anew for whoever holds it, since affinity and loyalty are the holder's own.
+
+- The room's document carries it (`src/game/handed.rs`): the giver writes `give:<id>` in the `handed` map with the copy as it is, and the taker writes `took:<id>` once it is among their cards. Each key has one writer, as with fists, so a copy is taken once, and one handed over while the opponent's page was changing is there for them when it has. This is room protocol 5: an engine of protocol 4 would never take a copy.
+- A copy that arrives takes the place of the card's one copy if nothing has happened to that one, since a card that was only looked at is kept the same way as one in play and is far the likelier. Beside a copy that has been played with, it is a further copy.
+- A copy nobody took comes back to its giver when nobody is left to take it: the giver leaves the room, or the opponent leaves it for good (`routes::room::reclaim_handed`). Until it is taken the giver's page says it is on its way.
+- What arrives is the other player's to have written. It is fitted to the card (as many damage slots as the card has, no more card effects than they can give), names a card by its own name, and none of it is drawn as text.
+
+**Built:** the stack on a species' page, the roll bonus in a room, copies, and handing a copy over. **Still to do:** the rules book's sections on affinity, loyalty and taming, which say what was true before this and are the owner's to approve.
 
 ## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
@@ -1118,7 +1127,7 @@ A tameability of 0 needs no taming. One above 10 can never be met, which is how 
 
 | Root key | yrs type | Contents |
 |----------|----------|----------|
-| `"cards"` | `YMap<key, YMap>` | `{ slots: YArray<bool>, wasted: bool, effects: f64 }` per card in play, keyed by the card's name, or by name and number for a further copy of it (`brox_the_defiant~2`): `effects` is the points card effects in play add towards controlling a species (see Affinity, loyalty and control) |
+| `"cards"` | `YMap<key, YMap>` | `{ slots: YArray<bool>, wasted: bool, effects: f64 }` per card in play, keyed by the card's name, or by name and number for a further copy of it (`brox_the_defiant~2`); with `guest: true` on a copy the other player handed over: `effects` is the points card effects in play add towards controlling a species (see Affinity, loyalty and control) |
 | `"alarms"` | `YArray<YMap>` | `{ id: String, remaining: i32, name: String, color_set: String, changed: f64 }` (`changed`: when it was last changed, ms) |
 | `"retired"` | `YMap<timer id, f64>` | When each timer removed in the last day was removed (ms) |
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |

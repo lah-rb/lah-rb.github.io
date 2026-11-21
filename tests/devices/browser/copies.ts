@@ -20,7 +20,7 @@ const CARD = 'brox_the_defiant';
 const TRAP = 'timebattle';
 
 /** What a card's page shows of its copies, and of the damage of the one shown. */
-function shown(page: Page) {
+export function shown(page: Page) {
   return page.evaluate(() => {
     const view = document.querySelector('[data-engine-view^="/api/card/copies"]');
     const control = view?.querySelector('[data-copies]');
@@ -36,6 +36,9 @@ function shown(page: Page) {
       ),
       asking: control?.querySelector('[role="alertdialog"]')?.textContent?.replace(/\s+/g, ' ')
         .trim() ?? '',
+      /** The copy shown came from the other player; one of this card is on its way to them. */
+      guest: !!control?.querySelector('[data-guest]'),
+      onItsWay: !!control?.querySelector('[data-on-its-way]'),
       /** More copies are in play than the rules allow a deck, and the button says so. */
       over: control?.hasAttribute('data-over-limit') ?? false,
       said: [...(control?.querySelectorAll('button') ?? [])].map((b) =>
@@ -58,7 +61,7 @@ function shown(page: Page) {
  * Press what the control offers under this label. The toolbar is woken
  * first, as a player's first tap would: idle, it swallows a press.
  */
-function press(page: Page, label: string, wake = true) {
+export function press(page: Page, label: string, wake = true) {
   return page.evaluate(
     (label, wake) => {
       const bar = document.querySelector('.ghost-toolbar');

@@ -16,6 +16,7 @@ pub mod crypto;
 pub mod damage;
 pub mod device_sync;
 pub mod fists;
+pub mod handed;
 #[cfg(test)]
 mod history_sim;
 pub mod matchup;

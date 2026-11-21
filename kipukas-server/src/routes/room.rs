@@ -18,6 +18,7 @@ use crate::game::copies;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::fists;
+use crate::game::handed;
 use crate::game::player_doc;
 use crate::game::room::{self, CombatRole, FistsChoice, FistsSubmission};
 use crate::game::state::new_alarm_id;
@@ -108,6 +109,8 @@ pub fn resume(
     // it could be). The opponent learns of it on the next sync handshake.
     settle_fists();
     sync_fists_view();
+    // And a copy of a card the opponent handed over may be waiting to be taken.
+    take_handed();
 
     restored
 }
@@ -138,12 +141,16 @@ pub fn set_peer(id: &str) {
 pub fn peer_arrived() {
     room::with_room_mut(|r| r.connected = true);
     page::redraw("/api/game/turns");
+    // A copy of the page's card can be handed to them now.
+    page::redraw("/api/card/copies");
 }
 
 /// The opponent cannot be reached (a page change, a locked phone, or our own
 /// connection is down). The room is kept: they, or we, will be back.
 pub fn peer_gone() {
     room::with_room_mut(|r| r.connected = false);
+    // Nobody is there to be handed a copy of the page's card.
+    page::redraw("/api/card/copies");
 }
 
 /// Leave the room: back to playing alone.
@@ -163,6 +170,8 @@ pub fn forget() {
     crdt::reset_doc();
     // The turn tracker goes back to listing the player's own timers.
     page::redraw("/api/game/turns");
+    // And nobody is left to hand a copy of the page's card to.
+    page::redraw("/api/card/copies");
 }
 
 /// Apply an update of the room document from the opponent (base64). It may
@@ -179,14 +188,115 @@ pub fn apply_peer_update(update: &str) -> Result<(), String> {
     // a clean leave, this player's own timers are still current.
     crdt::export_to_local();
 
-    // The update may have delivered the outcome of a round. Applying it is
-    // recorded in the room document, and that is sent back.
-    crdt::queue_for_peer(crdt::capture_update(settle_fists));
+    // The update may have delivered the outcome of a round, or a copy of a
+    // card the opponent has handed over. Applying either is recorded in the
+    // room document, and that is sent back.
+    crdt::queue_for_peer(crdt::capture_update(|| {
+        let settled = settle_fists();
+        let took = take_handed();
+        settled || took
+    }));
     sync_fists_view();
 
     page::redraw("/api/game/turns");
     page::redraw("/api/room/fists");
+    // A copy this player handed over may have been taken.
+    page::redraw("/api/card/copies");
     Ok(())
+}
+
+// ── A copy of a card handed to the other player ────────────────────
+//
+// A soul can change sides in play. Its copy leaves this player's cards as
+// it is and arrives among the opponent's (`game::copies`); the room's
+// document carries it (`game::handed`), so it is taken once, and is there
+// for an opponent who was away for a moment.
+
+/// Whether a copy can be handed over now: the opponent is in the room to
+/// take it.
+pub fn can_hand_over() -> bool {
+    room::in_room() && room::with_room(|r| r.connected && !r.peer_id.is_empty())
+}
+
+/// Hand the copy of a card kept under `key` to the opponent: it is taken
+/// out of play here, as it is, and is on its way to them. Whether it was.
+pub fn hand_over(key: &str) -> bool {
+    if !can_hand_over() || !copies::in_play(key) {
+        return false;
+    }
+    let Some(card) = find_card(key) else {
+        return false;
+    };
+    let Some(state) = copies::hand_out(card, copies::split(key).1) else {
+        return false;
+    };
+    let (me, peer) = player_ids();
+    let given = handed::Given { from: me, to: peer, card: card.slug.to_string(), copy: (&state).into() };
+    let id = new_alarm_id();
+    crdt::queue_for_peer(crdt::capture_update(|| {
+        crdt::with_doc(|doc| handed::give(doc, &id, &given));
+        true
+    }));
+    true
+}
+
+/// The views that show a card's copies.
+fn redraw_copies() {
+    page::redraw("/api/card/panel");
+    page::redraw("/api/card/copies");
+    page::redraw("/api/room/fists");
+}
+
+/// Take every copy the opponent has handed over and this player has not
+/// taken yet: each comes into play here as it was there, a guest. Returns
+/// whether the room document changed (so the caller knows there is an
+/// update for the opponent).
+fn take_handed() -> bool {
+    let (me, _) = player_ids();
+    let coming = crdt::with_doc(|doc| handed::for_me(doc, &me));
+    for (id, given) in &coming {
+        // What names no card that fights, or finds no room among this
+        // player's copies, is taken all the same: it is not left to be
+        // looked at again and again.
+        if let Some(card) = CARDS.iter().find(|card| card.slug == given.card) {
+            copies::arrive(card, &given.copy.arriving());
+        }
+        crdt::with_doc(|doc| handed::take(doc, id));
+    }
+    if !coming.is_empty() {
+        redraw_copies();
+    }
+    !coming.is_empty()
+}
+
+/// Have back every copy this player handed over that was never taken.
+/// Called when nobody is left to take it: this player leaves the room, or
+/// the opponent has left it for good.
+pub fn reclaim_handed() {
+    let (me, _) = player_ids();
+    let out = crdt::with_doc(|doc| handed::from_me(doc, &me));
+    for (id, given) in &out {
+        if let Some(card) = CARDS.iter().find(|card| card.slug == given.card) {
+            copies::arrive(card, &given.copy.returning());
+        }
+        crdt::queue_for_peer(crdt::capture_update(|| {
+            crdt::with_doc(|doc| handed::withdraw(doc, id));
+            true
+        }));
+    }
+    if !out.is_empty() {
+        redraw_copies();
+    }
+}
+
+/// How many copies of this card this player has handed over that the
+/// opponent has not taken yet.
+pub fn on_their_way(slug: &str) -> usize {
+    if !room::in_room() {
+        return 0;
+    }
+    let (me, _) = player_ids();
+    crdt::with_doc(|doc| handed::from_me(doc, &me)).iter().filter(|(_, given)| given.card == slug).count()
 }
 
 // ── Fists combat ───────────────────────────────────────────────────
@@ -1544,7 +1654,9 @@ mod tests {
         });
         let (updates, redraw) = handed_over();
         assert_eq!(updates, 0, "nothing to send back");
-        assert_eq!(redraw, ["/api/game/turns", "/api/room/fists"]);
+        // The timers, the fists dialog, and the copies of the page's card:
+        // one this player handed over may have been taken.
+        assert_eq!(redraw, ["/api/game/turns", "/api/room/fists", "/api/card/copies"]);
         reset();
     }
 
@@ -1597,10 +1709,12 @@ mod tests {
         reset();
         enter("ABCD", "Test", ME, true);
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        // The opponent coming, and the room being left, also change whether
+        // a copy of the page's card can be handed over.
         peer_arrived();
-        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        assert_eq!(page::take_redraws(), ["/api/game/turns", "/api/card/copies"]);
         leave();
-        assert_eq!(page::take_redraws(), ["/api/game/turns"]);
+        assert_eq!(page::take_redraws(), ["/api/game/turns", "/api/card/copies"]);
         enter("WXYZ", "Other", ME, false);
         assert_eq!(page::take_redraws(), ["/api/game/turns"]);
         reset();
@@ -2582,6 +2696,187 @@ mod tests {
         handle_fists_post("action=outcome&won=no");
         assert!(!player_doc::has_card_state("brox_the_defiant~2"), "no copy is made by the damage");
         assert!(!player_doc::get_slot("brox_the_defiant", 1));
+        reset();
+    }
+
+    // ── A copy handed to the other player ──
+
+    /// What the opponent has handed over, as it is in the room document: by this player.
+    fn given_by_me() -> Vec<handed::Given> {
+        crdt::with_doc(|doc| handed::from_me(doc, ME)).into_iter().map(|(_, given)| given).collect()
+    }
+
+    /// A room with the opponent in it, and Brox in play with his first slot marked.
+    fn brox_in_a_room() {
+        fresh_room();
+        room::with_room_mut(|r| r.connected = true);
+        let card = find_card("brox_the_defiant").unwrap();
+        damage::ensure_card_state(card.slug, card.keal_means.iter().map(|k| k.count).sum());
+        damage::toggle_slot("brox_the_defiant", 1);
+        handed_over();
+    }
+
+    #[test]
+    fn a_copy_can_be_handed_over_only_while_the_opponent_is_in_the_room() {
+        fresh_room();
+        assert!(!can_hand_over(), "the opponent is known, and away");
+        assert!(!hand_over("brox_the_defiant"));
+        room::with_room_mut(|r| r.connected = true);
+        assert!(can_hand_over());
+        reset();
+        player_doc::init_player_doc();
+        assert!(!can_hand_over() && !hand_over("brox_the_defiant"), "not in a room");
+        reset();
+    }
+
+    #[test]
+    fn handing_a_copy_over_takes_it_out_of_play_here_and_puts_it_on_its_way() {
+        brox_in_a_room();
+        assert!(hand_over("brox_the_defiant"));
+        assert!(!player_doc::has_card_state("brox_the_defiant"), "it has left this player's cards");
+        let given = given_by_me();
+        assert_eq!(given.len(), 1);
+        assert_eq!((given[0].from.as_str(), given[0].to.as_str(), given[0].card.as_str()), (ME, THEM, "brox_the_defiant"));
+        assert!(given[0].copy.slots[0] && !given[0].copy.guest);
+        assert_eq!(on_their_way("brox_the_defiant"), 1);
+        assert_eq!(on_their_way(LILIEL), 0);
+        // It is sent to the opponent.
+        assert_eq!(handed_over().0, 1);
+
+        // The opponent takes it: nothing is on its way any more.
+        opponent(|doc| {
+            let (id, _) = handed::for_me(doc, THEM).remove(0);
+            handed::take(doc, &id);
+        });
+        assert_eq!(on_their_way("brox_the_defiant"), 0);
+        assert!(!player_doc::has_card_state("brox_the_defiant"), "and it does not come back");
+        reset();
+    }
+
+    #[test]
+    fn the_copy_shown_is_the_one_handed_over_and_a_copy_not_in_play_is_not() {
+        brox_in_a_room();
+        copies::add(find_card("brox_the_defiant").unwrap());
+        damage::toggle_slot("brox_the_defiant~2", 2);
+        assert!(!hand_over("brox_the_defiant~3"));
+        assert!(hand_over("brox_the_defiant~2"));
+        assert_eq!(copies::count("brox_the_defiant"), 1);
+        assert!(player_doc::get_slot("brox_the_defiant", 1), "the first copy stays, as it was");
+        let given = given_by_me();
+        assert!(!given[0].copy.slots[0] && given[0].copy.slots[1]);
+        reset();
+    }
+
+    #[test]
+    fn a_copy_the_opponent_hands_over_comes_into_play_here_as_a_guest_and_is_taken_once() {
+        fresh_room();
+        handed_over();
+        let theirs = handed::Given {
+            from: THEM.to_string(),
+            to: ME.to_string(),
+            card: LILIEL.to_string(),
+            copy: handed::Copy { slots: vec![true], wasted: false, effects: 2, guest: false },
+        };
+        opponent(|doc| handed::give(doc, "one", &theirs));
+
+        let kept = player_doc::card_state(LILIEL).expect("Liliel is in play here");
+        assert!(kept.slots[0] && kept.guest);
+        assert_eq!(kept.effects, 2);
+        assert!(copies::is_guest(LILIEL));
+        // Taking it is said to the opponent, and the card's views are drawn again.
+        let (updates, redraw) = handed_over();
+        assert_eq!(updates, 1);
+        for view in ["/api/card/panel", "/api/card/copies", "/api/room/fists"] {
+            assert!(redraw.contains(&view), "{}", view);
+        }
+        assert!(crdt::with_doc(|doc| handed::for_me(doc, ME)).is_empty());
+
+        // Another update from the opponent does not bring it again.
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
+        assert_eq!(copies::count(LILIEL), 1);
+
+        // What is addressed to someone else, or names no card, brings nothing.
+        let stray = handed::Given { to: "someone-else".to_string(), card: "brox_the_defiant".to_string(), ..theirs.clone() };
+        opponent(|doc| handed::give(doc, "two", &stray));
+        assert!(!player_doc::has_card_state("brox_the_defiant"));
+        let unknown = handed::Given { card: "no_such_card~2".to_string(), ..theirs.clone() };
+        opponent(|doc| handed::give(doc, "three", &unknown));
+        assert!(crdt::with_doc(|doc| handed::for_me(doc, ME)).is_empty(), "it is taken, and nothing is kept of it");
+        reset();
+    }
+
+    #[test]
+    fn a_guest_handed_back_is_its_owners_own_again() {
+        // The opponent's Liliel is a guest here, and is handed back.
+        fresh_room();
+        room::with_room_mut(|r| r.connected = true);
+        let theirs = handed::Given {
+            from: THEM.to_string(),
+            to: ME.to_string(),
+            card: LILIEL.to_string(),
+            copy: handed::Copy { slots: vec![true], ..handed::Copy::default() },
+        };
+        opponent(|doc| handed::give(doc, "one", &theirs));
+        assert!(copies::is_guest(LILIEL));
+        assert!(hand_over(LILIEL));
+        let back = given_by_me().remove(0);
+        assert!(back.copy.guest, "it goes as the guest it was");
+        assert!(!back.copy.arriving().guest, "and arrives as its owner's own");
+        reset();
+    }
+
+    #[test]
+    fn a_copy_nobody_took_comes_back_when_nobody_is_left_to_take_it() {
+        // The opponent leaves the room for good.
+        brox_in_a_room();
+        hand_over("brox_the_defiant");
+        handed_over();
+        reclaim_handed();
+        assert!(player_doc::get_slot("brox_the_defiant", 1), "it is back, as it was");
+        assert!(!copies::is_guest("brox_the_defiant"));
+        assert!(given_by_me().is_empty() && on_their_way("brox_the_defiant") == 0);
+        // Having it back twice brings one.
+        reclaim_handed();
+        assert_eq!(copies::count("brox_the_defiant"), 1);
+
+        // This player leaves the room: the same, before the room is forgotten.
+        brox_in_a_room();
+        hand_over("brox_the_defiant");
+        crate::game::connection::leave();
+        assert!(!room::in_room());
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        // One that was taken does not come back.
+        brox_in_a_room();
+        hand_over("brox_the_defiant");
+        opponent(|doc| {
+            let (id, _) = handed::for_me(doc, THEM).remove(0);
+            handed::take(doc, &id);
+        });
+        reclaim_handed();
+        assert!(!player_doc::has_card_state("brox_the_defiant"));
+        reset();
+    }
+
+    #[test]
+    fn a_copy_handed_over_while_this_player_was_away_is_taken_on_their_return() {
+        // The room document as it was stored, with a copy on its way here.
+        fresh_room();
+        let theirs = handed::Given {
+            from: THEM.to_string(),
+            to: ME.to_string(),
+            card: LILIEL.to_string(),
+            copy: handed::Copy { slots: vec![true], ..handed::Copy::default() },
+        };
+        crdt::with_doc(|doc| handed::give(doc, "one", &theirs));
+        let stored = crdt::encode_full_state();
+        assert!(!player_doc::has_card_state(LILIEL));
+
+        // The next page: the room is returned to.
+        reset();
+        resume("ABCD", "Test", ME, THEM, true, &stored).unwrap();
+        assert!(copies::is_guest(LILIEL));
+        assert!(crdt::with_doc(|doc| handed::for_me(doc, ME)).is_empty());
         reset();
     }
 

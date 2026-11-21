@@ -87,6 +87,7 @@ use yrs::updates::encoder::Encode;
 use yrs::{Any, Doc, Map, MapRef, ReadTxn, StateVector, Transact, TransactionMut, Update, WriteTxn};
 
 use crate::game::fists::{self, FISTS};
+use crate::game::handed::HANDED;
 use crate::game::player_doc;
 use crate::game::room;
 use crate::game::state::{dated, is_valid_alarm_id, new_alarm_id, Alarm};
@@ -149,6 +150,7 @@ pub fn init_doc() {
             let mut txn = doc.transact_mut();
             txn.get_or_insert_map(TIMERS);
             txn.get_or_insert_map(FISTS);
+            txn.get_or_insert_map(HANDED);
         }
         *cell.borrow_mut() = doc;
     });

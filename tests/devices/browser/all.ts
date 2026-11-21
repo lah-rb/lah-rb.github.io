@@ -9,6 +9,7 @@ import { run as affinity } from './affinity.ts';
 import { run as back } from './back.ts';
 import { run as control } from './control.ts';
 import { run as copies } from './copies.ts';
+import { run as handover } from './handover.ts';
 import { run as seat } from './seat.ts';
 import { BROWSER, Checks, serveBuiltSite } from './site.ts';
 import { run as switchCamera } from './switch.ts';
@@ -28,6 +29,7 @@ const all = [
   ['control', control],
   ['affinity', affinity],
   ['copies', copies],
+  ['handover', handover],
 ] as const;
 for (const [name, run] of all) {
   try {

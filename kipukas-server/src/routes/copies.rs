@@ -14,6 +14,11 @@
 //! in play, and a table may have its own rules), but once more copies are
 //! in play than that, the button that adds one is red and says so.
 //!
+//! In a room, with the opponent there, a further button hands the copy
+//! shown to the opponent for the rest of the game, which is also asked
+//! about first (`routes::room::hand_over`). A copy that came from the
+//! opponent says so, and so does one that is on its way to them.
+//!
 //! Which copy the page shows is in the page's address, after the `#`
 //! (`game::copies`). The view's route carries it
 //! (`/api/card/copies?card=<slug>&copy={hash}`), as the card panel's and
@@ -27,6 +32,7 @@ use std::cell::RefCell;
 use crate::catalog::{Card, CARDS};
 use crate::game::copies;
 use crate::page;
+use crate::routes::room as life;
 use crate::routes::util::{get_param, parse_form_body, parse_query};
 
 const ROUTE: &str = "/api/card/copies";
@@ -38,11 +44,32 @@ const TILE: &str = "toolbar-tile text-3xl font-bold leading-none";
 /// rules allow a deck.
 const OVER_TILE: &str = "toolbar-tile flex-col leading-none !bg-kip-red !border-kip-red text-amber-50";
 
-thread_local! {
-    /// The copy the player has asked to take out of play and not yet said
-    /// yes or no to: its key.
-    static ASKED: RefCell<Option<String>> = const { RefCell::new(None) };
+/// What the player has asked to do with a copy and not yet said yes or no to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Wish {
+    /// Take it out of play.
+    TakeOut,
+    /// Hand it to the opponent.
+    HandOver,
 }
+
+thread_local! {
+    /// The copy the player has asked about and not yet said yes or no to:
+    /// what they asked for, and its key.
+    static ASKED: RefCell<Option<(Wish, String)>> = const { RefCell::new(None) };
+}
+
+/// A note above the tiles: a line of text on the tiles' own ground.
+const NOTE: &str =
+    "bg-amber-50 border-2 border-kip-drk-sienna rounded-full shadow-sm px-3 py-1 text-xs font-bold";
+
+/// Two arrows, one each way: the copy changes hands.
+const HAND_OVER_ICON: &str = concat!(
+    r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" "#,
+    r#"class="w-8 h-8 fill-none stroke-2 stroke-kip-drk-sienna">"#,
+    r#"<path stroke-linecap="round" stroke-linejoin="round" "#,
+    r#"d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>"#,
+);
 
 fn find_card(key: &str) -> Option<&'static Card> {
     let slug = copies::slug_of(key);
@@ -79,12 +106,18 @@ pub fn handle_copies_get(query: &str) -> String {
 ///   - `action=add&card=<slug>`: put another copy of the card in play
 ///   - `action=ask&card=<key>`: the player wants this copy out of play
 ///   - `action=remove&card=<key>`: and has said yes
-///   - `action=keep`: or no
+///   - `action=ask_hand&card=<key>`: the player wants to hand this copy to
+///     the opponent
+///   - `action=hand&card=<key>`: and has said yes
+///   - `action=keep`: no, to either
 pub fn handle_copies_post(body: &str) -> String {
     let params = parse_form_body(body);
     let key = get_param(&params, "card").unwrap_or("");
     let card = find_card(key);
     let asked = ASKED.with(|asked| asked.borrow_mut().take());
+    let ask = |wish: Wish| ASKED.with(|asking| *asking.borrow_mut() = Some((wish, key.to_string())));
+    // Yes stands only for what was asked, of the copy it was asked of.
+    let said_yes_to = |wish: Wish| asked.as_ref().is_some_and(|(asked, of)| *asked == wish && of == key);
     match (get_param(&params, "action").unwrap_or(""), card) {
         ("add", Some(card)) => {
             if let Some(copy) = copies::add(card) {
@@ -92,13 +125,20 @@ pub fn handle_copies_post(body: &str) -> String {
                 redraw();
             }
         }
-        ("ask", Some(card)) if copies::in_play(key) && copies::count(card.slug) > 1 => {
-            ASKED.with(|asking| *asking.borrow_mut() = Some(key.to_string()));
-        }
-        // Only the copy that was asked about is taken out.
-        ("remove", Some(card)) if asked.as_deref() == Some(key) => {
+        ("ask", Some(card)) if copies::in_play(key) && copies::count(card.slug) > 1 => ask(Wish::TakeOut),
+        ("remove", Some(card)) if said_yes_to(Wish::TakeOut) => {
             let copy = copies::split(key).1;
             if copies::remove(card, copy) {
+                go_to(card, copy.min(copies::count(card.slug)));
+                redraw();
+            }
+        }
+        ("ask_hand", Some(card)) if copies::in_play(key) && copies::can_have(card) && life::can_hand_over() => {
+            ask(Wish::HandOver)
+        }
+        ("hand", Some(card)) if said_yes_to(Wish::HandOver) => {
+            let copy = copies::split(key).1;
+            if life::hand_over(key) {
                 go_to(card, copy.min(copies::count(card.slug)));
                 redraw();
             }
@@ -131,31 +171,58 @@ fn render(card: &Card, shown: u8) -> String {
         if over { " data-over-limit" } else { "" }
     );
 
-    // The question, in place of the buttons, while it is being asked.
-    if count > 1 && ASKED.with(|asked| asked.borrow().as_deref() == Some(key.as_str())) {
-        h.push_str(&format!(
+    // A question, in place of the buttons, while it is being asked.
+    let asked = ASKED.with(|asked| asked.borrow().clone()).filter(|(_, of)| *of == key);
+    let question = |label: &str, title: String, body: &str, yes: String| {
+        format!(
             concat!(
-                r#"<div role="alertdialog" aria-label="Take this copy out of play" "#,
+                r#"<div role="alertdialog" aria-label="{}" "#,
                 r#"class="bg-amber-50 border-2 border-kip-drk-sienna rounded-2xl shadow-md p-3 w-56 text-sm text-left">"#,
-                r#"<p class="font-bold mb-1">Take copy {} out of play?</p>"#,
-                r#"<p class="mb-2">Its damage goes with it.</p>"#,
+                r#"<p class="font-bold mb-1">{}</p><p class="mb-2">{}</p>"#,
                 r#"<div class="grid grid-cols-2 gap-2">{}{}</div></div></div>"#,
             ),
-            shown,
+            label,
+            title,
+            body,
             button(
                 "action=keep",
                 "Keep this copy",
                 "bg-slate-400 hover:bg-slate-500 text-amber-50 font-bold py-1.5 px-2 rounded",
                 "Keep"
             ),
-            button(
-                &format!("action=remove&amp;card={}", key),
+            yes
+        )
+    };
+    let yes = "bg-kip-red hover:bg-red-700 text-amber-50 font-bold py-1.5 px-2 rounded";
+    match asked {
+        Some((Wish::TakeOut, _)) if count > 1 => {
+            h.push_str(&question(
                 "Take this copy out of play",
-                "bg-kip-red hover:bg-red-700 text-amber-50 font-bold py-1.5 px-2 rounded",
-                "Take out"
-            ),
-        ));
-        return h;
+                format!("Take copy {} out of play?", shown),
+                "Its damage goes with it.",
+                button(&format!("action=remove&amp;card={}", key), "Take this copy out of play", yes, "Take out"),
+            ));
+            return h;
+        }
+        Some((Wish::HandOver, _)) if life::can_hand_over() => {
+            let which = if count > 1 { format!("copy {}", shown) } else { "this card".to_string() };
+            h.push_str(&question(
+                "Hand this copy to your opponent",
+                format!("Hand {} to your opponent?", which),
+                "It goes as it is, with its damage, and leaves your side for the rest of the game.",
+                button(&format!("action=hand&amp;card={}", key), "Hand this copy to your opponent", yes, "Hand over"),
+            ));
+            return h;
+        }
+        _ => {}
+    }
+
+    // Where the copy shown came from, and what is on its way.
+    if copies::is_guest(&key) {
+        h.push_str(&format!(r#"<p class="{}" data-guest>From your opponent</p>"#, NOTE));
+    }
+    if life::on_their_way(card.slug) > 0 {
+        h.push_str(&format!(r#"<p class="{}" data-on-its-way role="status">Handed over. Waiting for your opponent…</p>"#, NOTE));
     }
 
     if count > 1 {
@@ -175,6 +242,15 @@ fn render(card: &Card, shown: u8) -> String {
             "Take this copy out of play",
             TILE,
             "&minus;",
+        ));
+    }
+    // In a room, with the opponent there to take it: hand the copy shown to them.
+    if life::can_hand_over() {
+        h.push_str(&button(
+            &format!("action=ask_hand&amp;card={}", key),
+            "Hand this copy to your opponent",
+            "toolbar-tile",
+            HAND_OVER_ICON,
         ));
     }
     if count < copies::MOST {
@@ -218,8 +294,28 @@ mod tests {
 
     fn fresh() {
         player_doc::init_player_doc();
+        crate::game::room::reset_room();
+        crate::game::crdt::reset_doc();
+        crate::game::crdt::take_outbox();
+        crate::store::reset();
         page::reset();
         reset();
+    }
+
+    const ME: &str = "aaaaaaaaaaaaaaaaaaaaaaaa";
+    const THEM: &str = "bbbbbbbbbbbbbbbbbbbbbbbb";
+
+    /// In a room, the opponent there, and Brox in play with his first slot marked.
+    fn in_a_room() {
+        fresh();
+        life::enter("ABCD", "Table", ME, true);
+        life::set_peer(THEM);
+        life::peer_arrived();
+        let brox = find_card("brox_the_defiant").unwrap();
+        player_doc::ensure_card_state(brox.slug, brox.keal_means.iter().map(|means| means.count).sum());
+        player_doc::toggle_slot("brox_the_defiant", 1);
+        crate::game::crdt::take_outbox();
+        page::take_redraws();
     }
 
     #[test]
@@ -293,6 +389,93 @@ mod tests {
         handle_copies_post(&format!("action=remove&card={}~3", species.slug));
         let html = handle_copies_get(&page);
         assert!(!html.contains("data-over-limit") && !html.contains("!bg-kip-red"));
+        fresh();
+    }
+
+    #[test]
+    fn a_copy_can_be_handed_to_the_opponent_while_they_are_in_the_room() {
+        // Alone, and in a room whose opponent is away: no such button.
+        fresh();
+        assert!(!handle_copies_get(BROX).contains("Hand this copy to your opponent"));
+        in_a_room();
+        life::peer_gone();
+        assert!(!handle_copies_get(BROX).contains("Hand this copy to your opponent"));
+        handle_copies_post("action=ask_hand&card=brox_the_defiant");
+        assert!(!handle_copies_get(BROX).contains("alertdialog"));
+
+        // The opponent is there.
+        in_a_room();
+        let html = handle_copies_get(BROX);
+        assert!(html.contains(
+            r#"data-engine-body="action=ask_hand&amp;card=brox_the_defiant" aria-label="Hand this copy to your opponent""#
+        ));
+        fresh();
+    }
+
+    #[test]
+    fn handing_a_copy_over_is_asked_about_first_and_then_it_is_on_its_way() {
+        in_a_room();
+        // Yes without having been asked hands nothing over.
+        handle_copies_post("action=hand&card=brox_the_defiant");
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        handle_copies_post("action=ask_hand&card=brox_the_defiant");
+        let html = handle_copies_get(BROX);
+        assert!(html.contains(r#"role="alertdialog""#) && html.contains("Hand this card to your opponent?"));
+        assert!(html.contains("It goes as it is, with its damage, and leaves your side for the rest of the game."));
+        assert!(html.contains(r#"data-engine-body="action=hand&amp;card=brox_the_defiant""#));
+        // Being asked one thing is not being asked the other.
+        handle_copies_post("action=remove&card=brox_the_defiant");
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+        // No.
+        handle_copies_post("action=ask_hand&card=brox_the_defiant");
+        handle_copies_post("action=keep");
+        assert!(!handle_copies_get(BROX).contains("alertdialog"));
+        assert!(player_doc::get_slot("brox_the_defiant", 1));
+
+        // Yes: it leaves this player's cards, the page shows the card as
+        // one not in play, and says the copy is on its way.
+        handle_copies_post("action=ask_hand&card=brox_the_defiant");
+        handle_copies_post("action=hand&card=brox_the_defiant");
+        assert!(!player_doc::has_card_state("brox_the_defiant"));
+        assert_eq!(page::take_go().as_deref(), Some("/brox_the_defiant/#1"));
+        assert_eq!(crate::game::crdt::take_outbox().len(), 1, "it is sent to the opponent");
+        let html = handle_copies_get(BROX);
+        assert!(html.contains("data-on-its-way") && html.contains("Handed over. Waiting for your opponent…"));
+
+        // The opponent takes it: the note goes.
+        crate::game::crdt::with_doc(|doc| {
+            let (id, _) = crate::game::handed::from_me(doc, ME).remove(0);
+            crate::game::handed::take(doc, &id);
+        });
+        assert!(!handle_copies_get(BROX).contains("data-on-its-way"));
+        fresh();
+    }
+
+    #[test]
+    fn the_question_names_the_copy_where_there_is_more_than_one() {
+        in_a_room();
+        handle_copies_post("action=add&card=brox_the_defiant");
+        handle_copies_post("action=ask_hand&card=brox_the_defiant~2");
+        let html = handle_copies_get("?card=brox_the_defiant&copy=2");
+        assert!(html.contains("Hand copy 2 to your opponent?"));
+        handle_copies_post("action=hand&card=brox_the_defiant~2");
+        assert_eq!(copies::count("brox_the_defiant"), 1);
+        assert!(player_doc::get_slot("brox_the_defiant", 1), "the first copy stays");
+        fresh();
+    }
+
+    #[test]
+    fn a_copy_that_came_from_the_opponent_says_so() {
+        fresh();
+        assert!(!handle_copies_get(BROX).contains("data-guest"));
+        let brox = find_card("brox_the_defiant").unwrap();
+        let guest = player_doc::CardState { slots: vec![true, false, false], guest: true, ..Default::default() };
+        copies::arrive(brox, &guest);
+        assert!(handle_copies_get(BROX).contains(r#"data-guest>From your opponent</p>"#));
+        // Its own copy beside it does not.
+        copies::add(brox);
+        assert!(!handle_copies_get("?card=brox_the_defiant&copy=2").contains("data-guest"));
         fresh();
     }
 

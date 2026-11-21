@@ -72,7 +72,10 @@ pub const RELAY: &str = "wss://signal.kipukas.us/ws";
 /// declared, and both screens work the roll bonus out from it. (An engine
 /// of 3 applied its own player's affinity to whichever card attacked, so
 /// the two would show different modifiers.)
-pub const PROTOCOL: u64 = 4;
+///
+/// 5: a copy of a card can be handed to the opponent through the room's
+/// document (`game::handed`). An engine of 4 would never take it.
+pub const PROTOCOL: u64 = 5;
 
 /// An opponent who has not said hello after this long is running an older
 /// copy of the site, which never does.
@@ -463,6 +466,8 @@ pub fn join(code: &str, name: &str) {
 /// keeps the place; leaving does not.) Also how a create or join that is
 /// still on its way is called off.
 pub fn leave() {
+    // A copy of a card handed to the opponent and not yet taken comes back.
+    life::reclaim_handed();
     link(|link| link.send(r#"{"type":"leave"}"#));
     leave_room();
     with_conn(|conn| conn.notice.clear());
@@ -660,8 +665,14 @@ fn relay_said(message: &serde_json::Value) {
         // What the opponent sent, passed on by the relay.
         "relay" => peer_said(&message["data"]),
         // The opponent's connection closed (a page change, a locked phone);
-        // they still have their place in the room. Or they left for good.
-        "peer_away" | "peer_left" => peer_is_gone(),
+        // they still have their place in the room.
+        "peer_away" => peer_is_gone(),
+        // Or they left for good. A copy of a card this player handed them
+        // and they never took comes back: nobody is left to take it.
+        "peer_left" => {
+            peer_is_gone();
+            life::reclaim_handed();
+        }
         // This player connected again elsewhere. The relay is closing this
         // socket. Either the place went with the game to another device,
         // which has just taken it up; or it is another tab, which the
