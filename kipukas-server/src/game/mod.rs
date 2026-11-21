@@ -9,6 +9,7 @@
 pub mod backup;
 pub mod card_panel;
 pub mod connection;
+pub mod control;
 pub mod crdt;
 pub mod crypto;
 pub mod damage;

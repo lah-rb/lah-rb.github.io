@@ -188,6 +188,9 @@ fn in_words(here: &Here) -> String {
     if here.game.damaged > 0 {
         parts.push(count(here.game.damaged, "card with damage", "cards with damage"));
     }
+    if here.game.effects > 0 {
+        parts.push(count(here.game.effects, "card with card effects", "cards with card effects"));
+    }
     if here.game.timers > 0 {
         parts.push(count(here.game.timers, "timer", "timers"));
     }
@@ -500,13 +503,16 @@ mod tests {
         assert!(html.contains(r#"data-engine-body="action=decline&amp;invite=ABCD-EFGHJKLMNPQRSTUVWXYZ""#));
 
         let here = Here {
-            game: Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) },
+            game: Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()), ..Progress::default() },
             ..Here::default()
         };
         let html = render(&shown, &here);
         assert!(html.contains("This device's game will be removed: 2 cards with damage, 1 timer, the Brutal affinity."));
-        let here = Here { game: Progress { damaged: 1, timers: 3, affinity: None }, ..Here::default() };
+        let game = Progress { damaged: 1, timers: 3, ..Progress::default() };
+        let here = Here { game, ..Here::default() };
         assert!(render(&shown, &here).contains("removed: 1 card with damage, 3 timers."));
+        let game = Progress { effects: 1, ..Progress::default() };
+        assert!(render(&shown, &Here { game, ..Here::default() }).contains("removed: 1 card with card effects."));
 
         // The room it is in is part of the game it would lose.
         let here = Here { room: Some("HERE".to_string()), ..here };

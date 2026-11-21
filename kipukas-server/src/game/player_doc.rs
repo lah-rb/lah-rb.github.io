@@ -11,7 +11,9 @@
 //! ├── "cards" (YMap)
 //! │   └── "brox_the_defiant" (YMap)
 //! │       ├── "slots" (YArray<bool>)  — index 0 = slot 1
-//! │       └── "wasted" (bool)
+//! │       ├── "wasted" (bool)
+//! │       └── "effects" (f64) — points card effects in play add towards
+//! │                             controlling the card, this game (`game::control`)
 //! ├── "alarms" (YArray<YMap>)
 //! │   └── [0] { "id": String, "remaining": i32, "name": String,
 //! │             "color_set": String, "changed": f64 (ms, when last changed) }
@@ -307,6 +309,42 @@ pub fn toggle_wasted(slug: &str) -> bool {
             }
         }
     })
+}
+
+/// The points card effects in play add towards controlling a card, this
+/// game. None until some are set.
+pub fn get_effects(slug: &str) -> u8 {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let cards = doc.get_or_insert_map("cards");
+        let txn = doc.transact();
+        match cards.get(&txn, slug) {
+            Some(yrs::Out::YMap(card)) => number_in(&card, &txn, "effects").unwrap_or(0.0) as u8,
+            _ => 0,
+        }
+    })
+}
+
+/// Set the points card effects in play add towards controlling a card.
+/// They are part of the game: New Game clears them with the card's damage.
+pub fn set_effects(slug: &str, points: u8) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let cards = doc.get_or_insert_map("cards");
+        let mut txn = doc.transact_mut();
+        match cards.get(&txn, slug) {
+            Some(yrs::Out::YMap(card)) => {
+                card.insert(&mut txn, "effects", Any::from(points as f64));
+            }
+            _ => {
+                let card = MapPrelim::from([
+                    ("wasted".to_string(), Any::from(false)),
+                    ("effects".to_string(), Any::from(points as f64)),
+                ]);
+                cards.insert(&mut txn, slug, card);
+            }
+        }
+    });
 }
 
 /// Clear damage state for a specific card.
@@ -1433,6 +1471,8 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
 pub struct Progress {
     /// Cards with damage marked, or wasted.
     pub damaged: usize,
+    /// Cards with points from card effects in play.
+    pub effects: usize,
     pub timers: usize,
     pub affinity: Option<String>,
 }
@@ -1445,28 +1485,26 @@ impl Progress {
 
 /// The game in progress on this device.
 pub fn progress() -> Progress {
-    let damaged = PLAYER_DOC.with(|cell| {
+    let (damaged, effects) = PLAYER_DOC.with(|cell| {
         let doc = cell.borrow();
         let cards = doc.get_or_insert_map("cards");
         let txn = doc.transact();
-        cards
-            .iter(&txn)
-            .filter(|(_, card)| match card {
-                yrs::Out::YMap(card) => {
-                    let wasted = matches!(card.get(&txn, "wasted"), Some(yrs::Out::Any(Any::Bool(true))));
-                    let marked = match card.get(&txn, "slots") {
-                        Some(yrs::Out::YArray(slots)) => {
-                            slots.iter(&txn).any(|slot| matches!(slot, yrs::Out::Any(Any::Bool(true))))
-                        }
-                        _ => false,
-                    };
-                    wasted || marked
+        let (mut damaged, mut effects) = (0, 0);
+        for (_, card) in cards.iter(&txn) {
+            let yrs::Out::YMap(card) = card else { continue };
+            let wasted = matches!(card.get(&txn, "wasted"), Some(yrs::Out::Any(Any::Bool(true))));
+            let marked = match card.get(&txn, "slots") {
+                Some(yrs::Out::YArray(slots)) => {
+                    slots.iter(&txn).any(|slot| matches!(slot, yrs::Out::Any(Any::Bool(true))))
                 }
                 _ => false,
-            })
-            .count()
+            };
+            damaged += usize::from(wasted || marked);
+            effects += usize::from(number_in(&card, &txn, "effects").unwrap_or(0.0) > 0.0);
+        }
+        (damaged, effects)
     });
-    Progress { damaged, timers: get_alarms().len(), affinity: get_active_affinity().map(|(name, _)| name) }
+    Progress { damaged, effects, timers: get_alarms().len(), affinity: get_active_affinity().map(|(name, _)| name) }
 }
 
 // ── Sync protocol (Cross-Device Sync — Phase E) ───────────────────
@@ -2667,7 +2705,15 @@ mod tests {
         toggle_wasted("liliel");
         add_alarm(NOW, 5, "siege", "red");
         declare_affinity("Brutal", "2026-02-25").unwrap();
-        assert_eq!(progress(), Progress { damaged: 2, timers: 1, affinity: Some("Brutal".to_string()) });
+        assert_eq!(progress(), Progress { damaged: 2, effects: 0, timers: 1, affinity: Some("Brutal".to_string()) });
+        // Points from card effects in play are part of the game too.
+        set_effects("liliel", 2);
+        set_effects("hilbert", 1);
+        assert_eq!(progress().effects, 2);
+        set_effects("hilbert", 0);
+        assert_eq!((progress().effects, get_effects("liliel"), get_effects("hilbert")), (1, 2, 0));
+        clear_all();
+        assert_eq!((progress().effects, get_effects("liliel")), (0, 0));
         // The record is no part of it.
         reset();
         increment_loyalty("brox", "2026-02-25").unwrap();

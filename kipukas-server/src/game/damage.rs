@@ -27,7 +27,8 @@
 
 use std::sync::OnceLock;
 
-use crate::catalog::CARDS;
+use crate::catalog::{Card, CARDS};
+use crate::game::control::{self, Control, Standing};
 use crate::game::player_doc;
 use crate::routes::util::escape_html;
 
@@ -134,6 +135,14 @@ pub fn clear_all() {
     player_doc::clear_all();
 }
 
+/// One more, or one less, from card effects in play towards controlling a
+/// species (`game::control`).
+pub fn adjust_effects(slug: &str, by: i32) {
+    if let Some(card) = find_card(slug) {
+        control::adjust_effects(card, by);
+    }
+}
+
 /// Count total keal means slots for a card.
 fn total_slots(card: &crate::catalog::Card) -> u8 {
     card.keal_means.iter().map(|km| km.count).sum()
@@ -150,6 +159,114 @@ fn all_slots_checked(slug: &str, total: u8) -> bool {
         }
     }
     true
+}
+
+// A card's panel lies over its own art, blurred: whatever is drawn here has
+// to be read against any picture. So the standing is a filled chip, the
+// buttons are filled, and the bar's colours are bright ones.
+const AFFINITY_COLOUR: &str = "bg-amber-400";
+const EFFECTS_COLOUR: &str = "bg-red-500";
+const LOYALTY_COLOUR: &str = "bg-sky-400";
+const EMPTY_COLOUR: &str = "bg-white/25";
+const STEP_BUTTON: &str =
+    "w-7 h-7 rounded bg-amber-50 text-kip-drk-sienna font-bold leading-none disabled:opacity-40";
+const CHIP: &str = "inline-block rounded-full px-2 text-amber-50";
+
+/// A species' standing with the player, and the stack it comes of
+/// (`game::control`): a bar of ten squares, filled by affinity, card effects
+/// and loyalty in turn, with a mark at the species' tameability. Card
+/// effects are the one part the player sets here, a point at a time.
+fn render_control(card: &Card, control: &Control) -> String {
+    let (stack, needed) = (control.stack, control.tameability);
+    let numbers = format!(r#" <span class="font-normal">{} of {}</span>"#, stack.total(), needed);
+    let chip = |colour: &str, said: &str| format!(r#"<span class="{} {}">{}</span>"#, CHIP, colour, said);
+    let (name, said) = match control.standing {
+        Standing::Free => ("free", "Needs no taming".to_string()),
+        Standing::Untameable => ("untameable", chip("bg-kip-red", "Cannot be tamed: always rogue")),
+        Standing::Held => ("held", format!("{}{}", chip("bg-emerald-600", "&#x2714; Under your control"), numbers)),
+        Standing::Rogue => ("rogue", format!("{}{}", chip("bg-kip-red", "Rogue"), numbers)),
+    };
+    let mut h =
+        format!(r#"<div class="mt-1" data-control="{}"><p class="text-center font-bold">{}</p>"#, name, said);
+    if matches!(control.standing, Standing::Held | Standing::Rogue) {
+        // The bar.
+        h.push_str(&format!(
+            concat!(
+                r#"<div class="relative mt-1" role="img" aria-label="Affinity {}, card effects {}, loyalty {}: "#,
+                r#"{} of the {} this species needs"><div class="flex gap-0.5 h-2.5">"#,
+            ),
+            stack.affinity,
+            stack.effects,
+            stack.loyalty,
+            stack.total(),
+            needed
+        ));
+        let parts =
+            [(stack.affinity, AFFINITY_COLOUR), (stack.effects, EFFECTS_COLOUR), (stack.loyalty, LOYALTY_COLOUR)];
+        let filled: Vec<&str> =
+            parts.iter().flat_map(|(points, colour)| std::iter::repeat_n(*colour, *points as usize)).collect();
+        for square in 0..control::STACK_MAX as usize {
+            h.push_str(&format!(
+                r#"<span class="flex-1 rounded-sm {}"></span>"#,
+                filled.get(square).copied().unwrap_or(EMPTY_COLOUR)
+            ));
+        }
+        h.push_str(&format!(
+            concat!(
+                r#"</div><span class="absolute -top-1 -bottom-1 w-0.5 -translate-x-1/2 bg-white" "#,
+                r#"style="left: {}%"></span></div>"#,
+            ),
+            needed * 100 / control::STACK_MAX
+        ));
+
+        // Its three parts.
+        let dot = |colour: &str| format!(r#"<span class="inline-block w-2 h-2 rounded-sm mr-1 {}"></span>"#, colour);
+        let step = |by: i32, label: &str, sign: &str, off: bool| {
+            format!(
+                concat!(
+                    r#"<button type="button" data-engine-post="/api/game/damage" "#,
+                    r#"data-engine-body="card={}&amp;action=effects&amp;by={}" aria-label="{}" class="{}"{}>{}</button>"#,
+                ),
+                card.slug,
+                by,
+                label,
+                STEP_BUTTON,
+                if off { " disabled" } else { "" },
+                sign
+            )
+        };
+        h.push_str(&format!(
+            concat!(
+                r#"<dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 mt-2 text-sm text-left items-center">"#,
+                r#"<dt>{}Affinity</dt><dd class="text-right" data-stack="affinity">{}</dd>"#,
+                r#"<dt>{}Card effects in play</dt><dd class="flex items-center gap-2">{}"#,
+                r#"<span class="w-4 text-center" data-stack="effects">{}</span>{}</dd>"#,
+                r#"<dt>{}Loyalty</dt><dd class="text-right" data-stack="loyalty">{} of {}</dd>"#,
+                r#"</dl>"#,
+            ),
+            dot(AFFINITY_COLOUR),
+            stack.affinity,
+            dot(EFFECTS_COLOUR),
+            step(-1, "One less from card effects", "&minus;", stack.effects == 0),
+            stack.effects,
+            step(1, "One more from card effects", "+", stack.effects >= control::CARD_EFFECTS_MAX),
+            dot(LOYALTY_COLOUR),
+            stack.loyalty,
+            control::LOYALTY_MAX,
+        ));
+        // What declaring would add, while nothing is declared.
+        if let (0, None, Some(archetype)) =
+            (stack.affinity, player_doc::get_active_affinity(), card.genetic_disposition)
+        {
+            h.push_str(&format!(
+                r#"<p class="text-xs text-left mt-1 opacity-80">Declaring {} as your affinity for this game adds {}.</p>"#,
+                archetype,
+                control::AFFINITY_POINTS
+            ));
+        }
+    }
+    h.push_str("</div>");
+    h
 }
 
 /// Render the keal damage tracker HTML for a specific card.
@@ -203,40 +320,9 @@ pub fn render_damage_tracker(slug: &str) -> String {
         ));
     }
 
-    // Phase C: Tameability progress (Species cards only)
-    if card.layout == "Species" {
-        if let Some(threshold) = card.tamability {
-            let loyalty_plays = player_doc::get_loyalty(slug).map(|(t, _)| t).unwrap_or(0);
-            let affinity_level = player_doc::get_active_affinity()
-                .and_then(|(name, level)| {
-                    // Only count affinity if it matches the card's genetic_disposition
-                    card.genetic_disposition.and_then(|gd| {
-                        if gd == name { Some(level) } else { None }
-                    })
-                })
-                .unwrap_or(0);
-            let current = loyalty_plays + affinity_level;
-            let tamed = current >= threshold;
-
-            if tamed {
-                html.push_str(
-                    r#"<p class="text-center font-bold text-emerald-600">&#x2714; Tamed!</p>"#,
-                );
-            } else {
-                html.push_str(&format!(
-                    r#"<p class="text-center">Tame: {} / {}</p>"#,
-                    current, threshold
-                ));
-                // Progress bar
-                let pct = ((current as f64 / threshold as f64) * 100.0).min(100.0) as u32;
-                html.push_str(r#"<div class="w-full bg-slate-200 rounded-full h-1.5 mt-0.5">"#);
-                html.push_str(&format!(
-                    r#"<div class="bg-emerald-500 h-1.5 rounded-full" style="width: {}%"></div>"#,
-                    pct
-                ));
-                html.push_str(r#"</div>"#);
-            }
-        }
+    // Whether a species is under the player's control, and what of.
+    if let Some(control) = control::of(card) {
+        html.push_str(&render_control(card, &control));
     }
 
     // Keal Means header
@@ -356,6 +442,87 @@ mod tests {
 
     fn reset_state() {
         player_doc::init_player_doc();
+    }
+
+    // ── Whether a species is under control ──
+
+    /// A species of the binder with this tameability.
+    fn species(tameability: u32) -> &'static Card {
+        CARDS.iter().find(|card| card.layout == "Species" && card.tamability == Some(tameability)).unwrap()
+    }
+
+    #[test]
+    fn a_species_page_says_it_is_rogue_and_shows_an_empty_stack() {
+        reset_state();
+        let card = species(5);
+        let html = render_damage_tracker(card.slug);
+        assert!(html.contains(r#"data-control="rogue""#));
+        assert!(html.contains(r#">Rogue</span> <span class="font-normal">0 of 5</span>"#), "{}", html);
+        // Ten squares, none filled, and the mark half way along.
+        assert_eq!(html.matches(r#"<span class="flex-1 rounded-sm bg-white/25"></span>"#).count(), 10);
+        assert!(html.contains(r#"style="left: 50%""#));
+        assert!(html.contains(r#"data-stack="affinity">0</dd>"#));
+        assert!(html.contains(r#"data-stack="effects">0</span>"#));
+        assert!(html.contains(r#"data-stack="loyalty">0 of 4</dd>"#));
+        // Nothing declared yet: what declaring its archetype would add.
+        let archetype = card.genetic_disposition.unwrap();
+        assert!(html.contains(&format!("Declaring {} as your affinity for this game adds 3.", archetype)));
+        // The steps are engine posts, and there is no less than none.
+        assert!(html.contains(&format!(
+            r#"data-engine-body="card={}&amp;action=effects&amp;by=-1" aria-label="One less from card effects" class="{}" disabled>"#,
+            card.slug, STEP_BUTTON
+        )));
+        assert!(html.contains(&format!(
+            r#"data-engine-body="card={}&amp;action=effects&amp;by=1" aria-label="One more from card effects" class="{}">+</button>"#,
+            card.slug, STEP_BUTTON
+        )));
+        reset_state();
+    }
+
+    #[test]
+    fn the_stack_fills_in_the_order_of_its_parts_and_the_species_is_held_when_it_reaches_the_mark() {
+        reset_state();
+        let card = species(5);
+        player_doc::declare_affinity(card.genetic_disposition.unwrap(), "2026-11-21").unwrap();
+        adjust_effects(card.slug, 1);
+        for day in 1..=3 {
+            player_doc::increment_loyalty(card.slug, &format!("2026-11-{:02}", day)).unwrap();
+        }
+        let html = render_damage_tracker(card.slug);
+        assert!(html.contains(r#"data-control="held""#));
+        assert!(html.contains("Under your control"));
+        assert!(html.contains(">5 of 5</span>"));
+        let bar: Vec<&str> = html
+            .split(r#"<span class="flex-1 rounded-sm "#)
+            .skip(1)
+            .map(|rest| rest.split('"').next().unwrap())
+            .collect();
+        let (a, e, l, none) = (AFFINITY_COLOUR, EFFECTS_COLOUR, LOYALTY_COLOUR, EMPTY_COLOUR);
+        assert_eq!(bar, [a, a, a, e, l, none, none, none, none, none]);
+        assert!(html.contains("Affinity 3, card effects 1, loyalty 1: 5 of the 5 this species needs"));
+        assert!(!html.contains("Declaring"), "an affinity is declared");
+        // Card effects at their most: no more to add.
+        adjust_effects(card.slug, 1);
+        adjust_effects(card.slug, 1);
+        let html = render_damage_tracker(card.slug);
+        assert!(html.contains(r#"data-stack="effects">3</span>"#));
+        assert!(html.contains(&format!(
+            r#"aria-label="One more from card effects" class="{}" disabled>"#,
+            STEP_BUTTON
+        )));
+        reset_state();
+    }
+
+    #[test]
+    fn a_species_that_needs_no_taming_says_so_and_a_character_says_nothing() {
+        reset_state();
+        let html = render_damage_tracker(species(0).slug);
+        assert!(html.contains(r#"data-control="free""#) && html.contains("Needs no taming"));
+        assert!(!html.contains("data-stack"));
+        let character = CARDS.iter().find(|card| card.layout == "Character" && !card.keal_means.is_empty()).unwrap();
+        let html = render_damage_tracker(character.slug);
+        assert!(!html.contains("data-control"));
+        reset_state();
     }
 
     #[test]

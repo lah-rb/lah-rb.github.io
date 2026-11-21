@@ -231,9 +231,12 @@ bg-terra: "bg-hero-pattern "
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
         Open the affinity tool by clicking the <b>Heart icon</b> in the toolbar. Here you declare your
         affinity for one archetypal adaptation for the game. The choice is then locked until you start a
-        <b>New Game</b>. When a soul card's archetypal adaptation matches your declared affinity
+        <b>New Game</b>, and it counts the same in every game: it does not grow. When a soul card's
+        archetypal adaptation matches your declared affinity
         you receive a <b>+1 bonus to attack and defense rolls</b> made for that card. The fists tool
-        automatically includes this bonus in the Attack Die Modifier when applicable.
+        automatically includes this bonus in the Attack Die Modifier when applicable. A species of that
+        adaptation also has 3 more towards being under your control (see
+        <a href="#tameability-progress" class="underline">Species Control</a>).
       </p>
 
       <!-- ─── Loyalty Tracking ─── -->
@@ -243,18 +246,31 @@ bg-terra: "bg-hero-pattern "
         Each time you play a specific Character or Species card in fists combat on kipukas.cards, that card's
         loyalty counter increases (once per day per card). Loyalty is displayed as a <b>"♥ N plays"</b> badge on
         the card's page. Loyalty also increases if you came to own the card through an incubation card (not yet
-        tracked digitally). Both affinity and loyalty are limited to once per day, except at tournaments which
-        will be once per match.
+        tracked digitally). Loyalty is limited to once per day, except at tournaments which will be once per
+        match. It is the one thing that carries from game to game: as a species comes to know you, its loyalty
+        counts for up to 4 towards being under your control. How many days that takes differs from card to
+        card.
       </p>
 
       <!-- ─── Tameability Progress ─── -->
-      <h2 id="tameability-progress" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Tameability Progress</h2>
+      <h2 id="tameability-progress" class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Species Control</h2>
 
       <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
-        Basic tameability tracking is now live on kipukas.cards. Each Species card page shows a
-        <b>progress bar</b> comparing your current affinity level and loyalty plays against the card's
-        tameability threshold. When the threshold is met a <b>"✔ Tamed!"</b> indicator appears. The full taming
-        mechanic (incubation bonuses, rogue control triggers, in-game card effect stacking) remains future work.
+        Every species has a tameability from 0 to 10. Its page says whether it is <b>under your control</b> or
+        <b>rogue</b>, and shows what decides it: a bar of ten squares with a mark at the species' tameability.
+        What you bring to a species fills the bar, in three parts:
+      </p>
+
+      <ul class="z-20 w-5/6 md:w-3/6 place-self-center pb-2 list-disc pl-5 text-left">
+        <li><b>Affinity: 3</b>, when the adaptation you declared for this game is the species' own.</li>
+        <li><b>Card effects in play: up to 3.</b> Press <b>+</b> and <b>&minus;</b> on the species' page as cards in play add to your control of it or take from it. New Game clears them.</li>
+        <li><b>Loyalty: up to 4</b>, from the days you have played that card.</li>
+      </ul>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        When the bar reaches the mark the species is under your control. Short of it, the species is rogue.
+        A species with a tameability of 0 needs no taming, and neither does any character. Rogue movement and
+        incubation bonuses are not in the binder yet.
       </p>
 
       <!-- ─── Recipes Lookup ─── -->

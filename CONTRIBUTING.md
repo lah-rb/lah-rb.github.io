@@ -111,6 +111,7 @@ What a card shows is defined once, in `kipukas-server/src/game/card_panel.rs`:
 
 | To… | Do this |
 |---|---|
+| Add a field the game counts with and no page shows (`tamability`, `loyalty_days`) | Add it to the card file's front matter, to `Card` in `src/catalog.rs` and to the reader and writer in the `catalog/` crate |
 | Add a field | Add it to the card file's front matter, to `Card` in `src/catalog.rs`, to the reader and writer in the `catalog/` crate (`parse_card`, `emit`), to `Field` (with how to read it), and to the group(s) that show it |
 | Show an existing field on another type | Add a row to one of that type's groups |
 | Retire a field | Delete its `Field` variant; the compiler lists every group that used it |
@@ -1018,7 +1019,7 @@ Allow a third peer to observe a match via a read-only WebSocket connection. Arch
 Expand Kippa's understanding of the game by allowing it to assist users in using site features, gathering specific card data, and resolving issues.
 
 #### 9. Incubation Bonus & Tameability Refinement
-The core tameability infrastructure shipped in the Player Document sprint: `tamability` field on all Species cards, loyalty tracking per card, affinity tracking per archetype, and a tameability progress bar on card pages showing `(loyalty + matching affinity) / threshold`. What remains is integrating the **incubation egg card bonus** into the computation, adding an `is_tamed()` helper combining all three bonus sources, and UI polish (tameability progress on card grid, tamed badge on index page).
+(Taming is being rebuilt to the owner's framework: see [Affinity, loyalty and control](#affinity-loyalty-and-control). What is said here of a progress bar is how it was.) The core tameability infrastructure shipped in the Player Document sprint: `tamability` field on all Species cards, loyalty tracking per card, affinity tracking per archetype, and a tameability progress bar on card pages showing `(loyalty + matching affinity) / threshold`. What remains is integrating the **incubation egg card bonus** into the computation, adding an `is_tamed()` helper combining all three bonus sources, and UI polish (tameability progress on card grid, tamed badge on index page).
 
 ---
 
@@ -1079,6 +1080,26 @@ Nothing reads the sum yet and no player is shown it. To read it, open the Player
 - If the receiver takes the game and the sender never hears, the relay closes the sender's connection to the room, because the player has come back elsewhere. The sender takes that as the word it missed, for thirty seconds after sending its place (`device_sync::seat_taken_up`), and says the other device has the game. At any other time it means another tab took the room, as before.
 - A tab that does not hold the room (another tab of the same browser does) sends no place: it may not have the room as it is now.
 
+## Affinity, loyalty and control
+
+The owner's framework of November 2026, which the engine is being built to in steps. It replaces what the Player Document sprint shipped (Phases B and C below) and what the rules book says of affinity growing: the rules book is to be rewritten against the result.
+
+**The stack.** A species has a tameability from 0 to 10. What its player brings to it is a stack of three parts, 10 at most, and the species is under the player's control when the stack comes to its tameability (equal is enough) and rogue when it does not:
+
+| Part | Points | Whose | From |
+|---|---|---|---|
+| Affinity | 0 or 3 | The game's | The archetype declared at the start of the game is the species' own. Flat: it does not grow from game to game |
+| Card effects | 0 to 3 | The game's | Cards in play. The binder cannot see the table, so the player sets it, a point at a time, on the species' page |
+| Loyalty | 0 to 4 | The player's record | The days the player has played that card on, a point at each quarter of the days the card takes (`loyalty_days` in its file, or `control::LOYALTY_DAYS`). No page shows that number |
+
+A tameability of 0 needs no taming. One above 10 can never be met, which is how a species that is always rogue is written until a card file can say ∞. Characters need no taming and have no tameability. What follows from the numbers is meant: a new player can bring 6 at most, so the last four points are the reward of history with a card, and a species outside the declared archetype can be brought 7 at most.
+
+Affinity also gives a roll bonus to souls of the declared archetype in fists.
+
+**Where it is.** `src/game/control.rs` is the stack and the standing it gives, with each number a constant, since the owner means them to be settled by play. `damage::render_control` draws it on a species' page (the damage tracker's view): a bar of ten squares in the three parts' colours with a mark at the tameability, and the three parts beneath, card effects with its two buttons (`action=effects&by=1` or `-1` to `/api/game/damage`). The points from card effects are in the card's game state (`effects`), so New Game clears them with its damage and a game moved to another device takes them along.
+
+**Built so far:** the stack on a species' page. **To come, in this order:** each player's declared affinity in the room, so that both screens give the same bonus, to attack and to defence, at +3 (today a device applies its own affinity, at +1, to whichever card attacks); more than one copy of a card in play, each with its own damage and card effects; handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
+
 ## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
 > **Philosophy:** Kipukas is not meant to lock down the game after purchase. If Kipukas the company ceases to exist, gameplay experience should be unaffected. A player's progression data (affinity, loyalty, damage, decks) lives on *their* device in a conflict-free, exportable format. When a dedicated store account is available, backup/restore becomes a service — not a requirement.
@@ -1089,11 +1110,11 @@ Nothing reads the sum yet and no player is shown it. To read it, open the Player
 
 | Root key | yrs type | Contents |
 |----------|----------|----------|
-| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool }` per card |
+| `"cards"` | `YMap<slug, YMap>` | `{ slots: YArray<bool>, wasted: bool, effects: f64 }` per card: `effects` is the points card effects in play add towards controlling a species (see Affinity, loyalty and control) |
 | `"alarms"` | `YArray<YMap>` | `{ id: String, remaining: i32, name: String, color_set: String, changed: f64 }` (`changed`: when it was last changed, ms) |
 | `"retired"` | `YMap<timer id, f64>` | When each timer removed in the last day was removed (ms) |
 | `"settings"` | `YMap` | `{ show_alarms: bool }` |
-| `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }` |
+| `"affinity"` | `YMap<archetype, YMap>` | `{ level: i64, last_declared: String }`: the one archetype declared for this game. `level` is always 1 and nothing reads it: affinity is flat |
 | `"loyalty"` | `YMap<slug, YMap>` | `{ days: YMap<date, true>, earlier: i64, total_plays: i64, last_played: String }`: the days the card was played on, each by its date; `earlier`, plays counted before the days were kept; the last two, all an entry once held, kept in step with the rest |
 | `"merges"` | `YMap<id, YMap>` | `{ at: f64, by: String, gained: i64, held: i64, shared: i64, days_gained: i64, days_held: i64 }`: each state taken over from another device (`by: "device"`) or a backup (`"file"`), see Moving a game to another device |
 | `"sync_sum"` | `YMap` | `{ merges: i64, gained: i64, held: i64, distance: i64 }`: the merges added up, written whenever they change |

@@ -94,6 +94,7 @@ pub struct Card {
     pub die: String,
     pub brawl_sequence: String,
     pub tamability: Option<u32>,
+    pub loyalty_days: Option<u32>,
     pub hidden: bool,
     pub landscape: bool,
 }
@@ -576,6 +577,7 @@ pub fn parse_card(file: &str, text: &str) -> Result<Card, Vec<String>> {
         die: reader.text("die").unwrap_or_default(),
         brawl_sequence: reader.text("brawl_sequence").unwrap_or_default(),
         tamability: reader.whole("tamability", u32::MAX),
+        loyalty_days: reader.whole("loyalty_days", u32::MAX),
         hidden,
         landscape: reader.flag("landscape"),
     };
@@ -694,7 +696,7 @@ pub fn emit(cards: &[Card]) -> String {
                 )
             })
             .collect();
-        let tamability = match card.tamability {
+        let number = |amount: Option<u32>| match amount {
             Some(amount) => format!("Some({})", amount),
             None => "None".to_string(),
         };
@@ -730,7 +732,8 @@ pub fn emit(cards: &[Card]) -> String {
             ("movement", card.movement.to_string()),
             ("die", format!("{:?}", card.die)),
             ("brawl_sequence", format!("{:?}", card.brawl_sequence)),
-            ("tamability", tamability),
+            ("tamability", number(card.tamability)),
+            ("loyalty_days", number(card.loyalty_days)),
             ("hidden", card.hidden.to_string()),
             ("landscape", card.landscape.to_string()),
         ];
@@ -845,7 +848,8 @@ mod tests {
     #[test]
     fn numbers_and_flags_are_read() {
         let c = card("injury_tolerance: 4\ntamability: 30\nhidden: true\nlandscape: false\nthumbnail: top");
-        assert_eq!((c.injury_tolerance, c.tamability), (4, Some(30)));
+        assert_eq!((c.injury_tolerance, c.tamability, c.loyalty_days), (4, Some(30), None));
+        assert_eq!(card("loyalty_days: 40").loyalty_days, Some(40));
         assert!(c.hidden && !c.landscape);
         assert_eq!(c.thumbnail, "top");
     }
@@ -1057,6 +1061,7 @@ mod tests {
             r#"        keal_means: &[KealMeans { name: "Claws", genetics: &["Magic", "Avian"], count: 2 }],"#
         ));
         assert!(rust.contains("        tamability: Some(30),\n"));
+        assert!(rust.contains("        loyalty_days: None,\n"));
         assert!(rust.contains("        habitat: None,\n"));
         assert!(rust.contains("        hidden: true,\n"));
     }

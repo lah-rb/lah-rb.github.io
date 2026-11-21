@@ -26,6 +26,8 @@ pub fn handle_damage_get(query: &str) -> String {
 /// Body params:
 ///   - card={slug}&slot={n}     → toggle a damage slot
 ///   - card={slug}&action=wasted → toggle wasted state
+///   - card={slug}&action=effects&by={1|-1} → one more, or one less, from
+///     card effects in play towards controlling a species
 ///   - card={slug}&action=clear  → clear damage for one card
 ///   - action=new_game           → New Game: clear ALL damage and affinity, and the
 ///     player's own timers (a room's timers stay)
@@ -62,6 +64,13 @@ pub fn handle_damage_post(body: &str) -> String {
         }
         "wasted" if !card.is_empty() => {
             damage::toggle_wasted(card);
+            damage::render_damage_tracker(card)
+        }
+        // One more, or one less, from card effects in play towards
+        // controlling a species: `by=1` or `by=-1`.
+        "effects" if !card.is_empty() => {
+            let by: i32 = get_param(&params, "by").and_then(|by| by.parse().ok()).unwrap_or(0);
+            damage::adjust_effects(card, by.clamp(-1, 1));
             damage::render_damage_tracker(card)
         }
         _ => {
@@ -170,6 +179,28 @@ mod tests {
     fn reset_state() {
         crate::game::player_doc::init_player_doc();
         room::reset_room();
+    }
+
+    #[test]
+    fn the_card_effects_buttons_add_and_take_a_point_and_new_game_clears_them() {
+        reset_state();
+        let card = "knightsoul_of_binding_time";
+        let html = handle_damage_post(&format!("card={}&action=effects&by=1", card));
+        assert!(html.contains(r#"data-stack="effects">1</span>"#), "{}", html);
+        // Whatever is asked for, a tap is one point.
+        let html = handle_damage_post(&format!("card={}&action=effects&by=7", card));
+        assert!(html.contains(r#"data-stack="effects">2</span>"#));
+        let html = handle_damage_post(&format!("card={}&action=effects&by=-1", card));
+        assert!(html.contains(r#"data-stack="effects">1</span>"#));
+        let html = handle_damage_post(&format!("card={}&action=effects", card));
+        assert!(html.contains(r#"data-stack="effects">1</span>"#), "no step asked for, none taken");
+        // A character has no stack to add to.
+        handle_damage_post("card=brox_the_defiant&action=effects&by=1");
+        assert_eq!(crate::game::player_doc::get_effects("brox_the_defiant"), 0);
+
+        let html = handle_damage_post(&format!("action=new_game&card={}", card));
+        assert!(html.contains(r#"data-stack="effects">0</span>"#));
+        reset_state();
     }
 
     #[test]

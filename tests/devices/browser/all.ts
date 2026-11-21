@@ -6,6 +6,7 @@
  *   deno task browser [site]          (BROWSER=firefox for Firefox)
  */
 import { run as back } from './back.ts';
+import { run as control } from './control.ts';
 import { run as seat } from './seat.ts';
 import { BROWSER, Checks, serveBuiltSite } from './site.ts';
 import { run as switchCamera } from './switch.ts';
@@ -22,6 +23,7 @@ const all = [
   ['tabs', tabs],
   ['sync', sync],
   ['seat', seat],
+  ['control', control],
 ] as const;
 for (const [name, run] of all) {
   try {

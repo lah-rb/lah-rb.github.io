@@ -1,10 +1,11 @@
 //! `/api/player/*` routes — player-level features.
 //!
-//! ## Affinity tracking
-//! Players declare affinity for one of the 15 archetypes once per day.
-//! Each declaration increments the level for that archetype. The most
-//! recently declared archetype is the "active" affinity, granting a +1
-//! roll bonus on matching cards during fists combat.
+//! ## Affinity
+//! A player declares an affinity for one of the 15 archetypes at the start
+//! of a game, and it stands until New Game. It is flat: it does not grow
+//! from game to game. A soul of that archetype has a roll bonus in fists,
+//! and a species of it has 3 towards being under the player's control
+//! (`game::control`).
 //!
 //! The panel is an engine-owned view (Pattern 13) of `/api/player/affinity`.
 //! Each Declare button is an engine post; the view sends it and draws the
@@ -128,7 +129,12 @@ pub fn handle_affinity_post(body: &str) -> String {
     }
 
     match player_doc::declare_affinity(archetype, today) {
-        Ok(_) => render_affinity_panel(),
+        Ok(_) => {
+            // A species of this archetype has more towards being under the
+            // player's control: its panel shows it.
+            crate::page::redraw("/api/card/panel");
+            render_affinity_panel()
+        }
         Err(e) => {
             // Re-render panel with error toast at top
             let mut html = String::with_capacity(4096);
@@ -150,7 +156,7 @@ fn render_affinity_panel() -> String {
     html.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
     html.push_str(r#"<p class="text-lg font-bold text-center mb-1">Archetypal Affinity</p>"#);
     html.push_str(
-        r#"<p class="text-xs text-slate-500 text-center mb-3">Declare once per day to grow your bond</p>"#,
+        r#"<p class="text-xs text-slate-500 text-center mb-3">Declare one archetype for the game</p>"#,
     );
     html.push_str(&render_affinity_panel_inner());
     html.push_str(r#"</div>"#);
@@ -175,6 +181,10 @@ fn render_affinity_panel_inner() -> String {
         html.push_str(
             r#"<p class="text-xs text-slate-500">+1 roll bonus on matching cards</p>"#,
         );
+        html.push_str(&format!(
+            r#"<p class="text-xs text-slate-500">+{} towards controlling matching species</p>"#,
+            crate::game::control::AFFINITY_POINTS
+        ));
         html.push_str(r#"<p class="text-xs text-slate-400 mt-1">Start a New Game to change affinity</p>"#);
         html.push_str(r#"</div>"#);
     }
@@ -318,7 +328,10 @@ mod tests {
             assert!(!html.contains(forbidden), "{} in the panel", forbidden);
         }
         // What the button sends is what the engine reads, and the day is today.
+        crate::page::take_redraws();
         handle_affinity_post("archetype=Brutal");
+        // A species of that archetype stands differently now: its panel is drawn again.
+        assert_eq!(crate::page::take_redraws(), ["/api/card/panel"]);
         let (_, declared) = player_doc::get_affinity("Brutal").expect("Brutal is declared");
         assert_eq!(declared, clock::today());
         assert_eq!(player_doc::get_active_affinity().map(|(name, _)| name).as_deref(), Some("Brutal"));

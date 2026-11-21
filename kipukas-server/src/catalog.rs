@@ -71,8 +71,13 @@ pub struct Card {
     pub movement: u8,
     pub die: &'static str,
     pub brawl_sequence: &'static str,
-    /// Species cards only.
+    /// Species cards only: what the player's stack must come to for the
+    /// species to be under their control (`game::control`). More than a
+    /// stack can come to is a species that cannot be tamed.
     pub tamability: Option<u32>,
+    /// How many days of play bring the card to its full loyalty, where the
+    /// card names its own (`game::control`). No page shows it.
+    pub loyalty_days: Option<u32>,
 
     /// Left out of the binder (the 404 Glitch's two pages).
     pub hidden: bool,
