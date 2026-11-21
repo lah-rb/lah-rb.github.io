@@ -67,7 +67,12 @@ pub const RELAY: &str = "wss://signal.kipukas.us/ws";
 ///
 /// 3: a timer is kept as each player's dated version of it, so that the
 /// later of two changes made apart wins (`game::crdt`).
-pub const PROTOCOL: u64 = 3;
+///
+/// 4: what a player locks in for a round of fists carries the affinity they
+/// declared, and both screens work the roll bonus out from it. (An engine
+/// of 3 applied its own player's affinity to whichever card attacked, so
+/// the two would show different modifiers.)
+pub const PROTOCOL: u64 = 4;
 
 /// An opponent who has not said hello after this long is running an older
 /// copy of the site, which never does.
@@ -1184,7 +1189,7 @@ mod tests {
         assert_eq!(
             sent(&asked),
             [
-                format!(r#"{{"type":"relay","data":{{"type":"hello","proto":3,"playerId":"{}"}}}}"#, me),
+                format!(r#"{{"type":"relay","data":{{"type":"hello","proto":{},"playerId":"{}"}}}}"#, PROTOCOL, me),
                 format!(r#"{{"type":"relay","data":{{"type":"yrs_sv","sv":"{}"}}}}"#, crdt::encode_state_vector()),
             ]
         );

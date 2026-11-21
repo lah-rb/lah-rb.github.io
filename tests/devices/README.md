@@ -33,8 +33,9 @@ checking the built one: it is `_site` that is served.
 | `browser/sync.ts` | A game moved from one browser to another through the Player Data page: the code read by the site's own scanner, typed, and opened as an address; what the receiver is asked and told; a code that is used, wrong, or called off |
 | `browser/seat.ts` | A game moved while it is being played against someone, with a third browser as the opponent: the player's place in the room goes with it, the device it came from is out of the room, and a device that is in a room leaves it when it takes a game |
 | `browser/control.ts` | A species' page says whether it is under the player's control: card effects added with the page's buttons, its archetype declared, the stack reaching its tameability, and New Game taking both away |
+| `browser/affinity.ts` | Two browsers in a room play rounds of fists with affinities declared: both screens must give the same bonus, to the attack die and to the defence die, and never give a player's affinity to the other player's card |
 | `browser/site.ts` | What they share: the built site served locally, the browser, pretend cameras, the scanner's buttons and what it shows |
-| `browser/all.ts` | Runs the six in turn |
+| `browser/all.ts` | Runs the seven in turn |
 
 Things to know:
 
@@ -49,7 +50,7 @@ Things to know:
   real browser answers. For that, see the phone below. A picture can be held
   up to them (`holdUp`), which is how `sync.ts` has the site's reader read a
   QR code.
-- `sync.ts` and `seat.ts` need a relay. Against the built site each runs one here
+- `sync.ts`, `seat.ts` and `affinity.ts` need a relay. Against the built site each runs one here
   (`wrangler dev` in `signaling-server/`, with storage it throws away) and
   points both browsers at it. Against the live site the browsers use the
   live relay: two rooms' worth of traffic, each ended when its game has

@@ -178,9 +178,10 @@ fn render_affinity_panel_inner() -> String {
             r#"<p class="text-sm font-bold">♥ <span class="text-kip-red">{}</span></p>"#,
             active_name
         ));
-        html.push_str(
-            r#"<p class="text-xs text-slate-500">+1 roll bonus on matching cards</p>"#,
-        );
+        html.push_str(&format!(
+            r#"<p class="text-xs text-slate-500">+{} on every roll for matching souls</p>"#,
+            crate::game::control::AFFINITY_ROLL_BONUS
+        ));
         html.push_str(&format!(
             r#"<p class="text-xs text-slate-500">+{} towards controlling matching species</p>"#,
             crate::game::control::AFFINITY_POINTS

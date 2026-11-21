@@ -14,6 +14,10 @@
 //! needs no taming, and one above 10 can never be met: that species is
 //! always rogue. Characters need no taming and have no tameability.
 //!
+//! A soul of the archetype its player declared also has a bonus to every
+//! roll made for it in a fight, attacking or defending ([`roll_bonus`]).
+//! That is of any soul, a character as much as a species.
+//!
 //! Affinity and card effects are the game's (New Game clears them). Loyalty
 //! is the player's record: the only part that carries from game to game. A
 //! card comes to its full loyalty over a number of days of play that the
@@ -28,6 +32,9 @@ use crate::game::player_doc;
 
 /// What declaring a species' archetype adds to its stack.
 pub const AFFINITY_POINTS: u8 = 3;
+/// What declaring a soul's archetype adds to every roll made for it in a
+/// fight. As much as the strongest meeting of two keal means gives.
+pub const AFFINITY_ROLL_BONUS: i32 = 3;
 /// The most card effects in play can add.
 pub const CARD_EFFECTS_MAX: u8 = 3;
 /// The most loyalty can add.
@@ -79,10 +86,26 @@ pub fn loyalty_points(days: u32, full: u32) -> u8 {
     quarters.min(LOYALTY_MAX as u64) as u8
 }
 
+/// Whether `declared`, the archetype a player declared an affinity for, is
+/// this card's own.
+fn is_own(card: &Card, declared: Option<&str>) -> bool {
+    declared.is_some() && declared == card.genetic_disposition
+}
+
+/// The bonus to every roll made for `card` in a fight, its player having
+/// declared an affinity for `declared`.
+pub fn roll_bonus(card: &Card, declared: Option<&str>) -> i32 {
+    if is_own(card, declared) {
+        AFFINITY_ROLL_BONUS
+    } else {
+        0
+    }
+}
+
 /// What the player brings to this card now.
 pub fn stack(card: &Card) -> Stack {
     let declared = player_doc::get_active_affinity().map(|(archetype, _)| archetype);
-    let own = declared.is_some() && declared.as_deref() == card.genetic_disposition;
+    let own = is_own(card, declared.as_deref());
     let days = player_doc::get_loyalty(card.slug).map(|(days, _)| days).unwrap_or(0);
     Stack {
         affinity: if own { AFFINITY_POINTS } else { 0 },
@@ -187,6 +210,23 @@ mod tests {
         adjust_effects(card, -1);
         assert_eq!(of(card).unwrap().standing, Standing::Rogue);
         reset();
+    }
+
+    #[test]
+    fn a_soul_of_the_declared_archetype_has_three_on_every_roll() {
+        assert_eq!(AFFINITY_ROLL_BONUS, 3);
+        // A character as much as a species.
+        for card in CARDS.iter().filter(|card| card.genetic_disposition.is_some()) {
+            let own = card.genetic_disposition.unwrap();
+            let other = player_doc::valid_archetypes().iter().find(|a| **a != own).unwrap();
+            assert_eq!(roll_bonus(card, Some(own)), 3, "{}", card.slug);
+            assert_eq!(roll_bonus(card, Some(other)), 0, "{}", card.slug);
+            assert_eq!(roll_bonus(card, None), 0, "{}", card.slug);
+        }
+        // A card of no archetype has none, whatever is declared, or nothing.
+        let plain = CARDS.iter().find(|card| card.genetic_disposition.is_none()).unwrap();
+        assert_eq!(roll_bonus(plain, Some("Brutal")), 0);
+        assert_eq!(roll_bonus(plain, None), 0);
     }
 
     #[test]

@@ -447,6 +447,7 @@ mod tests {
             role: CombatRole::Attacking,
             card: card.to_string(),
             keal_idx: 1,
+            affinity: None,
         }
     }
 
@@ -455,6 +456,7 @@ mod tests {
             role: CombatRole::Defending,
             card: card.to_string(),
             keal_idx: 2,
+            affinity: None,
         }
     }
 
@@ -769,6 +771,7 @@ mod tests {
             B,
             FinalBlowsSubmission {
                 card: "brox_the_defiant".to_string(),
+                affinity: None,
             },
         );
         submit(&b, B, A, attack("liliel_healing_fairy"));

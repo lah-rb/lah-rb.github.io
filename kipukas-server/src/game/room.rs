@@ -29,6 +29,11 @@ pub struct FistsSubmission {
     pub card: String,
     /// Which keal means to use (1-based index into the card's keal_means array)
     pub keal_idx: u8,
+    /// The archetype this player had declared an affinity for when they
+    /// locked in, if any. It goes with the submission so that both players'
+    /// screens give the card the same roll bonus (`control::roll_bonus`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub affinity: Option<String>,
 }
 
 /// Final Blows submission — used when a player's keal means are all exhausted.
@@ -36,6 +41,10 @@ pub struct FistsSubmission {
 pub struct FinalBlowsSubmission {
     /// Card slug
     pub card: String,
+    /// The archetype this player had declared an affinity for, as in
+    /// [`FistsSubmission`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub affinity: Option<String>,
 }
 
 /// One round of fists combat as this player sees it: their own submission
@@ -123,6 +132,18 @@ impl FistsCombat {
     pub fn remote_card(&self) -> Option<&str> {
         self.remote.as_ref().map(|s| s.card.as_str())
             .or_else(|| self.remote_final_blows.as_ref().map(|s| s.card.as_str()))
+    }
+
+    /// The archetype the local player had declared when they submitted.
+    pub fn local_affinity(&self) -> Option<&str> {
+        let regular = self.local.as_ref().and_then(|s| s.affinity.as_deref());
+        regular.or_else(|| self.local_final_blows.as_ref().and_then(|s| s.affinity.as_deref()))
+    }
+
+    /// The archetype the remote player had declared when they submitted.
+    pub fn remote_affinity(&self) -> Option<&str> {
+        let regular = self.remote.as_ref().and_then(|s| s.affinity.as_deref());
+        regular.or_else(|| self.remote_final_blows.as_ref().and_then(|s| s.affinity.as_deref()))
     }
 }
 
@@ -248,6 +269,7 @@ mod tests {
             role: CombatRole::Attacking,
             card: "brox_the_defiant".to_string(),
             keal_idx: 1,
+            affinity: None,
         });
         assert!(!combat.is_complete());
 
@@ -255,6 +277,7 @@ mod tests {
             role: CombatRole::Defending,
             card: "liliel_healing_fairy".to_string(),
             keal_idx: 1,
+            affinity: None,
         });
         assert!(combat.is_complete());
     }
@@ -266,11 +289,13 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 2,
+                affinity: None,
             }),
             remote: Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
+                affinity: None,
             }),
             local_final_blows: None,
             remote_final_blows: None,
@@ -292,11 +317,13 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "test".to_string(),
                 keal_idx: 1,
+                affinity: None,
             }),
             remote: Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "test2".to_string(),
                 keal_idx: 1,
+                affinity: None,
             }),
             local_final_blows: None,
             remote_final_blows: None,
@@ -319,6 +346,7 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
         });
 

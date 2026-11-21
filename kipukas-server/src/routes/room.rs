@@ -13,6 +13,7 @@
 
 use crate::catalog::CARDS;
 use crate::clock;
+use crate::game::control;
 use crate::game::crdt;
 use crate::game::damage;
 use crate::game::fists;
@@ -591,6 +592,13 @@ fn choose(slug: &str, role: Option<&str>, keal: Option<&str>) {
     room::with_room_mut(|r| r.choice = choice);
 }
 
+/// The archetype this player has declared an affinity for, to go with what
+/// they submit: the opponent's screen works the card's roll bonus out from
+/// it, as this one does.
+fn declared_affinity() -> Option<String> {
+    player_doc::get_active_affinity().map(|(archetype, _)| archetype)
+}
+
 /// A Character or Species card used in combat grows more loyal, once a day.
 fn count_loyalty(card: &crate::catalog::Card) {
     if card.layout == "Character" || card.layout == "Species" {
@@ -635,6 +643,7 @@ fn lock_in(slug: &str) {
         role,
         card: card.slug.to_string(),
         keal_idx,
+        affinity: declared_affinity(),
     };
     crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::submit(doc, &me, &peer, submission));
@@ -658,6 +667,7 @@ fn state_final_blows(slug: &str) {
     let (me, peer) = player_ids();
     let submission = room::FinalBlowsSubmission {
         card: card.slug.to_string(),
+        affinity: declared_affinity(),
     };
     crdt::queue_for_peer(crdt::capture_update(|| {
         crdt::with_doc(|doc| fists::final_blows(doc, &me, &peer, submission));
@@ -914,8 +924,16 @@ fn render_fists_result() -> String {
         // Compute matchup
         let result = typing::type_matchup(&atk_types, &def_types, atk_motive, def_motive);
 
+        // What each player's declared affinity adds to the rolls made for
+        // their card. Each declaration came with its player's submission,
+        // so both screens work out the same.
+        let bonus = (
+            control::roll_bonus(atk_card, atk.affinity.as_deref()),
+            control::roll_bonus(def_card, def.affinity.as_deref()),
+        );
+
         // Build result HTML
-        build_result_html(atk_card, &atk.card, atk_km, def_card, &def.card, def_km, &result)
+        build_result_html(atk_card, &atk.card, atk_km, def_card, &def.card, def_km, &result, bonus)
     })
 }
 
@@ -928,22 +946,18 @@ fn render_fists_result() -> String {
 fn render_final_blows_result() -> String {
     // Determine attacker and defender cards based on submission types.
     // The Final Blows player is always the defender.
-    let (atk_slug, def_slug) = room::with_room(|r| {
+    // (Each side's declared affinity goes with its card.)
+    let ((atk_slug, atk_affinity), (def_slug, def_affinity)) = room::with_room(|r| {
+        let local = (r.fists.local_card().unwrap_or_default().to_string(), r.fists.local_affinity().map(str::to_string));
+        let remote =
+            (r.fists.remote_card().unwrap_or_default().to_string(), r.fists.remote_affinity().map(str::to_string));
         if r.fists.local_final_blows.is_some() {
             // Local submitted Final Blows → local is defender, remote is attacker
-            let def = r.fists.local_card().unwrap_or_default().to_string();
-            let atk = r.fists.remote_card().unwrap_or_default().to_string();
-            (atk, def)
-        } else if r.fists.remote_final_blows.is_some() {
-            // Remote submitted Final Blows → remote is defender, local is attacker
-            let atk = r.fists.local_card().unwrap_or_default().to_string();
-            let def = r.fists.remote_card().unwrap_or_default().to_string();
-            (atk, def)
+            (remote, local)
         } else {
-            // Both have Final Blows (rare) — pick a convention
-            let atk = r.fists.local_card().unwrap_or_default().to_string();
-            let def = r.fists.remote_card().unwrap_or_default().to_string();
-            (atk, def)
+            // Remote submitted Final Blows → remote is defender, local is
+            // attacker. (Both have Final Blows, rarely: the same convention.)
+            (local, remote)
         }
     });
 
@@ -1065,6 +1079,19 @@ fn render_final_blows_result() -> String {
         let mod_sign = if result.modifier > 0 { "+" } else { "" };
         h.push_str(&format!(r#"<p class="text-xs text-slate-500 mt-1">Attacker gets {}{} from motivation</p>"#, mod_sign, result.modifier));
     }
+    // Affinity is a bonus to every roll made for a card, these too.
+    for (who, card, declared) in [("Attacker", atk_card, &atk_affinity), ("Defender", def_card, &def_affinity)] {
+        let bonus = control::roll_bonus(card, declared.as_deref());
+        if bonus > 0 {
+            h.push_str(&format!(
+                r#"<p class="text-xs text-amber-600 mt-1" data-affinity="{}">{} gets +{} from affinity ({})</p>"#,
+                who.to_lowercase(),
+                who,
+                bonus,
+                card.genetic_disposition.unwrap_or_default()
+            ));
+        }
+    }
     h.push_str(r#"</div>"#);
 
     h.push_str(r#"</div>"#); // close unified Final Blows info box
@@ -1084,6 +1111,9 @@ fn build_result_html(
     def_slug: &str,
     def_km: &crate::catalog::KealMeans,
     result: &typing::MatchupResult,
+    // What affinity adds to the rolls made for the attacker's card, and for
+    // the defender's.
+    (atk_bonus, def_bonus): (i32, i32),
 ) -> String {
     let mut h = String::with_capacity(2048);
 
@@ -1136,39 +1166,59 @@ fn build_result_html(
     }
     h.push_str(r#"</div>"#);
 
-    // Compute affinity bonus: +1 if attacker's genetic_disposition matches active affinity
-    let affinity_bonus: i32 = match player_doc::get_active_affinity() {
-        Some((ref active_name, _)) => {
-            match atk_card.genetic_disposition {
-                Some(gd) if gd == active_name => 1,
-                _ => 0,
-            }
-        }
-        None => 0,
+    // The attacker's roll: what the two keal means make of each other, and
+    // the attacker's affinity for their card.
+    let signed = |amount: i32| format!("{}{}", if amount > 0 { "+" } else { "" }, amount);
+    let colour = |amount: i32| match amount {
+        more if more > 0 => "text-emerald-600",
+        less if less < 0 => "text-kip-red",
+        _ => "text-slate-600",
     };
-    let total_modifier = result.modifier + affinity_bonus;
-    let total_color = if total_modifier > 0 {
-        "text-emerald-600"
-    } else if total_modifier < 0 {
-        "text-kip-red"
-    } else {
-        "text-slate-600"
+    let from_affinity = |who: &str, bonus: i32, card: &crate::catalog::Card| {
+        format!(
+            r#"<p class="text-xs text-amber-600 mt-1" data-affinity="{}">+{} from affinity ({})</p>"#,
+            who,
+            bonus,
+            card.genetic_disposition.unwrap_or_default()
+        )
     };
-    let total_sign = if total_modifier > 0 { "+" } else { "" };
+    let total_modifier = result.modifier + atk_bonus;
 
-    h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">"#);
-    h.push_str(&format!(
-        r#"<p class="text-sm font-bold">Attack Die Modifier</p><p class="text-3xl font-bold {}">{}{}</p>"#,
-        total_color, total_sign, total_modifier
-    ));
-    if affinity_bonus > 0 {
+    // One die's modifier: its name, the number, and what of it is affinity.
+    let die = |name: &str, key: &str, amount: i32, affinity: String| {
+        format!(
+            r#"<div><p class="text-sm font-bold">{} Die Modifier</p><p class="text-3xl font-bold {}" data-modifier="{}">{}</p>{}</div>"#,
+            name,
+            colour(amount),
+            key,
+            signed(amount),
+            affinity
+        )
+    };
+    let attack = die(
+        "Attack",
+        "attack",
+        total_modifier,
+        if atk_bonus > 0 { from_affinity("attacker", atk_bonus, atk_card) } else { String::new() },
+    );
+    // The defender's roll has a modifier only when the defender has an
+    // affinity for their card. The two then stand side by side, so that
+    // the result is no taller for it.
+    if def_bonus > 0 {
         h.push_str(&format!(
-            r#"<p class="text-xs text-amber-600 mt-1">+1 from Affinity ({})</p>"#,
-            player_doc::get_active_affinity().map(|(n, _)| n).unwrap_or_default()
+            concat!(
+                r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3 "#,
+                r#"grid grid-cols-2 divide-x divide-slate-200">{}{}</div>"#,
+            ),
+            attack,
+            die("Defense", "defense", def_bonus, from_affinity("defender", def_bonus, def_card))
+        ));
+    } else {
+        h.push_str(&format!(
+            r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 text-center mb-3">{}</div>"#,
+            attack
         ));
     }
-
-    h.push_str(r#"</div>"#);
 
     // Final Blows box — only shows when at least one player's keal means are exhausted
     let atk_exhausted = all_keal_means_exhausted(atk_slug);
@@ -1362,6 +1412,7 @@ mod tests {
             role: CombatRole::Attacking,
             card: card.to_string(),
             keal_idx: 1,
+            affinity: None,
         }
     }
 
@@ -1370,6 +1421,7 @@ mod tests {
             role: CombatRole::Defending,
             card: card.to_string(),
             keal_idx: 1,
+            affinity: None,
         }
     }
 
@@ -1526,11 +1578,13 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Attacking,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
         });
         let html = render_fists_result();
@@ -1833,11 +1887,13 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
         });
         let html = render_fists_result();
@@ -2141,11 +2197,13 @@ mod tests {
                 role: CombatRole::Attacking,
                 card: "brox_the_defiant".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
             r.fists.remote = Some(FistsSubmission {
                 role: CombatRole::Defending,
                 card: "liliel_healing_fairy".to_string(),
                 keal_idx: 1,
+                affinity: None,
             });
         });
         let html = render_fists_result();
@@ -2155,6 +2213,192 @@ mod tests {
         assert!(html.contains("Combat Result"));
         assert!(html.contains("Did you win"));
         reset();
+    }
+
+    // ── Affinity in a round ──
+
+    const LILIEL: &str = "liliel_healing_fairy";
+
+    fn archetype_of(slug: &str) -> &'static str {
+        find_card(slug).unwrap().genetic_disposition.unwrap()
+    }
+
+    /// An archetype that is neither Brox's nor Liliel's.
+    fn another_archetype() -> &'static str {
+        let taken = [archetype_of("brox_the_defiant"), archetype_of(LILIEL)];
+        player_doc::valid_archetypes().iter().copied().find(|archetype| !taken.contains(archetype)).unwrap()
+    }
+
+    /// The number a result gives as the modifier of the attack die, or of
+    /// the defence die: none where it shows no such modifier.
+    fn modifier(html: &str, die: &str) -> Option<i32> {
+        let shown = html.split(&format!(r#"data-modifier="{}">"#, die)).nth(1)?.split('<').next()?;
+        shown.trim_start_matches('+').parse().ok()
+    }
+
+    /// A round this player attacks with Brox in, the opponent defending
+    /// with Liliel having declared `theirs`: the result as drawn here.
+    fn brox_attacks(theirs: Option<&str>) -> String {
+        let defence = FistsSubmission { affinity: theirs.map(str::to_string), ..their_defence(LILIEL) };
+        opponent(|doc| fists::submit(doc, THEM, ME, defence));
+        lock_in_brox("attacking")
+    }
+
+    /// One this player defends with Brox in, the opponent attacking with Liliel.
+    fn brox_defends(theirs: Option<&str>) -> String {
+        let attack = FistsSubmission { affinity: theirs.map(str::to_string), ..their_attack(LILIEL) };
+        opponent(|doc| fists::submit(doc, THEM, ME, attack));
+        lock_in_brox("defending")
+    }
+
+    fn fresh_room() {
+        reset();
+        player_doc::init_player_doc();
+        enter_room();
+    }
+
+    #[test]
+    fn what_is_locked_in_carries_the_affinity_its_player_declared() {
+        fresh_room();
+        lock_in_brox("attacking");
+        let view = crdt::with_doc(|doc| fists::view(doc, ME, THEM));
+        assert_eq!(view.combat.local.unwrap().affinity, None, "none declared, none carried");
+
+        fresh_room();
+        player_doc::declare_affinity("Avian", "2026-11-21").unwrap();
+        lock_in_brox("attacking");
+        let view = crdt::with_doc(|doc| fists::view(doc, ME, THEM));
+        assert_eq!(view.combat.local.unwrap().affinity.as_deref(), Some("Avian"));
+        // And so does Final Blows.
+        fresh_room();
+        player_doc::declare_affinity("Avian", "2026-11-21").unwrap();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        tap("action=final&card=brox_the_defiant");
+        let view = crdt::with_doc(|doc| fists::view(doc, ME, THEM));
+        assert_eq!(view.combat.local_final_blows.unwrap().affinity.as_deref(), Some("Avian"));
+        reset();
+    }
+
+    #[test]
+    fn an_attackers_affinity_for_their_card_adds_three_to_the_attack_die() {
+        fresh_room();
+        let plain = modifier(&brox_attacks(None), "attack").unwrap();
+
+        fresh_room();
+        player_doc::declare_affinity(archetype_of("brox_the_defiant"), "2026-11-21").unwrap();
+        let html = brox_attacks(None);
+        assert_eq!(modifier(&html, "attack"), Some(plain + 3));
+        assert!(html.contains(&format!(
+            r#"data-affinity="attacker">+3 from affinity ({})</p>"#,
+            archetype_of("brox_the_defiant")
+        )));
+        assert!(!html.contains("Defense Die Modifier"), "the defender declared nothing");
+
+        // An affinity for another archetype than the card's adds nothing.
+        fresh_room();
+        player_doc::declare_affinity(another_archetype(), "2026-11-21").unwrap();
+        let html = brox_attacks(None);
+        assert_eq!(modifier(&html, "attack"), Some(plain));
+        assert!(!html.contains("from affinity"));
+        reset();
+    }
+
+    #[test]
+    fn a_defenders_affinity_for_their_card_gives_the_defense_die_three() {
+        fresh_room();
+        let plain = brox_defends(None);
+        assert_eq!(modifier(&plain, "defense"), None, "no modifier of the defense die to show");
+        let attack = modifier(&plain, "attack").unwrap();
+
+        fresh_room();
+        player_doc::declare_affinity(archetype_of("brox_the_defiant"), "2026-11-21").unwrap();
+        let html = brox_defends(None);
+        assert_eq!(modifier(&html, "defense"), Some(3));
+        assert!(html.contains("Defense Die Modifier"));
+        assert!(html.contains(&format!(
+            r#"data-affinity="defender">+3 from affinity ({})</p>"#,
+            archetype_of("brox_the_defiant")
+        )));
+        assert_eq!(modifier(&html, "attack"), Some(attack), "the attack die is as it was");
+        reset();
+    }
+
+    #[test]
+    fn each_card_has_its_own_players_affinity_and_not_the_others() {
+        // This player has declared the archetype of the opponent's card.
+        // That is nothing to the opponent's card: its player declared none.
+        fresh_room();
+        let plain = modifier(&brox_defends(None), "attack").unwrap();
+        fresh_room();
+        player_doc::declare_affinity(archetype_of(LILIEL), "2026-11-21").unwrap();
+        let html = brox_defends(None);
+        assert_eq!(modifier(&html, "attack"), Some(plain));
+        assert!(!html.contains("from affinity"));
+
+        // The opponent declared it: their attack has three more here, as
+        // it has on their own screen, though this player declared nothing.
+        fresh_room();
+        let html = brox_defends(Some(archetype_of(LILIEL)));
+        assert_eq!(modifier(&html, "attack"), Some(plain + 3));
+        assert!(html
+            .contains(&format!(r#"data-affinity="attacker">+3 from affinity ({})</p>"#, archetype_of(LILIEL))));
+
+        // Both declared their own card's: both dice have it.
+        fresh_room();
+        player_doc::declare_affinity(archetype_of("brox_the_defiant"), "2026-11-21").unwrap();
+        let html = brox_defends(Some(archetype_of(LILIEL)));
+        assert_eq!((modifier(&html, "attack"), modifier(&html, "defense")), (Some(plain + 3), Some(3)));
+
+        // What the opponent says they declared is only ever compared with
+        // their card's archetype: whatever else it is adds nothing and is
+        // never drawn.
+        fresh_room();
+        let html = brox_defends(Some("<b>Brutal</b>"));
+        assert_eq!(modifier(&html, "attack"), Some(plain));
+        assert!(!html.contains("<b>Brutal</b>"));
+        reset();
+    }
+
+    #[test]
+    fn affinity_is_on_the_rolls_of_final_blows_too() {
+        fresh_room();
+        player_doc::declare_affinity(archetype_of("brox_the_defiant"), "2026-11-21").unwrap();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        let attack = FistsSubmission { affinity: Some(archetype_of(LILIEL).to_string()), ..their_attack(LILIEL) };
+        opponent(|doc| fists::submit(doc, THEM, ME, attack));
+        let html = tap("action=final&card=brox_the_defiant");
+        assert!(html.contains("Final Blows"));
+        assert!(html.contains(&format!(
+            r#"data-affinity="attacker">Attacker gets +3 from affinity ({})</p>"#,
+            archetype_of(LILIEL)
+        )));
+        assert!(html.contains(&format!(
+            r#"data-affinity="defender">Defender gets +3 from affinity ({})</p>"#,
+            archetype_of("brox_the_defiant")
+        )));
+
+        // Neither declared: neither line.
+        fresh_room();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
+        let html = tap("action=final&card=brox_the_defiant");
+        assert!(html.contains("Final Blows") && !html.contains("from affinity"));
+        reset();
+    }
+
+    #[test]
+    fn a_submission_from_before_affinity_went_with_it_is_read_as_declaring_none() {
+        let old: FistsSubmission =
+            serde_json::from_str(r#"{"role":"Attacking","card":"brox_the_defiant","keal_idx":1}"#).unwrap();
+        assert_eq!(old.affinity, None);
+        // And one that declares none is written as it was then.
+        assert_eq!(
+            serde_json::to_string(&their_attack("brox_the_defiant")).unwrap(),
+            r#"{"role":"Attacking","card":"brox_the_defiant","keal_idx":1}"#
+        );
     }
 
     #[test]

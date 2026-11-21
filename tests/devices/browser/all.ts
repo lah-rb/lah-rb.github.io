@@ -5,6 +5,7 @@
  *
  *   deno task browser [site]          (BROWSER=firefox for Firefox)
  */
+import { run as affinity } from './affinity.ts';
 import { run as back } from './back.ts';
 import { run as control } from './control.ts';
 import { run as seat } from './seat.ts';
@@ -24,6 +25,7 @@ const all = [
   ['sync', sync],
   ['seat', seat],
   ['control', control],
+  ['affinity', affinity],
 ] as const;
 for (const [name, run] of all) {
   try {

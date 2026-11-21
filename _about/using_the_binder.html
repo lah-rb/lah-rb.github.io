@@ -166,7 +166,7 @@ bg-terra: "bg-hero-pattern "
         <li>One player opens the room tool (the signal icon in the toolbar), names a room, and creates it. They share the room's name and four-character code with their opponent.</li>
         <li>The other player joins by entering the code and the name. From then on the fists icon in both toolbars opens the multiplayer tool.</li>
         <li>Each player goes to the page of the card they are playing, opens the fists tool, chooses whether they are attacking or defending, picks a KEAL means, and locks in their choice. For Final Blows the tool states the card's motivation instead. Choices are hidden until both sides have locked in.</li>
-        <li>Once both players submit, the tool reveals the match-up result with all applicable modifiers (archetypal material interactions, affinity bonus, etc.) and the total Attack Die Modifier.</li>
+        <li>Once both players submit, the tool reveals the match-up result with all applicable modifiers (archetypal material interactions, affinity bonus, etc.) and the total Attack Die Modifier. If the defender has an affinity for their card it shows a Defense Die Modifier as well. Both players see the same numbers.</li>
         <li>After reviewing the result, either player can report the combat outcome ("Did you win?"). The tool then automatically marks KEAL means damage on the losing defender's card, and both players see a role-appropriate result message.</li>
         <li>Either player can start a new round for the next bout.</li>
       </ol>
@@ -233,8 +233,9 @@ bg-terra: "bg-hero-pattern "
         affinity for one archetypal adaptation for the game. The choice is then locked until you start a
         <b>New Game</b>, and it counts the same in every game: it does not grow. When a soul card's
         archetypal adaptation matches your declared affinity
-        you receive a <b>+1 bonus to attack and defense rolls</b> made for that card. The fists tool
-        automatically includes this bonus in the Attack Die Modifier when applicable. A species of that
+        you receive a <b>+3 bonus to attack and defense rolls</b> made for that card, Final Blows included.
+        In a room the fists tool includes it for both players: in the Attack Die Modifier when the attacker
+        has it, and as a Defense Die Modifier when the defender does. A species of that
         adaptation also has 3 more towards being under your control (see
         <a href="#tameability-progress" class="underline">Species Control</a>).
       </p>

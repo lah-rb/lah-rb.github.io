@@ -319,7 +319,7 @@ Everything else the engine holds is kept the same way: the room's connection and
 
 | Message Type | Direction | Payload | Purpose |
 |-------------|-----------|---------|---------|
-| `hello` | Both → peer | `{ proto: 3, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
+| `hello` | Both → peer | `{ proto: 4, playerId }` | Sent when the opponent appears: this player's id in the room and the room-document format they speak |
 | `yrs_sv` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector (sync handshake step 1) |
 | `yrs_sv_reply` | Both → peer | `{ sv: base64 }` | Yrs CRDT state vector reply (sync handshake step 2) |
 | `yrs_update` | Both → peer | `{ update: base64 }` | Yrs CRDT binary update (a change to timers or fists combat) |
@@ -1094,11 +1094,11 @@ The owner's framework of November 2026, which the engine is being built to in st
 
 A tameability of 0 needs no taming. One above 10 can never be met, which is how a species that is always rogue is written until a card file can say ∞. Characters need no taming and have no tameability. What follows from the numbers is meant: a new player can bring 6 at most, so the last four points are the reward of history with a card, and a species outside the declared archetype can be brought 7 at most.
 
-Affinity also gives a roll bonus to souls of the declared archetype in fists.
+**The roll bonus.** A soul of the archetype its player declared has +3 on every roll made for it in a fight, attacking or defending, Final Blows included (`control::roll_bonus`; any soul, a character as much as a species). In a room each player's declared archetype goes with what they lock in (`affinity` in `FistsSubmission` and `FinalBlowsSubmission`), and each screen works a card's bonus out from its own player's declaration, so the two always agree. The result adds the attacker's to the Attack Die Modifier, and shows a Defense Die Modifier beside it when the defender has one. What the opponent says they declared is only ever compared with their card's archetype and is never drawn. This is room protocol 4: an engine of protocol 3 gave its own player's affinity to whichever card attacked, at +1, so the two are kept apart.
 
 **Where it is.** `src/game/control.rs` is the stack and the standing it gives, with each number a constant, since the owner means them to be settled by play. `damage::render_control` draws it on a species' page (the damage tracker's view): a bar of ten squares in the three parts' colours with a mark at the tameability, and the three parts beneath, card effects with its two buttons (`action=effects&by=1` or `-1` to `/api/game/damage`). The points from card effects are in the card's game state (`effects`), so New Game clears them with its damage and a game moved to another device takes them along.
 
-**Built so far:** the stack on a species' page. **To come, in this order:** each player's declared affinity in the room, so that both screens give the same bonus, to attack and to defence, at +3 (today a device applies its own affinity, at +1, to whichever card attacks); more than one copy of a card in play, each with its own damage and card effects; handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
+**Built so far:** the stack on a species' page, and the roll bonus in a room. **To come, in this order:** more than one copy of a card in play, each with its own damage and card effects; handing a copy to the other player for the rest of the game, its state as it is and the stack worked out anew for whoever holds it.
 
 ## Completed Sprint: Player Document & GameState → Yrs Consolidation
 
