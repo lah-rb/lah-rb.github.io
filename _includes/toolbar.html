@@ -218,6 +218,15 @@ background_color
     {% endif %}
     
   </div>
+  {% if include.card_slug %}
+  <!-- The copies of this card in play (kipukas-server/src/routes/copies.rs):
+       an engine-owned view at the lower left of the page, above the room's
+       status pill when that is shown. It is the toolbar's so that its tiles
+       fade with the others when the toolbar idles, and a first tap wakes
+       them as it wakes the rest. Fixed, so it takes no place among them. -->
+  <div data-engine-view="/api/card/copies?card={{ include.card_slug }}&copy={hash}"
+       class="fixed bottom-0 left-0 z-40 m-3 [body:has(#room-status-pill)_&]:bottom-10"></div>
+  {% endif %}
   {% if include.hideTools %}
   <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
     @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"

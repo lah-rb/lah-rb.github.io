@@ -4,7 +4,10 @@
  * One browser. A card's page has a button at the lower left that puts
  * another copy in play. Each copy takes its own damage, the page's address
  * says which is shown, and a copy can be taken out again, which is asked
- * about first.
+ * about first. The button is one of the toolbar's: it fades with the rest
+ * when the toolbar idles, and a first tap then only wakes it. It turns red
+ * and says so once more copies are in play than the rules allow a deck,
+ * and goes on adding.
  *
  *   deno run -A browser/copies.ts [site]
  */
@@ -33,6 +36,11 @@ function shown(page: Page) {
       ),
       asking: control?.querySelector('[role="alertdialog"]')?.textContent?.replace(/\s+/g, ' ')
         .trim() ?? '',
+      /** More copies are in play than the rules allow a deck, and the button says so. */
+      over: control?.hasAttribute('data-over-limit') ?? false,
+      said: [...(control?.querySelectorAll('button') ?? [])].map((b) =>
+        (b.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
+      ).join('|'),
       /** Where the control is: its distance from the left and the bottom of the window. */
       at: control
         ? [
@@ -46,14 +54,38 @@ function shown(page: Page) {
   });
 }
 
-/** Press what the control offers under this label. */
-function press(page: Page, label: string) {
-  return page.evaluate((label) => {
-    const offered = [...document.querySelectorAll('[data-copies] a, [data-copies] button')]
-      .find((b) => (b.getAttribute('aria-label') || '').startsWith(label));
-    if (!(offered instanceof HTMLElement)) throw new Error(`the control offers no "${label}"`);
-    offered.click();
-  }, label);
+/**
+ * Press what the control offers under this label. The toolbar is woken
+ * first, as a player's first tap would: idle, it swallows a press.
+ */
+function press(page: Page, label: string, wake = true) {
+  return page.evaluate(
+    (label, wake) => {
+      const bar = document.querySelector('.ghost-toolbar');
+      if (wake && bar) {
+        bar.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Shift' }));
+      }
+      const offered = [...document.querySelectorAll('[data-copies] a, [data-copies] button')]
+        .find((b) => (b.getAttribute('aria-label') || '').startsWith(label));
+      if (!(offered instanceof HTMLElement)) throw new Error(`the control offers no "${label}"`);
+      offered.click();
+    },
+    label,
+    wake,
+  );
+}
+
+/** How see-through the button that adds a copy is, and a tile of the toolbar's own. */
+function faded(page: Page) {
+  return page.evaluate(() => {
+    const opacity = (element: Element | null) =>
+      element ? Number(getComputedStyle(element).opacity) : -1;
+    return {
+      add: opacity(document.querySelector('[data-copies] button')),
+      home: opacity(document.querySelector('.ghost-toolbar a[aria-label="Go to home page"]')),
+      idle: document.querySelector('.ghost-toolbar')?.classList.contains('toolbar-idle') ?? false,
+    };
+  });
 }
 
 /** Mark the first damage slot of the copy the page shows. */
@@ -81,11 +113,39 @@ export async function run(site: string, checks: Checks) {
       JSON.stringify({ offers: one.offers, at: one.at }),
     );
 
+    // ── It is one of the toolbar's buttons ──
+
+    await until('the toolbar idle', async () => (await faded(page)).idle, 8000);
+    await sleep(700);
+    const idle = await faded(page);
+    // A first tap on an idle toolbar wakes it, and asks for nothing.
+    await press(page, 'Put another copy', false);
+    await sleep(700);
+    const woken = await faded(page);
+    checks.check(
+      "copies: the button fades with the toolbar's own, and a first tap only wakes it",
+      idle.add < 0.5 && idle.add === idle.home && !woken.idle && woken.add === 1 &&
+        (await shown(page)).copies === 1,
+      JSON.stringify({ idle, woken, copies: (await shown(page)).copies }),
+    );
+
     // ── Another copy ──
 
     await press(page, 'Put another copy');
     await until('the second copy', async () => (await shown(page)).copy === 2);
     const two = await shown(page);
+    // The card is a character, of which the rules allow a deck one.
+    const red = await page.evaluate(() => {
+      const add = [...document.querySelectorAll('[data-copies] button')].pop();
+      return add ? getComputedStyle(add).backgroundColor : '';
+    });
+    checks.check(
+      'copies: with more in play than the rules allow, the button is red and says over limit',
+      two.over && !one.over && /\+over ?limit$/.test(two.said) &&
+        two.offers[2].includes('Over the limit: the rules allow a deck 1 of this card') &&
+        red !== 'rgb(255, 251, 235)',
+      JSON.stringify({ over: two.over, said: two.said, red }),
+    );
     checks.check(
       'copies: the button adds a copy and the page turns to it, by its address',
       two.copies === 2 && two.hash === '#2' && !two.marked.includes('x') &&

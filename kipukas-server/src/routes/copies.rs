@@ -1,11 +1,18 @@
 //! `/api/card/copies` — the copies of a card in play, on the card's page:
 //! an engine-owned view (Pattern 13 in CONTRIBUTING.md) at the lower left
-//! of the page, over the art.
+//! of the page, over the art. The toolbar places it
+//! (`_includes/toolbar.html`), so its tiles fade and wake with the
+//! toolbar's.
 //!
 //! With one copy in play it is a single button, which puts another in
 //! play. With more it also says which copy the page shows and turns to the
 //! next, and can take the copy shown out of play, which it asks about
 //! first: the copy's damage goes with it.
+//!
+//! The rules allow a deck one of a character and two of a species. The
+//! binder does not hold a player to that (a soul can be stolen or crafted
+//! in play, and a table may have its own rules), but once more copies are
+//! in play than that, the button that adds one is red and says so.
 //!
 //! Which copy the page shows is in the page's address, after the `#`
 //! (`game::copies`). The view's route carries it
@@ -24,10 +31,12 @@ use crate::routes::util::{get_param, parse_form_body, parse_query};
 
 const ROUTE: &str = "/api/card/copies";
 
-/// Where the view stands: at the lower left of the page, above the room's
-/// status pill when that is shown.
-const PLACE: &str = "fixed bottom-0 left-0 z-40 m-3 [body:has(#room-status-pill)_&]:bottom-10 flex flex-col items-start gap-2 text-kip-drk-sienna";
+/// The tiles, one above another. (Where they stand is the toolbar's to say.)
+const COLUMN: &str = "flex flex-col items-start gap-2 text-kip-drk-sienna";
 const TILE: &str = "toolbar-tile text-3xl font-bold leading-none";
+/// The button that adds a copy, once the player has more in play than the
+/// rules allow a deck.
+const OVER_TILE: &str = "toolbar-tile flex-col leading-none !bg-kip-red !border-kip-red text-amber-50";
 
 thread_local! {
     /// The copy the player has asked to take out of play and not yet said
@@ -113,7 +122,14 @@ fn render(card: &Card, shown: u8) -> String {
         return String::new();
     }
     let (count, key) = (copies::count(card.slug), copies::key(card.slug, shown));
-    let mut h = format!(r#"<div class="{}" data-copies="{}" data-copy="{}">"#, PLACE, count, shown);
+    let over = copies::over_limit(card);
+    let mut h = format!(
+        r#"<div class="{}" data-copies="{}" data-copy="{}"{}>"#,
+        COLUMN,
+        count,
+        shown,
+        if over { " data-over-limit" } else { "" }
+    );
 
     // The question, in place of the buttons, while it is being asked.
     if count > 1 && ASKED.with(|asked| asked.borrow().as_deref() == Some(key.as_str())) {
@@ -162,12 +178,26 @@ fn render(card: &Card, shown: u8) -> String {
         ));
     }
     if count < copies::MOST {
-        h.push_str(&button(
-            &format!("action=add&amp;card={}", card.slug),
-            "Put another copy of this card in play",
-            TILE,
-            "+",
-        ));
+        let add = format!("action=add&amp;card={}", card.slug);
+        if over {
+            // More are in play than the rules allow a deck. It is said, and
+            // not enforced.
+            let allowed = copies::limit(card).unwrap_or(1);
+            h.push_str(&button(
+                &add,
+                &format!(
+                    "Put another copy of this card in play. Over the limit: the rules allow a deck {} of this card",
+                    allowed
+                ),
+                OVER_TILE,
+                concat!(
+                    r#"<span class="text-2xl font-bold">+</span>"#,
+                    r#"<span class="text-[0.6rem] font-bold uppercase tracking-wide">over<br>limit</span>"#,
+                ),
+            ));
+        } else {
+            h.push_str(&button(&add, "Put another copy of this card in play", TILE, "+"));
+        }
     }
     h.push_str("</div>");
     h
@@ -229,6 +259,40 @@ mod tests {
         assert!(handle_copies_get(BROX).contains(r##"<a href="#2" aria-label="Copy 1 of 2. Show the next copy""##));
         // An address that asks for a copy there is not shows the first.
         assert!(handle_copies_get("?card=brox_the_defiant&copy=5").contains(r#"data-copy="1""#));
+        fresh();
+    }
+
+    #[test]
+    fn the_button_turns_red_and_says_over_limit_once_more_are_in_play_than_the_rules_allow() {
+        fresh();
+        // A character: the rules allow a deck one.
+        assert!(!handle_copies_get(BROX).contains("over"));
+        handle_copies_post("action=add&card=brox_the_defiant");
+        let html = handle_copies_get("?card=brox_the_defiant&copy=2");
+        assert!(html.contains("data-over-limit"));
+        assert!(html.contains("!bg-kip-red") && html.contains("over<br>limit"), "{}", html);
+        assert!(html.contains(
+            r#"aria-label="Put another copy of this card in play. Over the limit: the rules allow a deck 1 of this card""#
+        ));
+        // It still adds: nothing is enforced.
+        assert!(html.contains(r#"data-engine-body="action=add&amp;card=brox_the_defiant""#));
+        handle_copies_post("action=add&card=brox_the_defiant");
+        assert_eq!(copies::count("brox_the_defiant"), 3);
+
+        // A species: two are allowed, a third is over.
+        let species = CARDS.iter().find(|card| card.layout == "Species" && copies::can_have(card)).unwrap();
+        let page = format!("?card={}", species.slug);
+        handle_copies_post(&format!("action=add&card={}", species.slug));
+        assert!(!handle_copies_get(&page).contains("data-over-limit"));
+        handle_copies_post(&format!("action=add&card={}", species.slug));
+        let html = handle_copies_get(&page);
+        assert!(html.contains("data-over-limit") && html.contains("the rules allow a deck 2 of this card"));
+
+        // Back within the limit, the button is as it was.
+        handle_copies_post(&format!("action=ask&card={}~3", species.slug));
+        handle_copies_post(&format!("action=remove&card={}~3", species.slug));
+        let html = handle_copies_get(&page);
+        assert!(!html.contains("data-over-limit") && !html.contains("!bg-kip-red"));
         fresh();
     }
 

@@ -20,7 +20,8 @@
 use crate::catalog::Card;
 use crate::game::player_doc::{self, CardState};
 
-/// The most copies of one card in play.
+/// The most copies of one card in play. Far more than the rules allow a
+/// deck ([`limit`]): this is only where the binder stops counting.
 pub const MOST: u8 = 9;
 
 /// What parts a card's name from a copy's number in a key.
@@ -58,6 +59,26 @@ fn slots_of(card: &Card) -> u8 {
 /// that fights has anything to keep of a copy.
 pub fn can_have(card: &Card) -> bool {
     slots_of(card) > 0
+}
+
+/// How many copies of a card the rules allow in a deck: one of a
+/// character, two of a species (Card Copy Limits, in the rules book). None
+/// for a card that has no copies in play to count.
+///
+/// It is not enforced. A soul can be stolen or crafted in play, and a
+/// table may have rules of its own, so the binder only says when a player
+/// is over it ([`over_limit`]).
+pub fn limit(card: &Card) -> Option<u8> {
+    match card.layout {
+        "Character" => Some(1),
+        "Species" => Some(2),
+        _ => None,
+    }
+}
+
+/// Whether more copies of this card are in play than the rules allow a deck.
+pub fn over_limit(card: &Card) -> bool {
+    limit(card).is_some_and(|limit| count(card.slug) > limit)
 }
 
 /// How many copies of a card are in play: one, unless more were added.
@@ -179,6 +200,32 @@ mod tests {
         assert!(!can_have(trap));
         assert_eq!(add(trap), None);
         assert_eq!(count(trap.slug), 1);
+        reset();
+    }
+
+    #[test]
+    fn a_player_is_over_the_rules_limit_with_two_of_a_character_or_three_of_a_species() {
+        reset();
+        let character = brox();
+        let species = CARDS.iter().find(|card| card.layout == "Species" && can_have(card)).unwrap();
+        assert_eq!((limit(character), limit(species)), (Some(1), Some(2)));
+        assert!(!over_limit(character) && !over_limit(species));
+
+        add(character);
+        assert!(over_limit(character), "a second copy of a character");
+        add(species);
+        assert!(!over_limit(species), "two of a species are allowed");
+        add(species);
+        assert!(over_limit(species));
+        // Being over it stops nothing: more can be added.
+        assert_eq!(add(character), Some(3));
+        // And taking copies out brings a player back within it.
+        remove(species, 3);
+        assert!(!over_limit(species));
+        // A card that is not a soul has no limit here: it has no copies.
+        let trap = CARDS.iter().find(|card| card.layout == "Trap").unwrap();
+        assert_eq!(limit(trap), None);
+        assert!(!over_limit(trap));
         reset();
     }
 
