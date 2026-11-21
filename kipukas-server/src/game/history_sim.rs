@@ -15,7 +15,10 @@
 //!   cargo test --release --lib history_sim -- --ignored --nocapture
 //!
 //! To try another formula, add it to `FORMULAS`. To try another way of
-//! using the site, add it to `PERSONAS`.
+//! using the site, add it to `PERSONAS`. To see every take-over of one
+//! history, name its persona, or a part of the name:
+//!
+//!   HISTORY_SIM_TRACE=washed cargo test --release --lib history_sim -- --ignored --nocapture
 
 use std::collections::BTreeMap;
 
@@ -45,6 +48,14 @@ struct Met {
     days_here: f64,
     /// Days of play the device added to the record it took.
     days_there: f64,
+    /// Changes the state taken had let go before this, that the device
+    /// never saw: what `held` came to in each take-over known to the state
+    /// taken and not to the device. A device lets its own history go when
+    /// it takes a state over.
+    gained_let_go: f64,
+    /// The same of the device: changes it had let go, that the state taken
+    /// never saw.
+    held_let_go: f64,
 }
 
 /// The smaller of two sizes over the larger, or nothing where one is nothing.
@@ -102,16 +113,24 @@ impl Met {
     fn record(&self) -> f64 {
         (self.days_here + self.days_there) * ratio(self.days_here, self.days_there)
     }
+
+    /// The built formula, each side weighing what it holds and what it has
+    /// let go: a history let go still counts for the one that held it.
+    fn weighed(&self) -> f64 {
+        let (gained, held) = (self.gained + self.gained_let_go, self.held + self.held_let_go);
+        ((gained + held) * ratio(gained, held)).floor()
+    }
 }
 
 type Formula = (&'static str, fn(&Met) -> f64);
 
-const FORMULAS: [Formula; 5] = [
+const FORMULAS: [Formula; 6] = [
     ("built", Met::built),
     ("counted", Met::counted),
     ("bits", Met::bits),
     ("writer bits", Met::writer_bits),
     ("record", Met::record),
+    ("weighed", Met::weighed),
 ];
 
 fn state_vector(encoded: &str) -> StateVector {
@@ -135,7 +154,7 @@ fn entropy(vector: &StateVector) -> f64 {
         .sum()
 }
 
-fn met(mine: &StateVector, theirs: &StateVector, taken: &doc::Taken) -> Met {
+fn met(mine: &StateVector, theirs: &StateVector, taken: &doc::Taken, let_go: (f64, f64)) -> Met {
     let ahead = |a: &StateVector, b: &StateVector| -> f64 {
         a.iter().map(|(client, clock)| clock.saturating_sub(b.get(client)) as f64).sum()
     };
@@ -151,6 +170,8 @@ fn met(mine: &StateVector, theirs: &StateVector, taken: &doc::Taken) -> Met {
         writers: 2.0 * entropy(&both) - entropy(mine) - entropy(theirs),
         days_here: taken.days_new_here as f64,
         days_there: taken.days_new_there as f64,
+        gained_let_go: let_go.0,
+        held_let_go: let_go.1,
     };
     assert_eq!((met.gained as u32, met.held as u32), (taken.gained, taken.held));
     met
@@ -280,7 +301,13 @@ impl World {
         doc::restore_from_state(&receiver.state).unwrap();
         let mine = state_vector(&doc::encode_state_vector());
         let taken = doc::take_over(state, self.now(), by).unwrap();
-        let met = met(&mine, &state_vector(&taken.their_state_vector), &taken);
+        // What each side has let go that the other never saw: the take-overs
+        // one knows of and the other does not.
+        let let_go = |of: &BTreeMap<u64, Met>, other: &BTreeMap<u64, Met>| -> f64 {
+            of.iter().filter(|(id, _)| !other.contains_key(id)).map(|(_, met)| met.held).sum()
+        };
+        let let_go = (let_go(ledger, &receiver.ledger), let_go(&receiver.ledger, ledger));
+        let met = met(&mine, &state_vector(&taken.their_state_vector), &taken, let_go);
         receiver.state = doc::encode_full_state();
         receiver.ledger.extend(ledger.iter().map(|(id, met)| (*id, *met)));
         receiver.ledger.insert(self.takeovers, met);
@@ -549,6 +576,7 @@ fn shown(number: f64) -> String {
 fn made_up_histories_through_each_formula() {
     // persona → formula → what it added up to, history by history
     let mut sums: Vec<Vec<Vec<f64>>> = Vec::new();
+    let trace = std::env::var("HISTORY_SIM_TRACE").ok();
     println!();
     println!("{} histories of each. The middle one, and [the least to the most].", HISTORIES);
     for (name, odd, persona) in PERSONAS {
@@ -557,6 +585,22 @@ fn made_up_histories_through_each_formula() {
         for seed in 0..HISTORIES {
             let device = persona(&mut World::new(seed));
             doc::restore_from_state(&device.state).unwrap();
+            if seed == 0 && trace.as_ref().is_some_and(|wanted| name.contains(wanted.as_str())) {
+                println!();
+                println!("TRACE {}: each take-over of its first history", name);
+                for met in device.ledger.values() {
+                    println!(
+                        "    gained {:>6} held {:>6} shared {:>6} | let go: theirs {:>6} ours {:>6} | days {:>3} and {:>3} | built {:>6} weighed {:>6} record {:>6.1}",
+                        met.gained, met.held, met.shared, met.gained_let_go, met.held_let_go,
+                        met.days_here, met.days_there, met.built(), met.weighed(), met.record()
+                    );
+                }
+                let sum = doc::sync_sum();
+                println!(
+                    "    the engine's sum at the end: merges {}, gained {}, held {}, distance {}",
+                    sum.merges, sum.gained, sum.held, sum.distance
+                );
+            }
             // The ledger is the engine's merges, with the take-overs that
             // brought nothing new besides: what the engine keeps agrees.
             let built: f64 = device.ledger.values().map(Met::built).sum();
