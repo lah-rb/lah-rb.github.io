@@ -24,7 +24,8 @@
 //! │                             "total_plays": u32, "last_played": "YYYY-MM-DD" }
 //! ├── "merges" (YMap) — each state taken over from another device or a backup:
 //! │   └── "<id>": { "at": f64 (ms), "by": "device" | "file",
-//! │                 "gained": u32, "held": u32, "shared": u32 }
+//! │                 "gained": u32, "held": u32, "shared": u32,
+//! │                 "days_gained": u32, "days_held": u32 }
 //! ├── "sync_sum" (YMap) — the merges added up:
 //! │   └── { "merges": u32, "gained": u64, "held": u64, "distance": u64 }
 //! └── "settings" (YMap)
@@ -1043,7 +1044,7 @@ pub fn clear_loyalty() {
 // Each time a state is taken over that holds something new to this device,
 // the two histories are compared and the comparison is kept, under `merges`:
 //
-//   "<id>": { at, by, gained, held, shared }
+//   "<id>": { at, by, gained, held, shared, days_gained, days_held }
 //
 // `gained` is how many changes the state taken held that this device had
 // not seen, `held` how many this device held that the state taken had not,
@@ -1057,6 +1058,15 @@ pub fn clear_loyalty() {
 // and nothing is decided by them: no merge is refused. `by` is `device`
 // (the other device sent it) or `file` (a backup). A merge kept before
 // `shared` was (November 2026) reads as sharing nothing.
+//
+// The first three are of the two histories: every change made, to a game
+// as much as to the record. `days_gained` and `days_held` say the same of
+// the two records alone: the days of play the state taken brought that
+// this device lacked, and those this device had that the state taken
+// lacked. They are kept because a history can be let go and a record
+// cannot: a device that takes over an empty game keeps its record, written
+// anew in far fewer changes than it took to make (`game::history_sim`
+// plays this out). Nothing reads them yet.
 //
 // ## The sync sum
 //
@@ -1089,6 +1099,10 @@ pub struct Merge {
     pub held: u32,
     /// Changes both held.
     pub shared: u32,
+    /// Days of play the state taken brought that this device lacked.
+    pub days_gained: u32,
+    /// Days of play this device had that the state taken lacked.
+    pub days_held: u32,
 }
 
 impl Merge {
@@ -1177,6 +1191,8 @@ fn read_merges<T: ReadTxn>(merges: &MapRef, txn: &T) -> Vec<Merge> {
                 gained: number_in(&entry, txn, "gained").unwrap_or(0.0) as u32,
                 held: number_in(&entry, txn, "held").unwrap_or(0.0) as u32,
                 shared: number_in(&entry, txn, "shared").unwrap_or(0.0) as u32,
+                days_gained: number_in(&entry, txn, "days_gained").unwrap_or(0.0) as u32,
+                days_held: number_in(&entry, txn, "days_held").unwrap_or(0.0) as u32,
             }),
             _ => None,
         })
@@ -1192,6 +1208,8 @@ fn write_merge(merges: &MapRef, txn: &mut TransactionMut, merge: &Merge) {
         ("gained".to_string(), Any::from(merge.gained as f64)),
         ("held".to_string(), Any::from(merge.held as f64)),
         ("shared".to_string(), Any::from(merge.shared as f64)),
+        ("days_gained".to_string(), Any::from(merge.days_gained as f64)),
+        ("days_held".to_string(), Any::from(merge.days_held as f64)),
     ]);
     merges.insert(txn, merge.id.as_str(), entry);
 }
@@ -1299,6 +1317,8 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
                 gained: taken.gained,
                 held: taken.held,
                 shared: common(&my_state_vector, &their_state_vector),
+                days_gained: taken.days_new_here,
+                days_held: taken.days_new_there,
             };
             write_merge(&merges, &mut txn, &merge);
         }
@@ -2179,6 +2199,9 @@ mod tests {
         assert_eq!((kept[0].at, kept[0].by.as_str()), (THEN, "device"));
         assert_eq!((kept[0].gained, kept[0].held), (first.gained, first.held));
         assert_eq!(kept[0].id.len(), 16);
+        // What the two records had of each other is kept beside it: Brox's
+        // two days came, and Liliel's one was this device's.
+        assert_eq!((kept[0].days_gained, kept[0].days_held), (2, 1));
 
         // The merges this device holds go with it into the next state it takes.
         let mine = encode_full_state();
@@ -2197,7 +2220,16 @@ mod tests {
     }
 
     fn merge_of(gained: u32, held: u32) -> Merge {
-        Merge { id: String::new(), at: THEN, by: "device".to_string(), gained, held, shared: 0 }
+        Merge {
+            id: String::new(),
+            at: THEN,
+            by: "device".to_string(),
+            gained,
+            held,
+            shared: 0,
+            days_gained: 0,
+            days_held: 0,
+        }
     }
 
     #[test]

@@ -47,6 +47,7 @@ fn render_history(merges: &[Merge], sum: &SyncSum) -> String {
         r#"that held something new to it, the two histories were compared. Gained is how many changes "#,
         r#"arrived that this device lacked, held how many it had that the other lacked, shared how many "#,
         r#"both had. Distance is gained and held together, times the smaller of the two over the larger. "#,
+        r#"The days of play are the same two counts of the two records alone. "#,
         r#"Nothing is decided by these numbers.</p>"#,
     ));
     h.push_str(&format!(
@@ -73,14 +74,17 @@ fn render_history(merges: &[Merge], sum: &SyncSum) -> String {
                 concat!(
                     r#"<li class="py-1 border-t border-kip-drk-goldenrod/30" data-merge>"#,
                     r#"<div class="font-bold">{} UTC, from {}</div>"#,
-                    r#"<div>gained {}, held {}, shared {}, distance {}</div></li>"#,
+                    r#"<div>gained {}, held {}, shared {}, distance {}</div>"#,
+                    r#"<div>days of play gained {}, held {}</div></li>"#,
                 ),
                 &when[..16.min(when.len())],
                 from,
                 merge.gained,
                 merge.held,
                 merge.shared,
-                merge.distance()
+                merge.distance(),
+                merge.days_gained,
+                merge.days_held
             ));
         }
         h.push_str("</ul>");
@@ -272,6 +276,7 @@ mod tests {
             ">gained {}, held {}, shared 0, distance {}</div>",
             taken.gained, taken.held, sum.distance
         )));
+        assert!(html.contains(">days of play gained 1, held 1</div>"), "{}", html);
         assert!(!html.contains("No merges yet."));
         reset();
     }

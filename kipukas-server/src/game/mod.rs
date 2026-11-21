@@ -14,6 +14,8 @@ pub mod crypto;
 pub mod damage;
 pub mod device_sync;
 pub mod fists;
+#[cfg(test)]
+mod history_sim;
 pub mod matchup;
 pub mod player_doc;
 pub mod recipes;
