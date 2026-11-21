@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Open Stack &amp; Licenses | Kipukas</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Open Stack &amp; Licenses" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The open-source technologies and licenses that power kipukas.cards." />
+<meta property="og:description" content="The open-source technologies and licenses that power kipukas.cards." />
+<link rel="canonical" href="https://www.kipukas.cards/open_stack" />
+<meta property="og:url" content="https://www.kipukas.cards/open_stack" />
+<meta property="og:site_name" content="Kipukas" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Open Stack &amp; Licenses" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"The open-source technologies and licenses that power kipukas.cards.","headline":"Open Stack &amp; Licenses","url":"https://www.kipukas.cards/open_stack"}</script>
+<!-- End Jekyll SEO tag -->
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Open Stack &amp; Licenses</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
+    
+    <!-- Preload critical scripts to reduce parse/evaluation time -->
+    <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
+    <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!--favicon code realfavicongenerator.net-->
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <link rel="mask-icon" href="/assets/ico/safari-pinned-tab.svg" color="#9b2c2c">
+    <link rel="shortcut icon" href="/assets/ico/favicon.ico">
+    <meta name="apple-mobile-web-app-title" content="Kipukas">
+    <meta name="application-name" content="Kipukas">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
+    <meta name="theme-color" content="#9b2c2c">
+
+    <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
+
+    <!-- Starts the game engine and does for it what only a page can.
+         Must load BEFORE the Alpine bundle: it registers Alpine.store('room') on
+         `alpine:init`, and Alpine starts in a microtask right after its bundle. -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+
+    <!-- Engine-owned views: the engine renders them and the page patches the
+         result in place. Idiomorph does the patching. -->
+    <script defer src="/assets/js/idiomorph.min.js"></script>
+    <script defer src="/assets/js/kipukas-view.js"></script>
+
+    <!-- PWA: service worker registration + update-then-refresh flow -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
+
+    <!-- The QR scanner's camera script, loaded when its button is first pressed -->
+    <script>
+      window.kipukasLoadQR = function() {
+        if (!window.kipukasQRLoading) {
+          window.kipukasQRLoading = import('/assets/js/qr-camera.js').catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+        }
+        return window.kipukasQRLoading;
+      };
+    </script>
+
+  </head>
+
+  <body x-data="{ 
+                  showInstallModal: false,
+                  top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
+                  hideInstallButton: $persist(false),
+                  landscapeArt: false,
+                }" 
+        class="bg-hero-pattern z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
+    <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+</div>
+
+    <!-- Room status: a small pill, bottom left, shown while this player is in a
+     multiplayer room. Included from _layouts/default.html so every page has
+     it, including pages with no multiplayer tools (hand view, about pages).
+
+     An engine-owned view (Pattern 13, assets/js/kipukas-view.js) of
+     /api/room/pill: the engine knows where the connection stands and draws
+     the pill, or nothing outside a room
+     (kipukas-server/src/routes/room_status.rs lists what it can show).
+
+     The rules book (kipukas_rules_book/index.html) is a standalone page and
+     has the same element. -->
+<div data-engine-view="/api/room/pill" role="status" aria-live="polite"></div>
+
+    <main id="main-content"><!-- includes available
+hamburger
+qr_scanner
+type_matchup
+damage_tracker
+showCardInfo
+lastPage
+logo
+goHome
+hideTools
+card_slug    (the card a card page shows; the fists tool fights with it)
+base_fill
+base_stroke
+background_color
+  
+-->
+
+
+<div class="w-screen h-fit z-0 justify-center flex place-items-center mb-2">
+  <a href="./" class="block w-full max-w-md" title="Binder Home">
+    <img class="w-full h-auto transition hover:scale-95 active:transform-none" width="640" height="320" src="/assets/utility_images/kipukas_complete_card_collection.svg" alt="Kipukas Complete Card Collection" fetchpriority="high"></img>
+  </a>
+</div>
+
+
+<div x-cloak
+  x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true), toolbarIdle: false, _idleTimer: null, pokeToolbar() { this.toolbarIdle = false; clearTimeout(this._idleTimer); this._idleTimer = setTimeout(() => { this.toolbarIdle = true; }, 4000); } }"
+  x-init="pokeToolbar()"
+  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+  @keydown.capture="pokeToolbar()"
+  :class="{ 'toolbar-idle': toolbarIdle }"
+  class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+  
+
+  
+
+  
+  
+
+  
+    <div x-show="showHamburger"
+    id="hamburger-menu" role="navigation" aria-label="Site menu"
+    x-anchor.right-end.offset.10="$refs.hamburger"
+    x-transition.duration.350ms
+    x-cloak
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
+    <div><a href="/" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+    <div><a href="/game_rules/index.html" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+    <div><a href="/recipes" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+    <div><a href="/player_data" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Player Data</a></div>
+    <div><a href="/settings" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Settings</a></div>
+    <div><a href="/privacy_policy" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+    <div><a href="/about_articles" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+</div>
+
+<div class="flex justify-center">
+    <button class="toolbar-tile text-kip-drk-goldenrod relative"
+            @click="showHamburger = !showHamburger"
+            x-ref="hamburger"
+            aria-label="extra nav menu"
+            :aria-expanded="showHamburger"
+            aria-controls="hamburger-menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
+  
+
+  
+  <!-- Branded Home tile — sits just below the hamburger, always visible (outside
+       the collapsible tools group). The "k" mark carries its own brand colors. -->
+  <a href="/" aria-label="Go to home page" class="toolbar-tile">
+    <img src="/assets/utility_images/k_plain.svg" alt="Home" class="h-9 w-auto">
+  </a>
+  
+
+  <div x-show="showTools"  class="toolbar-tools flex flex-col items-center gap-2">
+    
+      <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default behavior (which would be to show the install prompt automatically)
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    });
+
+    // ============================================
+    // AUTO-HIDE: detect if the PWA is already installed
+    // ============================================
+
+    // Layer 1: If running in standalone / fullscreen mode, the PWA is installed.
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        navigator.standalone === true) {
+      // We need to wait for Alpine to initialise the data stack before setting.
+      document.addEventListener('alpine:init', () => {
+        Alpine.store('__pwaInstalled', true);
+      });
+      // Also set via DOM once body x-data is ready (belt-and-suspenders)
+      document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        if (body && body._x_dataStack) {
+          body._x_dataStack[0].hideInstallButton = true;
+        }
+      });
+      // Installed PWA launch: warm/resume the offline cache (idempotent — skips
+      // already-cached entries, so re-running each launch finishes an interrupted warm).
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.ready.then((reg) => {
+          if (reg.active) reg.active.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+        });
+      }
+    }
+
+    // Layer 2: Listen for the appinstalled event (fires when user completes install).
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] App installed — hiding install button');
+      // Set Alpine persisted state so the button stays hidden on future visits
+      const body = document.body;
+      if (body && body._x_dataStack) {
+        body._x_dataStack[0].hideInstallButton = true;
+      }
+      deferredPrompt = null;
+
+      // Notify the Service Worker so it can track install state independently,
+      // and ask it to warm the full offline cache (card art + QR decoder).
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'PWA_INSTALLED' });
+        navigator.serviceWorker.controller.postMessage({ type: 'WARM_OFFLINE_CACHE' });
+      }
+    });
+
+    // Layer 3: Ask the Service Worker if it already knows the PWA was installed.
+    // This covers cases where localStorage was cleared but the SW persists.
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (!registration.active) return;
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (msg) => {
+          if (msg.data && msg.data.installed === true) {
+            const body = document.body;
+            if (body && body._x_dataStack) {
+              body._x_dataStack[0].hideInstallButton = true;
+            }
+          }
+        };
+        registration.active.postMessage({ type: 'PWA_INSTALL_CHECK' }, [ch.port2]);
+      });
+    }
+
+    // Check if the deferred prompt isn't null, then show the prompt
+    function handlePWAInstall() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+
+        // Wait for the user to make a choice
+        deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('[PWA] Install choice:', choiceResult.outcome);
+            if (choiceResult.outcome === 'accepted') {
+                // The appinstalled event will fire and handle hiding,
+                // but set it here too for immediate feedback.
+                const body = document.body;
+                if (body && body._x_dataStack) {
+                    body._x_dataStack[0].hideInstallButton = true;
+                }
+            }
+            // We've used the prompt, and can't use it again, so set this to null
+            deferredPrompt = null;
+        });
+    } else {
+        alert(`You are unable to install the Kipukas Binder web app at this time.
+        
+If you already installed our app, then great! This is expected because you don't need to install it again. Click ok to hide the install button.
+        
+If you have not already installed our pwa, check if your browser (and launcher if on android) support(s) pwa installs. While many browsers work well, Chromium based browsers (i.e. Bromite, Vanadium, Brave, and of course Google Chrome) deliver the most consistent experience across devices followed closely by firefox. We will go ahead and hide the install button.`);
+
+        // Hide the install button
+        const body = document.body;
+        if (body && body._x_dataStack) {
+            body._x_dataStack[0].hideInstallButton = true;
+        }
+    }
+}
+    
+</script>
+<template x-if="true">
+    <button class="toolbar-tile" x-show="!hideInstallButton" @click="showInstallModal = !showInstallModal" aria-label="Install app">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"
+            class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+    </button>
+</template>
+
+
+
+<div x-show="showInstallModal"
+     role="dialog" aria-modal="true" aria-labelledby="modal-title-install-notice"
+     x-trap="showInstallModal"
+     @keydown.escape.window="showInstallModal = false"
+     class="fixed top-0 left-0 right-0 h-screen w-screen inset-0 flex items-center justify-center z-50" x-cloak>
+
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="z-50 absolute inset-0 bg-slate-300 opacity-75"></div>
+    </template>
+  
+    <template x-if="true"> <!--This template makes sure the modal does not display when unneeded-->
+      <div class="bg-amber-50 z-50 p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 id="modal-title-install-notice" class="text-xl font-semibold mb-4 text-kip-drk-sienna">Install Notice</h2>
+        <p class="mb-4 text-kip-drk-sienna">
+            This website is designed as a progressive web app or pwa. This means that it can be installed on your device, which allows you a native like experience on any platform. This also allows for a better offline experience. This does not mean that we collect any data from you, should you decide to install our pwa.
+        </p>
+  
+        <button @click="showInstallModal = !showInstallModal, handlePWAInstall()" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 my-2 px-4 rounded">
+          Install
+        </button>
+  
+        <button @click="showInstallModal = !showInstallModal" class="bg-kip-red hover:bg-emerald-600 text-amber-50 font-bold py-2 px-4 rounded">
+          I'll use the website as is.
+        </button>
+        
+  <div><input type="checkbox" @click="hideInstallButton = !hideInstallButton" id="hideInstall" class="text-kip-red rounded mr-2 focus:ring-1 focus:ring-kip-red disabled:bg-slate-100"><label for="hideInstall">Hide the install button for subsequent visits, please.</label></div>
+
+      </div>
+    </template>
+  </div>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+      <a :href="previousURL" aria-label="Go to last visited page" class="toolbar-tile hidden lg:inline-flex">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          class="toolbar-tile-icon fill-none stroke-kip-drk-goldenrod hover:stroke-kip-red active:stroke-kip-drk-sienna">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </a>
+    
+    
+  </div>
+  
+  <button type="button" aria-label="Toggle tools" :aria-expanded="showTools"
+    @click="showTools = !showTools" @keydown.enter.space.prevent="showTools = !showTools"
+    class="toolbar-tile-pill mb-2 place-self-center">
+    <svg xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate-180': !showTools }"
+      class="fill-none stroke-2 stroke-kip-drk-goldenrod w-6 h-6 transition-transform">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+    </svg>
+  </button>
+  
+
+</div>
+
+<template x-if="true">
+  <div class="flex place-content-center w-screen h-fit">
+    <div
+      class="z-10 grid grid-cols-1 bg-amber-50 outline outline-kip-drk-goldenrod text-kip-drk-goldenrod text-justify leading-loose px-2 md:px-10 w-5/6 h-fit min-h-screen scroll-smooth text-sm md:text-lg">
+
+      <h1 class="z-20 text-2xl relative text-kip-drk-goldenrod top-0 md:text-4xl py-5 place-self-center">
+        Open Stack &amp; Licenses
+      </h1>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-2">
+        Kipukas is built on open-source software from top to bottom. All game logic runs
+        <b>100% client-side</b> in WebAssembly — the binder has no backend server, no database, and no paid
+        services beyond static hosting. Two features reach a server: multiplayer and device sync pass through a
+        thin relay that keeps no game data, and Kippa, the rules assistant, runs on a server of ours. Below are
+        the technologies and their licenses.
+      </p>
+      <div class="bg-kip-red w-3/4 h-0.5 place-self-center"></div>
+
+      <!-- ─── Frontend ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Frontend</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">Version</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://jekyllrb.com/" class="underline">Jekyll</a></td>
+              <td class="py-1 pr-2">~4.3.4</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Static site generator</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://tailwindcss.com/" class="underline">Tailwind CSS</a></td>
+              <td class="py-1 pr-2">v4</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Utility-first CSS framework</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://alpinejs.dev/" class="underline">Alpine.js</a></td>
+              <td class="py-1 pr-2">3.14.9</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Lightweight UI reactivity (+ persist, intersect, focus, anchor, collapse plugins)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/bigskysoftware/idiomorph" class="underline">Idiomorph</a></td>
+              <td class="py-1 pr-2">0.7</td>
+              <td class="py-1 pr-2">0BSD</td>
+              <td class="py-1">Patches what the game engine draws into the page, changing only what differs</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://developer.chrome.com/docs/workbox" class="underline">Workbox</a></td>
+              <td class="py-1 pr-2">7.3.0</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Service worker / PWA caching</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://marked.js.org/" class="underline">marked</a></td>
+              <td class="py-1 pr-2">17</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Turns the rules book's Markdown into its page (build time) and formats Kippa's answers</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/cure53/DOMPurify" class="underline">DOMPurify</a></td>
+              <td class="py-1 pr-2">3</td>
+              <td class="py-1 pr-2">MPL-2.0 / Apache-2.0</td>
+              <td class="py-1">Cleans that HTML before it is shown</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── WASM Layer ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">WASM Layer</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">Version</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://www.rust-lang.org/" class="underline">Rust</a></td>
+              <td class="py-1 pr-2">Edition 2024</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Game logic, routing, type safety</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://rustwasm.github.io/wasm-bindgen/" class="underline">wasm-bindgen</a></td>
+              <td class="py-1 pr-2">0.2</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Rust ↔ JavaScript interop</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/matchit" class="underline">matchit</a></td>
+              <td class="py-1 pr-2">0.8</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Radix-tree URL router</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://serde.rs/" class="underline">serde</a></td>
+              <td class="py-1 pr-2">1.x</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">State serialization</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/serde_json" class="underline">serde_json</a></td>
+              <td class="py-1 pr-2">1.x</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">JSON serialization</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/yrs" class="underline">yrs</a></td>
+              <td class="py-1 pr-2">0.25</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">CRDT for multiplayer sync</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/base64" class="underline">base64</a></td>
+              <td class="py-1 pr-2">0.22</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Binary ↔ base64 encoding</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/hmac-sha256" class="underline">hmac-sha256</a></td>
+              <td class="py-1 pr-2">1.1</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Tamper-resistant data signing</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/aes-gcm" class="underline">aes-gcm</a></td>
+              <td class="py-1 pr-2">0.10</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Encrypting player data backups, and a game sent from one device to another</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/getrandom" class="underline">getrandom</a></td>
+              <td class="py-1 pr-2">0.2</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">The browser's random numbers, for each backup and each device sync</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/qrcodegen" class="underline">qrcodegen</a></td>
+              <td class="py-1 pr-2">1.8</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Draws the QR code one device shows another to sync</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/fastrand" class="underline">fastrand</a></td>
+              <td class="py-1 pr-2">2</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Ids for turn timers</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/js-sys" class="underline">js-sys</a></td>
+              <td class="py-1 pr-2">0.3</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">The browser's clock</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/tirr-c/jxl-oxide" class="underline">jxl-oxide</a></td>
+              <td class="py-1 pr-2">0.12.6</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Pure-Rust JPEG XL image decoding</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/jpeg-encoder" class="underline">jpeg-encoder</a></td>
+              <td class="py-1 pr-2">0.7</td>
+              <td class="py-1 pr-2">(MIT / Apache-2.0) and IJG</td>
+              <td class="py-1">Card preview pictures for link shares (build time)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://crates.io/crates/yaml-rust2" class="underline">yaml-rust2</a></td>
+              <td class="py-1 pr-2">0.13</td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Reading the card files (build time)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/zxing-cpp/zxing-cpp" class="underline">ZXing</a> (zxing-cpp, WASM)</td>
+              <td class="py-1 pr-2">3.2.0-rc1</td>
+              <td class="py-1 pr-2">Apache-2.0</td>
+              <td class="py-1">QR code scanning / decoding</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://onnxruntime.ai/docs/tutorials/web/" class="underline">ONNX Runtime Web</a></td>
+              <td class="py-1 pr-2">1.21.0</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Runs the model that finds QR codes, for the scanner's computer vision (WebGPU or WASM)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/lah-rb/kipukas-qr-model" class="underline">Kipukas QR model</a> (<a href="https://docs.ultralytics.com/models/yolo26/" class="underline">Ultralytics YOLO26n</a>)</td>
+              <td class="py-1 pr-2">8.4.19</td>
+              <td class="py-1 pr-2">AGPL-3.0</td>
+              <td class="py-1">Finds QR codes in a camera frame when the scanner's computer vision is on</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-4 text-xs md:text-sm text-left leading-normal">
+        The model that finds QR codes is trained with
+        <a href="https://github.com/ultralytics/ultralytics" class="underline">Ultralytics YOLO</a>
+        and is offered under the AGPL-3.0, as that software is. The model, the scripts that
+        train it and the scanner code that runs it are published at
+        <a href="https://github.com/lah-rb/kipukas-qr-model" class="underline">github.com/lah-rb/kipukas-qr-model</a>.
+      </p>
+
+      <!-- ─── Server & Runtime ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Server &amp; Runtime</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Technology</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://deno.land/" class="underline">Deno</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Task runner, build scripts</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://www.ruby-lang.org/" class="underline">Ruby</a> + Bundler</td>
+              <td class="py-1 pr-2">BSD 2-Clause / MIT</td>
+              <td class="py-1">Jekyll runtime</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Build Tooling ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Build Tooling</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Tool</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://esbuild.github.io/" class="underline">esbuild</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Bundle Alpine.js + plugins</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://rustwasm.github.io/wasm-pack/" class="underline">wasm-pack</a></td>
+              <td class="py-1 pr-2">MIT / Apache-2.0</td>
+              <td class="py-1">Compile Rust → WASM</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://developer.chrome.com/docs/workbox/modules/workbox-cli" class="underline">Workbox CLI</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Service worker precache manifest</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://tailwindcss.com/" class="underline">@tailwindcss/cli</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Compile Tailwind CSS</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/tailwindlabs/tailwindcss-typography" class="underline">@tailwindcss/typography</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Prose styling (rules book)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/tailwindlabs/tailwindcss-forms" class="underline">@tailwindcss/forms</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Form-control base styles</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/jsdom/jsdom" class="underline">jsdom</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">A page for DOMPurify to work in while the rules book is built</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://svgo.dev/" class="underline">SVGO</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Slims the SVG artwork</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/libjxl/libjxl" class="underline">libjxl (cjxl)</a></td>
+              <td class="py-1 pr-2">BSD 3-Clause</td>
+              <td class="py-1">Encodes the card art as JPEG XL</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://emscripten.org/" class="underline">Emscripten</a></td>
+              <td class="py-1 pr-2">MIT / NCSA</td>
+              <td class="py-1">Compile zxing-cpp → WASM</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://weasyprint.org/" class="underline">WeasyPrint</a></td>
+              <td class="py-1 pr-2">BSD 3-Clause</td>
+              <td class="py-1">Makes the rules book's PDF</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://pypi.org/project/pillow-jxl-plugin/" class="underline">pillow-jxl-plugin</a></td>
+              <td class="py-1 pr-2">GPL-3.0-or-later</td>
+              <td class="py-1">Lets WeasyPrint read the rules book's JPEG XL pictures; used only while the PDF is made</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2"><a href="https://github.com/tmuxinator/tmuxinator" class="underline">tmuxinator</a></td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Multi-pane dev environment</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Jekyll Plugins ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Jekyll Plugins</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-4">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Plugin</th>
+              <th class="py-1 pr-2">License</th>
+              <th class="py-1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-paginate</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Pagination</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-seo-tag</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">SEO meta tags</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-sitemap</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">Sitemap generation</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">jekyll-redirect-from</td>
+              <td class="py-1 pr-2">MIT</td>
+              <td class="py-1">URL redirects</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ─── Hosting ─── -->
+      <h2 class="z-20 text-xl md:text-2xl pt-6 pb-2 place-self-center">Hosting &amp; Infrastructure</h2>
+      <div class="z-20 w-full md:w-5/6 place-self-center overflow-x-auto pb-6">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-kip-drk-goldenrod">
+              <th class="py-1 pr-2">Service</th>
+              <th class="py-1 pr-2">Cost</th>
+              <th class="py-1">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">GitHub Pages</td>
+              <td class="py-1 pr-2">Free</td>
+              <td class="py-1">Static site hosting</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">Cloudflare Workers</td>
+              <td class="py-1 pr-2">Free tier</td>
+              <td class="py-1">WebSocket relay between two players, or two of one player's devices (one small object per room)</td>
+            </tr>
+            <tr class="border-b border-kip-drk-goldenrod/30">
+              <td class="py-1 pr-2">In-browser WASM</td>
+              <td class="py-1 pr-2">Free</td>
+              <td class="py-1">All game logic — zero server cost</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="z-20 w-5/6 md:w-4/6 place-self-center pb-6 italic">
+        No database. No authentication server. No paid services.
+      </p>
+
+    </div>
+  </div>
+</template>
+</main>
+  </body>
+</html>
