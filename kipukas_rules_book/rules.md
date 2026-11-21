@@ -210,7 +210,7 @@ These are the slight variations between cards. Some variations are planned, whil
 ## What modifies a roll? {#roll_modifiers}
 
 **Apply effect to all battle rolls:**
-- **Affinity Type** If the card’s archetypal adaptation matches the player’s declared [affinity](#affinity) type, apply the bonus
+- **Affinity Type** If the card's archetypal adaptation matches the player's declared [affinity](#affinity) type, add 3 to every roll made for that card, attacking or defending
 - **Habitat** When the [geography](#geography) of a territory matches a soul’s habitat apply the primary habitat bonus; otherwise, check if the secondary bonus applies.
 
 **Apply effect to KEAL means rolls:**
@@ -240,7 +240,7 @@ When souls move onto a movement or territory stand in a territory controlled by 
 
 ## Character and Species (Collectively Soul) Cards {#character_species}
 
-These cards are the soul of Kipukas. Species cards tell the story of a species as a whole, while characters tell the story of an individual within a species. Until tameability is fully implemented, no playable differences between character and species cards exist. Throughout this guide, we refer to these as souls or soul cards when the context applies to both characters and species. Most souls have the ability to move and interact with [traps](#traps) and [items](#items), unless otherwise stated. Each soul has an Archetypal Gene and 1 or more KEAL means made up of [Archetypal Adaptations](#adaptation). Additionally, each soul specifies how many movement/territory stands it can traverse in a day (Movement Range), a damage tracker for KEAL means and [Final Blow](#final_blow) (Card Status), additional play rules (Game Effects), which dice it rolls for attack and defense (Die Rolls), preferred territory type (Habitat), and a tie breaking sequence (Brawl Power).  
+These cards are the soul of Kipukas. Species cards tell the story of a species as a whole, while characters tell the story of an individual within a species. The one playable difference between the two is [tameability](#tameability): a species must be tamed to be under your control, while a character needs no taming. Throughout this guide, we refer to these as souls or soul cards when the context applies to both characters and species. Most souls have the ability to move and interact with [traps](#traps) and [items](#items), unless otherwise stated. Each soul has an Archetypal Gene and 1 or more KEAL means made up of [Archetypal Adaptations](#adaptation). Additionally, each soul specifies how many movement/territory stands it can traverse in a day (Movement Range), a damage tracker for KEAL means and [Final Blow](#final_blow) (Card Status), additional play rules (Game Effects), which dice it rolls for attack and defense (Die Rolls), preferred territory type (Habitat), and a tie breaking sequence (Brawl Power).  
   
 We encourage you to develop story lines for your favorite cards to make the game more imaginative and personal. These should be pliable details developed through situational game play in order to form the soul's personality. Additionally, if some detail of game strategy, like increasing the power of a dragon with a stick, seems janky, you can [call out](#BS) the move as ridiculous even if the move is otherwise valid. If you learn by example better than explanation, read the [Contention Resolution Example](#contention_ex) in [Attack, Defense, Retreat and Healing](#ADRH) first then reference this section as needed. As interest grows, I plan on publishing play-through videos to kipukas.cards.
 
@@ -381,9 +381,21 @@ Use the **fists tool** on kipukas.cards to determine the typing match-ups for KE
 
 ## Tameability {#tameability}
 
-**α mechanic** that applies only to species cards. Some species are easy to work with while others are quite persnickety. The tameability scale represents this phenomenon. Other souls and equipment may need to be played in order to wrangle these species. ∞ means the species is untameable (no amount of bonuses will tame them), those with 10 are the most difficult to tame, while 0 means the species does not require taming. A species becomes tame once player affinity and card effects stack equally with the species tameability. At this point, the soul will be under the full control of the player. If the player chooses to play the creature untamed or the opponent reduces your control of the creature below its tameability then the creature becomes under its own influence, [rogue](#rogue). Additionally, some cards will specify an ability to be played at a lower tameability rating without going rogue. In exchange, certain KEAL means or play effects will be unavailable. These can be made available by staking effects equal to the tameability after the species enters play.
+**α mechanic** that applies only to species cards. Some species are easy to work with while others are quite persnickety. The tameability scale represents this phenomenon. 0 means the species does not require taming, those with 10 are the most difficult to tame, and ∞ means the species is untameable (no amount of bonuses will tame them). Characters never need taming.
 
-> Tameability progress is tracked on kipukas.cards. See [Using the Binder](/using_the_binder#tameability-progress) for details on the web app feature.
+A species is tame once what you bring to it stacks equally with its tameability. At this point, the soul will be under the full control of the player. Three things stack, and together they come to 10 at most:
+
+| What you bring | Worth | Where it comes from |
+|-|-|-|
+| Affinity | 3 | You declared the species' archetypal adaptation as your [affinity](#affinity) at the start of the game. All or nothing. |
+| Card effects | up to 3 | Other souls and equipment played in order to wrangle the species. These come and go during the game. |
+| Loyalty | up to 4 | Your history with that card, which is the only part that carries from one game to the next. See [Loyalty](#affinity). |
+
+If the player chooses to play the creature untamed or the opponent reduces your control of the creature below its tameability then the creature becomes under its own influence, [rogue](#rogue). To bring it back under control, see [Taming Rogue Species](#taming). Additionally, some cards will specify an ability to be played at a lower tameability rating without going rogue. In exchange, certain KEAL means or play effects will be unavailable. These can be made available by staking effects equal to the tameability after the species enters play.
+
+Two things follow from the numbers. A player with no history with a card can bring 6 at most, so the hardest species answer only to those who have put in the days. And a species outside your declared affinity can be brought 7 at most, so the very hardest can only be controlled in a game where they are your crux.
+
+> Each species' page on kipukas.cards says whether it is under your control or rogue, and shows what your stack is made of. See [Using the Binder](/using_the_binder#tameability-progress) for details on the web app feature.
 
 
 ### Rogue Species {#rogue}
@@ -397,7 +409,9 @@ If a rogue defeats all soul cards in the territory, remove the claim token on th
 
 ### Taming Rogue Species {#taming}
 
-Either player can attempt to tame a rogue soul and bring it under their control. This will require boosting player affinity higher than the tameability of the species card using items and the player’s base affinity level. This is the same manner that species which require taming are placed normally. Taming will occur at the beginning of the day before contention is resolved. It is first available to the player with initiative. The player who attempts taming must have a fully controlled soul **already** in the same territory as the rogue soul.
+Either player can attempt to tame a rogue soul and bring it under their control. This will require the taming player's own stack for that species (their affinity, their card effects in play and their loyalty with that card) to equal its tameability. This is the same manner that species which require taming are placed normally. Taming will occur at the beginning of the day before contention is resolved. It is first available to the player with initiative. The player who attempts taming must have a fully controlled soul **already** in the same territory as the rogue soul.
+
+> When your opponent tames a soul you played, hand the card to them on kipukas.cards so that its injuries go with it. See [Using the Binder](/using_the_binder#damage-tracker).
 
 
 ### Imprisoned Souls {#prison}
@@ -409,13 +423,16 @@ In certain circumstances, i.e. loitering (more than 1 day) in your opponent's ca
 
 **α feature — playable but rough, subject to refinement.**
 
-Affinity and loyalty are long term game play strategies that build over time. Both are now tracked on kipukas.cards, though the feature is still in early development and may change.
+Affinity is a choice you make for one game. Loyalty is the history you build with a card over many. Both are tracked on kipukas.cards, though the feature is still in early development and may change.
 
-**Affinity:** Your affinity for an [Archetypal Adaptation](#adaptation_overview) grows each time you declare it at the start of a game (once per day on kipukas.cards). When a soul card's archetypal adaptation matches your declared affinity, you receive a **+1 bonus to attack and defense rolls** made for that card.
+**Affinity:** At the start of a game you declare an affinity for one [Archetypal Adaptation](#adaptation_overview), and it stands for the whole game. It is the same for every player, however long they have played: affinity does not grow. When a soul card's archetypal adaptation matches your declared affinity:
 
-**Loyalty:** Each time you play a specific Character or Species card in combat, that card's loyalty counter increases (once per day per card). Loyalty also increases if you came to own the card through an incubation card. Both affinity and loyalty are limited to once per day, except at tournaments, which will be once per match.
+- you receive a **+3 bonus to attack and defense rolls** made for that card, [Final Blow](#final_blow) included;
+- if the card is a species, your affinity is worth 3 towards taming it.
 
-**Tameability interaction:** When loyalty, affinity, and play effect bonuses stack greater than the species card's tameability, the card will be tamed. See [Tameability](#tameability) for the full rules on taming and [rogue](#rogue) species.
+**Loyalty:** Each time you play a specific Character or Species card in combat, your loyalty with that card grows (once per day per card). It is worth up to 4 towards taming a species, a point at a time as your days with that card add up. How many days that takes differs from card to card, and the card does not say. Loyalty is yours and not the card's: a soul your opponent hands you answers to your own history with it, not to theirs. In time, loyalty may also grow once per match at tournaments, and a soul you came to own through an [incubation card](#incubation_cards) may come with loyalty already earned.
+
+**Tameability interaction:** When affinity, card effects, and loyalty stack equally with the species card's tameability, the card will be tamed. See [Tameability](#tameability) for the full rules on taming and [rogue](#rogue) species.
 
 For details on using the affinity, loyalty, and tameability tools on kipukas.cards see [Using the Binder](/using_the_binder#affinity-tool).
 
@@ -552,7 +569,7 @@ This bout is taking place in territory 7 (highlighted with pink) which, as indic
 
 #### Combat Setup {#ce_setup}
 
-In the above examples, we have our character, Hilbert, locked in battle with a species card called the Myrthvither Raven. The defending card's (Hilbert's) archetypal adaptation matches the player's declared affinity, so the card receives a bonus to all rolls made by the card. The first attack launched will be a KEAL means attack. The habitat of this card is forest and the battle, according to the geography, is taking place in a forest. This gives the defender a bonus to each KEAL attack made in this territory. Unfortunately, the defender is a nomad, which neutralizes this bonus. Don't worry we will get back at the opponent. In this case, neither card's habitat's secondary effect kicks in. Next, each player chooses a KEAL means and writes it on their grease board. On the count of three, players reveal their choice to one another at the same time. These will be the keal means used for the remainder of this combat.
+In the above examples, we have our character, Hilbert, locked in battle with a species card called the Myrthvither Raven. The defending card's (Hilbert's) archetypal adaptation matches the player's declared affinity, so the card receives a bonus of 3 to all rolls made by the card. The first attack launched will be a KEAL means attack. The habitat of this card is forest and the battle, according to the geography, is taking place in a forest. This gives the defender a bonus to each KEAL attack made in this territory. Unfortunately, the defender is a nomad, which neutralizes this bonus. Don't worry we will get back at the opponent. In this case, neither card's habitat's secondary effect kicks in. Next, each player chooses a KEAL means and writes it on their grease board. On the count of three, players reveal their choice to one another at the same time. These will be the keal means used for the remainder of this combat.
 
 #### Defense {#ce_defense_action}
 
@@ -617,7 +634,7 @@ These cards are played at the beginning of the game and cannot be changed. They 
 
 ### Play Effect Examples {#pe_example}
 
--   Increase player affinity for an archetypal adaptation
+-   Add to your control of a species, as a card effect towards [taming](#tameability) it
 -   Immediate crafting of recipes that would otherwise require a special soul to be in play
 -   Decreased frenemy effects
 -   Search your deck and draw any card of a given type, either at the start of the game or after so many diel cycles
