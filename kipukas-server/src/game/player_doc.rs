@@ -28,13 +28,16 @@
 //! │                 "days_gained": u32, "days_held": u32 }
 //! ├── "sync_sum" (YMap) — the merges added up:
 //! │   └── { "merges": u32, "gained": u64, "held": u64, "distance": u64 }
+//! ├── "let_go" (YMap) — the history let go when states were taken over:
+//! │   └── "ids": String — its ids, as a state vector (base64)
 //! └── "settings" (YMap)
 //!     └── "show_alarms" (bool)
 //! ```
 //!
 //! Cards, timers, what is retired and the affinity are the game in progress:
-//! New Game clears them. Loyalty, the merges and their sum are the player's
-//! record, which outlives every game. See `take_over`.
+//! New Game clears them. Loyalty, the merges, their sum and the ids of the
+//! history let go are the player's record, which outlives every game. See
+//! `take_over`.
 //!
 //! ## Lifecycle
 //!
@@ -103,6 +106,7 @@ fn with_roots(doc: Doc) -> Doc {
         txn.get_or_insert_map("loyalty");
         txn.get_or_insert_map("merges");
         txn.get_or_insert_map("sync_sum");
+        txn.get_or_insert_map("let_go");
         txn.get_or_insert_map("settings");
     }
     doc
@@ -1031,13 +1035,36 @@ pub fn clear_loyalty() {
 // The player's document holds two things. One is the game in progress:
 // damage, timers, the affinity declared, everything New Game clears. The
 // other is the player's record, which outlives every game: each card's
-// loyalty, and the merges below with their sum.
+// loyalty, the merges below with their sum, and the ids of the history let
+// go.
 //
 // Two games have no sensible union, so a game is only ever taken whole: the
 // state that arrives takes the place of the one here. The record is the
 // opposite. What this device knows of it is added to what arrives, so that
 // nothing either holds is lost and nothing is counted twice, and taking the
 // same state over again changes nothing.
+//
+// ## A history is let go, and its ids are kept
+//
+// The document that takes the place of this device's is the other's, with
+// its history: the changes this device made that the other never saw are
+// gone with the game they made. Their ids are not. A document's history is
+// summed up by its state vector, which says how many changes each writer
+// made (every page load writes under an id of its own), and that is all
+// that comparing two histories ever uses. So before the document is let
+// go, the ids of what it holds that the one taken does not are written
+// into the record, under `let_go`, with those either had let go before.
+//
+// A device's whole history, its id, is then what its document holds
+// together with what it has let go (`id`). Nothing that happens to a
+// device makes its id smaller, and whoever takes a state over carries the
+// ids of everything in it from then on. A record cannot be parted from the
+// history that made it by taking over an empty game, and two ids that have
+// ever met show it by what they share.
+//
+// What is kept is only what the document does not hold itself, so a device
+// that takes over a state holding all it has (the usual case: a game
+// carried on from the device last played on) keeps nothing.
 //
 // ## Merges
 //
@@ -1048,8 +1075,9 @@ pub fn clear_loyalty() {
 //
 // `gained` is how many changes the state taken held that this device had
 // not seen, `held` how many this device held that the state taken had not,
-// and `shared` how many both held. (A change is one step of a device's
-// count in the document's state vector.) The three say all there is to say
+// and `shared` how many both held: of the two ids, so of every change
+// either has ever held, let go or not. (A change is one step of a writer's
+// count in a state vector.) The three say all there is to say
 // of the sizes of two histories and of how far they overlap, so whatever is
 // asked of a merge later can be worked out again from what was kept. A new
 // device taking a game over holds next to nothing: `held` is near zero. So
@@ -1057,16 +1085,16 @@ pub fn clear_loyalty() {
 // never one player's, each hold much the other lacks. The numbers are kept
 // and nothing is decided by them: no merge is refused. `by` is `device`
 // (the other device sent it) or `file` (a backup). A merge kept before
-// `shared` was (November 2026) reads as sharing nothing.
+// `shared` was (November 2026) reads as sharing nothing, and one kept
+// before the ids of what is let go were (the same month) counted only what
+// each document held at the time.
 //
 // The first three are of the two histories: every change made, to a game
 // as much as to the record. `days_gained` and `days_held` say the same of
 // the two records alone: the days of play the state taken brought that
 // this device lacked, and those this device had that the state taken
-// lacked. They are kept because a history can be let go and a record
-// cannot: a device that takes over an empty game keeps its record, written
-// anew in far fewer changes than it took to make (`game::history_sim`
-// plays this out). Nothing reads them yet.
+// lacked. A second measure, which looking a card up adds nothing to.
+// Nothing reads them yet.
 //
 // ## The sync sum
 //
@@ -1157,9 +1185,9 @@ impl SyncSum {
 /// What came of taking a state over.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Taken {
-    /// Changes the state taken held that this device had not seen.
+    /// Changes the state taken has ever held that this device never had.
     pub gained: u32,
-    /// Changes this device held that the state taken had not.
+    /// Changes this device has ever held that the state taken never had.
     pub held: u32,
     /// Days of play the state taken brought to this device's record.
     pub days_new_here: u32,
@@ -1178,6 +1206,38 @@ fn ahead(a: &StateVector, b: &StateVector) -> u32 {
 /// How many changes `a` and `b` both hold.
 fn common(a: &StateVector, b: &StateVector) -> u32 {
     a.iter().map(|(client, clock)| (*clock).min(b.get(client))).fold(0, u32::saturating_add)
+}
+
+/// Every change either of `a` and `b` holds.
+fn joined(a: &StateVector, b: &StateVector) -> StateVector {
+    let mut both = a.clone();
+    for (client, clock) in b.iter() {
+        both.set_max(*client, *clock);
+    }
+    both
+}
+
+/// What `a` holds of each writer who made changes that `b` does not hold.
+fn beyond(a: &StateVector, b: &StateVector) -> StateVector {
+    let mut more = StateVector::default();
+    for (client, clock) in a.iter().filter(|(client, clock)| **clock > b.get(client)) {
+        more.set_max(*client, *clock);
+    }
+    more
+}
+
+/// The ids of the history let go, as the record has them. None, where
+/// none are written or what is written cannot be read.
+fn read_let_go<T: ReadTxn>(let_go: &MapRef, txn: &T) -> StateVector {
+    text_in(let_go, txn, "ids")
+        .and_then(|ids| URL_SAFE_NO_PAD.decode(ids).ok())
+        .and_then(|bytes| StateVector::decode_v1(&bytes).ok())
+        .unwrap_or_default()
+}
+
+/// A document's id: the changes it holds, and those let go before it.
+fn id_of<T: ReadTxn>(let_go: &MapRef, txn: &T) -> StateVector {
+    joined(&txn.state_vector(), &read_let_go(let_go, txn))
 }
 
 fn read_merges<T: ReadTxn>(merges: &MapRef, txn: &T) -> Vec<Merge> {
@@ -1238,6 +1298,29 @@ pub fn sync_sum() -> SyncSum {
     SyncSum::of(&merges())
 }
 
+/// How many changes this device's document holds, and how many more its
+/// line has let go and still counts as its own: the two parts of its id.
+pub fn history() -> (u32, u32) {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let let_go = doc.get_or_insert_map("let_go");
+        let txn = doc.transact();
+        let held = txn.state_vector();
+        let total = |ids: &StateVector| ids.iter().map(|(_, clock)| *clock).fold(0, u32::saturating_add);
+        (total(&held), ahead(&read_let_go(&let_go, &txn), &held))
+    })
+}
+
+/// This device's id: every change it holds or its line has let go.
+#[cfg(test)]
+fn id() -> StateVector {
+    PLAYER_DOC.with(|cell| {
+        let doc = cell.borrow();
+        let let_go = doc.get_or_insert_map("let_go");
+        id_of(&let_go, &doc.transact())
+    })
+}
+
 /// The sum as the document has it written down, for whoever reads the
 /// document and not the merges. (A document whose merges were all kept
 /// before the sum was has it written at its next merge.)
@@ -1257,6 +1340,9 @@ fn sync_sum_written() -> SyncSum {
 /// here, and this device's record is added to the one it brings. `by` says
 /// how it came: `device` or `file`.
 ///
+/// The document here is let go, and the ids of what it alone held are
+/// kept in the record of the one taken.
+///
 /// Nothing is changed if the state cannot be read.
 pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
     if state_b64.is_empty() {
@@ -1267,23 +1353,27 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
 
     PLAYER_DOC.with(|cell| {
         // What this device holds, before any of it is let go.
-        let (mine, my_merges, my_state_vector) = {
+        let (mine, my_merges, my_id) = {
             let doc = cell.borrow();
             let (loyalty, merges) = (doc.get_or_insert_map("loyalty"), doc.get_or_insert_map("merges"));
+            let let_go = doc.get_or_insert_map("let_go");
             let txn = doc.transact();
-            (read_record(&loyalty, &txn), read_merges(&merges, &txn), txn.state_vector())
+            (read_record(&loyalty, &txn), read_merges(&merges, &txn), id_of(&let_go, &txn))
         };
 
         let doc = with_roots(Doc::new());
         doc.transact_mut().apply_update(update).map_err(|e| format!("restore error: {}", e))?;
         let (loyalty, merges) = (doc.get_or_insert_map("loyalty"), doc.get_or_insert_map("merges"));
-        let sync_sum = doc.get_or_insert_map("sync_sum");
+        let (sync_sum, let_go) = (doc.get_or_insert_map("sync_sum"), doc.get_or_insert_map("let_go"));
         let mut txn = doc.transact_mut();
         let theirs = read_record(&loyalty, &txn);
         let their_state_vector = txn.state_vector();
+        // The two are compared by their ids: all each has ever held.
+        let their_let_go = read_let_go(&let_go, &txn);
+        let their_id = joined(&their_state_vector, &their_let_go);
         let mut taken = Taken {
-            gained: ahead(&their_state_vector, &my_state_vector),
-            held: ahead(&my_state_vector, &their_state_vector),
+            gained: ahead(&their_id, &my_id),
+            held: ahead(&my_id, &their_id),
             their_state_vector: URL_SAFE_NO_PAD.encode(their_state_vector.encode_v1()),
             ..Taken::default()
         };
@@ -1316,7 +1406,7 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
                 by: by.to_string(),
                 gained: taken.gained,
                 held: taken.held,
-                shared: common(&my_state_vector, &their_state_vector),
+                shared: common(&my_id, &their_id),
                 days_gained: taken.days_new_here,
                 days_held: taken.days_new_there,
             };
@@ -1325,6 +1415,12 @@ pub fn take_over(state_b64: &str, now: f64, by: &str) -> Result<Taken, String> {
         // The sum of the merges both devices knew of, and of this one.
         let sum = SyncSum::of(&read_merges(&merges, &txn));
         write_sync_sum(&sync_sum, &mut txn, &sum);
+        // The ids of the history let go: all either has ever held that the
+        // document taken does not itself hold.
+        let kept = beyond(&joined(&my_id, &their_id), &their_state_vector);
+        if kept != their_let_go {
+            let_go.insert(&mut txn, "ids", Any::from(URL_SAFE_NO_PAD.encode(kept.encode_v1())));
+        }
         drop(txn);
         *cell.borrow_mut() = doc;
         Ok(taken)
@@ -2365,6 +2461,188 @@ mod tests {
         // The same state again: the same merges, and the same sum.
         take_over(&theirs.0, THEN + 20_000.0, "device").unwrap();
         assert_eq!((merges(), sync_sum(), sync_sum_written()), (kept, sum, sum));
+    }
+
+    // ── A history is let go, and its ids are kept ──
+
+    fn size(ids: &StateVector) -> u32 {
+        ids.iter().map(|(_, clock)| *clock).sum()
+    }
+
+    /// What the document itself holds: its state vector.
+    fn held_now() -> StateVector {
+        PLAYER_DOC.with(|cell| cell.borrow().transact().state_vector())
+    }
+
+    /// Another player's device: a game and a record of its own. Its state.
+    fn another_players_device() -> String {
+        reset();
+        ensure_card_state("liliel", 3);
+        toggle_slot("liliel", 1);
+        add_alarm(NOW, 4, "mine", "blue");
+        declare_affinity("Avian", "2026-02-26").unwrap();
+        increment_loyalty("liliel", "2026-02-25").unwrap();
+        increment_loyalty("liliel", "2026-02-26").unwrap();
+        encode_full_state()
+    }
+
+    #[test]
+    fn the_ids_of_a_history_let_go_stay_in_the_devices_id() {
+        let theirs = a_device_mid_game();
+        another_players_device();
+        let (mine, held_before) = (id(), history());
+        assert_eq!(held_before, (size(&mine), 0), "nothing has been let go yet");
+
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        // The document is theirs now: none of this device's changes are in it.
+        assert_eq!(common(&mine, &held_now()), 0);
+        // But every one of them is still in its id, with all of theirs.
+        let now = id();
+        assert_eq!(ahead(&mine, &now), 0);
+        restore_from_state(&theirs).unwrap();
+        let their_changes = held_now();
+        restore_from_state(&{
+            another_players_device();
+            take_over(&theirs, THEN, "device").unwrap();
+            encode_full_state()
+        })
+        .unwrap();
+        assert_eq!(ahead(&their_changes, &id()), 0);
+        // What it let go is what it held that they had not.
+        assert_eq!(history().1, taken.held);
+        assert_eq!(taken.held, size(&mine));
+    }
+
+    #[test]
+    fn both_devices_end_with_the_same_id() {
+        let theirs = a_device_mid_game();
+        another_players_device();
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        let back = encode_diff(&taken.their_state_vector).unwrap();
+        let here = (id(), history());
+        assert!(here.1 .1 > 0);
+
+        // The sender is sent the ids with the rest of the record.
+        restore_from_state(&theirs).unwrap();
+        assert_eq!(history().1, 0);
+        apply_update(&back).unwrap();
+        assert_eq!((id(), history()), here);
+    }
+
+    #[test]
+    fn a_device_that_takes_a_state_holding_all_it_has_lets_nothing_go() {
+        // A tablet takes the phone's game. All it lets go is the one change
+        // every new document makes.
+        let phone = a_device_mid_game();
+        reset();
+        let first = take_over(&phone, THEN, "device").unwrap();
+        assert_eq!(history().1, 1);
+        let (tablet, back) = (encode_full_state(), encode_diff(&first.their_state_vector).unwrap());
+        // The phone is sent what the tablet added, and is played on.
+        restore_from_state(&phone).unwrap();
+        apply_update(&back).unwrap();
+        increment_loyalty("brox", "2026-03-01").unwrap();
+        toggle_slot("brox", 1);
+        let phone = encode_full_state();
+
+        // The tablet takes the game again: the phone holds all the tablet has.
+        restore_from_state(&tablet).unwrap();
+        let again = take_over(&phone, THEN + 5000.0, "device").unwrap();
+        assert!(again.gained > 0);
+        assert_eq!(again.held, 0);
+        assert_eq!(history().1, 1, "nothing more is kept");
+        // And nothing is written of it: the document is the phone's, with
+        // the merge and the sum.
+        restore_from_state(&phone).unwrap();
+        let (their_ids, their_let_go) = (id(), history().1);
+        restore_from_state(&tablet).unwrap();
+        take_over(&phone, THEN + 5000.0, "device").unwrap();
+        assert_eq!(ahead(&their_ids, &id()), 0);
+        assert_eq!(history().1, their_let_go);
+    }
+
+    #[test]
+    fn a_record_cannot_be_parted_from_its_history_by_taking_an_empty_game() {
+        // Two players' records put together, as they are.
+        let theirs = another_players_device();
+        let their_changes = {
+            restore_from_state(&theirs).unwrap();
+            held_now()
+        };
+        let mine = a_device_mid_game();
+        restore_from_state(&mine).unwrap();
+        let plain = take_over(&theirs, THEN, "device").unwrap();
+        let plain_distance = merges().last().unwrap().distance();
+        assert!(plain_distance > plain.gained as u64, "{:?}", plain);
+
+        // The same, their device having first taken the empty game of a
+        // browser that had never opened the site.
+        let empty = {
+            reset();
+            encode_full_state()
+        };
+        restore_from_state(&theirs).unwrap();
+        let wash = take_over(&empty, THEN, "device").unwrap();
+        assert_eq!((wash.gained, wash.held), (1, size(&their_changes)));
+        assert_eq!(merges().last().unwrap().distance(), 1, "the empty game itself costs next to nothing");
+        // Its document is another now, the empty game with its record
+        // written anew, and holds none of the changes that made the record.
+        assert_eq!(common(&their_changes, &held_now()), 0);
+        let (washed, document) = (encode_full_state(), size(&held_now()));
+
+        restore_from_state(&mine).unwrap();
+        let pooled = take_over(&washed, THEN + 5000.0, "device").unwrap();
+        // It is met at the weight of all it ever held, not of its document.
+        assert_eq!(pooled.gained, size(&their_changes) + document);
+        assert!(pooled.gained > plain.gained, "{:?} {:?}", pooled, plain);
+        assert_eq!(pooled.held, plain.held);
+        // And this device's id now shares the whole of their history: the
+        // two would show it if they were compared.
+        assert_eq!(common(&their_changes, &id()), size(&their_changes));
+    }
+
+    #[test]
+    fn ids_the_document_holds_again_are_no_longer_kept_apart() {
+        // A tablet has the phone's game, and so its history.
+        let phone = a_device_mid_game();
+        let phone_changes = {
+            restore_from_state(&phone).unwrap();
+            held_now()
+        };
+        reset();
+        take_over(&phone, THEN, "device").unwrap();
+        let tablet = encode_full_state();
+
+        // The phone takes an empty game: its history is let go, its ids kept.
+        let empty = {
+            reset();
+            encode_full_state()
+        };
+        restore_from_state(&phone).unwrap();
+        take_over(&empty, THEN + 1000.0, "device").unwrap();
+        assert_eq!(history().1, size(&phone_changes));
+
+        // It takes the tablet's game, which holds that history itself.
+        take_over(&tablet, THEN + 2000.0, "device").unwrap();
+        assert_eq!(ahead(&phone_changes, &held_now()), 0);
+        assert!(history().1 < size(&phone_changes), "{:?}", history());
+        assert_eq!(ahead(&phone_changes, &id()), 0);
+    }
+
+    #[test]
+    fn ids_that_cannot_be_read_count_as_none() {
+        let theirs = a_device_mid_game();
+        reset();
+        PLAYER_DOC.with(|cell| {
+            let doc = cell.borrow();
+            let let_go = doc.get_or_insert_map("let_go");
+            let_go.insert(&mut doc.transact_mut(), "ids", Any::from("!!!"));
+        });
+        assert_eq!(history().1, 0);
+        assert_eq!(id(), held_now());
+        let taken = take_over(&theirs, THEN, "device").unwrap();
+        assert_eq!(taken.held, 2, "the change every new document makes, and the one written above");
+        assert_eq!(history().1, 2);
     }
 
     #[test]

@@ -12,8 +12,9 @@
 //!
 //! ## Sync history
 //! Each state this device took over from another device or a backup is kept
-//! as a merge, and the merges are added up (`player_doc::take_over`).
-//! Nothing uses the numbers yet. `/api/player/history` draws them on the
+//! as a merge, the merges are added up, and the ids of the history the
+//! device let go each time are kept (`player_doc::take_over`). Nothing uses
+//! the numbers yet. `/api/player/history` draws them on the
 //! Player Data page for whoever opens it as `/player_data#history`, which
 //! no link does.
 
@@ -35,19 +36,22 @@ pub fn handle_history_get(query: &str) -> String {
     if get_param(&params, "show") != Some(HISTORY) {
         return String::new();
     }
-    render_history(&player_doc::merges(), &player_doc::sync_sum())
+    render_history(&player_doc::merges(), &player_doc::sync_sum(), player_doc::history())
 }
 
-fn render_history(merges: &[Merge], sum: &SyncSum) -> String {
+/// `history` is how many changes the device's document holds, and how many
+/// more it has let go and still counts as its own.
+fn render_history(merges: &[Merge], sum: &SyncSum, history: (u32, u32)) -> String {
     let mut h = String::with_capacity(2048);
     h.push_str(concat!(
         r#"<section class="mt-10 text-sm" data-sync-history>"#,
         r#"<h2 class="text-2xl font-bold mb-2">Sync history</h2>"#,
         r#"<p class="max-w-prose mb-3">Each time this device took a game from another device or a backup "#,
-        r#"that held something new to it, the two histories were compared. Gained is how many changes "#,
-        r#"arrived that this device lacked, held how many it had that the other lacked, shared how many "#,
-        r#"both had. Distance is gained and held together, times the smaller of the two over the larger. "#,
-        r#"The days of play are the same two counts of the two records alone. "#,
+        r#"that held something new to it, the two histories were compared: every change each had ever "#,
+        r#"held, with those it let go when it took a game before. Gained is how many the other had that "#,
+        r#"this device never had, held how many this device had that the other never had, shared how "#,
+        r#"many both had. Distance is gained and held together, times the smaller of the two over the "#,
+        r#"larger. The days of play are the same two counts of the two records alone. "#,
         r#"Nothing is decided by these numbers.</p>"#,
     ));
     h.push_str(&format!(
@@ -57,9 +61,12 @@ fn render_history(merges: &[Merge], sum: &SyncSum) -> String {
             r#"<dt>Merges</dt><dd data-sum="merges">{}</dd>"#,
             r#"<dt>Gained</dt><dd data-sum="gained">{}</dd>"#,
             r#"<dt>Held</dt><dd data-sum="held">{}</dd>"#,
+            r#"<dt class="font-bold pt-2">This device's history</dt><dd></dd>"#,
+            r#"<dt>Changes it holds</dt><dd data-history="held">{}</dd>"#,
+            r#"<dt>Let go, still counted</dt><dd data-history="let-go">{}</dd>"#,
             r#"</dl>"#,
         ),
-        sum.distance, sum.merges, sum.gained, sum.held
+        sum.distance, sum.merges, sum.gained, sum.held, history.0, history.1
     ));
     if merges.is_empty() {
         h.push_str(r#"<p>No merges yet.</p>"#);
@@ -250,6 +257,9 @@ mod tests {
         assert!(html.contains("Sync history"));
         assert!(html.contains(r#"<dd data-sum="distance">0</dd>"#));
         assert!(html.contains("No merges yet."));
+        // A new document holds the one change it makes, and has let none go.
+        assert!(html.contains(r#"<dd data-history="held">1</dd>"#));
+        assert!(html.contains(r#"<dd data-history="let-go">0</dd>"#));
         reset();
     }
 
@@ -277,6 +287,8 @@ mod tests {
             taken.gained, taken.held, sum.distance
         )));
         assert!(html.contains(">days of play gained 1, held 1</div>"), "{}", html);
+        // All this device held is let go with its game, and still counted.
+        assert!(html.contains(&format!(r#"<dd data-history="let-go">{}</dd>"#, taken.held)), "{}", html);
         assert!(!html.contains("No merges yet."));
         reset();
     }
