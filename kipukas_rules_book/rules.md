@@ -747,7 +747,7 @@ When souls lose a specified number of KEAL means bouts they become [downed](#fin
 | 4 | 2 |
 | 5 | 2 |
 
-The table is movement halved and rounded down, and it carries on the same way for a movement above 5. A soul with a movement of 1 keeps it, but moving a downed soul that slow is a burden, so it needs the escort.
+The table is movement halved and rounded down, and it carries on the same way for a movement above 5. Half of a movement of 1 is less than a space, so such a soul moves only with an escort: two cards moving one space together, which is burden enough.
 
 
 ### Claiming Territories {#claiming_territories}
