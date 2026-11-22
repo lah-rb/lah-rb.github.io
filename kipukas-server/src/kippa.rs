@@ -32,7 +32,7 @@ struct Entry<'a> {
     habitat: Option<&'a str>,
     injury_tolerance: u8,
     movement: u8,
-    die: &'a str,
+    die: String,
     brawl_sequence: &'a str,
     keal_means: Vec<KealMeans<'a>>,
     tamability: Option<u32>,
@@ -41,6 +41,19 @@ struct Entry<'a> {
     description: Option<&'a str>,
     play_style: Option<&'a str>,
     url: String,
+}
+
+/// The dice a card rolls, in one line.
+///
+/// A card that rolls one die to attack and another to defend has no `die` of
+/// its own: its page shows the two as "Atk: … Def: …" (`card_panel`), and
+/// Kippa is told the same in whole words. Without this such a card reached
+/// Kippa with no die at all.
+fn dice(card: &Card) -> String {
+    if !card.die.is_empty() || (card.atk_die.is_none() && card.def_die.is_none()) {
+        return card.die.to_string();
+    }
+    format!("Attack: {}, Defense: {}", card.atk_die.unwrap_or("none"), card.def_die.unwrap_or("none"))
 }
 
 /// The catalog as JSON, one entry per card, indented. The not-found page is
@@ -59,7 +72,7 @@ pub fn catalog(cards: &[Card]) -> String {
             habitat: card.habitat,
             injury_tolerance: card.injury_tolerance,
             movement: card.movement,
-            die: card.die,
+            die: dice(card),
             brawl_sequence: card.brawl_sequence,
             keal_means: card
                 .keal_means
@@ -108,6 +121,22 @@ mod tests {
         let trap = entries.iter().find(|e| e["slug"] == "timebattle").unwrap();
         assert!(trap["tamability"].is_null() && trap["habitat"].is_null());
         assert_eq!(trap["keal_means"], Value::Array(vec![]));
+    }
+
+    #[test]
+    fn a_card_with_one_die_to_attack_and_another_to_defend_says_both() {
+        let entries = entries();
+        let split = CARDS.iter().find(|c| c.die.is_empty() && c.atk_die.is_some() && c.def_die.is_some()).expect("a card with two dice");
+        let entry = entries.iter().find(|e| e["slug"] == split.slug).unwrap();
+        assert_eq!(entry["die"], format!("Attack: {}, Defense: {}", split.atk_die.unwrap(), split.def_die.unwrap()));
+        // A card with one die says it as it always did, and a card that rolls
+        // nothing says nothing.
+        let brox = entries.iter().find(|e| e["slug"] == "brox_the_defiant").unwrap();
+        assert_eq!(brox["die"], "D20");
+        for card in CARDS.iter().filter(|c| c.die.is_empty() && c.atk_die.is_none() && c.def_die.is_none() && c.slug != "404") {
+            let entry = entries.iter().find(|e| e["slug"] == card.slug).unwrap();
+            assert_eq!(entry["die"], "", "{}", card.slug);
+        }
     }
 
     #[test]
