@@ -101,8 +101,8 @@ mod tests {
     #[test]
     fn with_motives() {
         let html = handle("atk[]=Cenozoic&def[]=Cenozoic&motAtk=Spirit&motDef=Survival");
-        assert!(html.contains("Defender must win 2 of 3"));
-        assert!(html.contains("Defender trys retreat before attack."));
+        assert!(html.contains("Defender's first win is nullified"));
+        assert!(html.contains("Defender may attempt a retreat before the Final Blow"));
     }
 
     #[test]

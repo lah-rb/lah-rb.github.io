@@ -496,7 +496,8 @@ fn all_keal_means_exhausted(slug: &str) -> bool {
 }
 
 /// Render Final Blows section for a card whose keal means are all exhausted.
-/// Shows local card motivation + D20 roll instruction + button to send to opponent.
+/// Shows the card's motivation, the die it rolls, and the button that states
+/// Final Blows to the opponent.
 fn render_final_blows(card: &crate::catalog::Card, key: &str, message: &str) -> String {
     let mut h = String::with_capacity(1024);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
@@ -520,11 +521,18 @@ fn render_final_blows(card: &crate::catalog::Card, key: &str, message: &str) -> 
     }
     h.push_str(r#"</div>"#);
 
-    // D20 roll instruction
+    // What this card rolls. A Final Blow is rolled with the cards' own dice,
+    // as a KEAL means bout is, and the card that states it is the defender.
     h.push_str(r#"<div class="bg-amber-100 rounded p-2 text-center">"#);
-    h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
-    h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
-    h.push_str(r#"<p class="text-xs text-slate-500 mt-1">Compare motivation modifiers to determine the final winner</p>"#);
+    let rolls = die_for(card, CombatRole::Defending);
+    if !rolls.is_empty() {
+        h.push_str(r#"<p class="text-sm font-bold mb-1">You Roll</p>"#);
+        h.push_str(&format!(
+            r#"<p class="text-2xl font-bold text-kip-drk-sienna" data-rolls="final">{}</p>"#,
+            rolls
+        ));
+    }
+    h.push_str(r#"<p class="text-xs text-slate-500 mt-1">Archetypal genes and motivations are compared to determine the final winner</p>"#);
     h.push_str(r#"</div>"#);
 
     h.push_str(r#"</div>"#); // close final-blows box
@@ -1085,7 +1093,9 @@ fn render_fists_result() -> String {
     })
 }
 
-/// Render Final Blows result showing both motivations and modifiers (no archetypes).
+/// Render the Final Blows result: both cards with the dice they roll, what
+/// their archetypal genes and motives add to the attacker's roll, and what the
+/// motives do. It is drawn as a KEAL means result is, since it is rolled as one.
 /// Uses local_card()/remote_card() helpers which correctly resolve the card slug
 /// from either regular fists or final blows submissions on each side.
 ///
@@ -1123,13 +1133,17 @@ fn render_final_blows_result() -> String {
     let atk_motive = atk_card.motivation.and_then(|m| typing::parse_motive(m));
     let def_motive = def_card.motivation.and_then(|m| typing::parse_motive(m));
 
-    // Compute matchup using empty archetype lists (motivation-only)
+    // What the motives do (no archetypes: the genes are counted below).
     let result = typing::type_matchup(&[], &[], atk_motive, def_motive);
 
-    // Compute damage bonus from genetic_disposition
+    // What the two archetypal genes and the motives add to the attacker's roll
     let atk_genetic = atk_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
     let def_genetic = def_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
-    let damage_bonus = typing::compute_damage_bonus(atk_genetic, def_genetic, atk_motive, def_motive);
+    let from_cards = typing::final_blow_modifier(atk_genetic, def_genetic, atk_motive, def_motive);
+
+    // Affinity is a bonus to every roll made for a card, these too.
+    let atk_bonus = control::roll_bonus(atk_card, atk_affinity.as_deref());
+    let def_bonus = control::roll_bonus(def_card, def_affinity.as_deref());
 
     let mut h = String::with_capacity(2048);
     h.push_str(r#"<div class="p-4 text-kip-drk-sienna">"#);
@@ -1147,6 +1161,10 @@ fn render_final_blows_result() -> String {
     if let Some(gd) = atk_card.genetic_disposition {
         h.push_str(&format!(r#"<p class="text-xs">Disposition: {}</p>"#, gd));
     }
+    let rolls = die_for(atk_card, CombatRole::Attacking);
+    if !rolls.is_empty() {
+        h.push_str(&format!(r#"<p class="text-sm mt-1" data-rolls="attacker">Rolls: <strong>{}</strong></p>"#, rolls));
+    }
     h.push_str(r#"</div>"#);
 
     // Defender card info
@@ -1161,87 +1179,34 @@ fn render_final_blows_result() -> String {
     if let Some(gd) = def_card.genetic_disposition {
         h.push_str(&format!(r#"<p class="text-xs">Disposition: {}</p>"#, gd));
     }
+    let rolls = die_for(def_card, CombatRole::Defending);
+    if !rolls.is_empty() {
+        h.push_str(&format!(r#"<p class="text-sm mt-1" data-rolls="defender">Rolls: <strong>{}</strong></p>"#, rolls));
+    }
     h.push_str(r#"</div>"#);
 
-    // Damage Bonus from genetic disposition
-    let bonus_color = if damage_bonus > 0 {
-        "text-emerald-600"
-    } else if damage_bonus < 0 {
-        "text-kip-red"
-    } else {
-        "text-slate-600"
-    };
-    let bonus_sign = if damage_bonus > 0 { "+" } else { "" };
-
-    // Single unified Final Blows info box: Damage Bonus + Motivation Modifiers + D20
+    // One box, as a KEAL means result has: the attack die's modifier, the
+    // defense die's beside it when the defender has an affinity for their
+    // card, and under them what the motives do.
     h.push_str(r#"<div class="bg-amber-50 border-2 border-kip-drk-sienna rounded p-3 mb-3">"#);
-
-    // Damage Bonus
-    h.push_str(&format!(
-        r#"<p class="text-sm font-bold text-center">Damage Bonus</p><p class="text-3xl font-bold text-center {}">{}{}</p>"#,
-        bonus_color, bonus_sign, damage_bonus
-    ));
-    // Breakdown
-    let mut breakdown_parts: Vec<String> = Vec::new();
-    if let (Some(_ag), Some(_dg)) = (atk_genetic, def_genetic) {
-        let raw = typing::compute_damage_bonus(atk_genetic, def_genetic, None, None);
-        let atk_name = atk_card.genetic_disposition.unwrap_or("?");
-        let def_name = def_card.genetic_disposition.unwrap_or("?");
-        breakdown_parts.push(format!("{} vs {} ×2 = {}", atk_name, def_name, raw));
+    let mut notes = String::new();
+    if let Some(parts) = final_blow_breakdown(atk_card, def_card) {
+        notes.push_str(&format!(r#"<p class="text-xs text-slate-500">({})</p>"#, parts));
     }
-    if typing::motives_interact(atk_motive, def_motive) {
-        breakdown_parts.push("+10 motives interact".to_string());
+    if atk_bonus > 0 {
+        notes.push_str(&affinity_note("attacker", atk_bonus, atk_card));
     }
-    if !breakdown_parts.is_empty() {
+    let attack = die_modifier("Attack", "attack", from_cards + atk_bonus, &notes);
+    if def_bonus > 0 {
         h.push_str(&format!(
-            r#"<p class="text-xs text-center text-slate-500">({})</p>"#,
-            breakdown_parts.join(", ")
+            r#"<div class="text-center grid grid-cols-2 divide-x divide-slate-200">{}{}</div>"#,
+            attack,
+            die_modifier("Defense", "defense", def_bonus, &affinity_note("defender", def_bonus, def_card))
         ));
+    } else {
+        h.push_str(&format!(r#"<div class="text-center">{}</div>"#, attack));
     }
-
-    // Motivation modifiers section
-    let has_mods = result.societal_mod.is_some() || result.self_mod.is_some() || result.support_mod.is_some();
-    if has_mods {
-        h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2">"#);
-        h.push_str(r#"<p class="text-sm font-bold text-center mb-1">Motivation Modifiers</p>"#);
-        if let Some(ref s) = result.societal_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
-        }
-        if let Some(ref s) = result.self_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#, text));
-        }
-        if let Some(ref s) = result.support_mod {
-            let text = s.trim_start_matches('\n');
-            h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
-        }
-        h.push_str(r#"</div>"#);
-    }
-
-    // D20 roll instruction
-    h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2 text-center">"#);
-    h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
-    h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
-    if result.modifier != 0 {
-        let mod_sign = if result.modifier > 0 { "+" } else { "" };
-        h.push_str(&format!(r#"<p class="text-xs text-slate-500 mt-1">Attacker gets {}{} from motivation</p>"#, mod_sign, result.modifier));
-    }
-    // Affinity is a bonus to every roll made for a card, these too.
-    for (who, card, declared) in [("Attacker", atk_card, &atk_affinity), ("Defender", def_card, &def_affinity)] {
-        let bonus = control::roll_bonus(card, declared.as_deref());
-        if bonus > 0 {
-            h.push_str(&format!(
-                r#"<p class="text-xs text-amber-600 mt-1" data-affinity="{}">{} gets +{} from affinity ({})</p>"#,
-                who.to_lowercase(),
-                who,
-                bonus,
-                card.genetic_disposition.unwrap_or_default()
-            ));
-        }
-    }
-    h.push_str(r#"</div>"#);
-
+    h.push_str(&motive_effects(&result));
     h.push_str(r#"</div>"#); // close unified Final Blows info box
 
     // "Did you win?" outcome buttons
@@ -1261,6 +1226,91 @@ fn die_for(card: &crate::catalog::Card, role: CombatRole) -> &'static str {
         CombatRole::Attacking => card.atk_die.unwrap_or(""),
         CombatRole::Defending => card.def_die.unwrap_or(""),
     }
+}
+
+/// A modifier as it is written: with its sign when it adds.
+fn signed(amount: i32) -> String {
+    format!("{}{}", if amount > 0 { "+" } else { "" }, amount)
+}
+
+/// The colour a modifier is drawn in: for the roll, against it, or neither.
+fn modifier_colour(amount: i32) -> &'static str {
+    match amount {
+        more if more > 0 => "text-emerald-600",
+        less if less < 0 => "text-kip-red",
+        _ => "text-slate-600",
+    }
+}
+
+/// One die's modifier: its name, the number, and the notes under it (what of
+/// it is affinity, and for a Final Blow how the cards make it up).
+fn die_modifier(name: &str, key: &str, amount: i32, notes: &str) -> String {
+    format!(
+        r#"<div><p class="text-sm font-bold">{} Die Modifier</p><p class="text-3xl font-bold {}" data-modifier="{}">{}</p>{}</div>"#,
+        name,
+        modifier_colour(amount),
+        key,
+        signed(amount),
+        notes
+    )
+}
+
+/// The note under a die's modifier that says what of it is affinity.
+fn affinity_note(who: &str, bonus: i32, card: &crate::catalog::Card) -> String {
+    format!(
+        r#"<p class="text-xs text-amber-600 mt-1" data-affinity="{}">+{} from affinity ({})</p>"#,
+        who,
+        bonus,
+        card.genetic_disposition.unwrap_or_default()
+    )
+}
+
+/// How a Final Blow's attack modifier comes about, in words: the two
+/// archetypal genes' matchup, and the motives' when they interact
+/// ("Brutal vs Angelic = +3, +10 motives interact"). Nothing when the cards
+/// have neither.
+fn final_blow_breakdown(atk_card: &crate::catalog::Card, def_card: &crate::catalog::Card) -> Option<String> {
+    let gene = |card: &crate::catalog::Card| card.genetic_disposition.and_then(typing::parse_archetype);
+    let motive = |card: &crate::catalog::Card| card.motivation.and_then(typing::parse_motive);
+    let mut parts: Vec<String> = Vec::new();
+    if let (Some(atk), Some(def)) = (gene(atk_card), gene(def_card)) {
+        parts.push(format!(
+            "{} vs {} = {}",
+            atk_card.genetic_disposition.unwrap_or("?"),
+            def_card.genetic_disposition.unwrap_or("?"),
+            signed(typing::final_blow_modifier(Some(atk), Some(def), None, None))
+        ));
+    }
+    if typing::motives_interact(motive(atk_card), motive(def_card)) {
+        parts.push("+10 motives interact".to_string());
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(", "))
+    }
+}
+
+/// What the two motives do to a Final Blow (the rules' principal motive
+/// effects), under their heading; nothing when neither motive has one.
+fn motive_effects(result: &typing::MatchupResult) -> String {
+    let lines = [(result.societal_mod, "&#x2696;"), (result.self_mod, "&#x1F3C3;"), (result.support_mod, "&#x1F91D;")];
+    if lines.iter().all(|(text, _)| text.is_none()) {
+        return String::new();
+    }
+    let mut h = String::from(r#"<div class="border-t border-slate-200 mt-2 pt-2">"#);
+    h.push_str(r#"<p class="text-sm font-bold text-center mb-1">Motivation Modifiers</p>"#);
+    for (text, sign) in lines {
+        if let Some(text) = text {
+            h.push_str(&format!(
+                r#"<p class="text-xs text-amber-700 font-bold mb-1">{} {}</p>"#,
+                sign,
+                text.trim_start_matches('\n')
+            ));
+        }
+    }
+    h.push_str(r#"</div>"#);
+    h
 }
 
 fn build_result_html(
@@ -1324,38 +1374,13 @@ fn build_result_html(
 
     // The attacker's roll: what the two keal means make of each other, and
     // the attacker's affinity for their card.
-    let signed = |amount: i32| format!("{}{}", if amount > 0 { "+" } else { "" }, amount);
-    let colour = |amount: i32| match amount {
-        more if more > 0 => "text-emerald-600",
-        less if less < 0 => "text-kip-red",
-        _ => "text-slate-600",
-    };
-    let from_affinity = |who: &str, bonus: i32, card: &crate::catalog::Card| {
-        format!(
-            r#"<p class="text-xs text-amber-600 mt-1" data-affinity="{}">+{} from affinity ({})</p>"#,
-            who,
-            bonus,
-            card.genetic_disposition.unwrap_or_default()
-        )
-    };
     let total_modifier = result.modifier + atk_bonus;
 
-    // One die's modifier: its name, the number, and what of it is affinity.
-    let die = |name: &str, key: &str, amount: i32, affinity: String| {
-        format!(
-            r#"<div><p class="text-sm font-bold">{} Die Modifier</p><p class="text-3xl font-bold {}" data-modifier="{}">{}</p>{}</div>"#,
-            name,
-            colour(amount),
-            key,
-            signed(amount),
-            affinity
-        )
-    };
-    let attack = die(
+    let attack = die_modifier(
         "Attack",
         "attack",
         total_modifier,
-        if atk_bonus > 0 { from_affinity("attacker", atk_bonus, atk_card) } else { String::new() },
+        &(if atk_bonus > 0 { affinity_note("attacker", atk_bonus, atk_card) } else { String::new() }),
     );
     // The defender's roll has a modifier only when the defender has an
     // affinity for their card. The two then stand side by side, so that
@@ -1367,7 +1392,7 @@ fn build_result_html(
                 r#"grid grid-cols-2 divide-x divide-slate-200">{}{}</div>"#,
             ),
             attack,
-            die("Defense", "defense", def_bonus, from_affinity("defender", def_bonus, def_card))
+            die_modifier("Defense", "defense", def_bonus, &affinity_note("defender", def_bonus, def_card))
         ));
     } else {
         h.push_str(&format!(
@@ -1384,7 +1409,7 @@ fn build_result_html(
         let def_genetic = def_card.genetic_disposition.and_then(|g| typing::parse_archetype(g));
         let atk_motive = atk_card.motivation.and_then(|m| typing::parse_motive(m));
         let def_motive = def_card.motivation.and_then(|m| typing::parse_motive(m));
-        let damage_bonus = typing::compute_damage_bonus(atk_genetic, def_genetic, atk_motive, def_motive);
+        let from_cards = typing::final_blow_modifier(atk_genetic, def_genetic, atk_motive, def_motive);
 
         h.push_str(r#"<div class="bg-slate-50 border border-slate-300 rounded p-3 mb-3">"#);
         h.push_str(r#"<p class="text-sm font-bold text-center mb-2">&#x1F525; Final Blows</p>"#);
@@ -1396,63 +1421,23 @@ fn build_result_html(
             h.push_str(r#"<p class="text-xs text-center mb-2 text-amber-600">Attacker's keal means are exhausted. Next round is the final combat.</p>"#);
         }
 
-        // Damage bonus display
-        let bonus_color = if damage_bonus > 0 {
-            "text-emerald-600"
-        } else if damage_bonus < 0 {
-            "text-kip-red"
-        } else {
-            "text-slate-600"
-        };
-        let bonus_sign = if damage_bonus > 0 { "+" } else { "" };
+        // What the archetypal genes and the motives will add to the
+        // attacker's roll (affinity comes on top, as above)
         h.push_str(&format!(
-            r#"<p class="text-sm font-bold text-center">Damage Bonus: <span class="{}">{}{}</span></p>"#,
-            bonus_color, bonus_sign, damage_bonus
+            r#"<p class="text-sm font-bold text-center">Attack Die Modifier: <span class="{}" data-modifier="final">{}</span></p>"#,
+            modifier_colour(from_cards),
+            signed(from_cards)
         ));
-
-        // Breakdown
-        let mut breakdown_parts: Vec<String> = Vec::new();
-        if let (Some(ag), Some(dg)) = (atk_genetic, def_genetic) {
-            let raw = crate::typing::compute_damage_bonus(Some(ag), Some(dg), None, None);
-            let atk_name = atk_card.genetic_disposition.unwrap_or("?");
-            let def_name = def_card.genetic_disposition.unwrap_or("?");
-            breakdown_parts.push(format!("{} vs {} ×2 = {}", atk_name, def_name, raw));
-        }
-        if typing::motives_interact(atk_motive, def_motive) {
-            breakdown_parts.push("+10 motives interact".to_string());
-        }
-        if !breakdown_parts.is_empty() {
-            h.push_str(&format!(
-                r#"<p class="text-xs text-center text-slate-500">({})</p>"#,
-                breakdown_parts.join(", ")
-            ));
+        if let Some(parts) = final_blow_breakdown(atk_card, def_card) {
+            h.push_str(&format!(r#"<p class="text-xs text-center text-slate-500">({})</p>"#, parts));
         }
 
-        // Motivation modifiers (only shown in Final Blows context)
-        let fb_result = typing::type_matchup(&[], &[], atk_motive, def_motive);
-        let has_mods = fb_result.societal_mod.is_some() || fb_result.self_mod.is_some() || fb_result.support_mod.is_some();
-        if has_mods {
-            h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2">"#);
-            h.push_str(r#"<p class="text-sm font-bold text-center mb-1">Motivation Modifiers</p>"#);
-            if let Some(ref s) = fb_result.societal_mod {
-                let text = s.trim_start_matches('\n');
-                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x2696; {}</p>"#, text));
-            }
-            if let Some(ref s) = fb_result.self_mod {
-                let text = s.trim_start_matches('\n');
-                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F3C3; {}</p>"#, text));
-            }
-            if let Some(ref s) = fb_result.support_mod {
-                let text = s.trim_start_matches('\n');
-                h.push_str(&format!(r#"<p class="text-xs text-amber-700 font-bold mb-1">&#x1F91D; {}</p>"#, text));
-            }
-            h.push_str(r#"</div>"#);
-        }
+        // What the motives do (only in a Final Blow)
+        h.push_str(&motive_effects(&typing::type_matchup(&[], &[], atk_motive, def_motive)));
 
-        // D20 roll instruction for the final combat
+        // The dice: the cards' own, as in a KEAL means bout.
         h.push_str(r#"<div class="border-t border-slate-200 mt-2 pt-2 text-center">"#);
-        h.push_str(r#"<p class="text-sm font-bold mb-1">Both Players Roll</p>"#);
-        h.push_str(r#"<p class="text-2xl font-bold text-kip-drk-sienna">D20</p>"#);
+        h.push_str(r#"<p class="text-sm font-bold">Each card rolls its own dice</p>"#);
         h.push_str(r#"</div>"#);
 
         h.push_str(r#"</div>"#);
@@ -2539,13 +2524,19 @@ mod tests {
         let html = tap("action=final&card=brox_the_defiant");
         assert!(html.contains("Final Blows"));
         assert!(html.contains(&format!(
-            r#"data-affinity="attacker">Attacker gets +3 from affinity ({})</p>"#,
+            r#"data-affinity="attacker">+3 from affinity ({})</p>"#,
             archetype_of(LILIEL)
         )));
         assert!(html.contains(&format!(
-            r#"data-affinity="defender">Defender gets +3 from affinity ({})</p>"#,
+            r#"data-affinity="defender">+3 from affinity ({})</p>"#,
             archetype_of("brox_the_defiant")
         )));
+        // And in the numbers, as in a KEAL means result: on the attack die
+        // with what the cards make of each other, and alone on the defense die.
+        assert_eq!(
+            (modifier(&html, "attack"), modifier(&html, "defense")),
+            (Some(final_blow_of(LILIEL, "brox_the_defiant") + 3), Some(3))
+        );
 
         // Neither declared: neither line.
         fresh_room();
@@ -2554,6 +2545,60 @@ mod tests {
         opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
         let html = tap("action=final&card=brox_the_defiant");
         assert!(html.contains("Final Blows") && !html.contains("from affinity"));
+        assert_eq!(
+            (modifier(&html, "attack"), modifier(&html, "defense")),
+            (Some(final_blow_of(LILIEL, "brox_the_defiant")), None)
+        );
+        reset();
+    }
+
+    /// What the two cards' archetypal genes and motives add to the roll of
+    /// the first attacking the second in a Final Blow.
+    fn final_blow_of(attacker: &str, defender: &str) -> i32 {
+        let (attacker, defender) = (find_card(attacker).unwrap(), find_card(defender).unwrap());
+        typing::final_blow_modifier(
+            attacker.genetic_disposition.and_then(typing::parse_archetype),
+            defender.genetic_disposition.and_then(typing::parse_archetype),
+            attacker.motivation.and_then(typing::parse_motive),
+            defender.motivation.and_then(typing::parse_motive),
+        )
+    }
+
+    #[test]
+    fn a_final_blow_is_rolled_with_the_cards_own_dice_and_the_genes_as_they_stand() {
+        // The rules: "This attack uses the same dice as the cards use for
+        // KEAL means, but compares the cards' Archetypal Gene". Until 2026-11
+        // the tool had both players roll a D20 and doubled the genes' matchup.
+        fresh_room();
+        exhaust_brox_keal_means(1);
+        exhaust_brox_keal_means(2);
+        opponent(|doc| fists::submit(doc, THEM, ME, their_attack(LILIEL)));
+        let html = tap("action=final&card=brox_the_defiant");
+
+        // Liliel attacks with her attack die, Brox defends with the die he always rolls.
+        let liliel = find_card(LILIEL).unwrap();
+        assert!(liliel.die.is_empty(), "Liliel rolls one die to attack and another to defend");
+        assert!(html.contains(&format!(
+            r#"data-rolls="attacker">Rolls: <strong>{}</strong></p>"#,
+            liliel.atk_die.unwrap()
+        )));
+        assert!(html.contains(r#"data-rolls="defender">Rolls: <strong>D20</strong></p>"#));
+        assert!(!html.contains("Both Players Roll"));
+
+        // The genes' matchup is the chart's, not twice it, and is said so.
+        let genes = typing::final_blow_modifier(
+            liliel.genetic_disposition.and_then(typing::parse_archetype),
+            find_card("brox_the_defiant").unwrap().genetic_disposition.and_then(typing::parse_archetype),
+            None,
+            None,
+        );
+        assert!(html.contains(&format!(
+            "{} vs {} = {}",
+            archetype_of(LILIEL),
+            archetype_of("brox_the_defiant"),
+            signed(genes)
+        )));
+        assert!(!html.contains("×2") && !html.contains("Damage Bonus"));
         reset();
     }
 
@@ -2901,7 +2946,10 @@ mod tests {
         let html = handle_fists_get(BROX);
         assert!(html.contains("Final Blows"));
         assert!(html.contains("All keal means are exhausted"));
-        assert!(html.contains("D20"));
+        // The die is the card's own (Brox always rolls a D20), not one that
+        // every card rolls in a Final Blow.
+        assert!(html.contains("You Roll") && html.contains(r#"data-rolls="final">D20</p>"#));
+        assert!(!html.contains("Both Players Roll"));
         assert!(html.contains("Your Motivation"));
         // Should NOT contain the normal role selector
         assert!(!html.contains("Your Role"));

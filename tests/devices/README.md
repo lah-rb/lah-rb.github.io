@@ -34,6 +34,7 @@ checking the built one: it is `_site` that is served.
 | `browser/seat.ts` | A game moved while it is being played against someone, with a third browser as the opponent: the player's place in the room goes with it, the device it came from is out of the room, and a device that is in a room leaves it when it takes a game |
 | `browser/control.ts` | A species' page says whether it is under the player's control: card effects added with the page's buttons, its archetype declared, the stack reaching its tameability, and New Game taking both away |
 | `browser/affinity.ts` | Two browsers in a room play rounds of fists with affinities declared: both screens must give the same bonus, to the attack die and to the defence die, and never give a player's affinity to the other player's card |
+| `browser/finalblows.ts` | Two browsers in a room, one card with every KEAL means injured: its Final Blow must show, on both screens, the dice the two cards themselves roll, the genes' matchup as the chart has it, and what the motives do in the rules' words |
 | `browser/copies.ts` | More than one copy of a card in play: the button at the lower left of a card's page adds a copy, each copy takes its own damage, the page's address says which is shown, and a copy is taken out again once the player has said yes |
 | `browser/handover.ts` | Two browsers in a room: a card with damage on it is handed to the other player, arrives there as it was and says where it came from, and is the first player's own again when handed back |
 | `browser/site.ts` | What they share: the built site served locally, the browser, pretend cameras, the scanner's buttons and what it shows |
@@ -52,7 +53,7 @@ Things to know:
   real browser answers. For that, see the phone below. A picture can be held
   up to them (`holdUp`), which is how `sync.ts` has the site's reader read a
   QR code.
-- `sync.ts`, `seat.ts`, `affinity.ts` and `handover.ts` need a relay. Against the built site each runs one here
+- `sync.ts`, `seat.ts`, `affinity.ts`, `finalblows.ts` and `handover.ts` need a relay. Against the built site each runs one here
   (`wrangler dev` in `signaling-server/`, with storage it throws away) and
   points both browsers at it. Against the live site the browsers use the
   live relay: two rooms' worth of traffic, each ended when its game has

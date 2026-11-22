@@ -143,13 +143,17 @@ impl MatchupResult {
     }
 }
 
-/// Compute a damage bonus from genetic disposition matchup.
+/// What a Final Blow adds to the attacker's roll.
 ///
-/// Formula: TYPE_CHART\[def_genetic\]\[atk_genetic\] × 2, plus +10 if motives interact
-/// (i.e. the attacker's motive attack index equals the defender's motive defense index).
+/// A Final Blow is rolled as a KEAL means bout is, with the cards' own dice,
+/// between the two cards' archetypal genes: TYPE_CHART\[def_genetic\]\[atk_genetic\],
+/// plus 10 if the motives interact (the attacker's motive attack index equals
+/// the defender's motive defense index).
 ///
-/// This bonus only applies during Final Blows combat.
-pub fn compute_damage_bonus(
+/// Until 2026-11 a Final Blow was a flat D20 for each player, and the chart's
+/// value was doubled to count on that scale. The rule changed and the
+/// doubling went with it.
+pub fn final_blow_modifier(
     atk_genetic: Option<Archetype>,
     def_genetic: Option<Archetype>,
     atk_motive: Option<Motive>,
@@ -157,9 +161,9 @@ pub fn compute_damage_bonus(
 ) -> i32 {
     let mut bonus: i32 = 0;
 
-    // Genetic disposition matchup × 2
+    // The archetypal genes' matchup
     if let (Some(atk), Some(def)) = (atk_genetic, def_genetic) {
-        bonus += (TYPE_CHART[def as usize][atk as usize] as i32) * 2;
+        bonus += TYPE_CHART[def as usize][atk as usize] as i32;
     }
 
     // +10 if motives interact
@@ -211,16 +215,18 @@ pub fn type_matchup(
             modifier += 10;
         }
 
-        // Preservation modifiers (based on attacker's motive for societal,
-        // defender's motive for self/support)
+        // Preservation effects (the attacker's motive for societal, the
+        // defender's for self and support), in the rules' words. A first
+        // win nullified is not "2 of 3": the benefit is the one side's only,
+        // and the other still needs a single win.
         if is_societal(atk_mot) {
-            societal_mod = Some("\nDefender must win 2 of 3");
+            societal_mod = Some("\nDefender's first win is nullified");
         }
         if is_self_preservation(def_mot) {
-            self_mod = Some("\nDefender trys retreat before attack.");
+            self_mod = Some("\nDefender may attempt a retreat before the Final Blow");
         }
         if is_support_preservation(def_mot) {
-            support_mod = Some("\nAtacker must win 2 of 3");
+            support_mod = Some("\nAttacker's first win is nullified");
         }
     }
 
@@ -337,7 +343,7 @@ mod tests {
 
     #[test]
     fn preservation_modifiers() {
-        // Societal attacker (Spirit) → "Defender must win 2 of 3"
+        // Societal attacker (Spirit) → the defender's first win is nullified
         let result = type_matchup(
             &[Archetype::Cenozoic],
             &[Archetype::Cenozoic],
@@ -347,7 +353,7 @@ mod tests {
         assert!(result.societal_mod.is_some());
         assert!(result.self_mod.is_some()); // Survival is self-preservation
 
-        // Support defender (Conscience) → "Attacker must win 2 of 3"
+        // Support defender (Conscience) → the attacker's first win is nullified
         let result2 = type_matchup(
             &[Archetype::Cenozoic],
             &[Archetype::Cenozoic],
@@ -385,24 +391,24 @@ mod tests {
     }
 
     #[test]
-    fn damage_bonus_genetic_only() {
-        // Brutal attacks Angelic: TABLE[Angelic=2][Brutal=3] = 3, ×2 = 6
-        let bonus = compute_damage_bonus(
+    fn final_blow_modifier_genetic_only() {
+        // Brutal attacks Angelic: TABLE[Angelic=2][Brutal=3] = 3, as it is
+        let bonus = final_blow_modifier(
             Some(Archetype::Brutal),
             Some(Archetype::Angelic),
             None,
             None,
         );
-        assert_eq!(bonus, 6);
+        assert_eq!(bonus, 3);
     }
 
     #[test]
-    fn damage_bonus_with_motive_interaction() {
-        // Cenozoic vs Cenozoic: TYPE_CHART[0][0] = 0, ×2 = 0
+    fn final_blow_modifier_with_motive_interaction() {
+        // Cenozoic vs Cenozoic: TYPE_CHART[0][0] = 0
         // Motives that interact add +10
         // Need to find a pair where atk_idx == def_idx
         // Spirit atk_idx=0, Possessor def_idx=0 → match → +10
-        let bonus = compute_damage_bonus(
+        let bonus = final_blow_modifier(
             Some(Archetype::Cenozoic),
             Some(Archetype::Cenozoic),
             Some(Motive::Spirit),
@@ -412,22 +418,22 @@ mod tests {
     }
 
     #[test]
-    fn damage_bonus_genetic_plus_motive() {
-        // Entropic attacks Cenozoic: TABLE[Cenozoic=0][Entropic=14] = -3, ×2 = -6
+    fn final_blow_modifier_genetic_plus_motive() {
+        // Entropic attacks Cenozoic: TABLE[Cenozoic=0][Entropic=14] = -3
         // Spirit vs Possessor: interact → +10
-        // Total: -6 + 10 = 4
-        let bonus = compute_damage_bonus(
+        // Total: -3 + 10 = 7
+        let bonus = final_blow_modifier(
             Some(Archetype::Entropic),
             Some(Archetype::Cenozoic),
             Some(Motive::Spirit),
             Some(Motive::Possessor),
         );
-        assert_eq!(bonus, 4);
+        assert_eq!(bonus, 7);
     }
 
     #[test]
-    fn damage_bonus_no_genetic_disposition() {
-        let bonus = compute_damage_bonus(None, None, Some(Motive::Spirit), Some(Motive::Possessor));
+    fn final_blow_modifier_no_genetic_disposition() {
+        let bonus = final_blow_modifier(None, None, Some(Motive::Spirit), Some(Motive::Possessor));
         assert_eq!(bonus, 10); // only motive interaction
     }
 

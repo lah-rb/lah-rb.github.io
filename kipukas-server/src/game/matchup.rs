@@ -358,7 +358,7 @@ mod tests {
         pick("motAtk", "Spirit");
         pick("motDef", "Survival");
         let html = render_result();
-        assert!(html.contains("Defender must win 2 of 3"));
+        assert!(html.contains("Defender's first win is nullified"));
         assert!(html.contains("<br>"));
         reset();
     }
