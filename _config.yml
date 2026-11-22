@@ -70,6 +70,8 @@ exclude:
   # (Jekyll ignores .gitignore, so these need to be listed explicitly).
   - YOLO_rqrr/
   - runs/
+  # Kippa's server (a copy of LLMvp), kept out of git and out of the site.
+  - llmvp/
   - .archive/
   - .cache/
   - CONTRIBUTING.md

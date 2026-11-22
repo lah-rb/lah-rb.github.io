@@ -33,6 +33,10 @@ assets/js-wasm/onnxruntime-web-*/
 YOLO_rqrr/
 runs/
 
+# Kippa's server (a copy of LLMvp). Company owned and not part of this
+# repository: it stays on the machine that runs it.
+llmvp/
+
 # Misc generated intermediaries
 scripts/_alpine-entry.ts
 new_extensions.txt
