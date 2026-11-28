@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Your Hand | Kipukas</title>
+<meta name="generator" content="Jekyll v4.3.4" />
+<meta property="og:title" content="Your Hand" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="View a hand of Kipukas cards side by side — a shareable spread." />
+<meta property="og:description" content="View a hand of Kipukas cards side by side — a shareable spread." />
+<link rel="canonical" href="https://www.kipukas.cards/hand/" />
+<meta property="og:url" content="https://www.kipukas.cards/hand/" />
+<meta property="og:site_name" content="Kipukas" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Your Hand" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"View a hand of Kipukas cards side by side — a shareable spread.","headline":"Your Hand","url":"https://www.kipukas.cards/hand/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Your Hand</title>
+    <link rel="stylesheet" href="/assets/css/output.css">
+    
+    <!-- Preload critical scripts to reduce parse/evaluation time -->
+    <link rel="preload" href="/assets/js/alpine.bundle.min.js" as="script">
+    <link rel="preload" href="/assets/js/kipukas-api.js" as="script">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!--favicon code realfavicongenerator.net-->
+    <link rel="preload" href="/assets/js-wasm/ios-pwa-splash.js" as="script">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/ico/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/ico/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/ico/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/ico/favicon-16x16.png">
+    <link rel="mask-icon" href="/assets/ico/safari-pinned-tab.svg" color="#9b2c2c">
+    <link rel="shortcut icon" href="/assets/ico/favicon.ico">
+    <meta name="apple-mobile-web-app-title" content="Kipukas">
+    <meta name="application-name" content="Kipukas">
+    <meta name="msapplication-TileColor" content="#9b2c2c">
+    <meta name="theme-color" content="#9b2c2c">
+
+    <script defer src="/assets/js-wasm/ios-pwa-splash.js"></script>
+
+    <!-- Starts the game engine and does for it what only a page can.
+         Must load BEFORE the Alpine bundle: it registers Alpine.store('room') on
+         `alpine:init`, and Alpine starts in a microtask right after its bundle. -->
+    <script src="/assets/js/kipukas-api.js" defer></script>
+
+    <script defer src="/assets/js/alpine.bundle.min.js"></script>
+
+    <!-- Engine-owned views: the engine renders them and the page patches the
+         result in place. Idiomorph does the patching. -->
+    <script defer src="/assets/js/idiomorph.min.js"></script>
+    <script defer src="/assets/js/kipukas-view.js"></script>
+
+    <!-- PWA: service worker registration + update-then-refresh flow -->
+    <script src="/assets/js/pwa-update-handler.js" defer></script>
+
+    <!-- The QR scanner's camera script, loaded when its button is first pressed -->
+    <script>
+      window.kipukasLoadQR = function() {
+        if (!window.kipukasQRLoading) {
+          window.kipukasQRLoading = import('/assets/js/qr-camera.js').catch(function(err) {
+            console.error('Failed to load QR camera:', err);
+          });
+        }
+        return window.kipukasQRLoading;
+      };
+    </script>
+
+  </head>
+
+  <body x-data="{ 
+                  showInstallModal: false,
+                  top: true,
+                  previousURL: $persist(''),
+                  currentURL: $persist(''),
+                  hideInstallButton: $persist(false),
+                  landscapeArt: false,
+                }" 
+        class="z-0 bg-emerald-50 font-serif antialiased scroll-smooth w-dvw min-h-dvh"
+        x-init="previousURL = currentURL, currentURL = window.location.href">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-kip-red focus:text-amber-50 focus:px-3 focus:py-2 focus:rounded">Skip to main content</a>
+    <div x-intersect:leave="top = false" x-intersect:enter="top = true"></div>
+    <!-- Spinner: hidden by default, shown programmatically when needed -->
+<div id="spinner" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <svg class="z-40 animate-spin h-7 w-7 text-kip-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="stroke-slate-500/50 stroke-5" cx="12" cy="12" r="10"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+</div>
+
+    <!-- Room status: a small pill, bottom left, shown while this player is in a
+     multiplayer room. Included from _layouts/default.html so every page has
+     it, including pages with no multiplayer tools (hand view, about pages).
+
+     An engine-owned view (Pattern 13, assets/js/kipukas-view.js) of
+     /api/room/pill: the engine knows where the connection stands and draws
+     the pill, or nothing outside a room
+     (kipukas-server/src/routes/room_status.rs lists what it can show).
+
+     The rules book (kipukas_rules_book/index.html) is a standalone page and
+     has the same element. -->
+<div data-engine-view="/api/room/pill" role="status" aria-live="polite"></div>
+
+    <main id="main-content"><!-- includes available
+hamburger
+qr_scanner
+type_matchup
+damage_tracker
+showCardInfo
+lastPage
+logo
+goHome
+hideTools
+card_slug    (the card a card page shows; the fists tool fights with it)
+base_fill
+base_stroke
+background_color
+  
+-->
+
+
+
+<div x-cloak
+  x-data="{ showHamburger: false, showSearchBar: false, showTools: $persist(true), toolbarIdle: false, _idleTimer: null, pokeToolbar() { this.toolbarIdle = false; clearTimeout(this._idleTimer); this._idleTimer = setTimeout(() => { this.toolbarIdle = true; }, 4000); } }"
+  x-init="pokeToolbar()"
+  @click.capture="if (toolbarIdle && $event.target.closest('.toolbar-tile, .toolbar-tile-pill')) { $event.stopPropagation(); $event.preventDefault(); } pokeToolbar()"
+  @keydown.capture="pokeToolbar()"
+  :class="{ 'toolbar-idle': toolbarIdle }"
+  class="ghost-toolbar z-40 flex flex-col items-center gap-2 fixed top-0 right-0 w-fit mx-2 my-6 md:m-8">
+  
+
+  
+
+  
+  
+
+  
+    <div x-show="showHamburger"
+    id="hamburger-menu" role="navigation" aria-label="Site menu"
+    x-anchor.right-end.offset.10="$refs.hamburger"
+    x-transition.duration.350ms
+    x-cloak
+    class="text-nowrap bg-amber-50 mt-2 h-fit w-fit py-3 px-1 rounded-md shadow-lg ring-1 ring-black/5 focus:outline-hidden z-50">
+    <div><a href="/" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Binder Home</a></div>
+    <div><a href="/game_rules/index.html" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">See the Rules</a></div>
+    <div><a href="/recipes" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">View Item Recipes</a></div>
+    <div><a href="/player_data" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Player Data</a></div>
+    <div><a href="/settings" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Settings</a></div>
+    <div><a href="/privacy_policy" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">Privacy Policy</a></div>
+    <div><a href="/about_articles" class="block self-center p-2 text-left text-xl text-kip-drk-goldenrod rounded-lg hover:bg-amber-100 active:bg-amber-100 w-full">About Kipukas</a></div>
+</div>
+
+<div class="flex justify-center">
+    <button class="toolbar-tile text-kip-drk-goldenrod relative"
+            @click="showHamburger = !showHamburger"
+            x-ref="hamburger"
+            aria-label="extra nav menu"
+            :aria-expanded="showHamburger"
+            aria-controls="hamburger-menu">
+        <span class="sr-only">show main menu</span>
+        <div class="block w-5 absolute left-1/2 top-1/2  transform  -translate-x-1/2 -translate-y-1/2">
+            <span class="block absolute h-0.5 w-6 bg-current transform transition duration-500" :class="{'rotate-45': showHamburger,' -translate-y-1.5': !showHamburger }"></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform transition duration-500" :class="{'opacity-0': showHamburger } "></span>
+            <span class="block absolute  h-0.5 w-6 bg-current transform  transition duration-500" :class="{'-rotate-45': showHamburger, ' translate-y-1.5': !showHamburger}"></span>
+        </div>
+    </button>
+  </div>
+  
+
+  
+  <!-- Branded Home tile — sits just below the hamburger, always visible (outside
+       the collapsible tools group). The "k" mark carries its own brand colors. -->
+  <a href="/" aria-label="Go to home page" class="toolbar-tile">
+    <img src="/assets/utility_images/k_plain.svg" alt="Home" class="h-9 w-auto">
+  </a>
+  
+
+  <div  class="toolbar-tools flex flex-col items-center gap-2">
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+  </div>
+  
+  
+
+</div>
+
+
+<!-- The hand: one engine-owned view (Pattern 13, assets/js/kipukas-view.js).
+     The cards are named in the address by their short codes, after the #
+     (/hand/#KVphRrDC is two cards). {hash} passes them to the engine, which
+     renders a pane for each card (kipukas-server/src/routes/hand.rs), or says
+     the hand is empty. It is drawn again when the address changes. There is
+     no script here. -->
+<div class="w-screen h-screen overflow-hidden" data-engine-view="/api/hand?codes={hash}"></div>
+</main>
+  </body>
+</html>

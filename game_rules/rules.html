@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kipukas — Game Rules</title>
+    <!--
+      The rules were at this address (game_rules/rules.html) until they moved
+      to index.html beside it. Old links and bookmarks land here and are sent
+      on. The address is given relative to this page, so the forward works
+      wherever the rules are served from.
+    -->
+    <link rel="canonical" href="https://www.kipukas.cards/game_rules/index.html">
+    <meta name="robots" content="noindex">
+    <script>
+      // A section's anchor (#movement) is carried over. The old page's
+      // anchors were slide numbers (#/3), which name nothing in the rules now.
+      var anchor = /^#[A-Za-z][\w-]*$/.test(location.hash) ? location.hash : '';
+      location.replace('index.html' + anchor);
+    </script>
+    <meta http-equiv="refresh" content="0; url=index.html">
+</head>
+<body>
+    <p>The rules have moved: <a href="index.html">Kipukas Game Rules</a>.</p>
+</body>
+</html>
